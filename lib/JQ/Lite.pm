@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use JSON::PP;
 
-our $VERSION = '0.01';
+our $VERSION = '0.03';
 
 sub new {
     my ($class, %opts) = @_;
@@ -20,8 +20,8 @@ sub run_query {
 
     my @parts = split /\|/, $query;
     @parts = map {
-        s/^\s+|\s+$//g;   # 前後の空白削除 (誤: \s+\$ → 正: \s+\$)
-        s/^\.//;           # 先頭のドット削除
+        s/^\s+|\s+\$//g;
+        s/^\.//;
         $_;
     } @parts;
 
@@ -43,28 +43,66 @@ sub _traverse {
     my @stack = ($data);
 
     for my $step (@steps) {
+        my $optional = ($step =~ s/\?\$// || $step =~ s/\?\$//g);
+        $optional = 1 if $step =~ s/\?\$//;
+        $optional = 1 if $step =~ s/\?\$//g;
+        $optional = 1 if $step =~ s/\?\$//;
+        $optional = 1 if $step =~ s/\?\$//g;
+        $optional = 1 if $step =~ s/\?$//;
+
         my @new_stack;
-        if ($step =~ /^(.*?)\[\]$/) {
+
+        if ($step =~ /^(.*?)\[(\d+)\]$/) {
+            my ($key, $index) = ($1, $2);
+            for my $item (@stack) {
+                if (ref $item eq 'HASH' && exists $item->{$key}) {
+                    my $val = $item->{$key};
+                    if (ref $val eq 'ARRAY' && defined $val->[$index]) {
+                        push @new_stack, $val->[$index];
+                    }
+                } elsif ($optional) {
+                    next;
+                }
+            }
+        }
+        elsif ($step =~ /^(.*?)\[\]$/) {
             my $key = $1;
             for my $item (@stack) {
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my $val = $item->{$key};
                     push @new_stack, @$val if ref $val eq 'ARRAY';
-                }
-            }
-        } else {
-            for my $item (@stack) {
-                if (ref $item eq 'HASH' && exists $item->{$step}) {
-                    push @new_stack, $item->{$step};
-                } elsif (ref $item eq 'ARRAY') {
-                    for my $sub (@$item) {
-                        push @new_stack, $sub->{$step} if ref $sub eq 'HASH' && exists $sub->{$step};
-                    }
+                } elsif ($optional) {
+                    next;
                 }
             }
         }
+        else {
+            for my $item (@stack) {
+                if (ref $item eq 'HASH') {
+                    if (exists $item->{$step}) {
+                        push @new_stack, $item->{$step};
+                    } elsif ($optional) {
+                        next;
+                    }
+                } elsif (ref $item eq 'ARRAY') {
+                    for my $sub (@$item) {
+                        if (ref $sub eq 'HASH') {
+                            if (exists $sub->{$step}) {
+                                push @new_stack, $sub->{$step};
+                            } elsif ($optional) {
+                                next;
+                            }
+                        }
+                    }
+                } elsif ($optional) {
+                    next;
+                }
+            }
+        }
+
         @stack = @new_stack;
     }
+
     return @stack;
 }
 
@@ -102,4 +140,3 @@ Kawamura Shingo <pannakoota1@gmail.com>
 Same as Perl itself.
 
 =cut
-
