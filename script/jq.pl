@@ -20,7 +20,9 @@ my @results = $jq->run_query($json_text, $query);
 
 # 出力
 for my $r (@results) {
-    if (ref $r eq '') {
+    if (!defined $r) {
+        print "null\n";
+    } elsif (ref $r eq '') {
         print "$r\n";
     } else {
         print encode_json($r), "\n";
