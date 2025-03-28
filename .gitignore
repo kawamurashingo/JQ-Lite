@@ -1,0 +1,26 @@
+# Ignore build files
+Makefile
+Makefile.old
+blib/
+pm_to_blib
+*.o
+*.bs
+*.bak
+*.tmp
+*.tar.gz
+*.zip
+
+# Metadata
+MYMETA.*
+MANIFEST.bak
+
+# Test leftovers
+cover_db/
+nytprof.out
+
+# Editor swap files
+*~
+*.swp
+
+# Mac/Linux file junk
+.DS_Store
