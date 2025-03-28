@@ -20,7 +20,7 @@ sub run_query {
 
     my @parts = split /\|/, $query;
     @parts = map {
-        s/^\s+|\s+\$//g;
+        s/^\s+|\s+$//g;
         s/^\.//;
         $_;
     } @parts;
