@@ -1,5 +1,3 @@
-### 📄 `README.md`
-
 # JQ::Lite
 
 **JQ::Lite** is a lightweight, pure-Perl JSON query engine inspired by the `jq` command-line tool.  
