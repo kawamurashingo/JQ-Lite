@@ -18,8 +18,12 @@ sub run_query {
     my ($self, $json_text, $query) = @_;
     my $data = decode_json($json_text);
 
-    # パイプで分割（例: .domain[] | .name）
-    my @parts = map { s/^\s*\.//r =~ s/\s*\$//r } split /\|/, $query;
+    my @parts = split /\|/, $query;
+    @parts = map {
+        s/^\s+|\s+$//g;   # 前後の空白削除 (誤: \s+\$ → 正: \s+\$)
+        s/^\.//;           # 先頭のドット削除
+        $_;
+    } @parts;
 
     my @results = ($data);
     for my $part (@parts) {
@@ -27,7 +31,7 @@ sub run_query {
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
         }
-        @results = map { ref $_ eq 'ARRAY' ? @$_ : $_ } @next_results;
+        @results = @next_results;
     }
 
     return @results;
@@ -52,6 +56,10 @@ sub _traverse {
             for my $item (@stack) {
                 if (ref $item eq 'HASH' && exists $item->{$step}) {
                     push @new_stack, $item->{$step};
+                } elsif (ref $item eq 'ARRAY') {
+                    for my $sub (@$item) {
+                        push @new_stack, $sub->{$step} if ref $sub eq 'HASH' && exists $sub->{$step};
+                    }
                 }
             }
         }
@@ -94,3 +102,4 @@ Kawamura Shingo <pannakoota1@gmail.com>
 Same as Perl itself.
 
 =cut
+
