@@ -1,3 +1,4 @@
+
 # JQ::Lite
 
 **JQ::Lite** is a lightweight, pure-Perl JSON query engine inspired by the [`jq`](https://stedolan.github.io/jq/) command-line tool.  
@@ -11,7 +12,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - Array traversal and indexing (`.users[0]`, `.users[]`)
 - Built-in functions: `length`, `keys`
 - Filtering via `select(...)` with `==`, `!=`, `<`, `>`, `and`, `or`
-- Usable as both a Perl module and a command-line tool
+- Usable as both a Perl module and a command-line tool (`jq-lite`)
 
 ## 🤔 Why JQ::Lite (vs jq or JSON::PP)?
 
@@ -39,7 +40,7 @@ make test
 make install
 ```
 
-Or just use it as a standalone script (see CLI usage below).
+After installation, the command-line tool will be available as `jq-lite`.
 
 ## 🚀 Usage
 
@@ -58,21 +59,23 @@ print join("\n", @names), "\n";
 ### As a CLI tool
 
 ```bash
-cat users.json | ./script/jq '.users[] | .name'
+cat users.json | ./script/jq-lite '.users[] | .name'
 ```
 
 Or install it globally:
 
 ```bash
-ln -s script/jq ~/bin/jq
-chmod +x ~/bin/jq
+ln -s script/jq-lite ~/bin/jq-lite
+chmod +x ~/bin/jq-lite
 ```
 
-Then you can use it just like `jq`:
+Then use it like this:
 
 ```bash
-cat users.json | jq '.users[].name'
+cat users.json | jq-lite '.users[].name'
 ```
+
+⚠️ **Note:** The executable is named `jq-lite` to avoid confusion with the official `jq` tool.
 
 ## 📘 Example Input
 
@@ -102,12 +105,12 @@ cat users.json | jq '.users[].name'
 ### Example Queries
 
 ```bash
-jq '.users[] | .name'                 # => "Alice", "Bob"
-jq '.users | length'                 # => 2
-jq '.users[0] | keys'                # => ["age","name","profile"]
-jq '.users[].nickname?'             # => No output, no error
-jq '.users[] | select(.age > 25)'   # => {"name":"Alice",...}
-jq '.users[] | select(.profile.active == true) | .name'
+jq-lite '.users[] | .name'                 # => "Alice", "Bob"
+jq-lite '.users | length'                 # => 2
+jq-lite '.users[0] | keys'                # => ["age","name","profile"]
+jq-lite '.users[].nickname?'             # => No output, no error
+jq-lite '.users[] | select(.age > 25)'   # => {"name":"Alice",...}
+jq-lite '.users[] | select(.profile.active == true) | .name'
 ```
 
 ## 🧪 Testing
