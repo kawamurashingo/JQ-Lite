@@ -18,7 +18,11 @@ sub new {
 sub run_query {
     my ($self, $json_text, $query) = @_;
     my $data = decode_json($json_text);
-
+    
+    if (!defined $query || $query =~ /^\s*\.\s*$/) {
+        return ($data);
+    }
+    
     my @parts = split /\|/, $query;
     @parts = map {
         s/^\s+|\s+$//g;
