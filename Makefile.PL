@@ -13,7 +13,7 @@ WriteMakefile(
         'Test::More' => 0,
         'FindBin'    => 0,
     },
-    EXE_FILES    => ['script/jq.pl'],
+    EXE_FILES    => ['script/jq'],
     META_MERGE   => {
         resources => {
             repository => {
