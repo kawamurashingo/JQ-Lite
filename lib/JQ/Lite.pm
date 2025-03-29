@@ -138,7 +138,23 @@ sub _traverse {
 sub _evaluate_condition {
     my ($item, $cond) = @_;
 
-    # 例: .profile.country == "JP"
+    # 複数条件対応：分割して再帰評価
+    if ($cond =~ /\s+and\s+/i) {
+        my @conds = split /\s+and\s+/i, $cond;
+        for my $c (@conds) {
+            return 0 unless _evaluate_condition($item, $c);
+        }
+        return 1;
+    }
+    if ($cond =~ /\s+or\s+/i) {
+        my @conds = split /\s+or\s+/i, $cond;
+        for my $c (@conds) {
+            return 1 if _evaluate_condition($item, $c);
+        }
+        return 0;
+    }
+
+    # 単一条件パターン
     if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
         my ($path, $op, $value_raw) = ($1, $2, $3);
 
@@ -155,9 +171,8 @@ sub _evaluate_condition {
             $value = $value_raw;
         }
 
-        # 新しく: _traverse を使って値を取得
         my @values = _traverse($item, $path);
-        my $field_val = $values[0];  # 最初の値だけ比較（配列対応は後回し）
+        my $field_val = $values[0];
 
         return eval {
             return 0 unless defined $field_val;
