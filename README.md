@@ -77,12 +77,12 @@ chmod +x ~/bin/jq
 ### Example Queries
 
 ```bash
-cat users.json | script/jq '.users[] | .name'
-cat users.json | script/jq '.users | length'    # => 2
-cat users.json | script/jq '.users[0] | keys'   # => ["age","name"]
-cat users.json | script/jq '.users[].nickname?' # => （何も出力されない、でもエラーもなし）
-cat users.json | script/jq '.users[] | select(.age > 25)' # => Aliceのデータ
-cat users.json | script/jq -r '.users[].name'
+cat users.json | jq '.users[] | .name'
+cat users.json | jq '.users | length'    # => 2
+cat users.json | jq '.users[0] | keys'   # => ["age","name"]
+cat users.json | jq '.users[].nickname?' # => （何も出力されない、でもエラーもなし）
+cat users.json | jq '.users[] | select(.age > 25)' # => Aliceのデータ
+cat users.json | jq -r '.users[].name'
 ```
 
 ## 🧪 Testing
