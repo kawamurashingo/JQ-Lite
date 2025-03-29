@@ -10,40 +10,52 @@ use JQ::Lite;
 # Argument parsing
 my $raw_output = 0;
 my $query;
+my $filename;
 
-for my $arg (@ARGV) {
+while (@ARGV) {
+    my $arg = shift @ARGV;
     if ($arg eq '--raw-output' || $arg eq '-r') {
         $raw_output = 1;
     } elsif ($arg eq '--help' || $arg eq '-h') {
         print <<'USAGE';
-Usage: jq-lite [--raw-output|-r] [--help|-h] '.query'
+Usage: jq-lite [--raw-output|-r] [--help|-h] '.query' [file.json]
 
 Examples:
   cat users.json | jq-lite '.users[0].name'
-  cat users.json | jq-lite -r '.users[].name'
-  cat users.json | jq-lite '.users[] | select(.age > 25 and .profile.country == "JP")'
+  jq-lite '.users[].name' users.json
+  jq-lite -r '.users[] | select(.age > 25)' users.json
 USAGE
         exit 0;
-    } elsif (!defined $query && $arg =~ /^[^.]/) {
-        # Unrecognized option (e.g. --h)
-        die "Error: Unknown option '$arg'\nUsage: jq-lite [--raw-output|-r] [--help|-h] '.query'\n";
-    } elsif (!defined $query) {
+    } elsif (!defined $query && $arg =~ /^\./) {
         $query = $arg;
+    } elsif (!defined $query) {
+        die "Error: Invalid query syntax '$arg'\nUsage: jq-lite [--raw-output|-r] '.query' [file.json]\n";
+    } elsif (!defined $filename) {
+        $filename = $arg;
     } else {
-        die "Usage: jq-lite [--raw-output|-r] '.query'\n";
+        die "Usage: jq-lite [--raw-output|-r] '.query' [file.json]\n";
     }
 }
 
-die "Usage: jq-lite [--raw-output|-r] '.query'\n" unless defined $query;
+die "Usage: jq-lite [--raw-output|-r] '.query' [file.json]\n" unless defined $query;
 
-# Read JSON text from STDIN
-my $json_text = do { local $/; <STDIN> };
+# Load JSON from file or STDIN
+my $json_text;
+if (defined $filename) {
+    open my $fh, '<', $filename or die "Cannot open file '$filename': $!\n";
+    local $/;
+    $json_text = <$fh>;
+    close $fh;
+} else {
+    local $/;
+    $json_text = <STDIN>;
+}
 
 # Run query
 my $jq = JQ::Lite->new(raw => $raw_output);
 my @results = $jq->run_query($json_text, $query);
 
-# JSON formatter for output
+# Output formatter
 my $pp = JSON::PP->new->utf8->canonical->pretty;
 
 # Print results
@@ -51,9 +63,8 @@ for my $r (@results) {
     if (!defined $r) {
         print "null\n";
     } elsif ($raw_output && ref($r) eq '') {
-        print "$r\n";  # Raw string output
+        print "$r\n";
     } else {
-        print $pp->encode($r);  # Formatted JSON output
+        print $pp->encode($r);
     }
 }
-
