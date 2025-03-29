@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use JSON::PP;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 sub new {
     my ($class, %opts) = @_;
@@ -56,6 +56,51 @@ sub run_query {
         if ($part eq 'keys') {
             @next_results = map {
                 ref $_ eq 'HASH' ? [ sort keys %$_ ] : undef
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # sort 対応
+        if ($part eq 'sort') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? [ sort { _smart_cmp()->($a, $b) } @$_ ] : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # unique 対応
+        if ($part eq 'unique') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? [ _uniq(@$_) ] : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # first 対応
+        if ($part eq 'first') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' && @$_ ? $$_[0] : undef
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # last 対応
+        if ($part eq 'last') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' && @$_ ? $$_[-1] : undef
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # reverse 対応
+        if ($part eq 'reverse') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? [ reverse @$_ ] : $_
             } @results;
             @results = @next_results;
             next;
@@ -152,6 +197,35 @@ sub _evaluate_condition {
         return 0;
     }
 
+    # contains 演算子対応: select(.tags contains "perl")
+    if ($cond =~ /^\s*\.(.+?)\s+contains\s+"(.*?)"\s*$/) {
+        my ($path, $want) = ($1, $2);
+        my @vals = _traverse($item, $path);
+
+        for my $val (@vals) {
+            if (ref $val eq 'ARRAY') {
+                return 1 if grep { $_ eq $want } @$val;
+            }
+            elsif (!ref $val && index($val, $want) >= 0) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    # has 演算子対応: select(.meta has "key")
+    if ($cond =~ /^\s*\.(.+?)\s+has\s+"(.*?)"\s*$/) {
+        my ($path, $key) = ($1, $2);
+        my @vals = _traverse($item, $path);
+
+        for my $val (@vals) {
+            if (ref $val eq 'HASH' && exists $val->{$key}) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
     # 単一条件パターン
     if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
         my ($path, $op, $value_raw) = ($1, $2, $3);
@@ -198,6 +272,37 @@ sub _evaluate_condition {
     return 0;
 }
 
+sub _smart_cmp {
+    return sub {
+        my ($a, $b) = @_;
+
+        my $num_a = ($a =~ /^-?\d+(?:\.\d+)?$/);
+        my $num_b = ($b =~ /^-?\d+(?:\.\d+)?$/);
+
+        if ($num_a && $num_b) {
+            return $a <=> $b;
+        } else {
+            return "$a" cmp "$b";  # 明示的に文字列比較
+        }
+    };
+}
+
+sub _uniq {
+    my %seen;
+    return grep { !$seen{_key($_)}++ } @_;
+}
+
+sub _key {
+    my ($val) = @_;
+    if (ref $val eq 'HASH') {
+        return join(",", sort map { "$_=$val->{$_}" } keys %$val);
+    } elsif (ref $val eq 'ARRAY') {
+        return join(",", map { _key($_) } @$val);
+    } else {
+        return "$val";
+    }
+}
+
 1;
 __END__
 
@@ -209,7 +314,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.07
+Version 0.08
 
 =head1 SYNOPSIS
 
