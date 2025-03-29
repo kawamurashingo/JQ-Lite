@@ -106,6 +106,22 @@ sub run_query {
             next;
         }
 
+        if ($part =~ /^limit\((\d+)\)$/) {
+            my $limit = $1;
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $arr = $_;
+                    my $end = $limit - 1;
+                    $end = $#$arr if $end > $#$arr;
+                    [ @$arr[0 .. $end] ]
+                } else {
+                    $_
+                }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # 通常トラバース
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
@@ -226,6 +242,22 @@ sub _evaluate_condition {
         return 0;
     }
 
+    # match 演算子対応（iオプション付き）
+    if ($cond =~ /^\s*\.(.+?)\s+match\s+"(.*?)"(i?)\s*$/) {
+        my ($path, $pattern, $ignore_case) = ($1, $2, $3);
+        my $re = eval {
+            $ignore_case eq 'i' ? qr/$pattern/i : qr/$pattern/
+        };
+        return 0 unless $re;
+
+        my @vals = _traverse($item, $path);
+        for my $val (@vals) {
+            next if ref $val;
+            return 1 if $val =~ $re;
+        }
+        return 0;
+    }
+ 
     # 単一条件パターン
     if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
         my ($path, $op, $value_raw) = ($1, $2, $3);
