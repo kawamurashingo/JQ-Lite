@@ -268,17 +268,13 @@ This module uses only core Perl modules:
 
 =head1 SEE ALSO
 
-L<jq>, L<JSON::XS>, L<JSON::PP>
+L<JSON::PP>
 
 =head1 AUTHOR
 
 Kawamura Shingo <pannakoota1@gmail.com>
 
 =head1 LICENSE
-
-Same as Perl itself.
-
-=cut
 
 Same as Perl itself.
 
