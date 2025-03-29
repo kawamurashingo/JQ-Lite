@@ -54,8 +54,22 @@ chmod +x ~/bin/jq
 ```json
 {
   "users": [
-    { "name": "Alice", "age": 30 },
-    { "name": "Bob", "age": 25 }
+    {
+      "name": "Alice",
+      "age": 30,
+      "profile": {
+        "active": true,
+        "country": "US"
+      }
+    },
+    {
+      "name": "Bob",
+      "age": 25,
+      "profile": {
+        "active": false,
+        "country": "JP"
+      }
+    }
   ]
 }
 ```
@@ -63,12 +77,12 @@ chmod +x ~/bin/jq
 ### Example Queries
 
 ```bash
-cat users.json | jq '.users[] | .name'
-cat users.json | jq '.users | length'
-cat users.json | jq '.users[0] | keys'
-cat users.json | jq '.users[].nickname?'
-cat users.json | jq '.users[] | select(.age > 25)'
-cat users.json | jq -r '.users[].name'
+cat users.json | ./script/jq '.users[] | .name'
+cat users.json | ./script/jq '.users | length'
+cat users.json | ./script/jq '.users[0] | keys'
+cat users.json | ./script/jq '.users[].nickname?'
+cat users.json | ./script/jq '.users[] | select(.age > 25)'
+cat users.json | ./script/jq -r '.users[].name'
 ```
 
 ## 🧪 Testing
