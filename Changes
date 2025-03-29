@@ -1,5 +1,7 @@
-0.09  2025-03-30
+0.10  2025-03-30
     - Added match operator for regular expressions (e.g. match "Bob")
+
+0.09  2025-03-30
     - Added support for case-insensitive match (e.g. match "bob"i)
     - Added limit(n) operator to restrict number of results
 
