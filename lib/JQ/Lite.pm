@@ -3,8 +3,9 @@ package JQ::Lite;
 use strict;
 use warnings;
 use JSON::PP;
+use Data::Dumper;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 sub new {
     my ($class, %opts) = @_;
@@ -18,11 +19,6 @@ sub run_query {
     my ($self, $json_text, $query) = @_;
     my $data = decode_json($json_text);
 
-    # if query is "." or whitespace-only, return the whole JSON
-    if (!defined $query || $query =~ /^\s*\.\s*$/) {
-        return ($data);
-    }
-
     my @parts = split /\|/, $query;
     @parts = map {
         s/^\s+|\s+$//g;
@@ -34,6 +30,7 @@ sub run_query {
     for my $part (@parts) {
         my @next_results;
 
+        # select(...) 対応
         if ($part =~ /^select\((.+)\)$/) {
             my $cond = $1;
             @next_results = grep { _evaluate_condition($_, $cond) } @results;
@@ -41,6 +38,27 @@ sub run_query {
             next;
         }
 
+        # length 対応
+        if ($part eq 'length') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? scalar(@$_) :
+                ref $_ eq 'HASH'  ? scalar(keys %$_) :
+                0
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # keys 対応
+        if ($part eq 'keys') {
+            @next_results = map {
+                ref $_ eq 'HASH' ? [ sort keys %$_ ] : undef
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # 通常トラバース
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
         }
@@ -56,13 +74,7 @@ sub _traverse {
     my @stack = ($data);
 
     for my $step (@steps) {
-        my $optional = ($step =~ s/\?\$// || $step =~ s/\?\$//g);
-        $optional = 1 if $step =~ s/\?\$//;
-        $optional = 1 if $step =~ s/\?\$//g;
-        $optional = 1 if $step =~ s/\?\$//;
-        $optional = 1 if $step =~ s/\?\$//g;
-        $optional = 1 if $step =~ s/\?$//;
-
+        my $optional = ($step =~ s/\?$//);
         my @new_stack;
 
         if ($step =~ /^(.*?)\[(\d+)\]$/) {
@@ -122,11 +134,10 @@ sub _traverse {
 sub _evaluate_condition {
     my ($item, $cond) = @_;
 
-    # 例: .profile.country == "JP"
-    if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
-        my ($path, $op, $value_raw) = ($1, $2, $3);
+    # 例: .age > 25
+    if ($cond =~ /^\s*\.(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
+        my ($key, $op, $value_raw) = ($1, $2, $3);
 
-        # 値の正規化
         my $value;
         if ($value_raw =~ /^"(.*)"$/) {
             $value = $1;
@@ -134,15 +145,13 @@ sub _evaluate_condition {
             $value = JSON::PP::true;
         } elsif ($value_raw eq 'false') {
             $value = JSON::PP::false;
-        } elsif ($value_raw =~ /^-?\d+(?:\.\d+)?$/) {
+        } elsif ($value_raw =~ /^-?\d+(\.\d+)?$/) {
             $value = 0 + $value_raw;
         } else {
             $value = $value_raw;
         }
 
-        # ✅ ドット区切りの path を _traverse で取得
-        my @values = _traverse($item, $path);
-        my $field_val = $values[0];  # 配列で返ってくるので最初の要素だけ評価
+        my $field_val = (ref $item eq 'HASH') ? $item->{$key} : undef;
 
         return eval {
             return 0 unless defined $field_val;
