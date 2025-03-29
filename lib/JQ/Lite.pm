@@ -122,9 +122,9 @@ sub _traverse {
 sub _evaluate_condition {
     my ($item, $cond) = @_;
 
-    # 例: .age > 25
-    if ($cond =~ /^\s*\.(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
-        my ($key, $op, $value_raw) = ($1, $2, $3);
+    # 例: .profile.country == "JP"
+    if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
+        my ($path, $op, $value_raw) = ($1, $2, $3);
 
         # 値の正規化
         my $value;
@@ -134,24 +134,24 @@ sub _evaluate_condition {
             $value = JSON::PP::true;
         } elsif ($value_raw eq 'false') {
             $value = JSON::PP::false;
-        } elsif ($value_raw =~ /^\d+(\.\d+)?$/) {
+        } elsif ($value_raw =~ /^-?\d+(?:\.\d+)?$/) {
             $value = 0 + $value_raw;
         } else {
             $value = $value_raw;
         }
 
-        # キーの値を取得
-        my $field_val = (ref $item eq 'HASH') ? $item->{$key} : undef;
+        # ✅ ドット区切りの path を _traverse で取得
+        my @values = _traverse($item, $path);
+        my $field_val = $values[0];  # 配列で返ってくるので最初の要素だけ評価
 
-        # 比較演算
         return eval {
-            if (!defined $field_val) {
-                return 0;
-            }
+            return 0 unless defined $field_val;
+            my $is_number = ($field_val =~ /^-?\d+(\.\d+)?$/) && ($value =~ /^-?\d+(\.\d+)?$/);
+
             if ($op eq '==') {
-                return $field_val eq $value;
+                return $is_number ? $field_val == $value : $field_val eq $value;
             } elsif ($op eq '!=') {
-                return $field_val ne $value;
+                return $is_number ? $field_val != $value : $field_val ne $value;
             } elsif ($op eq '>') {
                 return $field_val > $value;
             } elsif ($op eq '>=') {
