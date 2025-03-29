@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use JSON::PP;
 
-our $VERSION = '0.07777777';
+our $VERSION = '0.07';
 
 sub new {
     my ($class, %opts) = @_;
