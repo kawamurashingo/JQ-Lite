@@ -1,17 +1,34 @@
 # JQ::Lite
 
-**JQ::Lite** is a lightweight, pure-Perl JSON query engine inspired by the `jq` command-line tool.  
-It allows simplified jq-like querying of JSON data using dot notation and minimal syntax.
+**JQ::Lite** is a lightweight, pure-Perl JSON query engine inspired by the [`jq`](https://stedolan.github.io/jq/) command-line tool.  
+It allows you to extract, traverse, and filter JSON data using a simplified jq-like query syntax — entirely within Perl.
 
 ## 🔧 Features
 
-- Pure Perl implementation (no XS, no external dependencies)
-- Simple jq-like query syntax (e.g. `.users[] | .name`)
-- Supports dot access, array traversal, optional keys, indexing
+- Pure Perl (no XS, no external dependencies)
+- Dot notation for key access (`.users[].name`)
+- Optional keys (`.nickname?`)
+- Array traversal and indexing (`.users[0]`, `.users[]`)
 - Built-in functions: `length`, `keys`
-- Filter support: `select(...)` with logical ops (`and`, `or`) and comparisons
-- Can be used as a CLI tool (`script/jq` or symlink as `jq`)
-- Useful for scripting, data extraction, teaching
+- Filtering via `select(...)` with `==`, `!=`, `<`, `>`, `and`, `or`
+- Usable as both a Perl module and a command-line tool
+
+## 🤔 Why JQ::Lite (vs jq or JSON::PP)?
+
+While [`jq`](https://stedolan.github.io/jq/) is a powerful CLI tool, **JQ::Lite** fills a different niche:
+
+| Use Case | Tool |
+|----------|------|
+| Simple JSON parsing in Perl | ✅ `JSON::PP` |
+| Powerful CLI processing | ✅ `jq` |
+| Querying JSON inside Perl without shelling out | ✅ **JQ::Lite** |
+| Lightweight, portable scripting with no non-core deps | ✅ **JQ::Lite** |
+| jq-style syntax in Perl scripts (for filtering/traversal) | ✅ **JQ::Lite** |
+
+JQ::Lite is particularly useful in environments where:
+- You cannot install external binaries like `jq`
+- You want to write reusable Perl code that dynamically handles JSON
+- You want to keep dependencies minimal and avoid XS modules
 
 ## 🛠 Installation
 
@@ -21,6 +38,8 @@ make
 make test
 make install
 ```
+
+Or just use it as a standalone script (see CLI usage below).
 
 ## 🚀 Usage
 
@@ -39,14 +58,20 @@ print join("\n", @names), "\n";
 ### As a CLI tool
 
 ```bash
-cat users.json | script/jq '.users[] | .name'
+cat users.json | ./script/jq '.users[] | .name'
 ```
 
-Or create a symlink or copy to use as `jq`:
+Or install it globally:
 
 ```bash
 ln -s script/jq ~/bin/jq
 chmod +x ~/bin/jq
+```
+
+Then you can use it just like `jq`:
+
+```bash
+cat users.json | jq '.users[].name'
 ```
 
 ## 📘 Example Input
@@ -77,12 +102,12 @@ chmod +x ~/bin/jq
 ### Example Queries
 
 ```bash
-cat users.json | jq '.users[] | .name'
-cat users.json | jq '.users | length'    # => 2
-cat users.json | jq '.users[0] | keys'   # => ["age","name"]
-cat users.json | jq '.users[].nickname?' # => （何も出力されない、でもエラーもなし）
-cat users.json | jq '.users[] | select(.age > 25)' # => Aliceのデータ
-cat users.json | jq -r '.users[].name'
+jq '.users[] | .name'                 # => "Alice", "Bob"
+jq '.users | length'                 # => 2
+jq '.users[0] | keys'                # => ["age","name","profile"]
+jq '.users[].nickname?'             # => No output, no error
+jq '.users[] | select(.age > 25)'   # => {"name":"Alice",...}
+jq '.users[] | select(.profile.active == true) | .name'
 ```
 
 ## 🧪 Testing
@@ -93,7 +118,8 @@ prove -l t/
 
 ## 📦 CPAN
 
-This module is available on CPAN: [JQ::Lite](https://metacpan.org/pod/JQ::Lite)
+This module is available on CPAN:  
+👉 [JQ::Lite on MetaCPAN](https://metacpan.org/pod/JQ::Lite)
 
 ## 📝 License
 
@@ -101,7 +127,6 @@ This module is released under the same terms as Perl itself.
 
 ## 👤 Author
 
-Kawamura Shingo  
-[pannakoota1@gmail.com](mailto:pannakoota1@gmail.com)
-
-GitHub: [https://github.com/kawamurashingo/JQ-Lite](https://github.com/kawamurashingo/JQ-Lite)
+**Kawamura Shingo**  
+📧 [pannakoota1@gmail.com](mailto:pannakoota1@gmail.com)  
+🔗 GitHub: [https://github.com/kawamurashingo/JQ-Lite](https://github.com/kawamurashingo/JQ-Lite)
