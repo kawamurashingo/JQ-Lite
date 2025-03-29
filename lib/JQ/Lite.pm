@@ -18,6 +18,11 @@ sub run_query {
     my ($self, $json_text, $query) = @_;
     my $data = decode_json($json_text);
 
+    # if query is "." or whitespace-only, return the whole JSON
+    if (!defined $query || $query =~ /^\s*\.\s*$/) {
+        return ($data);
+    }
+
     my @parts = split /\|/, $query;
     @parts = map {
         s/^\s+|\s+$//g;
@@ -28,6 +33,14 @@ sub run_query {
     my @results = ($data);
     for my $part (@parts) {
         my @next_results;
+
+        if ($part =~ /^select\((.+)\)$/) {
+            my $cond = $1;
+            @next_results = grep { _evaluate_condition($_, $cond) } @results;
+            @results = @next_results;
+            next;
+        }
+
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
         }
@@ -104,6 +117,55 @@ sub _traverse {
     }
 
     return @stack;
+}
+
+sub _evaluate_condition {
+    my ($item, $cond) = @_;
+
+    # 例: .age > 25
+    if ($cond =~ /^\s*\.(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
+        my ($key, $op, $value_raw) = ($1, $2, $3);
+
+        # 値の正規化
+        my $value;
+        if ($value_raw =~ /^"(.*)"$/) {
+            $value = $1;
+        } elsif ($value_raw eq 'true') {
+            $value = JSON::PP::true;
+        } elsif ($value_raw eq 'false') {
+            $value = JSON::PP::false;
+        } elsif ($value_raw =~ /^\d+(\.\d+)?$/) {
+            $value = 0 + $value_raw;
+        } else {
+            $value = $value_raw;
+        }
+
+        # キーの値を取得
+        my $field_val = (ref $item eq 'HASH') ? $item->{$key} : undef;
+
+        # 比較演算
+        return eval {
+            if (!defined $field_val) {
+                return 0;
+            }
+            if ($op eq '==') {
+                return $field_val eq $value;
+            } elsif ($op eq '!=') {
+                return $field_val ne $value;
+            } elsif ($op eq '>') {
+                return $field_val > $value;
+            } elsif ($op eq '>=') {
+                return $field_val >= $value;
+            } elsif ($op eq '<') {
+                return $field_val < $value;
+            } elsif ($op eq '<=') {
+                return $field_val <= $value;
+            }
+            return 0;
+        } || 0;
+    }
+
+    return 0;
 }
 
 1;
