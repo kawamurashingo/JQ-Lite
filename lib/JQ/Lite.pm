@@ -78,57 +78,56 @@ sub _traverse {
 
     for my $step (@steps) {
         my $optional = ($step =~ s/\?$//);
-        my @new_stack;
+        my @next_stack;
 
-        if ($step =~ /^(.*?)\[(\d+)\]$/) {
-            my ($key, $index) = ($1, $2);
-            for my $item (@stack) {
+        for my $item (@stack) {
+            next if !defined $item;
+
+            # 添字アクセス: key[index]
+            if ($step =~ /^(.*?)\[(\d+)\]$/) {
+                my ($key, $index) = ($1, $2);
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my $val = $item->{$key};
-                    if (ref $val eq 'ARRAY' && defined $val->[$index]) {
-                        push @new_stack, $val->[$index];
-                    }
-                } elsif ($optional) {
-                    next;
+                    push @next_stack, $val->[$index]
+                        if ref $val eq 'ARRAY' && defined $val->[$index];
                 }
             }
-        }
-        elsif ($step =~ /^(.*?)\[\]$/) {
-            my $key = $1;
-            for my $item (@stack) {
+            # 配列展開: key[]
+            elsif ($step =~ /^(.*?)\[\]$/) {
+                my $key = $1;
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my $val = $item->{$key};
-                    push @new_stack, @$val if ref $val eq 'ARRAY';
-                } elsif ($optional) {
-                    next;
-                }
-            }
-        }
-        else {
-            for my $item (@stack) {
-                if (ref $item eq 'HASH') {
-                    if (exists $item->{$step}) {
-                        push @new_stack, $item->{$step};
-                    } elsif ($optional) {
-                        next;
+                    if (ref $val eq 'ARRAY') {
+                        push @next_stack, @$val;
                     }
-                } elsif (ref $item eq 'ARRAY') {
+                }
+                elsif (ref $item eq 'ARRAY') {
                     for my $sub (@$item) {
-                        if (ref $sub eq 'HASH') {
-                            if (exists $sub->{$step}) {
-                                push @new_stack, $sub->{$step};
-                            } elsif ($optional) {
-                                next;
-                            }
+                        if (ref $sub eq 'HASH' && exists $sub->{$key}) {
+                            my $val = $sub->{$key};
+                            push @next_stack, @$val if ref $val eq 'ARRAY';
                         }
                     }
-                } elsif ($optional) {
-                    next;
+                }
+            }
+            # 通常アクセス: key
+            else {
+                if (ref $item eq 'HASH' && exists $item->{$step}) {
+                    push @next_stack, $item->{$step};
+                }
+                elsif (ref $item eq 'ARRAY') {
+                    for my $sub (@$item) {
+                        if (ref $sub eq 'HASH' && exists $sub->{$step}) {
+                            push @next_stack, $sub->{$step};
+                        }
+                    }
                 }
             }
         }
 
-        @stack = @new_stack;
+        # optional の場合は空でも許容
+        @stack = @next_stack;
+        last if !@stack && !$optional;
     }
 
     return @stack;
@@ -210,7 +209,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.05
+Version 0.07
 
 =head1 SYNOPSIS
 
