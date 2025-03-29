@@ -134,9 +134,9 @@ sub _traverse {
 sub _evaluate_condition {
     my ($item, $cond) = @_;
 
-    # 例: .age > 25
-    if ($cond =~ /^\s*\.(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
-        my ($key, $op, $value_raw) = ($1, $2, $3);
+    # 例: .profile.country == "JP"
+    if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
+        my ($path, $op, $value_raw) = ($1, $2, $3);
 
         my $value;
         if ($value_raw =~ /^"(.*)"$/) {
@@ -151,7 +151,9 @@ sub _evaluate_condition {
             $value = $value_raw;
         }
 
-        my $field_val = (ref $item eq 'HASH') ? $item->{$key} : undef;
+        # 新しく: _traverse を使って値を取得
+        my @values = _traverse($item, $path);
+        my $field_val = $values[0];  # 最初の値だけ比較（配列対応は後回し）
 
         return eval {
             return 0 unless defined $field_val;
