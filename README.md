@@ -1,14 +1,17 @@
 # JQ::Lite
 
 **JQ::Lite** is a lightweight, pure-Perl JSON query engine inspired by the `jq` command-line tool.  
-It provides a simplified jq-like syntax for querying JSON structures from Perl or the command line.
+It allows simplified jq-like querying of JSON data using dot notation and minimal syntax.
 
 ## 🔧 Features
 
 - Pure Perl implementation (no XS, no external dependencies)
 - Simple jq-like query syntax (e.g. `.users[] | .name`)
-- Can be used as a CLI tool (`script/jq.pl`)
-- Suitable for scripting, automation, and teaching purposes
+- Supports dot access, array traversal, optional keys, indexing
+- Built-in functions: `length`, `keys`
+- Filter support: `select(...)` with logical ops (`and`, `or`) and comparisons
+- Can be used as a CLI tool (`script/jq` or symlink as `jq`)
+- Useful for scripting, data extraction, teaching
 
 ## 🛠 Installation
 
@@ -30,16 +33,23 @@ my $json = '{"users":[{"name":"Alice"},{"name":"Bob"}]}';
 my $jq = JQ::Lite->new;
 my @names = $jq->run_query($json, '.users[] | .name');
 
-print join(\"\\n\", @names), \"\\n\";
+print join("\n", @names), "\n";
 ```
 
 ### As a CLI tool
 
 ```bash
-cat users.json | script/jq.pl '.users[] | .name'
+cat users.json | script/jq '.users[] | .name'
 ```
 
-## 📦 Example Input
+Or create a symlink or copy to use as `jq`:
+
+```bash
+ln -s script/jq ~/bin/jq
+chmod +x ~/bin/jq
+```
+
+## 📘 Example Input
 
 ```json
 {
@@ -50,30 +60,32 @@ cat users.json | script/jq.pl '.users[] | .name'
 }
 ```
 
-### Example Query
+### Example Queries
 
 ```bash
-cat users.json | script/jq.pl '.users[] | .name'
-```
-
-### Output
-
-```
-Alice
-Bob
+cat users.json | jq '.users[] | .name'
+cat users.json | jq '.users | length'
+cat users.json | jq '.users[0] | keys'
+cat users.json | jq '.users[].nickname?'
+cat users.json | jq '.users[] | select(.age > 25)'
+cat users.json | jq -r '.users[].name'
 ```
 
 ## 🧪 Testing
 
 ```sh
-prove -l t/basic.t
+prove -l t/
 ```
+
+## 📦 CPAN
+
+This module is available on CPAN: [JQ::Lite](https://metacpan.org/pod/JQ::Lite)
 
 ## 📝 License
 
 This module is released under the same terms as Perl itself.
 
-## 🧑‍💻 Author
+## 👤 Author
 
 Kawamura Shingo  
 [pannakoota1@gmail.com](mailto:pannakoota1@gmail.com)
