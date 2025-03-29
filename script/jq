@@ -1,0 +1,58 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use JSON::PP;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+use JQ::Lite;
+
+# 引数処理
+my $raw_output = 0;
+my $query;
+
+for my $arg (@ARGV) {
+    if ($arg eq '--raw-output' || $arg eq '-r') {
+        $raw_output = 1;
+    } elsif ($arg eq '--help' || $arg eq '-h') {
+        print <<'USAGE';
+Usage: jq [--raw-output|-r] [--help|-h] '.query'
+
+Examples:
+  cat users.json | jq '.users[0].name'
+  cat users.json | jq -r '.users[].name'
+  cat users.json | jq '.users[] | select(.age > 25 and .profile.country == "JP")'
+USAGE
+        exit 0;
+    } elsif (!defined $query && $arg =~ /^[^.]/) {
+        # 不明なオプションっぽい引数（例: --h）
+        die "Error: Unknown option '$arg'\nUsage: jq [--raw-output|-r] [--help|-h] '.query'\n";
+    } elsif (!defined $query) {
+        $query = $arg;
+    } else {
+        die "Usage: jq [--raw-output|-r] '.query'\n";
+    }
+}
+
+die "Usage: jq [--raw-output|-r] '.query'\n" unless defined $query;
+
+# 標準入力から JSON 読み込み
+my $json_text = do { local $/; <STDIN> };
+
+# クエリ実行
+my $jq = JQ::Lite->new;
+my @results = $jq->run_query($json_text, $query);
+
+# 出力用 JSON フォーマッタ
+my $pp = JSON::PP->new->utf8->canonical->pretty;
+
+# 結果出力
+for my $r (@results) {
+    if (!defined $r) {
+        print "null\n";
+    } elsif ($raw_output && ref($r) eq '') {
+        print "$r\n";  # 生出力（文字列）
+    } else {
+        print $pp->encode($r);  # 整形出力
+    }
+}
