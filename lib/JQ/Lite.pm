@@ -279,4 +279,3 @@ Kawamura Shingo <pannakoota1@gmail.com>
 Same as Perl itself.
 
 =cut
-
