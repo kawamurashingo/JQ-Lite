@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use JSON::PP;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07777777';
 
 sub new {
     my ($class, %opts) = @_;
@@ -164,7 +164,7 @@ sub _evaluate_condition {
             $value = JSON::PP::true;
         } elsif ($value_raw eq 'false') {
             $value = JSON::PP::false;
-        } elsif ($value_raw =~ /^-?\d+(\.\d+)?$/) {
+        } elsif ($value_raw =~ /^-?\d+(?:\.\d+)?$/) {
             $value = 0 + $value_raw;
         } else {
             $value = $value_raw;
@@ -173,15 +173,18 @@ sub _evaluate_condition {
         my @values = _traverse($item, $path);
         my $field_val = $values[0];
 
-        return eval {
-            return 0 unless defined $field_val;
-            my $is_number = ($field_val =~ /^-?\d+(\.\d+)?$/) && ($value =~ /^-?\d+(\.\d+)?$/);
+        return 0 unless defined $field_val;
 
-            if ($op eq '==') {
-                return $is_number ? $field_val == $value : $field_val eq $value;
-            } elsif ($op eq '!=') {
-                return $is_number ? $field_val != $value : $field_val ne $value;
-            } elsif ($op eq '>') {
+        my $is_number = (!ref($field_val) && $field_val =~ /^-?\d+(?:\.\d+)?$/)
+                     && (!ref($value)     && $value     =~ /^-?\d+(?:\.\d+)?$/);
+
+        if ($op eq '==') {
+            return $is_number ? ($field_val == $value) : ($field_val eq $value);
+        } elsif ($op eq '!=') {
+            return $is_number ? ($field_val != $value) : ($field_val ne $value);
+        } elsif ($is_number) {
+            # 数値比較は数値でしか行わない
+            if ($op eq '>') {
                 return $field_val > $value;
             } elsif ($op eq '>=') {
                 return $field_val >= $value;
@@ -190,8 +193,7 @@ sub _evaluate_condition {
             } elsif ($op eq '<=') {
                 return $field_val <= $value;
             }
-            return 0;
-        } || 0;
+        }
     }
 
     return 0;
