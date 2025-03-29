@@ -3,7 +3,6 @@ package JQ::Lite;
 use strict;
 use warnings;
 use JSON::PP;
-use Data::Dumper;
 
 our $VERSION = '0.04';
 
