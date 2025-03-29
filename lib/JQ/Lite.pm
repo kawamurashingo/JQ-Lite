@@ -268,7 +268,7 @@ This module uses only core Perl modules:
 
 =head1 SEE ALSO
 
-L<jq>, L<JSON::XS>, L<JSON::PP>
+L<JSON::PP>
 
 =head1 AUTHOR
 
@@ -280,6 +280,3 @@ Same as Perl itself.
 
 =cut
 
-Same as Perl itself.
-
-=cut
