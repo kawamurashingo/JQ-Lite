@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use JSON::PP;
+use IO::File;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
@@ -57,8 +58,11 @@ USAGE
     elsif (!defined $query && $arg =~ /^\./) {
         $query = $arg;
     }
-    elsif (!defined $query) {
+    elsif (!defined $query && !-f $arg) {
         die "Error: Invalid query syntax '$arg'\nUsage: jq-lite [--raw-output|-r] '.query' [file.json]\n";
+    }
+    elsif (!defined $query) {
+        $filename = $arg;
     }
     elsif (!defined $filename) {
         $filename = $arg;
@@ -67,8 +71,6 @@ USAGE
         die "Usage: jq-lite [--raw-output|-r] '.query' [file.json]\n";
     }
 }
-
-die "Usage: jq-lite [--raw-output|-r] '.query' [file.json]\n" unless defined $query;
 
 # Load JSON from file or STDIN
 my $json_text;
@@ -83,22 +85,67 @@ else {
     $json_text = <STDIN>;
 }
 
-# Run query
+# Create JQ::Lite object
 my $jq = JQ::Lite->new(raw => $raw_output);
-my @results = $jq->run_query($json_text, $query);
 
-# Output formatter
-my $pp = JSON::PP->new->utf8->canonical->pretty;
-
-# Print results
-for my $r (@results) {
-    if (!defined $r) {
-        print "null\n";
-    }
-    elsif ($raw_output && ref($r) eq '') {
-        print "$r\n";
-    }
-    else {
-        print $pp->encode($r);
+# Interactivity support
+sub print_results {
+    my @results = @_;
+    if ($raw_output) {
+        for my $r (@results) {
+            print defined($r) && ref($r) eq '' ? "$r\n" : "null\n";
+        }
+    } else {
+        my $pp = JSON::PP->new->utf8->canonical->pretty;
+        for my $r (@results) {
+            print defined($r) ? $pp->encode($r) : "null\n";
+        }
     }
 }
+
+# Interactive mode
+if (!defined $query) {
+    my $tty = IO::File->new("/dev/tty", "r") or die "Cannot open /dev/tty: $!";
+    print "jq-lite interactive mode. Enter query (empty line to quit):\n";
+    while (1) {
+        print "> ";
+        my $line = <$tty>;
+        last unless defined $line;
+        chomp $line;
+        last if $line =~ /^\s*$/;
+
+        my @results = eval { $jq->run_query($json_text, $line) };
+        if ($@) {
+            warn "[ERROR] Invalid query: $@\n";
+            next;
+        }
+
+        if (!@results) {
+            warn "[INFO] No results returned for query.\n";
+            next;
+        }
+
+        eval {
+            system("clear");
+            print_results(@results);
+            1;
+        } or do {
+            my $e = $@ || 'Unknown error';
+            warn "[ERROR] Failed to print result: $e\n";
+        };
+    }
+    exit 0;
+}
+
+# One-shot mode
+my @results = eval { $jq->run_query($json_text, $query) };
+if ($@) {
+    die "[ERROR] Invalid query: $@\n";
+}
+
+if (!@results) {
+    warn "[INFO] No results returned for query.\n";
+    exit 1;
+}
+
+print_results(@results);
