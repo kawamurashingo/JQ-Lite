@@ -1,3 +1,6 @@
+0.16  2025-04-05
+    - Added --version (-v) option to the jq-lite CLI script.
+      It displays the installed version of JQ::Lite.
 0.14  2025-04-05
     - Fixed: --raw-output (-r) now pretty-prints objects and arrays,
              and outputs scalars as plain text, matching jq behavior.
