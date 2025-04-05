@@ -1,3 +1,8 @@
+0.17  2025-04-05
+    - Added --color option to jq-lite CLI script to enable colorized JSON output.
+      Keys are cyan, strings green, numbers yellow, and booleans/null magenta.
+    - Updated help and usage examples to reflect the new --color option.
+    - Improved CLI usability by simplifying option name (from --color-output to --color).
 0.16  2025-04-05
     - Added --version (-v) option to the jq-lite CLI script.
       It displays the installed version of JQ::Lite.
