@@ -1,4 +1,4 @@
-![JQ::Lite](./logo/JQ_Lite_logo_small.png)
+![JQ::Lite](./images/JQ_Lite_logo_small.png)
 
 # JQ::Lite
 
@@ -79,8 +79,7 @@ If you omit the query, `jq-lite` enters **interactive mode**, allowing you to ty
 ```bash
 jq-lite users.json
 ```
-[![Watch the video](https://img.youtube.com/vi/5cxS0oBiDJM/hqdefault.jpg)](https://youtu.be/5cxS0oBiDJM)
-
+![JQ::Lite demo](images/jq_lite.gif)
 ```
 jq-lite interactive mode. Enter query (empty line to quit):
 > .users[0].name
