@@ -8,10 +8,10 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
 
-# Default: enable color if STDOUT is a terminal
+# Enable color output if STDOUT is a terminal by default
 my $use_color = (-t STDOUT);
 
-# Color codes (will be replaced with '' if --no-color is used)
+# ANSI color codes
 my %COLOR = (
     reset  => "\e[0m",
     prompt => "\e[1;36m",
@@ -25,13 +25,13 @@ my %COLOR = (
     null   => "\e[1;90m",
 );
 
-# Disable all colors (called if --no-color is given)
+# Disable all colors
 sub disable_colors {
     $_ = '' for values %COLOR;
 }
 
-# Show help if no arguments are given
-if (!@ARGV) {
+# Show help message
+sub show_help {
     print <<'USAGE';
 jq-lite - A lightweight jq-like JSON query tool written in pure Perl
 
@@ -49,11 +49,33 @@ Examples:
   jq-lite -r '.users[] | .name' users.json
   jq-lite '.meta has "version"' config.json
   jq-lite '.items | sort | reverse | first' data.json
+
+Query Syntax:
+  .key                Access a key (e.g. .user.name)
+  .key?               Optional access (no error if missing)
+  .array[]            Traverse all array elements
+  .array[n]           Index into array
+  |                   Pipe to next operation
+  select(condition)   Filter values
+  Built-in functions: length, keys, first, last, reverse, sort, unique, has
+
+Tips:
+  - Query must start with a dot (e.g. '.users[]')
+  - Reads from STDIN if no file is provided
+  - Outputs JSON by default; use -r for plain text
+
+Homepage:
+  https://metacpan.org/pod/JQ::Lite
 USAGE
     exit 0;
 }
 
-# Argument parsing
+# Show help if no arguments
+if (!@ARGV) {
+    show_help();
+}
+
+# Parse command-line arguments
 my $raw_output = 0;
 my $query;
 my $filename;
@@ -64,18 +86,7 @@ while (@ARGV) {
         $raw_output = 1;
     }
     elsif ($arg eq '--help' || $arg eq '-h') {
-        print <<'USAGE';
-jq-lite - A lightweight jq-like JSON query tool written in pure Perl
-
-Usage:
-  jq-lite [options] '.query' [file.json]
-
-Options:
-  -r, --raw-output    Print raw strings instead of JSON-encoded values
-  -h, --help          Show this help message
-      --no-color      Disable colored output
-USAGE
-        exit 0;
+        show_help();
     }
     elsif ($arg eq '--no-color') {
         $use_color = 0;
@@ -97,10 +108,10 @@ USAGE
     }
 }
 
-# Disable colors if needed
+# Apply color settings
 disable_colors() unless $use_color;
 
-# Load JSON from file or STDIN
+# Load JSON input
 my $json_text;
 if (defined $filename) {
     open my $fh, '<', $filename or die "Cannot open file '$filename': $!\n";
@@ -115,7 +126,7 @@ if (defined $filename) {
 # Create JQ::Lite instance
 my $jq = JQ::Lite->new(raw => $raw_output);
 
-# Pretty-print JSON with color
+# Format JSON with color (recursive)
 sub color_json {
     my ($data, $indent) = @_;
     $indent //= 0;
@@ -164,7 +175,7 @@ sub color_json {
     return $out;
 }
 
-# Output results (with or without color)
+# Output results
 sub print_results {
     my @results = @_;
     if ($raw_output) {
@@ -178,7 +189,7 @@ sub print_results {
     }
 }
 
-# Interactive mode (when query is not given)
+# Interactive mode
 if (!defined $query) {
     system("stty -icanon -echo");
 
@@ -191,7 +202,6 @@ if (!defined $query) {
     my $input = '';
     my @last_results;
 
-    # Initial display (full JSON)
     my $ok = eval {
         @last_results = $jq->run_query($json_text, '.');
         1;
@@ -262,7 +272,7 @@ if (!defined $query) {
     exit 0;
 }
 
-# One-shot mode (query was specified)
+# One-shot mode
 my @results = eval { $jq->run_query($json_text, $query) };
 if ($@) {
     die $COLOR{error} . "[ERROR] Invalid query: $@\n" . $COLOR{reset};
