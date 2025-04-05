@@ -1,3 +1,11 @@
+0.23  2025-04-06
+    - Added support for `map(...)` query syntax.
+      Allows jq-style mapping and filtering of arrays, e.g.:
+        map(select(.id > 10))
+        map(.name)
+    - Improved CLI (jq-lite) to accept function-style queries like map(...)
+    - Fixed command-line argument parsing to handle non-dot-prefixed queries
+    - Added tests for map(select(...)) to verify behavior
 0.22  2025-04-06
     - Added test files:
         t/contains.t
