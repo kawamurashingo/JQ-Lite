@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use JSON::PP;
 
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 
 sub new {
     my ($class, %opts) = @_;
@@ -348,7 +348,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.20
+Version 0.21
 
 =head1 SYNOPSIS
 
@@ -462,7 +462,7 @@ Uses only core modules:
 
 =back
 
-Optional: JSON::XS, Cpanel::JSON::XS
+Optional: JSON::XS, Cpanel::JSON::XS, JSON::MaybeXS
 
 =head1 SEE ALSO
 

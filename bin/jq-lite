@@ -29,7 +29,12 @@ for (my $i = 0; $i < @ARGV; $i++) {
 }
 
 if ($decoder_choice) {
-    if ($decoder_choice eq 'Cpanel::JSON::XS') {
+    if ($decoder_choice eq 'JSON::MaybeXS') {
+        require JSON::MaybeXS;
+        $decoder = \&JSON::MaybeXS::decode_json;
+        $decoder_module = 'JSON::MaybeXS';
+    }
+    elsif ($decoder_choice eq 'Cpanel::JSON::XS') {
         require Cpanel::JSON::XS;
         $decoder = \&Cpanel::JSON::XS::decode_json;
         $decoder_module = 'Cpanel::JSON::XS';
@@ -49,7 +54,11 @@ if ($decoder_choice) {
     }
 }
 else {
-    if (eval { require Cpanel::JSON::XS; 1 }) {
+    if (eval { require JSON::MaybeXS; 1 }) {
+        $decoder = \&JSON::MaybeXS::decode_json;
+        $decoder_module = 'JSON::MaybeXS';
+    }
+    elsif (eval { require Cpanel::JSON::XS; 1 }) {
         $decoder = \&Cpanel::JSON::XS::decode_json;
         $decoder_module = 'Cpanel::JSON::XS';
     }
