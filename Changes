@@ -1,3 +1,15 @@
+0.25  2025-04-07
+    - Added support for aggregation functions:
+        * add   - sum of numeric arrays
+        * min   - minimum value of numeric arrays
+        * max   - maximum value of numeric arrays
+        * avg   - average of numeric arrays
+    - Improved CLI argument parsing:
+        * Queries no longer require a leading dot (e.g. 'map(...)' now works)
+        * File arguments are more accurately distinguished from query strings
+        * Interactive mode works even without a query when only a JSON file is provided
+    - Confirmed compatibility of map(), select(), and arithmetic expressions across CLI and interactive modes
+    - All previous features and test cases remain working and fully compatible
 0.24  2025-04-06
     - Added support for numeric expressions inside select(), e.g.:
         select(.id + 5 > 20)

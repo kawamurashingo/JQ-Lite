@@ -3,8 +3,9 @@ package JQ::Lite;
 use strict;
 use warnings;
 use JSON::PP;
+use List::Util qw(sum min max);
 
-our $VERSION = '0.24';
+our $VERSION = '0.25';
 
 sub new {
     my ($class, %opts) = @_;
@@ -130,6 +131,42 @@ sub run_query {
                 ref $_ eq 'ARRAY'
                     ? [ grep { defined($_) } map { $self->run_query(encode_json($_), $filter) } @$_ ]
                     : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for add
+        if ($part eq 'add') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? sum(map { 0 + $_ } @$_) : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for min
+        if ($part eq 'min') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? min(map { 0 + $_ } @$_) : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for max
+        if ($part eq 'max') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? max(map { 0 + $_ } @$_) : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for avg
+        if ($part eq 'avg') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' && @$_ ? sum(map { 0 + $_ } @$_) / scalar(@$_) : 0
             } @results;
             @results = @next_results;
             next;
@@ -388,7 +425,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.24
+Version 0.25
 
 =head1 SYNOPSIS
 
