@@ -130,19 +130,22 @@ my $jq = JQ::Lite->new(raw => $raw_output);
 # Output helper
 sub print_results {
     my @results = @_;
-    if ($raw_output) {
-        for my $r (@results) {
-            print defined($r) && ref($r) eq '' ? "$r\n" : "null\n";
+    my $pp = JSON::PP->new->utf8->canonical->pretty;
+
+    for my $r (@results) {
+        if (!defined $r) {
+            print "null\n";
         }
-    } else {
-        my $pp = JSON::PP->new->utf8->canonical->pretty;
-        for my $r (@results) {
-            print defined($r) ? $pp->encode($r) : "null\n";
+        elsif ($raw_output && !ref($r)) {
+            print "$r\n";
+        }
+        else {
+            print $pp->encode($r);
         }
     }
 }
 
-# Interactive mode (real-time input with initial full JSON display)
+# Interactive mode
 if (!defined $query) {
     system("stty -icanon -echo");
 
@@ -155,7 +158,7 @@ if (!defined $query) {
     my $input = '';
     my @last_results;
 
-    # 初期表示（JSON全体）
+    # Initial display
     my $ok = eval {
         @last_results = $jq->run_query($json_text, '.');
         1;
