@@ -5,6 +5,7 @@ use warnings;
 use JSON::PP;
 use IO::File;
 use FindBin;
+use Term::ANSIColor;
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
 
@@ -17,30 +18,17 @@ Usage:
   jq-lite [options] '.query' [file.json]
 
 Options:
-  -r, --raw-output    Print raw strings instead of JSON-encoded values
-  -h, --help          Show this help message
-  -v, --version       Show version information
+  -r, --raw-output     Print raw strings instead of JSON-encoded values
+  --color              Colorize JSON output (keys, strings, numbers, booleans)
+  -h, --help           Show this help message
+  -v, --version        Show version information
 
 Examples:
   cat users.json | jq-lite '.users[].name'
   jq-lite '.users[] | select(.age > 25)' users.json
   jq-lite -r '.users[] | .name' users.json
   jq-lite '.meta has "version"' config.json
-  jq-lite '.items | sort | reverse | first' data.json
-
-Query Syntax:
-  .key                Access a key (e.g. .user.name)
-  .key?               Optional access (no error if missing)
-  .array[]            Traverse all array elements
-  .array[n]           Index into array
-  |                   Pipe to next operation
-  select(condition)   Filter values
-  Built-in functions: length, keys, first, last, reverse, sort, unique, has
-
-Tips:
-  - Query must start with a dot (e.g. '.users[]')
-  - Reads from STDIN if no file is provided
-  - Outputs JSON by default; use -r for plain text
+  jq-lite --color '.items | sort | reverse | first' data.json
 
 Homepage:
   https://metacpan.org/pod/JQ::Lite
@@ -49,7 +37,8 @@ USAGE
 }
 
 # Argument parsing
-my $raw_output = 0;
+my $raw_output   = 0;
+my $color_output = 0;
 my $query;
 my $filename;
 
@@ -57,6 +46,9 @@ while (@ARGV) {
     my $arg = shift @ARGV;
     if ($arg eq '--raw-output' || $arg eq '-r') {
         $raw_output = 1;
+    }
+    elsif ($arg eq '--color') {
+        $color_output = 1;
     }
     elsif ($arg eq '--help' || $arg eq '-h') {
         print <<'USAGE';
@@ -66,30 +58,17 @@ Usage:
   jq-lite [options] '.query' [file.json]
 
 Options:
-  -r, --raw-output    Print raw strings instead of JSON-encoded values
-  -h, --help          Show this help message
-  -v, --version       Show version information
+  -r, --raw-output     Print raw strings instead of JSON-encoded values
+  --color              Colorize JSON output (keys, strings, numbers, booleans)
+  -h, --help           Show this help message
+  -v, --version        Show version information
 
 Examples:
   cat users.json | jq-lite '.users[].name'
   jq-lite '.users[] | select(.age > 25)' users.json
   jq-lite -r '.users[] | .name' users.json
   jq-lite '.meta has "version"' config.json
-  jq-lite '.items | sort | reverse | first' data.json
-
-Query Syntax:
-  .key                Access a key (e.g. .user.name)
-  .key?               Optional access (no error if missing)
-  .array[]            Traverse all array elements
-  .array[n]           Index into array
-  |                   Pipe to next operation
-  select(condition)   Filter values
-  Built-in functions: length, keys, first, last, reverse, sort, unique, has
-
-Tips:
-  - Query must start with a dot (e.g. '.users[]')
-  - Reads from STDIN if no file is provided
-  - Outputs JSON by default; use -r for plain text
+  jq-lite --color '.items | sort | reverse | first' data.json
 
 Homepage:
   https://metacpan.org/pod/JQ::Lite
@@ -104,7 +83,7 @@ USAGE
         $query = $arg;
     }
     elsif (!defined $query && !-f $arg) {
-        die "Error: Invalid query syntax '$arg'\nUsage: jq-lite [--raw-output|-r] '.query' [file.json]\n";
+        die "Error: Invalid query syntax '$arg'\nUsage: jq-lite [options] '.query' [file.json]\n";
     }
     elsif (!defined $query) {
         $filename = $arg;
@@ -113,7 +92,7 @@ USAGE
         $filename = $arg;
     }
     else {
-        die "Usage: jq-lite [--raw-output|-r] '.query' [file.json]\n";
+        die "Usage: jq-lite [options] '.query' [file.json]\n";
     }
 }
 
@@ -133,6 +112,18 @@ else {
 # Create JQ::Lite object
 my $jq = JQ::Lite->new(raw => $raw_output);
 
+# Colorizing helper
+sub colorize_json {
+    my $json = shift;
+
+    $json =~ s/"([^"]+)"(?=\s*:)/color("cyan")."\"$1\"".color("reset")/ge;
+    $json =~ s/: "([^"]*)"/": ".color("green")."\"$1\"".color("reset")/ge;
+    $json =~ s/: (\d+(\.\d+)?)/": ".color("yellow")."$1".color("reset")/ge;
+    $json =~ s/: (true|false|null)/": ".color("magenta")."$1".color("reset")/ge;
+
+    return $json;
+}
+
 # Output helper
 sub print_results {
     my @results = @_;
@@ -146,7 +137,9 @@ sub print_results {
             print "$r\n";
         }
         else {
-            print $pp->encode($r);
+            my $json = $pp->encode($r);
+            $json = colorize_json($json) if $color_output;
+            print $json;
         }
     }
 }
