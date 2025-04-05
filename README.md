@@ -1,3 +1,5 @@
+![JQ::Lite](./jq-lite.png)
+
 # JQ::Lite
 
 [![MetaCPAN](https://img.shields.io/cpan/v/JQ::Lite?color=blue)](https://metacpan.org/pod/JQ::Lite)
