@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use JSON::PP;
 
-our $VERSION = '0.19';
+our $VERSION = '0.20';
 
 sub new {
     my ($class, %opts) = @_;
@@ -348,14 +348,14 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.19
+Version 0.20
 
 =head1 SYNOPSIS
 
   use JQ::Lite;
   
   my $jq = JQ::Lite->new;
-  my @results = $jq->run_query($json_text, '.domain[] | .name');
+  my @results = $jq->run_query($json_text, '.users[].name');
   
   for my $r (@results) {
       print encode_json($r), "\n";
@@ -363,42 +363,98 @@ Version 0.19
 
 =head1 DESCRIPTION
 
-JQ::Lite is a minimal Perl module that allows querying JSON data
-using a simplified jq-like syntax.
+JQ::Lite is a lightweight, pure-Perl JSON query engine inspired by the
+L<jq|https://stedolan.github.io/jq/> command-line tool.
 
-Currently supported features:
+It allows you to extract, traverse, and filter JSON data using a simplified
+jq-like syntax — entirely within Perl, with no external binaries or XS modules.
+
+=head1 FEATURES
 
 =over 4
 
-=item * Dot-based key access (e.g. .users[].name)
+=item * Pure Perl (no XS, no external binaries)
 
-=item * Optional key access with ? (e.g. .nickname?)
+=item * Dot notation (e.g. .users[].name)
+
+=item * Optional key access with '?' (e.g. .nickname?)
 
 =item * Array indexing and flattening (e.g. .users[0], .users[])
 
-=item * Built-in functions: length, keys
+=item * select(...) filters with ==, !=, <, >, and, or
 
-=item * select(...) filters with comparison and logical operators
+=item * Built-in functions: length, keys, first, last, reverse, sort, unique, has
+
+=item * Command-line interface: C<jq-lite>
+
+=item * Interactive mode for line-by-line query exploration
+
+=item * Decoder selection via C<--use> (JSON::PP, JSON::XS, etc)
+
+=item * Debug output via C<--debug>
 
 =back
 
-=head1 METHODS
+=head1 CONSTRUCTOR
 
 =head2 new
 
   my $jq = JQ::Lite->new;
 
-Creates a new JQ::Lite instance.
+Creates a new instance. Options may be added in future versions.
+
+=head1 METHODS
 
 =head2 run_query
 
   my @results = $jq->run_query($json_text, $query);
 
-Runs a query string against the given JSON text.
+Runs a jq-like query against the given JSON string.
+
+The return value is a list of matched results. Each result is a Perl scalar
+(string, number, arrayref, hashref, etc.) depending on the query.
+
+=head1 SUPPORTED SYNTAX
+
+=over 4
+
+=item * .key.subkey
+
+=item * .array[0]
+
+=item * .array[] (flattening)
+
+=item * .key? (optional access)
+
+=item * select(.key > 1 and .key2 == "foo")
+
+=item * Functions: length, keys, first, last, reverse, sort, unique, has
+
+=back
+
+=head1 COMMAND LINE USAGE
+
+C<jq-lite> is a CLI wrapper for this module.
+
+  cat data.json | jq-lite '.users[].name'
+  jq-lite '.users[] | select(.age > 25)' data.json
+  jq-lite -r '.users[].name' data.json
+
+=head2 Interactive Mode
+
+Omit the query to enter interactive mode:
+
+  jq-lite data.json
+
+You can then type queries line-by-line against the same JSON input.
+
+=head2 Decoder Selection and Debug
+
+  jq-lite --use JSON::PP --debug '.users[0].name' data.json
 
 =head1 REQUIREMENTS
 
-This module uses only core Perl modules:
+Uses only core modules:
 
 =over 4
 
@@ -406,16 +462,15 @@ This module uses only core Perl modules:
 
 =back
 
+Optional: JSON::XS, Cpanel::JSON::XS
+
 =head1 SEE ALSO
 
-L<JSON::PP>
-
-L<JQ::Lite on GitHub|https://github.com/kawamurashingo/JQ-Lite>
-
+L<JSON::PP>, L<jq|https://stedolan.github.io/jq/>
 
 =head1 AUTHOR
 
-Kawamura Shingo <pannakoota1@gmail.com>
+Kawamura Shingo E<lt>pannakoota1@gmail.comE<gt>
 
 =head1 LICENSE
 
