@@ -80,7 +80,6 @@ If you omit the query, `jq-lite` enters **interactive mode**, allowing you to ty
 jq-lite users.json
 ```
 [![Watch the video](https://img.youtube.com/vi/5cxS0oBiDJM/hqdefault.jpg)](https://youtu.be/5cxS0oBiDJM)
-This launches:
 
 ```
 jq-lite interactive mode. Enter query (empty line to quit):
