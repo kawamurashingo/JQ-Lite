@@ -33,7 +33,7 @@ sub run_query {
     for my $part (@parts) {
         my @next_results;
 
-        # select(...) 対応
+        # support for select(...)
         if ($part =~ /^select\((.+)\)$/) {
             my $cond = $1;
             @next_results = grep { _evaluate_condition($_, $cond) } @results;
@@ -41,7 +41,7 @@ sub run_query {
             next;
         }
 
-        # length 対応
+        # support for length
         if ($part eq 'length') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? scalar(@$_) :
@@ -52,7 +52,7 @@ sub run_query {
             next;
         }
 
-        # keys 対応
+        # support for keys
         if ($part eq 'keys') {
             @next_results = map {
                 ref $_ eq 'HASH' ? [ sort keys %$_ ] : undef
@@ -61,7 +61,7 @@ sub run_query {
             next;
         }
 
-        # sort 対応
+        # support for sort
         if ($part eq 'sort') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? [ sort { _smart_cmp()->($a, $b) } @$_ ] : $_
@@ -70,7 +70,7 @@ sub run_query {
             next;
         }
 
-        # unique 対応
+        # support for unique
         if ($part eq 'unique') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? [ _uniq(@$_) ] : $_
@@ -79,7 +79,7 @@ sub run_query {
             next;
         }
 
-        # first 対応
+        # support for first
         if ($part eq 'first') {
             @next_results = map {
                 ref $_ eq 'ARRAY' && @$_ ? $$_[0] : undef
@@ -88,7 +88,7 @@ sub run_query {
             next;
         }
 
-        # last 対応
+        # support for last
         if ($part eq 'last') {
             @next_results = map {
                 ref $_ eq 'ARRAY' && @$_ ? $$_[-1] : undef
@@ -97,7 +97,7 @@ sub run_query {
             next;
         }
 
-        # reverse 対応
+        # support for reverse
         if ($part eq 'reverse') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? [ reverse @$_ ] : $_
@@ -106,6 +106,7 @@ sub run_query {
             next;
         }
 
+        # support for limit(n)
         if ($part =~ /^limit\((\d+)\)$/) {
             my $limit = $1;
             @next_results = map {
@@ -122,7 +123,7 @@ sub run_query {
             next;
         }
 
-        # 通常トラバース
+        # standard traversal
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
         }
@@ -144,7 +145,7 @@ sub _traverse {
         for my $item (@stack) {
             next if !defined $item;
 
-            # 添字アクセス: key[index]
+            # index access: key[index]
             if ($step =~ /^(.*?)\[(\d+)\]$/) {
                 my ($key, $index) = ($1, $2);
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
@@ -153,7 +154,7 @@ sub _traverse {
                         if ref $val eq 'ARRAY' && defined $val->[$index];
                 }
             }
-            # 配列展開: key[]
+            # array expansion: key[]
             elsif ($step =~ /^(.*?)\[\]$/) {
                 my $key = $1;
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
@@ -171,7 +172,7 @@ sub _traverse {
                     }
                 }
             }
-            # 通常アクセス: key
+            # standard access: key
             else {
                 if (ref $item eq 'HASH' && exists $item->{$step}) {
                     push @next_stack, $item->{$step};
@@ -186,7 +187,7 @@ sub _traverse {
             }
         }
 
-        # optional の場合は空でも許容
+        # allow empty results if optional
         @stack = @next_stack;
         last if !@stack && !$optional;
     }
@@ -197,7 +198,7 @@ sub _traverse {
 sub _evaluate_condition {
     my ($item, $cond) = @_;
 
-    # 複数条件対応：分割して再帰評価
+    # support for multiple conditions: split and evaluate recursively
     if ($cond =~ /\s+and\s+/i) {
         my @conds = split /\s+and\s+/i, $cond;
         for my $c (@conds) {
@@ -213,7 +214,7 @@ sub _evaluate_condition {
         return 0;
     }
 
-    # contains 演算子対応: select(.tags contains "perl")
+    # support for the contains operator: select(.tags contains "perl")
     if ($cond =~ /^\s*\.(.+?)\s+contains\s+"(.*?)"\s*$/) {
         my ($path, $want) = ($1, $2);
         my @vals = _traverse($item, $path);
@@ -229,7 +230,7 @@ sub _evaluate_condition {
         return 0;
     }
 
-    # has 演算子対応: select(.meta has "key")
+    # support for the has operator: select(.meta has "key")
     if ($cond =~ /^\s*\.(.+?)\s+has\s+"(.*?)"\s*$/) {
         my ($path, $key) = ($1, $2);
         my @vals = _traverse($item, $path);
@@ -242,7 +243,7 @@ sub _evaluate_condition {
         return 0;
     }
 
-    # match 演算子対応（iオプション付き）
+    # support for the match operator (with optional 'i' flag)
     if ($cond =~ /^\s*\.(.+?)\s+match\s+"(.*?)"(i?)\s*$/) {
         my ($path, $pattern, $ignore_case) = ($1, $2, $3);
         my $re = eval {
@@ -258,7 +259,7 @@ sub _evaluate_condition {
         return 0;
     }
  
-    # 単一条件パターン
+    # pattern for a single condition
     if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
         my ($path, $op, $value_raw) = ($1, $2, $3);
 
@@ -288,7 +289,7 @@ sub _evaluate_condition {
         } elsif ($op eq '!=') {
             return $is_number ? ($field_val != $value) : ($field_val ne $value);
         } elsif ($is_number) {
-            # 数値比較は数値でしか行わない
+            # perform numeric comparisons only when applicable
             if ($op eq '>') {
                 return $field_val > $value;
             } elsif ($op eq '>=') {
@@ -314,7 +315,7 @@ sub _smart_cmp {
         if ($num_a && $num_b) {
             return $a <=> $b;
         } else {
-            return "$a" cmp "$b";  # 明示的に文字列比較
+            return "$a" cmp "$b";  # explicitly perform string comparison
         }
     };
 }
@@ -324,6 +325,7 @@ sub _uniq {
     return grep { !$seen{_key($_)}++ } @_;
 }
 
+# generate a unique key for hash, array, or scalar values
 sub _key {
     my ($val) = @_;
     if (ref $val eq 'HASH') {
