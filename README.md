@@ -67,6 +67,11 @@ cat users.json | jq-lite '.users[].name'
 jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite -r '.users[].name' users.json
 ```
+for windows
+```powershell
+type user.json | jq-lite ".users[].name"
+jq-lite -r ".users[].name" users.json
+```
 
 > ⚠️ `jq-lite` is named to avoid conflict with the real `jq`.
 
