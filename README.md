@@ -76,7 +76,6 @@ If you omit the query, `jq-lite` enters **interactive mode**, allowing you to ty
 
 ```bash
 jq-lite users.json
-cat users.json | jq-lite
 ```
 
 This launches:
