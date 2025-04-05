@@ -1,4 +1,4 @@
-![JQ::Lite](./jq-lite.png)
+![JQ::Lite](./JQLite_Logo.png)
 
 # JQ::Lite
 
