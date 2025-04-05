@@ -157,11 +157,15 @@ USAGE
         # allow function-style queries like map(...)
         $query = $arg;
     }
-    elsif (!defined $query && -f $arg) {
-        $filename = $arg;
+    elsif (!defined $query && !-f $arg) {
+        $query = $arg;
     }
     elsif (!defined $query) {
-        $filename = $arg;
+        if (-f $arg) {
+            $filename = $arg;
+        } else {
+            $query = $arg;
+        }
     }
     elsif (!defined $filename) {
         $filename = $arg;

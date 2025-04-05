@@ -1,3 +1,12 @@
+0.24  2025-04-06
+    - Added support for numeric expressions inside select(), e.g.:
+        select(.id + 5 > 20)
+    - Enhanced run_query() to evaluate simple arithmetic operations (+, -, *, /, %) in filters
+    - Improved CLI query parsing to allow function-style queries like:
+        map(select(.id > 10))
+      without requiring a leading dot ('.')
+    - Verified compatibility with map(), length, sort, and select chaining
+    - Added test cases for arithmetic expressions and map/select combinations
 0.23  2025-04-06
     - Added support for `map(...)` query syntax.
       Allows jq-style mapping and filtering of arrays, e.g.:
