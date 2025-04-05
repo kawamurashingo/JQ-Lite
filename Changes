@@ -1,3 +1,6 @@
+0.18  2025-04-06
+    - Moved CLI script from script/jq-lite to bin/jq-lite for MetaCPAN visibility
+    - Updated Makefile.PL to include EXE_FILES => ['bin/jq-lite']
 0.17  2025-04-05
     - Added --color option to jq-lite CLI script to enable colorized JSON output.
       Keys are cyan, strings green, numbers yellow, and booleans/null magenta.
