@@ -8,6 +8,28 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
 
+# Default: enable color if STDOUT is a terminal
+my $use_color = (-t STDOUT);
+
+# Color codes (will be replaced with '' if --no-color is used)
+my %COLOR = (
+    reset  => "\e[0m",
+    prompt => "\e[1;36m",
+    info   => "\e[1;33m",
+    error  => "\e[1;31m",
+    result => "\e[1;32m",
+    key    => "\e[1;34m",
+    string => "\e[1;32m",
+    number => "\e[1;35m",
+    bool   => "\e[1;33m",
+    null   => "\e[1;90m",
+);
+
+# Disable all colors (called if --no-color is given)
+sub disable_colors {
+    $_ = '' for values %COLOR;
+}
+
 # Show help if no arguments are given
 if (!@ARGV) {
     print <<'USAGE';
@@ -19,6 +41,7 @@ Usage:
 Options:
   -r, --raw-output    Print raw strings instead of JSON-encoded values
   -h, --help          Show this help message
+      --no-color      Disable colored output
 
 Examples:
   cat users.json | jq-lite '.users[].name'
@@ -26,23 +49,6 @@ Examples:
   jq-lite -r '.users[] | .name' users.json
   jq-lite '.meta has "version"' config.json
   jq-lite '.items | sort | reverse | first' data.json
-
-Query Syntax:
-  .key                Access a key (e.g. .user.name)
-  .key?               Optional access (no error if missing)
-  .array[]            Traverse all array elements
-  .array[n]           Index into array
-  |                   Pipe to next operation
-  select(condition)   Filter values
-  Built-in functions: length, keys, first, last, reverse, sort, unique, has
-
-Tips:
-  - Query must start with a dot (e.g. '.users[]')
-  - Reads from STDIN if no file is provided
-  - Outputs JSON by default; use -r for plain text
-
-Homepage:
-  https://metacpan.org/pod/JQ::Lite
 USAGE
     exit 0;
 }
@@ -67,32 +73,12 @@ Usage:
 Options:
   -r, --raw-output    Print raw strings instead of JSON-encoded values
   -h, --help          Show this help message
-
-Examples:
-  cat users.json | jq-lite '.users[].name'
-  jq-lite '.users[] | select(.age > 25)' users.json
-  jq-lite -r '.users[] | .name' users.json
-  jq-lite '.meta has "version"' config.json
-  jq-lite '.items | sort | reverse | first' data.json
-
-Query Syntax:
-  .key                Access a key (e.g. .user.name)
-  .key?               Optional access (no error if missing)
-  .array[]            Traverse all array elements
-  .array[n]           Index into array
-  |                   Pipe to next operation
-  select(condition)   Filter values
-  Built-in functions: length, keys, first, last, reverse, sort, unique, has
-
-Tips:
-  - Query must start with a dot (e.g. '.users[]')
-  - Reads from STDIN if no file is provided
-  - Outputs JSON by default; use -r for plain text
-
-Homepage:
-  https://metacpan.org/pod/JQ::Lite
+      --no-color      Disable colored output
 USAGE
         exit 0;
+    }
+    elsif ($arg eq '--no-color') {
+        $use_color = 0;
     }
     elsif (!defined $query && $arg =~ /^\./) {
         $query = $arg;
@@ -111,6 +97,9 @@ USAGE
     }
 }
 
+# Disable colors if needed
+disable_colors() unless $use_color;
+
 # Load JSON from file or STDIN
 my $json_text;
 if (defined $filename) {
@@ -118,16 +107,64 @@ if (defined $filename) {
     local $/;
     $json_text = <$fh>;
     close $fh;
-}
-else {
+} else {
     local $/;
     $json_text = <STDIN>;
 }
 
-# Create JQ::Lite object
+# Create JQ::Lite instance
 my $jq = JQ::Lite->new(raw => $raw_output);
 
-# Output helper
+# Pretty-print JSON with color
+sub color_json {
+    my ($data, $indent) = @_;
+    $indent //= 0;
+    my $sp = '  ' x $indent;
+    my $out = '';
+
+    if (ref($data) eq 'HASH') {
+        $out .= "{\n";
+        my @keys = sort keys %$data;
+        for my $i (0..$#keys) {
+            my $k = $keys[$i];
+            $out .= $sp . '  ' . $COLOR{key} . "\"$k\"" . $COLOR{reset} . ": ";
+            $out .= color_json($data->{$k}, $indent + 1);
+            $out .= "," if $i < $#keys;
+            $out .= "\n";
+        }
+        $out .= $sp . "}";
+    }
+    elsif (ref($data) eq 'ARRAY') {
+        $out .= "[\n";
+        for my $i (0..$#$data) {
+            $out .= $sp . '  ' . color_json($data->[$i], $indent + 1);
+            $out .= "," if $i < $#$data;
+            $out .= "\n";
+        }
+        $out .= $sp . "]";
+    }
+    elsif (!defined $data) {
+        $out .= $COLOR{null} . "null" . $COLOR{reset};
+    }
+    elsif (JSON::PP::is_bool($data)) {
+        $out .= $COLOR{bool} . ($data ? "true" : "false") . $COLOR{reset};
+    }
+    elsif ($data =~ /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/) {
+        $out .= $COLOR{number} . $data . $COLOR{reset};
+    }
+    else {
+        my $escaped = $data;
+        $escaped =~ s/"/\\"/g;
+        $escaped =~ s/\n/\\n/g;
+        $escaped =~ s/\r/\\r/g;
+        $escaped =~ s/\t/\\t/g;
+        $out .= $COLOR{string} . "\"$escaped\"" . $COLOR{reset};
+    }
+
+    return $out;
+}
+
+# Output results (with or without color)
 sub print_results {
     my @results = @_;
     if ($raw_output) {
@@ -135,14 +172,13 @@ sub print_results {
             print defined($r) && ref($r) eq '' ? "$r\n" : "null\n";
         }
     } else {
-        my $pp = JSON::PP->new->utf8->canonical->pretty;
         for my $r (@results) {
-            print defined($r) ? $pp->encode($r) : "null\n";
+            print color_json($r), "\n";
         }
     }
 }
 
-# Interactive mode (real-time input with initial full JSON display)
+# Interactive mode (when query is not given)
 if (!defined $query) {
     system("stty -icanon -echo");
 
@@ -155,7 +191,7 @@ if (!defined $query) {
     my $input = '';
     my @last_results;
 
-    # 初期表示（JSON全体）
+    # Initial display (full JSON)
     my $ok = eval {
         @last_results = $jq->run_query($json_text, '.');
         1;
@@ -168,19 +204,18 @@ if (!defined $query) {
     }
 
     system("clear");
-    print "> $input\n";
+    print $COLOR{prompt}, "> $input\n", $COLOR{reset};
     if (@last_results) {
         print_results(@last_results);
     } else {
-        print "[INFO] Failed to load initial JSON data.\n";
+        print $COLOR{info}, "[INFO] Failed to load initial JSON data.\n", $COLOR{reset};
     }
 
-    print "\nType query (ESC to quit):\n";
+    print $COLOR{info}, "\nType query (ESC to quit):\n", $COLOR{reset};
 
     while (1) {
         my $char;
         sysread(STDIN, $char, 1);
-
         my $ord = ord($char);
         last if $ord == 27;
 
@@ -191,7 +226,7 @@ if (!defined $query) {
         }
 
         system("clear");
-        print "> $input\n";
+        print $COLOR{prompt}, "> $input\n", $COLOR{reset};
 
         my @results;
         my $ok = eval {
@@ -204,9 +239,9 @@ if (!defined $query) {
         }
 
         if (!$ok) {
-            print "[INFO] Invalid or partial query. Showing last valid results.\n";
+            print $COLOR{info}, "[INFO] Invalid or partial query. Showing last valid results.\n", $COLOR{reset};
         } elsif (!@results) {
-            print "[INFO] Query returned no results. Showing last valid results.\n";
+            print $COLOR{info}, "[INFO] Query returned no results. Showing last valid results.\n", $COLOR{reset};
         }
 
         if (@last_results) {
@@ -215,26 +250,26 @@ if (!defined $query) {
                 1;
             } or do {
                 my $e = $@ || 'Unknown error';
-                print "[ERROR] Failed to print: $e\n";
+                print $COLOR{error}, "[ERROR] Failed to print: $e\n", $COLOR{reset};
             };
         } else {
-            print "[INFO] No previous valid results.\n";
+            print $COLOR{info}, "[INFO] No previous valid results.\n", $COLOR{reset};
         }
     }
 
     system("stty sane");
-    print "\nGoodbye.\n";
+    print $COLOR{info}, "\nGoodbye.\n", $COLOR{reset};
     exit 0;
 }
 
-# One-shot mode
+# One-shot mode (query was specified)
 my @results = eval { $jq->run_query($json_text, $query) };
 if ($@) {
-    die "[ERROR] Invalid query: $@\n";
+    die $COLOR{error} . "[ERROR] Invalid query: $@\n" . $COLOR{reset};
 }
 
 if (!@results) {
-    warn "[INFO] No results returned for query.\n";
+    warn $COLOR{info} . "[INFO] No results returned for query.\n" . $COLOR{reset};
     exit 1;
 }
 
