@@ -1,3 +1,10 @@
+0.13  2025-04-05
+    - Added real-time interactive mode: users can now type queries character-by-character
+      and see results update immediately without pressing Enter.
+    - Retains previous valid results on incomplete or invalid query input.
+    - Displays full JSON on startup in interactive mode using '.' as default query.
+    - Automatically enters interactive mode when reading JSON from STDIN without a query.
+    - No non-core modules required: implemented raw terminal mode using 'stty'.
 0.12 2025-04-05
     [Enhancement]
     - Added fallback behavior to show help message when jq-lite is executed with no arguments.
