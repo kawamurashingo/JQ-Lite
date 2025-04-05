@@ -1,3 +1,8 @@
+0.14  2025-04-05
+    - Fixed: --raw-output (-r) now pretty-prints objects and arrays,
+             and outputs scalars as plain text, matching jq behavior.
+    - Improved: Output formatting now distinguishes between scalars and structures.
+    - Updated: Interactive mode preserves output consistency with command-line usage.
 0.13  2025-04-05
     - Added real-time interactive mode: users can now type queries character-by-character
       and see results update immediately without pressing Enter.
