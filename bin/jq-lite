@@ -9,6 +9,64 @@ use Term::ANSIColor;
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
 
+my $decoder;
+my $decoder_module;
+my $decoder_debug = 0;
+my $decoder_choice;
+
+# Parse command-line args before anything else
+for (my $i = 0; $i < @ARGV; $i++) {
+    if ($ARGV[$i] eq '--debug') {
+        $decoder_debug = 1;
+        splice @ARGV, $i, 1;
+        redo;
+    }
+    if ($ARGV[$i] eq '--use') {
+        $decoder_choice = $ARGV[$i + 1];
+        splice @ARGV, $i, 2;
+        redo;
+    }
+}
+
+if ($decoder_choice) {
+    if ($decoder_choice eq 'Cpanel::JSON::XS') {
+        require Cpanel::JSON::XS;
+        $decoder = \&Cpanel::JSON::XS::decode_json;
+        $decoder_module = 'Cpanel::JSON::XS';
+    }
+    elsif ($decoder_choice eq 'JSON::XS') {
+        require JSON::XS;
+        $decoder = \&JSON::XS::decode_json;
+        $decoder_module = 'JSON::XS';
+    }
+    elsif ($decoder_choice eq 'JSON::PP') {
+        require JSON::PP;
+        $decoder = \&JSON::PP::decode_json;
+        $decoder_module = 'JSON::PP';
+    }
+    else {
+        die "[ERROR] Unknown JSON module: $decoder_choice\n";
+    }
+}
+else {
+    if (eval { require Cpanel::JSON::XS; 1 }) {
+        $decoder = \&Cpanel::JSON::XS::decode_json;
+        $decoder_module = 'Cpanel::JSON::XS';
+    }
+    elsif (eval { require JSON::XS; 1 }) {
+        $decoder = \&JSON::XS::decode_json;
+        $decoder_module = 'JSON::XS';
+    }
+    else {
+        require JSON::PP;
+        $decoder = \&JSON::PP::decode_json;
+        $decoder_module = 'JSON::PP';
+    }
+}
+
+# debug
+warn "[DEBUG] Using $decoder_module\n" if $decoder_debug;
+
 # Show help if no arguments are given
 if (!@ARGV) {
     print <<'USAGE';
@@ -20,6 +78,8 @@ Usage:
 Options:
   -r, --raw-output     Print raw strings instead of JSON-encoded values
   --color              Colorize JSON output (keys, strings, numbers, booleans)
+  --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
+  --debug              Show which JSON module is being used
   -h, --help           Show this help message
   -v, --version        Show version information
 
@@ -60,6 +120,8 @@ Usage:
 Options:
   -r, --raw-output     Print raw strings instead of JSON-encoded values
   --color              Colorize JSON output (keys, strings, numbers, booleans)
+  --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
+  --debug              Show which JSON module is being used
   -h, --help           Show this help message
   -v, --version        Show version information
 
