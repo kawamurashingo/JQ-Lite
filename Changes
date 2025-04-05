@@ -1,3 +1,9 @@
+0.19  2025-04-06
+    - Added support for faster JSON decoding by conditionally using Cpanel::JSON::XS or JSON::XS.
+      Falls back to JSON::PP when XS modules are not available.
+    - Added --debug option to show which JSON module is being used.
+    - Added --use <ModuleName> option to explicitly select JSON parser (e.g. --use JSON::PP).
+    - Improved CLI behavior and internal flexibility.
 0.18  2025-04-06
     - Moved CLI script from script/jq-lite to bin/jq-lite for MetaCPAN visibility
     - Updated Makefile.PL to include EXE_FILES => ['bin/jq-lite']
