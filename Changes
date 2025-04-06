@@ -1,3 +1,7 @@
+0.21  2025-04-06
+    - Prefer JSON::MaybeXS as the default decoder if available
+    - Added support for user-specified decoder module selection including JSON::MaybeXS
+    - Updated internal decoder selection logic with fallback to Cpanel::JSON::XS, JSON::XS, and JSON::PP
 0.20  2025-04-06
     - Improved POD documentation: Added full CLI and API usage, supported syntax, and examples.
     - Added support for reverse, sort, first, last, unique, and has functions.
