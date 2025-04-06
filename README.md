@@ -21,6 +21,8 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
 - ✅ **Interactive mode** for exploring JSON line-by-line
+- ✅ **v0.19+:** `--use` option to select decoder (JSON::PP, JSON::XS, etc.)
+- ✅ **v0.19+:** `--debug` option to show active JSON module
 
 ---
 
@@ -99,6 +101,25 @@ jq-lite interactive mode. Enter query (empty line to quit):
 
 - Results will be **re-rendered each time**, clearing the previous output (like a terminal UI).
 - Works with `--raw-output` (`-r`) as well.
+
+---
+
+### 🔍 v0.19+: Decoder selection and debug output
+
+You can now explicitly select which JSON module to use (`JSON::PP`, `JSON::XS`, or `Cpanel::JSON::XS`) and see what is used with `--debug`.
+
+```bash
+$ jq-lite --debug .users[0].age users.json
+[DEBUG] Using Cpanel::JSON::XS
+30
+
+$ jq-lite --use JSON::PP .users[0].age users.json
+30
+
+$ jq-lite --use JSON::PP --debug .users[0].age users.json
+[DEBUG] Using JSON::PP
+30
+```
 
 ---
 
