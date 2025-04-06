@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.30';
+our $VERSION = '0.31';
 
 sub new {
     my ($class, %opts) = @_;
@@ -209,6 +209,22 @@ sub run_query {
                 }
             }
             @results = ($n);
+            next;
+        }
+
+        # support for join(", ")
+        if ($part =~ /^join\((.*?)\)$/) {
+            my $sep = $1;
+            $sep =~ s/^['"](.*?)['"]$/$1/;  # remove quotes around separator
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    join($sep, map { defined $_ ? $_ : '' } @$_)
+                } else {
+                    ''
+                }
+            } @results;
+            @results = @next_results;
             next;
         }
 
@@ -478,7 +494,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.30
+Version 0.31
 
 =head1 SYNOPSIS
 
@@ -522,6 +538,8 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 =item * count function to count number of elements in an array
 
 =item * group_by(...) to group array items by a key
+
+=item * join(", ") to concatenate array elements into a string
 
 =item * Command-line interface: C<jq-lite>
 
@@ -577,6 +595,17 @@ The return value is a list of matched results. Each result is a Perl scalar
 =item * Functions: length, keys, first, last, reverse, sort, unique, has
 
 =item * .[] as alias for flattening top-level arrays
+
+=item * .array | map(.field) | join(", ")
+
+Concatenates array elements with a custom separator string.
+Example:
+
+  .users | map(.name) | join(", ")
+
+Results in:
+
+  "Alice, Bob, Carol"
 
 =back
 
