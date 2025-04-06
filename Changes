@@ -1,3 +1,9 @@
+0.20  2025-04-06
+    - Improved POD documentation: Added full CLI and API usage, supported syntax, and examples.
+    - Added support for reverse, sort, first, last, unique, and has functions.
+    - Added --use and --debug options to jq-lite CLI.
+    - Added interactive mode to CLI when no query is provided.
+    - Internal refactoring for modular query processing.
 0.19  2025-04-06
     - Added support for faster JSON decoding by conditionally using Cpanel::JSON::XS or JSON::XS.
       Falls back to JSON::PP when XS modules are not available.
