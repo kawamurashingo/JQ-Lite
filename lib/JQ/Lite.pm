@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.28';
+our $VERSION = '0.29';
 
 sub new {
     my ($class, %opts) = @_;
@@ -195,6 +195,20 @@ sub run_query {
                 _group_by($_, $key_path)
             } @results;
             @results = @next_results;
+            next;
+        }
+
+        # support for count
+        if ($part eq 'count') {
+            my $n = 0;
+            for my $item (@results) {
+                if (ref $item eq 'ARRAY') {
+                    $n += scalar(@$item);
+                } else {
+                    $n += 1;  # count as 1 item
+                }
+            }
+            @results = ($n);
             next;
         }
 
@@ -464,7 +478,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.28
+Version 0.29
 
 =head1 SYNOPSIS
 
@@ -502,6 +516,10 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 =item * Pipe-style query support (e.g. .[] | select(.age > 25) | .name)
 
 =item * Built-in functions: length, keys, first, last, reverse, sort, unique, has
+
+=item * count function to return the number of results (v0.29+)
+
+=item * count function to count number of elements in an array
 
 =item * group_by(...) to group array items by a key
 
@@ -550,6 +568,12 @@ The return value is a list of matched results. Each result is a Perl scalar
 
 =item * group_by(.field)
 
+=item * .key | count
+
+=item * .[] | select(...) | count
+
+=item * .array | count
+
 =item * Functions: length, keys, first, last, reverse, sort, unique, has
 
 =item * .[] as alias for flattening top-level arrays
@@ -563,9 +587,8 @@ C<jq-lite> is a CLI wrapper for this module.
   cat data.json | jq-lite '.users[].name'
   jq-lite '.users[] | select(.age > 25)' data.json
   jq-lite -r '.users[].name' data.json
-
-  # New pipe-style query support
   jq-lite '.[] | select(.active == true) | .name' data.json
+  jq-lite '.users[] | select(.age > 25) | count' data.json
 
 =head2 Interactive Mode
 
