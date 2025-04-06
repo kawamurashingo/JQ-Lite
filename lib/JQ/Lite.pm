@@ -649,10 +649,6 @@ Example:
 
   .profile | values
 
-=item * flatten()
-
-Explicitly flattens an array. Equivalent to using .[]
-
 =item * empty()
 
 Discards all output. Compatible with jq.
@@ -678,7 +674,6 @@ C<jq-lite> is a CLI wrapper for this module.
   jq-lite '.users | map(.name) | join(", ")'
   jq-lite '.users[] | select(.age > 25) | empty'
   jq-lite '.profile | values'
-  jq-lite '.array | flatten'
 
 =head2 Interactive Mode
 
