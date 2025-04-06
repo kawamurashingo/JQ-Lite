@@ -1,3 +1,14 @@
+0.22  2025-04-06
+    - Added test files:
+        t/contains.t
+        t/first_last.t
+        t/friends.t
+        t/has.t
+        t/limit.t
+        t/match_i.t
+        t/match.t
+        t/reverse.t
+        t/sort_unique.t
 0.21  2025-04-06
     - Prefer JSON::MaybeXS as the default decoder if available
     - Added support for user-specified decoder module selection including JSON::MaybeXS

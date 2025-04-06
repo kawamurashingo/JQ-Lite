@@ -5,3 +5,12 @@ MANIFEST			This list of files
 README.md
 bin/jq-lite
 t/basic.t
+t/contains.t
+t/first_last.t
+t/friends.t
+t/has.t
+t/limit.t
+t/match_i.t
+t/match.t
+t/reverse.t
+t/sort_unique.t
