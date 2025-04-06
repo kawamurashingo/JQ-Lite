@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.27';
+our $VERSION = '0.28';
 
 sub new {
     my ($class, %opts) = @_;
@@ -183,6 +183,16 @@ sub run_query {
         if ($part eq 'avg') {
             @next_results = map {
                 ref $_ eq 'ARRAY' && @$_ ? sum(map { 0 + $_ } @$_) / scalar(@$_) : 0
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for group_by(key)
+        if ($part =~ /^group_by\((.+)\)$/) {
+            my $key_path = $1;
+            @next_results = map {
+                _group_by($_, $key_path)
             } @results;
             @results = @next_results;
             next;
@@ -430,6 +440,19 @@ sub _key {
     }
 }
 
+sub _group_by {
+    my ($array_ref, $path) = @_;
+    return {} unless ref $array_ref eq 'ARRAY';
+
+    my %groups;
+    for my $item (@$array_ref) {
+        my @keys = _traverse($item, $path);
+        my $key = defined $keys[0] ? "$keys[0]" : 'null';
+        push @{ $groups{$key} }, $item;
+    }
+    return \%groups;
+}
+
 1;
 __END__
 
@@ -441,7 +464,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.27
+Version 0.28
 
 =head1 SYNOPSIS
 
@@ -479,6 +502,8 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 =item * Pipe-style query support (e.g. .[] | select(.age > 25) | .name)
 
 =item * Built-in functions: length, keys, first, last, reverse, sort, unique, has
+
+=item * group_by(...) to group array items by a key
 
 =item * Command-line interface: C<jq-lite>
 
@@ -522,6 +547,8 @@ The return value is a list of matched results. Each result is a Perl scalar
 =item * .key? (optional access)
 
 =item * select(.key > 1 and .key2 == "foo")
+
+=item * group_by(.field)
 
 =item * Functions: length, keys, first, last, reverse, sort, unique, has
 

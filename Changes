@@ -1,3 +1,8 @@
+0.28  2025-04-12
+    - Added group_by(...) function to group arrays by a field
+    - Example: .users | group_by(department)
+    - Added test: t/group_by.t
+
 0.27  2025-04-12
     - Added support for pipe-style queries using .[] (e.g. .[] | select(...) | .name)
     - Introduced 'flatten' as internal command for .[] handling
