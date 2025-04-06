@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use JSON::PP;
 
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 sub new {
     my ($class, %opts) = @_;
@@ -123,6 +123,18 @@ sub run_query {
             next;
         }
 
+        # support for map(...)
+        if ($part =~ /^map\((.+)\)$/) {
+            my $filter = $1;
+            @next_results = map {
+                ref $_ eq 'ARRAY'
+                    ? [ grep { defined($_) } map { $self->run_query(encode_json($_), $filter) } @$_ ]
+                    : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # standard traversal
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
@@ -131,6 +143,22 @@ sub run_query {
     }
 
     return @results;
+}
+
+sub _map {
+    my ($self, $data, $filter) = @_;
+
+    if (ref $data ne 'ARRAY') {
+        warn "_map expects array reference";
+        return ();
+    }
+
+    my @mapped;
+    for my $item (@$data) {
+        push @mapped, $self->run_query(encode_json($item), $filter);
+    }
+
+    return @mapped;
 }
 
 sub _traverse {
@@ -348,7 +376,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.22
+Version 0.23
 
 =head1 SYNOPSIS
 

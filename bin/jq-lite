@@ -153,8 +153,12 @@ USAGE
     elsif (!defined $query && $arg =~ /^\./) {
         $query = $arg;
     }
-    elsif (!defined $query && !-f $arg) {
-        die "Error: Invalid query syntax '$arg'\nUsage: jq-lite [options] '.query' [file.json]\n";
+    elsif (!defined $query && $arg =~ /^[a-zA-Z0-9_\.\(\)\[\]\|\s!=><\"\'-]+$/) {
+        # allow function-style queries like map(...)
+        $query = $arg;
+    }
+    elsif (!defined $query && -f $arg) {
+        $filename = $arg;
     }
     elsif (!defined $query) {
         $filename = $arg;

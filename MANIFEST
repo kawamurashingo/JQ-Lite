@@ -14,3 +14,4 @@ t/match_i.t
 t/match.t
 t/reverse.t
 t/sort_unique.t
+t/map.t
