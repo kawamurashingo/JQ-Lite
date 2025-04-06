@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.33';
+our $VERSION = '0.34';
 
 sub new {
     my ($class, %opts) = @_;
@@ -260,6 +260,15 @@ sub run_query {
         # support for empty
         if ($part eq 'empty') {
             @results = ();  # discard all results
+            next;
+        }
+
+        # support for values
+        if ($part eq 'values') {
+            @next_results = map {
+                ref $_ eq 'HASH' ? [ values %$_ ] : $_
+            } @results;
+            @results = @next_results;
             next;
         }
         
@@ -529,7 +538,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.33
+Version 0.34
 
 =head1 SYNOPSIS
 
@@ -566,7 +575,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, flatten
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -577,6 +586,8 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 =item * Decoder selection via C<--use> (JSON::PP, JSON::XS, etc.)
 
 =item * Debug output via C<--debug>
+
+=item * List all functions with C<--help-functions>
 
 =back
 
@@ -631,6 +642,17 @@ Results in:
 
   "Alice, Bob, Carol"
 
+=item * values()
+
+Returns all values of a hash as an array.
+Example:
+
+  .profile | values
+
+=item * flatten()
+
+Explicitly flattens an array. Equivalent to using .[]
+
 =item * empty()
 
 Discards all output. Compatible with jq.
@@ -655,6 +677,8 @@ C<jq-lite> is a CLI wrapper for this module.
   jq-lite '.users[] | select(.age > 25) | count' data.json
   jq-lite '.users | map(.name) | join(", ")'
   jq-lite '.users[] | select(.age > 25) | empty'
+  jq-lite '.profile | values'
+  jq-lite '.array | flatten'
 
 =head2 Interactive Mode
 
@@ -667,6 +691,12 @@ You can then type queries line-by-line against the same JSON input.
 =head2 Decoder Selection and Debug
 
   jq-lite --use JSON::PP --debug '.users[0].name' data.json
+
+=head2 Show Supported Functions
+
+  jq-lite --help-functions
+
+Displays all built-in functions and their descriptions.
 
 =head1 REQUIREMENTS
 
