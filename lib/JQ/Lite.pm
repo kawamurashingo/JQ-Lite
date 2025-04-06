@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.34';
+our $VERSION = '0.35';
 
 sub new {
     my ($class, %opts) = @_;
@@ -271,7 +271,16 @@ sub run_query {
             @results = @next_results;
             next;
         }
-        
+
+        # support for flatten()
+        if ($part eq 'flatten()' || $part eq 'flatten') {
+            @next_results = map {
+                (ref $_ eq 'ARRAY') ? @$_ : ()
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # standard traversal
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
@@ -538,7 +547,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.34
+Version 0.35
 
 =head1 SYNOPSIS
 

@@ -12,6 +12,7 @@ t/contains.t
 t/count.t
 t/empty.t
 t/first_last.t
+t/flatten.t
 t/friends.t
 t/group_by.t
 t/has.t
