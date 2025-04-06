@@ -1,3 +1,8 @@
+0.33  2025-04-14
+    - Added empty() function (compatible with jq, discards all output)
+    - Example: .users[] | select(.age > 25) | empty
+    - Useful for pipelines where only side effects are needed
+
 0.32  2025-04-13
     - Added support for sort_by(.key) function to sort arrays of objects
       Example: .users | sort_by(.age)

@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.32';
+our $VERSION = '0.33';
 
 sub new {
     my ($class, %opts) = @_;
@@ -254,6 +254,12 @@ sub run_query {
             }
         
             @results = @next_results;
+            next;
+        }
+
+        # support for empty
+        if ($part eq 'empty') {
+            @results = ();  # discard all results
             next;
         }
         
@@ -523,7 +529,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.32
+Version 0.33
 
 =head1 SYNOPSIS
 
@@ -541,7 +547,7 @@ Version 0.32
 JQ::Lite is a lightweight, pure-Perl JSON query engine inspired by the
 L<jq|https://stedolan.github.io/jq/> command-line tool.
 
-It allows you to extract, traverse, transform, and filter JSON data using a simplified
+It allows you to extract, traverse, and filter JSON data using a simplified
 jq-like syntax — entirely within Perl, with no external binaries or XS modules.
 
 =head1 FEATURES
@@ -560,7 +566,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, first, last, reverse, sort, sort_by, unique, has, group_by, join, count
+=item * Built-in functions: length, keys, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -625,6 +631,15 @@ Results in:
 
   "Alice, Bob, Carol"
 
+=item * empty()
+
+Discards all output. Compatible with jq.
+Useful when only side effects or filtering is needed without output.
+
+Example:
+
+  .users[] | select(.age > 25) | empty
+
 =item * .[] as alias for flattening top-level arrays
 
 =back
@@ -638,6 +653,8 @@ C<jq-lite> is a CLI wrapper for this module.
   jq-lite -r '.users[].name' data.json
   jq-lite '.[] | select(.active == true) | .name' data.json
   jq-lite '.users[] | select(.age > 25) | count' data.json
+  jq-lite '.users | map(.name) | join(", ")'
+  jq-lite '.users[] | select(.age > 25) | empty'
 
 =head2 Interactive Mode
 
