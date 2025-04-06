@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.31';
+our $VERSION = '0.32';
 
 sub new {
     my ($class, %opts) = @_;
@@ -228,6 +228,35 @@ sub run_query {
             next;
         }
 
+        # support for sort_by(key)
+        if ($part =~ /^sort_by\((.+?)\)$/) {
+            my $key_path = $1;
+            $key_path =~ s/^\.//;  # Remove leading dot
+        
+            my $cmp = _smart_cmp();
+            @next_results = ();
+        
+            for my $item (@results) {
+                if (ref $item eq 'ARRAY') {
+                    my @sorted = sort {
+                        my $a_val = (_traverse($a, $key_path))[0] // '';
+                        my $b_val = (_traverse($b, $key_path))[0] // '';
+        
+                        warn "[DEBUG] a=$a_val, b=$b_val => cmp=" . $cmp->($a_val, $b_val) . "\n";
+        
+                        $cmp->($a_val, $b_val);
+                    } @$item;
+        
+                    push @next_results, \@sorted;
+                } else {
+                    push @next_results, $item;
+                }
+            }
+        
+            @results = @next_results;
+            next;
+        }
+        
         # standard traversal
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
@@ -494,7 +523,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.31
+Version 0.32
 
 =head1 SYNOPSIS
 
@@ -512,40 +541,34 @@ Version 0.31
 JQ::Lite is a lightweight, pure-Perl JSON query engine inspired by the
 L<jq|https://stedolan.github.io/jq/> command-line tool.
 
-It allows you to extract, traverse, and filter JSON data using a simplified
+It allows you to extract, traverse, transform, and filter JSON data using a simplified
 jq-like syntax — entirely within Perl, with no external binaries or XS modules.
 
 =head1 FEATURES
 
 =over 4
 
-=item * Pure Perl (no XS, no external binaries)
+=item * Pure Perl (no XS, no external binaries required)
 
-=item * Dot notation (e.g. .users[].name)
+=item * Dot notation traversal (e.g. .users[].name)
 
-=item * Optional key access with '?' (e.g. .nickname?)
+=item * Optional key access using '?' (e.g. .nickname?)
 
-=item * Array indexing and flattening (e.g. .users[0], .users[])
+=item * Array indexing and flattening (.users[0], .users[])
 
-=item * select(...) filters with ==, !=, <, >, and, or
+=item * Boolean filters via select(...) with ==, !=, <, >, and, or
 
-=item * Pipe-style query support (e.g. .[] | select(.age > 25) | .name)
+=item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, first, last, reverse, sort, unique, has
+=item * Built-in functions: length, keys, first, last, reverse, sort, sort_by, unique, has, group_by, join, count
 
-=item * count function to return the number of results (v0.29+)
+=item * Supports map(...) and limit(n) style transformations
 
-=item * count function to count number of elements in an array
+=item * Interactive mode for exploring queries line-by-line
 
-=item * group_by(...) to group array items by a key
+=item * Command-line interface: C<jq-lite> (compatible with stdin or file)
 
-=item * join(", ") to concatenate array elements into a string
-
-=item * Command-line interface: C<jq-lite>
-
-=item * Interactive mode for line-by-line query exploration
-
-=item * Decoder selection via C<--use> (JSON::PP, JSON::XS, etc)
+=item * Decoder selection via C<--use> (JSON::PP, JSON::XS, etc.)
 
 =item * Debug output via C<--debug>
 
@@ -566,8 +589,7 @@ Creates a new instance. Options may be added in future versions.
   my @results = $jq->run_query($json_text, $query);
 
 Runs a jq-like query against the given JSON string.
-
-The return value is a list of matched results. Each result is a Perl scalar
+Returns a list of matched results. Each result is a Perl scalar
 (string, number, arrayref, hashref, etc.) depending on the query.
 
 =head1 SUPPORTED SYNTAX
@@ -576,25 +598,21 @@ The return value is a list of matched results. Each result is a Perl scalar
 
 =item * .key.subkey
 
-=item * .array[0]
+=item * .array[0] (index access)
 
-=item * .array[] (flattening)
+=item * .array[] (flattening arrays)
 
-=item * .key? (optional access)
+=item * .key? (optional key access)
 
-=item * select(.key > 1 and .key2 == "foo")
+=item * select(.key > 1 and .key2 == "foo") (boolean filters)
 
-=item * group_by(.field)
+=item * group_by(.field) (group array items by key)
 
-=item * .key | count
+=item * sort_by(.key) (sort array of objects by key)
 
-=item * .[] | select(...) | count
+=item * .key | count (count items or fields)
 
-=item * .array | count
-
-=item * Functions: length, keys, first, last, reverse, sort, unique, has
-
-=item * .[] as alias for flattening top-level arrays
+=item * .[] | select(...) | count (combine flattening + filter + count)
 
 =item * .array | map(.field) | join(", ")
 
@@ -606,6 +624,8 @@ Example:
 Results in:
 
   "Alice, Bob, Carol"
+
+=item * .[] as alias for flattening top-level arrays
 
 =back
 
@@ -656,3 +676,4 @@ Kawamura Shingo E<lt>pannakoota1@gmail.comE<gt>
 Same as Perl itself.
 
 =cut
+
