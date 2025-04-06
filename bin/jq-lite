@@ -113,6 +113,7 @@ my $filename;
 
 while (@ARGV) {
     my $arg = shift @ARGV;
+
     if ($arg eq '--raw-output' || $arg eq '-r') {
         $raw_output = 1;
     }
@@ -150,24 +151,16 @@ USAGE
         print "jq-lite version $JQ::Lite::VERSION\n";
         exit 0;
     }
-    elsif (!defined $query && $arg =~ /^\./) {
-        $query = $arg;
+    # First check if this argument is a file
+    elsif (!defined $filename && -f $arg) {
+        $filename = $arg;
     }
-    elsif (!defined $query && $arg =~ /^[a-zA-Z0-9_\.\(\)\[\]\|\s!=><\"\'-]+$/) {
-        # allow function-style queries like map(...)
-        $query = $arg;
-    }
-    elsif (!defined $query && !-f $arg) {
-        $query = $arg;
-    }
+    # If not a file and query is not yet set, treat it as the query string
     elsif (!defined $query) {
-        if (-f $arg) {
-            $filename = $arg;
-        } else {
-            $query = $arg;
-        }
+        $query = $arg;
     }
-    elsif (!defined $filename) {
+    # Secondary filename fallback
+    elsif (!defined $filename && -f $arg) {
         $filename = $arg;
     }
     else {
