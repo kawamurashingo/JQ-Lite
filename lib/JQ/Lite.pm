@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use JSON::PP;
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 sub new {
     my ($class, %opts) = @_;
@@ -226,6 +226,18 @@ sub _traverse {
 sub _evaluate_condition {
     my ($item, $cond) = @_;
 
+    # support for numeric expressions like: select(.a + 5 > 10)
+    if ($cond =~ /^\s*(\.\w+)\s*([\+\-\*\/%])\s*(-?\d+(?:\.\d+)?)\s*(==|!=|>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/) {
+        my ($path, $op1, $rhs1, $cmp, $rhs2) = ($1, $2, $3, $4, $5);
+        my @values = _traverse($item, substr($path, 1));
+        my $lhs = $values[0];
+    
+        return 0 unless defined $lhs && $lhs =~ /^-?\d+(?:\.\d+)?$/;
+    
+        my $expr = eval "$lhs $op1 $rhs1";
+        return eval "$expr $cmp $rhs2";
+    }
+
     # support for multiple conditions: split and evaluate recursively
     if ($cond =~ /\s+and\s+/i) {
         my @conds = split /\s+and\s+/i, $cond;
@@ -376,7 +388,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.23
+Version 0.24
 
 =head1 SYNOPSIS
 
