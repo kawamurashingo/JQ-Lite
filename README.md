@@ -106,7 +106,7 @@ jq-lite interactive mode. Enter query (empty line to quit):
 
 ### 🔍 Decoder selection and debug output
 
-If installed, the following JSON modules are checked and used in order of priority: JSON::MaybeXS, Cpanel::JSON::XS, JSON::XS, and JSON::PP. You can see which module is being used with the --debug option.
+If installed, the following JSON modules are checked and used in order of priority: `JSON::MaybeXS`, `Cpanel::JSON::XS`, `JSON::XS`, and `JSON::PP`. You can see which module is being used with the --debug option.
 
 ```bash
 $ jq-lite --debug .users[0].age users.json
