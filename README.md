@@ -106,7 +106,7 @@ jq-lite interactive mode. Enter query (empty line to quit):
 
 ### 🔍 v0.19+: Decoder selection and debug output
 
-You can now explicitly select which JSON module to use (`JSON::PP`, `JSON::XS`, or `Cpanel::JSON::XS`) and see what is used with `--debug`.
+You can now explicitly select which JSON module to use (`JSON::PP`, `JSON::MaybeXS`, `JSON::XS`, or `Cpanel::JSON::XS`) and see what is used with `--debug`.
 
 ```bash
 $ jq-lite --debug .users[0].age users.json
