@@ -248,7 +248,7 @@ if (!defined $query) {
     }
 
     print "\nType query (ESC to quit):\n";
-    print "> $input\n";  # ← 最後に表示
+    print "> $input\n";
 
     while (1) {
         my $char;
@@ -293,7 +293,7 @@ if (!defined $query) {
             print "[INFO] No previous valid results.\n";
         }
 
-        print "\n> $input\n";  # ← 出力の最後にプロンプト
+        print "\n> $input\n";
     }
 
     system("stty sane");
