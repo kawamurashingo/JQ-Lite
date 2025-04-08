@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.37';
+our $VERSION = '0.38';
 
 sub new {
     my ($class, %opts) = @_;
@@ -325,6 +325,24 @@ sub run_query {
             next;
         }
 
+        # support for del(key)
+        if ($part =~ /^del\((.+?)\)$/) {
+            my $key = $1;
+            $key =~ s/^['"](.*?)['"]$/$1/;  # remove quotes
+
+            @next_results = map {
+                if (ref $_ eq 'HASH') {
+                    my %copy = %$_;  # shallow copy
+                    delete $copy{$key};
+                    \%copy
+                } else {
+                    $_
+                }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # standard traversal
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
@@ -591,7 +609,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.37
+Version 0.38
 
 =head1 SYNOPSIS
 
@@ -628,7 +646,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, type, nth
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, type, nth, del
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -732,6 +750,18 @@ Example:
 
   .users | nth(0)   # first user
   .users | nth(2)   # third user
+
+=item * del(key)
+
+Deletes a specified key from a hash object and returns a new hash without that key.
+
+Example:
+
+  .profile | del("password")
+
+If the key does not exist, returns the original hash unchanged.
+
+If applied to a non-hash object, returns the object unchanged.
 
 =back
 
