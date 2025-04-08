@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.35';
+our $VERSION = '0.36';
 
 sub new {
     my ($class, %opts) = @_;
@@ -281,6 +281,36 @@ sub run_query {
             next;
         }
 
+        # support for type()
+        if ($part eq 'type()' || $part eq 'type') {
+            @next_results = map {
+                if (!defined $_) {
+                    'null';
+                }
+                elsif (ref($_) eq 'ARRAY') {
+                    'array';
+                }
+                elsif (ref($_) eq 'HASH') {
+                    'object';
+                }
+                elsif (ref($_) eq '') {
+                    if (/^-?\d+(?:\.\d+)?$/) {
+                        'number';
+                    } else {
+                        'string';
+                    }
+                }
+                elsif (ref($_) eq 'JSON::PP::Boolean') {
+                    'boolean';
+                }
+                else {
+                    'unknown';
+                }
+            } (@results ? @results : (undef));  # ←ここ！！
+            @results = @next_results;
+            next;
+        }
+
         # standard traversal
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
@@ -547,7 +577,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.35
+Version 0.36
 
 =head1 SYNOPSIS
 
@@ -584,7 +614,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, type
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -668,6 +698,17 @@ Example:
   .users[] | select(.age > 25) | empty
 
 =item * .[] as alias for flattening top-level arrays
+
+=item * type()
+
+Returns the type of the value as a string:
+"string", "number", "boolean", "array", "object", or "null".
+
+Example:
+
+  .name | type     # => "string"
+  .tags | type     # => "array"
+  .profile | type  # => "object"
 
 =back
 
