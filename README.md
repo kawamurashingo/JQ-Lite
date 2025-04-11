@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `unique`, `has`, `map`
+- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `unique`, `has`, `map`, `group_by`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) **← New in v0.27**
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
