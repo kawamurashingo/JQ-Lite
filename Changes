@@ -1,3 +1,9 @@
+0.27  2025-04-12
+    - Added support for pipe-style queries using .[] (e.g. .[] | select(...) | .name)
+    - Introduced 'flatten' as internal command for .[] handling
+    - Improved run_query parsing to better support chained queries with select()
+    - Added test: t/pipe_select_name.t
+
 0.26  2025-04-06
     - Improved interactive mode: input prompt is now always displayed at the bottom of the screen
       to avoid being overwritten by JSON output. This improves readability and usability when working

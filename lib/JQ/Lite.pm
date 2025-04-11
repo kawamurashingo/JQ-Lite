@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.26';
+our $VERSION = '0.27';
 
 sub new {
     my ($class, %opts) = @_;
@@ -23,16 +23,32 @@ sub run_query {
         return ($data);
     }
     
-    my @parts = split /\|/, $query;
+    # instead of: my @parts = split /\|/, $query;
+    my @parts = map { s/^\s+|\s+$//gr } split /\|/, $query;
+    
+    # detect .[] and convert to pseudo-command
     @parts = map {
-        s/^\s+|\s+$//g;
-        s/^\.//;
-        $_;
+        if ($_ eq '.[]') {
+            'flatten'
+        } elsif ($_ =~ /^\.(.+)$/) {
+            $1
+        } else {
+            $_
+        }
     } @parts;
 
     my @results = ($data);
     for my $part (@parts) {
         my @next_results;
+
+        # support for flatten (alias for .[])
+        if ($part eq 'flatten') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? @$_ : ()
+            } @results;
+            @results = @next_results;
+            next;
+        }
 
         # support for select(...)
         if ($part =~ /^select\((.+)\)$/) {
@@ -425,7 +441,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.26
+Version 0.27
 
 =head1 SYNOPSIS
 
@@ -459,6 +475,8 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 =item * Array indexing and flattening (e.g. .users[0], .users[])
 
 =item * select(...) filters with ==, !=, <, >, and, or
+
+=item * Pipe-style query support (e.g. .[] | select(.age > 25) | .name)
 
 =item * Built-in functions: length, keys, first, last, reverse, sort, unique, has
 
@@ -507,6 +525,8 @@ The return value is a list of matched results. Each result is a Perl scalar
 
 =item * Functions: length, keys, first, last, reverse, sort, unique, has
 
+=item * .[] as alias for flattening top-level arrays
+
 =back
 
 =head1 COMMAND LINE USAGE
@@ -516,6 +536,9 @@ C<jq-lite> is a CLI wrapper for this module.
   cat data.json | jq-lite '.users[].name'
   jq-lite '.users[] | select(.age > 25)' data.json
   jq-lite -r '.users[].name' data.json
+
+  # New pipe-style query support
+  jq-lite '.[] | select(.active == true) | .name' data.json
 
 =head2 Interactive Mode
 
