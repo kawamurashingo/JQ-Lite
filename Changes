@@ -1,3 +1,10 @@
+0.29  2025-04-12
+    - Added count function to return the number of items in the result set
+    - Example: .users | count  → returns array length
+              .users[] | select(...) | count → counts matching items
+    - Adjusted count logic to treat both arrays and flat result lists properly
+    - Added test: t/count.t
+
 0.28  2025-04-12
     - Added group_by(...) function to group arrays by a field
     - Example: .users | group_by(department)
