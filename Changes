@@ -1,3 +1,8 @@
+0.30  2025-04-12
+    - Enhanced META information for CPAN Testers and MetaCPAN
+    - Added MIN_PERL_VERSION and no_index to Makefile.PL
+    - Included bugtracker and repository links
+
 0.29  2025-04-12
     - Added count function to return the number of items in the result set
     - Example: .users | count  → returns array length
