@@ -17,8 +17,8 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `unique`, `has`, `map`, `group_by`, `count` (v0.29+)
-- ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
+- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `unique`, `has`, `map`, `group_by`, `count`, `join` (v0.31+)
+- ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`)
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
 - ✅ **Interactive mode** for exploring JSON line-by-line
@@ -35,6 +35,26 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | Shell processing      | ✅ `jq`          |
 | jq-style queries in Perl | ✅ **JQ::Lite** |
 | Lightweight & portable | ✅ **JQ::Lite** |
+
+---
+
+## 📆 Supported Functions
+
+| Function       | Description                                           |
+|----------------|-------------------------------------------------------|
+| `length`       | Get number of elements in an array or keys in a hash |
+| `keys`         | Extract sorted keys from a hash                      |
+| `sort`         | Sort array items                                     |
+| `unique`       | Remove duplicate values                              |
+| `first`        | Get the first element of an array                    |
+| `last`         | Get the last element of an array                     |
+| `reverse`      | Reverse an array                                     |
+| `limit(n)`     | Limit array to first `n` elements                    |
+| `map(expr)`    | Map/filter values using a subquery                   |
+| `add`, `min`, `max`, `avg` | Numeric aggregation functions       |
+| `group_by(key)`| Group array items by field                          |
+| `count`        | Count total number of matching items                 |
+| `join(sep)`    | Join array elements with custom separator (v0.31+)   |
 
 ---
 
@@ -64,7 +84,7 @@ brew install --HEAD jq-lite
 > sudo xcode-select --install
 > ```
 
-### 🐧 Portable Install Script (Linux/macOS)
+### 🐙 Portable Install Script (Linux/macOS)
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/install.sh | bash
@@ -191,12 +211,12 @@ jq-lite '.users[0] | keys' users.json
 jq-lite '.users[].nickname?' users.json
 jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite '.users[] | select(.profile.active == true) | .name' users.json
-jq-lite '.users | sort | reverse | first' users.json
+jq-lite '.users | map(.name) | join(", ")' users.json
 ```
 
 ---
 
-## 🧪 Testing
+## 🤮 Testing
 
 ```bash
 prove -l t/
@@ -221,3 +241,4 @@ This module is released under the same terms as Perl itself.
 **Kawamura Shingo**  
 📧 pannakoota1@gmail.com  
 🔗 [GitHub @kawamurashingo](https://github.com/kawamurashingo/JQ-Lite)
+
