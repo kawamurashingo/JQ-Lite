@@ -17,8 +17,8 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `unique`, `has`, `map`, `group_by`, `count`, `join` (v0.31+)
-- ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`)
+- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `count`, `join` (v0.31+)
+- ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
 - ✅ **Interactive mode** for exploring JSON line-by-line
@@ -45,6 +45,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `length`       | Get number of elements in an array or keys in a hash |
 | `keys`         | Extract sorted keys from a hash                      |
 | `sort`         | Sort array items                                     |
+| `sort_by(key)` | Sort array of objects by field (v0.32)               |
 | `unique`       | Remove duplicate values                              |
 | `first`        | Get the first element of an array                    |
 | `last`         | Get the last element of an array                     |
@@ -197,6 +198,10 @@ $ jq-lite --use JSON::PP --debug .users[0].age users.json
         "active": false,
         "country": "JP"
       }
+    },
+    {
+      "name": "Carol",
+      "age": 35
     }
   ]
 }
@@ -211,6 +216,7 @@ jq-lite '.users[0] | keys' users.json
 jq-lite '.users[].nickname?' users.json
 jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite '.users[] | select(.profile.active == true) | .name' users.json
+jq-lite '.users | sort_by(.age)' users.json
 jq-lite '.users | map(.name) | join(", ")' users.json
 ```
 
@@ -241,4 +247,3 @@ This module is released under the same terms as Perl itself.
 **Kawamura Shingo**  
 📧 pannakoota1@gmail.com  
 🔗 [GitHub @kawamurashingo](https://github.com/kawamurashingo/JQ-Lite)
-
