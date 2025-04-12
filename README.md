@@ -17,8 +17,8 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `count`, `join` (v0.31+)
-- ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
+- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `count`, `join`, `empty` (v0.33+)
+- ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`)
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
 - ✅ **Interactive mode** for exploring JSON line-by-line
@@ -56,156 +56,11 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `group_by(key)`| Group array items by field                          |
 | `count`        | Count total number of matching items                 |
 | `join(sep)`    | Join array elements with custom separator (v0.31+)   |
-
----
-
-## 📦 Installation
-
-### 🛠️ From Source (Manual Build)
-
-```sh
-perl Makefile.PL
-make
-make test
-make install
-```
-
-### 🍺 Using Homebrew (macOS)
-
-```sh
-brew tap kawamurashingo/jq-lite
-brew install --HEAD jq-lite
-```
-
-> ℹ️ Requires Xcode Command Line Tools.  
-> If installation fails due to outdated tools, run:
->
-> ```sh
-> sudo rm -rf /Library/Developer/CommandLineTools
-> sudo xcode-select --install
-> ```
-
-### 🐙 Portable Install Script (Linux/macOS)
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/install.sh | bash
-```
-
-> Installs to `$HOME/.local/bin` by default.  
-> Add the following to your shell config if not already in PATH:
->
-> ```sh
-> export PATH="$HOME/.local/bin:$PATH"
-> ```
+| `empty()`      | Discard all results (compatible with jq) (v0.33+)    |
 
 ---
 
 ## 🚀 Usage
-
-### As a Perl module
-
-```perl
-use JQ::Lite;
-
-my $json = '{"users":[{"name":"Alice"},{"name":"Bob"}]}';
-my $jq = JQ::Lite->new;
-my @names = $jq->run_query($json, '.users[].name');
-
-print join("\n", @names), "\n";
-```
-
-### As a command-line tool
-
-```bash
-cat users.json | jq-lite '.users[].name'
-jq-lite '.users[] | select(.age > 25)' users.json
-jq-lite -r '.users[].name' users.json
-```
-
-For Windows:
-
-```powershell
-type user.json | jq-lite ".users[].name"
-jq-lite -r ".users[].name" users.json
-```
-
-> ⚠️ `jq-lite` is named to avoid conflict with the original `jq`.
-
----
-
-### 🔄 Interactive Mode
-
-If you omit the query, `jq-lite` enters **interactive mode**, allowing you to type queries line-by-line against a fixed JSON input.
-
-```bash
-jq-lite users.json
-```
-![JQ::Lite demo](images/jq_lite.gif)
-
-```
-jq-lite interactive mode. Enter query (empty line to quit):
-> .users[0].name
-"Alice"
-> .users[] | select(.age > 25)
-{
-  "name" : "Alice",
-  "age" : 30,
-  ...
-}
-```
-
-- Results will be **re-rendered each time**, clearing the previous output (like a terminal UI).
-- Works with `--raw-output` (`-r`) as well.
-
----
-
-### 🔍 Decoder selection and debug output
-
-If installed, the following JSON modules are checked and used in order of priority: `JSON::MaybeXS`, `Cpanel::JSON::XS`, `JSON::XS`, and `JSON::PP`. You can see which module is being used with the `--debug` option.
-
-```bash
-$ jq-lite --debug .users[0].age users.json
-[DEBUG] Using Cpanel::JSON::XS
-30
-
-$ jq-lite --use JSON::PP .users[0].age users.json
-30
-
-$ jq-lite --use JSON::PP --debug .users[0].age users.json
-[DEBUG] Using JSON::PP
-30
-```
-
----
-
-## 📘 Example Input
-
-```json
-{
-  "users": [
-    {
-      "name": "Alice",
-      "age": 30,
-      "profile": {
-        "active": true,
-        "country": "US"
-      }
-    },
-    {
-      "name": "Bob",
-      "age": 25,
-      "profile": {
-        "active": false,
-        "country": "JP"
-      }
-    },
-    {
-      "name": "Carol",
-      "age": 35
-    }
-  ]
-}
-```
 
 ### Example Queries
 
@@ -218,6 +73,7 @@ jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite '.users[] | select(.profile.active == true) | .name' users.json
 jq-lite '.users | sort_by(.age)' users.json
 jq-lite '.users | map(.name) | join(", ")' users.json
+jq-lite '.users[] | select(.age > 25) | empty' users.json  # new in v0.33
 ```
 
 ---
