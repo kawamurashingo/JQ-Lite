@@ -1,3 +1,8 @@
+0.35  2025-04-16
+    - Added flatten() function to explicitly flatten arrays (equivalent to .[])
+    - flatten() performs 1-layer array flattening like jq
+    - Added test file t/flatten.t
+
 0.34  2025-04-15
     - Added --help-functions option to display supported built-in functions
     - Added values() function to extract values from hash references
