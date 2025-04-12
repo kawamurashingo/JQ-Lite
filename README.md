@@ -17,13 +17,14 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `count`, `join`, `empty()` 
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `count`, `join`, `empty()` 
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
 - ✅ **Interactive mode** for exploring JSON line-by-line
 - ✅ `--use` option to select decoder (JSON::PP, JSON::XS, etc.)
 - ✅ `--debug` option to show active JSON module
+- ✅ `--help-functions` to list all built-in functions
 
 ---
 
@@ -44,6 +45,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 |----------------|-------------------------------------------------------|
 | `length`       | Get number of elements in an array or keys in a hash |
 | `keys`         | Extract sorted keys from a hash                      |
+| `values`       | Extract values from a hash (v0.34)                   |
 | `sort`         | Sort array items                                     |
 | `sort_by(key)` | Sort array of objects by field (v0.32)               |
 | `unique`       | Remove duplicate values                              |
@@ -56,7 +58,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `group_by(key)`| Group array items by field                          |
 | `count`        | Count total number of matching items                 |
 | `join(sep)`    | Join array elements with custom separator (v0.31+)   |
-| `empty()` | Discard all results (compatible with jq) (v0.33+) |
+| `empty()`      | Discard all results (compatible with jq) (v0.33+)    |
 
 ---
 
@@ -179,7 +181,7 @@ $ jq-lite --use JSON::PP --debug .users[0].age users.json
 
 ---
 
-## 📘 Example Input
+### 📘 Example Input
 
 ```json
 {
@@ -219,6 +221,8 @@ jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite '.users[] | select(.profile.active == true) | .name' users.json
 jq-lite '.users | sort_by(.age)' users.json
 jq-lite '.users | map(.name) | join(", ")' users.json
+jq-lite '.users[] | select(.age > 25) | empty' users.json
+jq-lite '.users[0] | values' users.json
 ```
 
 ---
@@ -248,3 +252,4 @@ This module is released under the same terms as Perl itself.
 **Kawamura Shingo**  
 📧 pannakoota1@gmail.com  
 🔗 [GitHub @kawamurashingo](https://github.com/kawamurashingo/JQ-Lite)
+
