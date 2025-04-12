@@ -40,12 +40,42 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 
 ## 📦 Installation
 
+### 🛠️ From Source (Manual Build)
+
 ```sh
 perl Makefile.PL
 make
 make test
 make install
 ```
+
+### 🍺 Using Homebrew (macOS)
+
+```sh
+brew tap kawamurashingo/jq-lite
+brew install --HEAD jq-lite
+```
+
+> ℹ️ Requires Xcode Command Line Tools.  
+> If installation fails due to outdated tools, run:
+>
+> ```sh
+> sudo rm -rf /Library/Developer/CommandLineTools
+> sudo xcode-select --install
+> ```
+
+### 🐧 Portable Install Script (Linux/macOS)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/install.sh | bash
+```
+
+> Installs to `$HOME/.local/bin` by default.  
+> Add the following to your shell config if not already in PATH:
+>
+> ```sh
+> export PATH="$HOME/.local/bin:$PATH"
+> ```
 
 ---
 
@@ -70,13 +100,15 @@ cat users.json | jq-lite '.users[].name'
 jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite -r '.users[].name' users.json
 ```
-for windows
+
+For Windows:
+
 ```powershell
 type user.json | jq-lite ".users[].name"
 jq-lite -r ".users[].name" users.json
 ```
 
-> ⚠️ `jq-lite` is named to avoid conflict with the real `jq`.
+> ⚠️ `jq-lite` is named to avoid conflict with the original `jq`.
 
 ---
 
@@ -88,6 +120,7 @@ If you omit the query, `jq-lite` enters **interactive mode**, allowing you to ty
 jq-lite users.json
 ```
 ![JQ::Lite demo](images/jq_lite.gif)
+
 ```
 jq-lite interactive mode. Enter query (empty line to quit):
 > .users[0].name
@@ -107,7 +140,7 @@ jq-lite interactive mode. Enter query (empty line to quit):
 
 ### 🔍 Decoder selection and debug output
 
-If installed, the following JSON modules are checked and used in order of priority: `JSON::MaybeXS`, `Cpanel::JSON::XS`, `JSON::XS`, and `JSON::PP`. You can see which module is being used with the --debug option.
+If installed, the following JSON modules are checked and used in order of priority: `JSON::MaybeXS`, `Cpanel::JSON::XS`, `JSON::XS`, and `JSON::PP`. You can see which module is being used with the `--debug` option.
 
 ```bash
 $ jq-lite --debug .users[0].age users.json
