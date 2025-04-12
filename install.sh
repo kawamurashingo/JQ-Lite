@@ -28,9 +28,9 @@ cd "$DIST"
 
 echo "[INFO] Installing..."
 perl Makefile.PL PREFIX=$HOME/.local >/dev/null
-make -s
-make -s test
-make -s install
+make
+make test
+make install
 
 echo ""
 echo "[INFO] Installation complete."
