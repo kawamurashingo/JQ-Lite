@@ -1,3 +1,10 @@
+0.32  2025-04-13
+    - Added support for sort_by(.key) function to sort arrays of objects
+      Example: .users | sort_by(.age)
+    - Fixed path handling in sort_by() (leading dot now handled correctly)
+    - Improved internal comparison logic with _smart_cmp()
+    - Added test script t/sort_by.t to verify sort_by() functionality
+
 0.31  2025-04-13
     - Added support for join(", ") function
     - Allows joining array of strings with a custom separator
