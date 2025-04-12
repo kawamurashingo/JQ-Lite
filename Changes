@@ -1,3 +1,9 @@
+0.34  2025-04-15
+    - Added --help-functions option to display supported built-in functions
+    - Added values() function to extract values from hash references
+    - Improved MANIFEST handling with MANIFEST.SKIP for cleaner packaging
+    - Minor test adjustments and documentation updates
+
 0.33  2025-04-14
     - Added empty() function (compatible with jq, discards all output)
     - Example: .users[] | select(.age > 25) | empty
