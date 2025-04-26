@@ -62,6 +62,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `flatten()`    | Flatten array one level deep (like `.[]`) (v0.35)    |
 | `type()`       | Return the type of the value ("string", "number", "boolean", "array", "object", "null") (v0.36) |
 | `nth(n)`       | Get the nth element of an array (v0.37)              |
+| `del(key)`     | Delete a specified key from a hash object (v0.38)    |
 
 ---
 
