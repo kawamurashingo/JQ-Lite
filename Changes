@@ -1,3 +1,6 @@
+0.37  2025-04-16
+    - Added nth(n) function to extract the nth element from an array
+
 0.36  2025-04-27
     - Added type() function to determine JSON value type (string, number, boolean, array, object, null)
     - Improved handling of undefined values in type() function

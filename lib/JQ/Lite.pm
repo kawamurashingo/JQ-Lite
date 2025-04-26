@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.36';
+our $VERSION = '0.37';
 
 sub new {
     my ($class, %opts) = @_;
@@ -311,6 +311,20 @@ sub run_query {
             next;
         }
 
+        # support for nth(n)
+        if ($part =~ /^nth\((\d+)\)$/) {
+            my $index = $1;
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    $_->[$index]
+                } else {
+                    undef
+                }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # standard traversal
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
@@ -577,7 +591,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.36
+Version 0.37
 
 =head1 SYNOPSIS
 
@@ -614,7 +628,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, type
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, type, nth
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -709,6 +723,15 @@ Example:
   .name | type     # => "string"
   .tags | type     # => "array"
   .profile | type  # => "object"
+
+=item * nth(n)
+
+Returns the nth element (zero-based) from an array.
+
+Example:
+
+  .users | nth(0)   # first user
+  .users | nth(2)   # third user
 
 =back
 
