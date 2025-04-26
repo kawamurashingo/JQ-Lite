@@ -60,6 +60,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `join(sep)`    | Join array elements with custom separator (v0.31+)   |
 | `empty()`      | Discard all results (compatible with jq) (v0.33+)    |
 | `flatten()`    | Flatten array one level deep (like `.[]`) (v0.35)    |
+| `type()`       | Return the type of the value ("string", "number", "boolean", "array", "object", "null") (v0.36) |
 
 ---
 
@@ -224,6 +225,7 @@ jq-lite '.users | sort_by(.age)' users.json
 jq-lite '.users | map(.name) | join(", ")' users.json
 jq-lite '.users[] | select(.age > 25) | empty' users.json
 jq-lite '.users[0] | values' users.json
+jq-lite '.users[0].name | type' users.json
 ```
 
 ---
