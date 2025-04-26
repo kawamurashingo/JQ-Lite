@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.38';
+our $VERSION = '0.39';
 
 sub new {
     my ($class, %opts) = @_;
@@ -306,7 +306,7 @@ sub run_query {
                 else {
                     'unknown';
                 }
-            } (@results ? @results : (undef));  # ←ここ！！
+            } (@results ? @results : (undef)); 
             @results = @next_results;
             next;
         }
@@ -335,6 +335,19 @@ sub run_query {
                     my %copy = %$_;  # shallow copy
                     delete $copy{$key};
                     \%copy
+                } else {
+                    $_
+                }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for compact()
+        if ($part eq 'compact()' || $part eq 'compact') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    [ grep { defined $_ } @$_ ]
                 } else {
                     $_
                 }
@@ -609,7 +622,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.38
+Version 0.39
 
 =head1 SYNOPSIS
 
@@ -646,7 +659,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, type, nth, del
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, type, nth, del, compact
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -762,6 +775,18 @@ Example:
 If the key does not exist, returns the original hash unchanged.
 
 If applied to a non-hash object, returns the object unchanged.
+
+=item * compact()
+
+Removes undef and null values from an array.
+
+Example:
+
+  .data | compact()
+
+Before: [1, null, 2, null, 3]
+
+After:  [1, 2, 3]
 
 =back
 

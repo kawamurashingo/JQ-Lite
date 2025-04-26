@@ -63,6 +63,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `type()`       | Return the type of the value ("string", "number", "boolean", "array", "object", "null") (v0.36) |
 | `nth(n)`       | Get the nth element of an array (v0.37)              |
 | `del(key)`     | Delete a specified key from a hash object (v0.38)    |
+| `compact()`    | Remove undef/null values from arrays (v0.39)         |
 
 ---
 

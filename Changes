@@ -1,3 +1,6 @@
+0.39  2025-04-27
+    - Added compact() function to remove undef/null values from arrays
+
 0.38  2025-04-27
     - Added del(key) function to delete specific keys from hash objects
 
