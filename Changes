@@ -1,3 +1,7 @@
+0.42  2025-04-28
+    - Added new function: default(value)
+      * default() returns the specified value if the current value is undef or null.
+
 0.41  2025-04-28
     - Added new function: is_empty()
       * is_empty() returns true if a value is an empty array or an empty object.

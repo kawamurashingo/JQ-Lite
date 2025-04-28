@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.41';
+our $VERSION = '0.42';
 
 sub new {
     my ($class, %opts) = @_;
@@ -384,6 +384,20 @@ sub run_query {
             next;
         }
 
+        # support for default(value)
+        if ($part =~ /^default\((.+)\)$/) {
+            my $default_value = $1;
+            $default_value =~ s/^['"](.*?)['"]$/$1/; 
+        
+            @results = @results ? @results : (undef);
+        
+            @next_results = map {
+                defined($_) ? $_ : $default_value
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # standard traversal
         for my $item (@results) {
             push @next_results, _traverse($item, $part);
@@ -650,7 +664,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.41
+Version 0.42
 
 =head1 SYNOPSIS
 
