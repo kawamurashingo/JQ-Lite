@@ -1,3 +1,9 @@
+0.40  2025-04-28
+    - Added new function: path()
+      * path() returns the keys of a hash or the indices of an array.
+      * Returns an empty string for scalars or null values.
+    - Bump version to 0.40
+
 0.39  2025-04-27
     - Added compact() function to remove undef/null values from arrays
 
