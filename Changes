@@ -1,3 +1,7 @@
+0.41  2025-04-28
+    - Added new function: is_empty()
+      * is_empty() returns true if a value is an empty array or an empty object.
+
 0.40  2025-04-28
     - Added new function: path()
       * path() returns the keys of a hash or the indices of an array.
