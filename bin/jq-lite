@@ -334,6 +334,7 @@ Supported Functions:
   reverse          - Reverse an array
   first / last     - Get first / last element of an array
   limit(N)         - Limit array to first N elements
+  drop(N)          - Skip the first N elements of an array
   count            - Count total number of matching items
   map(EXPR)        - Map/filter array items with a subquery
   add / sum        - Sum all numeric values in an array

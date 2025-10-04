@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.62';
+our $VERSION = '0.63';
 
 sub new {
     my ($class, %opts) = @_;
@@ -209,6 +209,25 @@ sub run_query {
                     [ @$arr[0 .. $end] ]
                 } else {
                     $_
+                }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for drop(n)
+        if ($part =~ /^drop\((\d+)\)$/) {
+            my $count = $1;
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $arr = $_;
+                    if ($count >= @$arr) {
+                        [];
+                    } else {
+                        [ @$arr[$count .. $#$arr] ];
+                    }
+                } else {
+                    $_;
                 }
             } @results;
             @results = @next_results;
@@ -1287,9 +1306,9 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median, stddev
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop
 
-=item * Supports map(...) and limit(n) style transformations
+=item * Supports map(...), limit(n), and drop(n) style transformations
 
 =item * Interactive mode for exploring queries line-by-line
 
