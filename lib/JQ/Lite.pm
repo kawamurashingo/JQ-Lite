@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.55';
+our $VERSION = '0.56';
 
 sub new {
     my ($class, %opts) = @_;
@@ -492,6 +492,14 @@ sub run_query {
             next;
         }
 
+        # support for contains(value)
+        if ($part =~ /^contains\((.+)\)$/) {
+            my $needle = _parse_string_argument($1);
+            @next_results = map { _apply_contains($_, $needle) } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for startswith("prefix")
         if ($part =~ /^startswith\((.+)\)$/) {
             my $needle = _parse_string_argument($1);
@@ -940,6 +948,67 @@ sub _apply_split {
     return [ @parts ];
 }
 
+sub _apply_contains {
+    my ($value, $needle) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        for my $item (@$value) {
+            return JSON::PP::true if _values_equal($item, $needle);
+        }
+        return JSON::PP::false;
+    }
+
+    if (ref $value eq 'HASH') {
+        return exists $value->{$needle} ? JSON::PP::true : JSON::PP::false;
+    }
+
+    return JSON::PP::false if !defined $value;
+
+    if (!ref $value || ref($value) eq 'JSON::PP::Boolean') {
+        my $haystack = "$value";
+        my $fragment = defined $needle ? "$needle" : '';
+        return index($haystack, $fragment) >= 0 ? JSON::PP::true : JSON::PP::false;
+    }
+
+    return JSON::PP::false;
+}
+
+sub _values_equal {
+    my ($left, $right) = @_;
+
+    return 1 if !defined $left && !defined $right;
+    return 0 if !defined $left || !defined $right;
+
+    if (ref($left) eq 'JSON::PP::Boolean' && ref($right) eq 'JSON::PP::Boolean') {
+        return (!!$left) == (!!$right);
+    }
+
+    if (!ref $left && !ref $right) {
+        if (looks_like_number($left) && looks_like_number($right)) {
+            return $left == $right;
+        }
+        return "$left" eq "$right";
+    }
+
+    if (ref $left eq 'ARRAY' && ref $right eq 'ARRAY') {
+        return 0 if @$left != @$right;
+        for (my $i = 0; $i < @$left; $i++) {
+            return 0 unless _values_equal($left->[$i], $right->[$i]);
+        }
+        return 1;
+    }
+
+    if (ref $left eq 'HASH' && ref $right eq 'HASH') {
+        return 0 if keys(%$left) != keys(%$right);
+        for my $key (keys %$left) {
+            return 0 unless exists $right->{$key} && _values_equal($left->{$key}, $right->{$key});
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
 sub _ceil {
     my ($number) = @_;
 
@@ -986,7 +1055,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.55
+Version 0.56
 
 =head1 SYNOPSIS
 
@@ -1023,7 +1092,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, startswith, endswith
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, startswith, endswith
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -1184,6 +1253,20 @@ Example:
 
   .title | lower      # => "hello world"
   .tags  | lower      # => ["perl", "json"]
+
+=item * contains(value)
+
+Checks whether the current value includes the supplied fragment.
+
+* For strings, returns true when the substring exists.
+* For arrays, returns true if any element equals the supplied value.
+* For hashes, returns true when the key is present.
+
+Example:
+
+  .title | contains("perl")     # => true
+  .tags  | contains("json")     # => true
+  .meta  | contains("lang")     # => true
 
 =item * startswith("prefix")
 

@@ -1,3 +1,8 @@
+0.56  2025-10-04
+    [Feature]
+    - Added contains() function for substring, array element, and hash key checks.
+    - Documented the new helper and covered it with regression tests.
+
 0.55  2025-10-04
     [Feature]
     - Updated length function to return character counts for scalars in addition to

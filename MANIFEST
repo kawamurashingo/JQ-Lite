@@ -10,6 +10,7 @@ t/aggregate.t
 t/arithmetic.t
 t/basic.t
 t/contains.t
+t/contains_function.t
 t/case_transform.t
 t/ceil_floor.t
 t/count.t
