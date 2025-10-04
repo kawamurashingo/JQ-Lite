@@ -327,22 +327,34 @@ Supported Functions:
   values           - Extract values from a hash (v0.34)
   sort             - Sort array items
   sort_by(KEY)     - Sort array of objects by key
+  pluck(KEY)       - Collect a key's value from each object in an array
   unique           - Remove duplicate values
   reverse          - Reverse an array
   first / last     - Get first / last element of an array
   limit(N)         - Limit array to first N elements
   count            - Count total number of matching items
   map(EXPR)        - Map/filter array items with a subquery
+  add              - Sum all numeric values in an array
+  min / max        - Return minimum / maximum numeric value in an array
+  avg              - Return the average of numeric values in an array
+  median           - Return the median of numeric values in an array
+  nth(N)           - Get the Nth element of an array (zero-based index)
   group_by(KEY)    - Group array items by field
+  group_count(KEY) - Count grouped items by field
   join(SEPARATOR)  - Join array elements with a string
   has              - Check if object has a given key
   contains         - Check if array or string contains a value
   match("pattern") - Match string using regex
   flatten          - Explicitly flatten arrays (same as .[])
+  del(KEY)         - Remove a key from objects in the result
+  compact          - Remove undefined values from arrays
+  path             - Return available keys for objects or indexes for arrays
+  is_empty         - Check if an array or object is empty
   upper()          - Convert scalars and array elements to uppercase
   lower()          - Convert scalars and array elements to lowercase
   empty            - Discard all output (for side-effect use)
   type()           - Return the type of value ("string", "number", "boolean", "array", "object", "null")
+  default(VALUE)   - Substitute VALUE when result is undefined
 
 EOF
 }
