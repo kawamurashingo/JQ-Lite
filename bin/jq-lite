@@ -326,6 +326,7 @@ Supported Functions:
   keys             - Extract sorted keys from a hash
   values           - Extract values from a hash (v0.34)
   sort             - Sort array items
+  sort_desc        - Sort array items in descending order
   sort_by(KEY)     - Sort array of objects by key
   pluck(KEY)       - Collect a key's value from each object in an array
   unique           - Remove duplicate values

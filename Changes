@@ -1,3 +1,10 @@
+0.61  2025-10-05
+    [Feature]
+    - Added sort_desc helper to sort arrays in descending order using smart
+      numeric/string comparisons.
+    - Documented the helper across README, POD, and --help-functions output.
+    - Added regression tests covering numeric, string, and numeric-string values.
+
 0.60  2025-10-05
     [Feature]
     - Added unique_by(key) helper to deduplicate arrays based on projected keys.

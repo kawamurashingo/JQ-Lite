@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.60';
+our $VERSION = '0.61';
 
 sub new {
     my ($class, %opts) = @_;
@@ -95,6 +95,21 @@ sub run_query {
         if ($part eq 'sort') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? [ sort { _smart_cmp()->($a, $b) } @$_ ] : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for sort_desc
+        if ($part eq 'sort_desc') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $cmp = _smart_cmp();
+                    [ sort { $cmp->($b, $a) } @$_ ];
+                }
+                else {
+                    $_;
+                }
             } @results;
             @results = @next_results;
             next;
@@ -1209,7 +1224,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.60
+Version 0.61
 
 =head1 SYNOPSIS
 
@@ -1246,7 +1261,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -1297,6 +1312,18 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * group_by(.field) (group array items by key)
 
 =item * group_count(.field) (tally items by key)
+
+=item * sort_desc()
+
+Sort array elements in descending order using smart numeric/string comparison.
+
+Example:
+
+  .scores | sort_desc
+
+Returns:
+
+  [100, 75, 42, 12]
 
 =item * sort_by(.key) (sort array of objects by key)
 
