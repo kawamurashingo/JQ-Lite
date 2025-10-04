@@ -38,6 +38,7 @@ t/sort_by.t
 t/sort_unique.t
 t/substr.t
 t/startswith_endswith.t
+t/unique_by.t
 t/trim.t
 t/values.t
 LICENSE

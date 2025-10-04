@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.59';
+our $VERSION = '0.60';
 
 sub new {
     my ($class, %opts) = @_;
@@ -105,6 +105,53 @@ sub run_query {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? [ _uniq(@$_) ] : $_
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for unique_by(path)
+        if ($part =~ /^unique_by\((.+?)\)$/) {
+            my $raw_path = $1;
+            $raw_path =~ s/^\s+|\s+$//g;
+
+            my $key_path = $raw_path;
+            $key_path =~ s/^['"](.*)['"]$/$1/;
+
+            my $use_entire_item = ($key_path eq '' || $key_path eq '.');
+            $key_path =~ s/^\.// unless $use_entire_item;
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my %seen;
+                    my @deduped;
+
+                    for my $element (@$_) {
+                        my $key_value;
+
+                        if ($use_entire_item) {
+                            $key_value = $element;
+                        } else {
+                            my @values = _traverse($element, $key_path);
+                            $key_value = @values ? $values[0] : undef;
+                        }
+
+                        my $signature;
+                        if (defined $key_value) {
+                            $signature = _key($key_value);
+                        } else {
+                            $signature = "\0__JQ_LITE_UNDEF__";
+                        }
+
+                        next if $seen{$signature}++;
+                        push @deduped, $element;
+                    }
+
+                    \@deduped;
+                } else {
+                    $_;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1162,7 +1209,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.59
+Version 0.60
 
 =head1 SYNOPSIS
 
@@ -1199,7 +1246,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -1252,6 +1299,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * group_count(.field) (tally items by key)
 
 =item * sort_by(.key) (sort array of objects by key)
+
+=item * unique_by(.key) (remove duplicates based on a projected key)
 
 =item * .key | count (count items or fields)
 
@@ -1374,6 +1423,17 @@ Example:
   .title | contains("perl")     # => true
   .tags  | contains("json")     # => true
   .meta  | contains("lang")     # => true
+
+=item * unique_by(".key")
+
+Removes duplicate objects (or values) from an array by projecting each entry to
+the supplied key path and keeping only the first occurrence of each signature.
+Use C<.> to deduplicate by the entire value.
+
+Example:
+
+  .users | unique_by(.name)      # => keeps first record for each name
+  .tags  | unique_by(.)          # => removes duplicate scalars
 
 =item * startswith("prefix")
 

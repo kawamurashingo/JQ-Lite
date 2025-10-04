@@ -329,6 +329,7 @@ Supported Functions:
   sort_by(KEY)     - Sort array of objects by key
   pluck(KEY)       - Collect a key's value from each object in an array
   unique           - Remove duplicate values
+  unique_by(KEY)   - Remove duplicates by projecting each item on KEY
   reverse          - Reverse an array
   first / last     - Get first / last element of an array
   limit(N)         - Limit array to first N elements

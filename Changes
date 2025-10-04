@@ -1,3 +1,9 @@
+0.60  2025-10-06
+    [Feature]
+    - Added unique_by(key) helper to deduplicate arrays based on projected keys.
+    - Documented the helper across README, POD, and --help-functions output.
+    - Added regression tests covering scalar, object, and nested-key scenarios.
+
 0.59  2025-10-05
     [Feature]
     - Added product helper to multiply numeric array values.

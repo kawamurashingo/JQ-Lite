@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `substr()`, `replace()`, `empty()`, `median`, `add`, `sum`, `product`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `substr()`, `replace()`, `empty()`, `median`, `add`, `sum`, `product`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -49,6 +49,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `sort`         | Sort array items                                     |
 | `sort_by(key)` | Sort array of objects by field (v0.32)               |
 | `unique`       | Remove duplicate values                              |
+| `unique_by(path)` | Remove duplicates by projecting each entry to a key path (v0.60) |
 | `first`        | Get the first element of an array                    |
 | `last`         | Get the last element of an array                     |
 | `reverse`      | Reverse an array                                     |
