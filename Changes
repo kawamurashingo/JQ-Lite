@@ -1,4 +1,4 @@
-0.49  2025-10-05
+0.49  2025-10-04
     - Added abs() helper to convert numbers (and arrays of numbers) to their
       absolute values.
     - Documented the new function and listed it in --help-functions output.
@@ -230,5 +230,6 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
