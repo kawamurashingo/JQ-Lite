@@ -54,6 +54,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `reverse`      | Reverse an array                                     |
 | `limit(n)`     | Limit array to first `n` elements                    |
 | `map(expr)`    | Map/filter values using a subquery                   |
+| `pluck(key)`   | Extract values from an array of objects (v0.43)      |
 | `add`, `min`, `max`, `avg` | Numeric aggregation functions            |
 | `group_by(key)`| Group array items by field                           |
 | `count`        | Count total number of matching items                 |

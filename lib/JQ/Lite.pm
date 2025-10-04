@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.42';
+our $VERSION = '0.43';
 
 sub new {
     my ($class, %opts) = @_;
@@ -148,6 +148,29 @@ sub run_query {
                     ? [ grep { defined($_) } map { $self->run_query(encode_json($_), $filter) } @$_ ]
                     : $_
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for pluck(key)
+        if ($part =~ /^pluck\((.+)\)$/) {
+            my $key_path = $1;
+            $key_path =~ s/^['"](.*)['"]$/$1/;
+            $key_path =~ s/^\.//;
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my @collected = map {
+                        my $item = $_;
+                        my @values = _traverse($item, $key_path);
+                        @values ? $values[0] : undef;
+                    } @$_;
+                    \@collected;
+                } else {
+                    $_;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }

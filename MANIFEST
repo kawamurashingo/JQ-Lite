@@ -22,6 +22,7 @@ t/map.t
 t/match.t
 t/match_i.t
 t/pipe_select_name.t
+t/pluck.t
 t/reverse.t
 t/sort_by.t
 t/sort_unique.t
