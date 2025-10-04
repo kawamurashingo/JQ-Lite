@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.54';
+our $VERSION = '0.55';
 
 sub new {
     my ($class, %opts) = @_;
@@ -62,9 +62,21 @@ sub run_query {
         # support for length
         if ($part eq 'length') {
             @next_results = map {
-                ref $_ eq 'ARRAY' ? scalar(@$_) :
-                ref $_ eq 'HASH'  ? scalar(keys %$_) :
-                0
+                if (!defined $_) {
+                    0;
+                }
+                elsif (ref $_ eq 'ARRAY') {
+                    scalar(@$_);
+                }
+                elsif (ref $_ eq 'HASH') {
+                    scalar(keys %$_);
+                }
+                elsif (!ref $_ || ref($_) eq 'JSON::PP::Boolean') {
+                    length("$_");
+                }
+                else {
+                    0;
+                }
             } @results;
             @results = @next_results;
             next;
@@ -974,7 +986,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.54
+Version 0.55
 
 =head1 SYNOPSIS
 

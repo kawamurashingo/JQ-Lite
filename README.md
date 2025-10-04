@@ -43,7 +43,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 
 | Function       | Description                                           |
 |----------------|-------------------------------------------------------|
-| `length`       | Get number of elements in an array or keys in a hash |
+| `length`       | Get number of elements in an array, keys in a hash, or characters in scalars |
 | `keys`         | Extract sorted keys from a hash                      |
 | `values`       | Extract values from a hash (v0.34)                   |
 | `sort`         | Sort array items                                     |

@@ -1,3 +1,8 @@
+0.55 2025-04-06
+    [Feature]
+    - Updated length function to return character counts for scalars in addition to
+      array elements and hash keys.
+
 0.54  2025-10-04
     - Added round() helper for rounding numbers (and arrays) to the nearest integer.
     - Documented the new function in README, POD, and --help-functions output.
