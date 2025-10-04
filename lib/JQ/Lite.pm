@@ -51,6 +51,20 @@ sub run_query {
             next;
         }
 
+        # support for flatten_deep (recursive flatten)
+        if ($part eq 'flatten_deep') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    [ _flatten_deep($_) ];
+                }
+                else {
+                    $_;
+                }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for select(...)
         if ($part =~ /^select\((.+)\)$/) {
             my $cond = $1;
@@ -1190,6 +1204,23 @@ sub _parse_arguments {
     return map { s/^\s+|\s+$//gr } @parts;
 }
 
+sub _flatten_deep {
+    my ($value) = @_;
+
+    return () unless ref $value eq 'ARRAY';
+
+    my @flat;
+    for my $item (@$value) {
+        if (ref $item eq 'ARRAY') {
+            push @flat, _flatten_deep($item);
+        } else {
+            push @flat, $item;
+        }
+    }
+
+    return @flat;
+}
+
 sub _apply_contains {
     my ($value, $needle) = @_;
 
@@ -1334,7 +1365,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop, chunks
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop, chunks, flatten_deep
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 

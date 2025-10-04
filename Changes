@@ -1,3 +1,8 @@
+0.65  2025-10-05
+    [Feature]
+    - Added flatten_deep helper to recursively flatten nested arrays into a single list.
+    - Documented the helper across README, POD, CLI help, and tests.
+
 0.64  2025-10-05
     [Feature]
     - Added chunks(n) helper to split arrays into evenly-sized subarrays.
