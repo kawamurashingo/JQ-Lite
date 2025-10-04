@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.61';
+our $VERSION = '0.62';
 
 sub new {
     my ($class, %opts) = @_;
@@ -518,11 +518,12 @@ sub run_query {
         }
 
         # support for nth(n)
-        if ($part =~ /^nth\((\d+)\)$/) {
+        if ($part =~ /^nth\((-?\d+)\)$/) {
             my $index = $1;
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
-                    $_->[$index]
+                    my $resolved = _normalize_index($_, $index);
+                    defined $resolved ? $_->[$resolved] : undef;
                 } else {
                     undef
                 }
@@ -758,6 +759,21 @@ sub _apply_numeric_function {
     return $value;
 }
 
+sub _normalize_index {
+    my ($value, $index) = @_;
+
+    return undef if ref $value ne 'ARRAY';
+
+    my $resolved = int($index);
+    my $size     = @$value;
+
+    $resolved += $size if $resolved < 0;
+
+    return undef if $resolved < 0 || $resolved >= $size;
+
+    return $resolved;
+}
+
 sub _traverse {
     my ($data, $query) = @_;
     my @steps = split /\./, $query;
@@ -771,12 +787,32 @@ sub _traverse {
             next if !defined $item;
 
             # index access: key[index]
-            if ($step =~ /^(.*?)\[(\d+)\]$/) {
+            if ($step =~ /^(.*?)\[(-?\d+)\]$/) {
                 my ($key, $index) = ($1, $2);
-                if (ref $item eq 'HASH' && exists $item->{$key}) {
-                    my $val = $item->{$key};
-                    push @next_stack, $val->[$index]
-                        if ref $val eq 'ARRAY' && defined $val->[$index];
+
+                if (length $key) {
+                    if (ref $item eq 'HASH' && exists $item->{$key}) {
+                        my $val      = $item->{$key};
+                        next unless ref $val eq 'ARRAY';
+                        my $resolved = _normalize_index($val, $index);
+                        push @next_stack, $val->[$resolved]
+                            if defined $resolved;
+                    }
+                    elsif (ref $item eq 'ARRAY') {
+                        for my $sub (@$item) {
+                            next unless ref $sub eq 'HASH' && exists $sub->{$key};
+                            my $val      = $sub->{$key};
+                            next unless ref $val eq 'ARRAY';
+                            my $resolved = _normalize_index($val, $index);
+                            push @next_stack, $val->[$resolved]
+                                if defined $resolved;
+                        }
+                    }
+                }
+                elsif (ref $item eq 'ARRAY') {
+                    my $resolved = _normalize_index($item, $index);
+                    push @next_stack, $item->[$resolved]
+                        if defined $resolved;
                 }
             }
             # array expansion: key[]
@@ -1224,7 +1260,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.61
+Version 0.62
 
 =head1 SYNOPSIS
 
@@ -1255,7 +1291,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Optional key access using '?' (e.g. .nickname?)
 
-=item * Array indexing and flattening (.users[0], .users[])
+=item * Array indexing and flattening (.users[0], .users[], .users[-1])
 
 =item * Boolean filters via select(...) with ==, !=, <, >, and, or
 
@@ -1301,7 +1337,7 @@ Returns a list of matched results. Each result is a Perl scalar
 
 =item * .key.subkey
 
-=item * .array[0] (index access)
+=item * .array[0] (index access, supports negative indices like [-1])
 
 =item * .array[] (flattening arrays)
 
@@ -1386,12 +1422,15 @@ Example:
 
 =item * nth(n)
 
-Returns the nth element (zero-based) from an array.
+Returns the nth element (zero-based) from an array. Negative indices
+select from the end (C<nth(-1)> is the last element). Out-of-range
+indices return C<undef>.
 
 Example:
 
   .users | nth(0)   # first user
   .users | nth(2)   # third user
+  .users | nth(-1)  # last user
 
 =item * del(key)
 
