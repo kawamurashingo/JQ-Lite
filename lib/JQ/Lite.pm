@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.49';
+our $VERSION = '0.50';
 
 sub new {
     my ($class, %opts) = @_;
@@ -452,6 +452,13 @@ sub run_query {
             next;
         }
 
+        # support for trim()
+        if ($part eq 'trim()' || $part eq 'trim') {
+            @next_results = map { _apply_trim($_) } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {
@@ -533,6 +540,27 @@ sub _apply_case_transform {
 
     if (ref $value eq 'ARRAY') {
         return [ map { _apply_case_transform($_, $mode) } @$value ];
+    }
+
+    return $value;
+}
+
+sub _apply_trim {
+    my ($value) = @_;
+
+    if (!defined $value) {
+        return undef;
+    }
+
+    if (!ref $value) {
+        my $copy = $value;
+        $copy =~ s/^\s+//;
+        $copy =~ s/\s+$//;
+        return $copy;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_trim($_) } @$value ];
     }
 
     return $value;
@@ -792,7 +820,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.49
+Version 0.50
 
 =head1 SYNOPSIS
 
@@ -829,7 +857,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact, upper, lower, abs
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact, upper, lower, abs, trim
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -989,6 +1017,16 @@ Example:
 
   .temperature | abs      # => 12
   .deltas      | abs      # => [3, 4, 5, "n/a"]
+
+=item * trim()
+
+Removes leading and trailing whitespace from strings. Arrays are processed
+recursively, while hashes and other references are left untouched.
+
+Example:
+
+  .title | trim          # => "Hello World"
+  .tags  | trim          # => ["perl", "json"]
 
 =back
 

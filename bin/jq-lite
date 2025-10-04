@@ -353,6 +353,7 @@ Supported Functions:
   is_empty         - Check if an array or object is empty
   upper()          - Convert scalars and array elements to uppercase
   lower()          - Convert scalars and array elements to lowercase
+  trim()           - Strip leading/trailing whitespace from strings (recurses into arrays)
   empty            - Discard all output (for side-effect use)
   type()           - Return the type of value ("string", "number", "boolean", "array", "object", "null")
   default(VALUE)   - Substitute VALUE when result is undefined
