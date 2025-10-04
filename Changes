@@ -1,3 +1,11 @@
+0.57  2025-10-04
+    [Feature]
+    - Added substr(start, length) helper to extract substrings from scalars and
+      arrays of strings.
+    - Documented the new function in README, POD, and --help-functions output.
+    - Added regression tests covering basic usage, negative indices, arrays,
+      and null-safe behavior.
+
 0.56  2025-10-04
     [Feature]
     - Added contains() function for substring, array element, and hash key checks.

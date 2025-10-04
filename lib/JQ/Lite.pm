@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.56';
+our $VERSION = '0.57';
 
 sub new {
     my ($class, %opts) = @_;
@@ -524,6 +524,15 @@ sub run_query {
             next;
         }
 
+        # support for substr(start[, length])
+        if ($part =~ /^substr(?:\((.*)\))?$/) {
+            my $args_raw = defined $1 ? $1 : '';
+            my @args = _parse_arguments($args_raw);
+            @next_results = map { _apply_substr($_, @args) } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {
@@ -948,6 +957,42 @@ sub _apply_split {
     return [ @parts ];
 }
 
+sub _apply_substr {
+    my ($value, @args) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_substr($_, @args) } @$value ];
+    }
+
+    return undef if !defined $value;
+    return $value if ref $value;
+
+    my ($start, $length) = @args;
+    $start = 0 unless defined $start;
+    $start = int($start);
+
+    if (defined $length) {
+        $length = int($length);
+        return substr($value, $start, $length);
+    }
+
+    return substr($value, $start);
+}
+
+sub _parse_arguments {
+    my ($raw) = @_;
+
+    return () unless defined $raw;
+
+    my $parsed = eval { decode_json("[$raw]") };
+    if (!$@ && ref $parsed eq 'ARRAY') {
+        return @$parsed;
+    }
+
+    my @parts = split /,/, $raw;
+    return map { s/^\s+|\s+$//gr } @parts;
+}
+
 sub _apply_contains {
     my ($value, $needle) = @_;
 
@@ -1092,7 +1137,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, startswith, endswith
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -1287,6 +1332,17 @@ Example:
 
   .title | endswith("World")     # => true
   .tags  | endswith("n")         # => [false, true, false]
+
+=item * substr(start[, length])
+
+Extracts a substring from the current string using zero-based indexing.
+When applied to arrays, each scalar element receives the same slicing
+arguments recursively.
+
+Examples:
+
+  .title | substr(0, 5)       # => "Hello"
+  .tags  | substr(-3)         # => ["erl", "SON"]
 
 =item * abs()
 

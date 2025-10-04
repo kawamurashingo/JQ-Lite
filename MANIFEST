@@ -35,6 +35,7 @@ t/round.t
 t/split.t
 t/sort_by.t
 t/sort_unique.t
+t/substr.t
 t/startswith_endswith.t
 t/trim.t
 t/values.t
