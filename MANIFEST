@@ -22,6 +22,7 @@ t/group_count.t
 t/has.t
 t/join.t
 t/limit.t
+t/length.t
 t/map.t
 t/median.t
 t/match.t

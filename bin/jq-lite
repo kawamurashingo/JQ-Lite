@@ -322,7 +322,7 @@ sub print_supported_functions {
     print <<'EOF';
 
 Supported Functions:
-  length           - Get number of elements in an array or keys in a hash
+  length           - Count array elements, hash keys, or characters in scalars
   keys             - Extract sorted keys from a hash
   values           - Extract values from a hash (v0.34)
   sort             - Sort array items
