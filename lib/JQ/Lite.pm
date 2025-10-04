@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.67';
+our $VERSION = '0.68';
 
 sub new {
     my ($class, %opts) = @_;
@@ -321,6 +321,52 @@ sub run_query {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? sum(map { 0 + $_ } @$_) : $_
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for sum_by(path)
+        if ($part =~ /^sum_by\((.+)\)$/) {
+            my $raw_path = $1;
+            $raw_path =~ s/^\s+|\s+$//g;
+            $raw_path =~ s/^['"](.*)['"]$/$1/;
+
+            my $use_entire_item = ($raw_path eq '' || $raw_path eq '.');
+            my $key_path        = $raw_path;
+            $key_path =~ s/^\.// unless $use_entire_item;
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $sum        = 0;
+                    my $has_number = 0;
+
+                    for my $element (@$_) {
+                        my @values = $use_entire_item
+                            ? ($element)
+                            : _traverse($element, $key_path);
+
+                        for my $value (@values) {
+                            next unless defined $value;
+
+                            my $num = $value;
+                            if (ref($num) eq 'JSON::PP::Boolean') {
+                                $num = $num ? 1 : 0;
+                            }
+
+                            next if ref $num;
+                            next unless looks_like_number($num);
+                            $sum += $num;
+                            $has_number = 1;
+                        }
+                    }
+
+                    $has_number ? $sum : 0;
+                }
+                else {
+                    $_;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1420,7 +1466,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.67
+Version 0.68
 
 =head1 SYNOPSIS
 
@@ -1457,7 +1503,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop, chunks, flatten_all
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1508,6 +1554,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * group_by(.field) (group array items by key)
 
 =item * group_count(.field) (tally items by key)
+
+=item * sum_by(.field) (sum numeric values projected from each array item)
 
 =item * sort_desc()
 
