@@ -1,3 +1,9 @@
+0.51  2025-10-05
+    - Added startswith()/endswith() helpers for prefix and suffix checks on
+      scalars and arrays of strings.
+    - Documented the new functions and listed them in README and --help-functions output.
+    - Added regression tests covering scalars, arrays, mixed values, and chained usage.
+
 0.50  2025-10-04
     - Added trim() helper to remove leading/trailing whitespace from strings
       and array elements recursively.

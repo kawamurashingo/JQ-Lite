@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `group_count`, `count`, `join`, `empty()`, `median`, `upper()`, `lower()`, `abs()`, `trim()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `group_count`, `count`, `join`, `empty()`, `median`, `upper()`, `lower()`, `abs()`, `trim()`, `startswith()`, `endswith()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -58,6 +58,8 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `add`, `min`, `max`, `avg`, `median` | Numeric aggregation functions            |
 | `abs`         | Convert numeric values to their absolute value (v0.49) |
 | `trim`        | Remove leading/trailing whitespace from strings (v0.50) |
+| `startswith(prefix)` | Check if a string (or array of strings) begins with `prefix` (v0.51) |
+| `endswith(suffix)` | Check if a string (or array of strings) ends with `suffix` (v0.51) |
 | `group_by(key)`| Group array items by field                           |
 | `group_count(key)` | Count how many items fall under each key (v0.46)   |
 | `count`        | Count total number of matching items                 |

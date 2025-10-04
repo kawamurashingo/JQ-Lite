@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.50';
+our $VERSION = '0.51';
 
 sub new {
     my ($class, %opts) = @_;
@@ -459,6 +459,22 @@ sub run_query {
             next;
         }
 
+        # support for startswith("prefix")
+        if ($part =~ /^startswith\((.+)\)$/) {
+            my $needle = _parse_string_argument($1);
+            @next_results = map { _apply_string_predicate($_, $needle, 'start') } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for endswith("suffix")
+        if ($part =~ /^endswith\((.+)\)$/) {
+            my $needle = _parse_string_argument($1);
+            @next_results = map { _apply_string_predicate($_, $needle, 'end') } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {
@@ -795,6 +811,57 @@ sub _group_by {
     return \%groups;
 }
 
+sub _apply_string_predicate {
+    my ($value, $needle, $mode) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_string_predicate($_, $needle, $mode) } @$value ];
+    }
+
+    return _string_predicate_result($value, $needle, $mode);
+}
+
+sub _string_predicate_result {
+    my ($value, $needle, $mode) = @_;
+
+    return JSON::PP::false if !defined $value;
+    return JSON::PP::false if ref $value;
+
+    $needle //= '';
+    my $len = length $needle;
+
+    if ($mode eq 'start') {
+        return JSON::PP::true if $len == 0 || index($value, $needle) == 0;
+        return JSON::PP::false;
+    }
+
+    if ($mode eq 'end') {
+        return JSON::PP::true if $len == 0;
+        return JSON::PP::false if length($value) < $len;
+        return JSON::PP::true if substr($value, -$len) eq $needle;
+        return JSON::PP::false;
+    }
+
+    return JSON::PP::false;
+}
+
+sub _parse_string_argument {
+    my ($raw) = @_;
+
+    return '' if !defined $raw;
+
+    my $parsed = eval { decode_json($raw) };
+    if (!$@) {
+        $parsed = '' if !defined $parsed;
+        return $parsed;
+    }
+
+    $raw =~ s/^\s+|\s+$//g;
+    $raw =~ s/^['"]//;
+    $raw =~ s/['"]$//;
+    return $raw;
+}
+
 sub _group_count {
     my ($array_ref, $path) = @_;
     return {} unless ref $array_ref eq 'ARRAY';
@@ -820,7 +887,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.50
+Version 0.51
 
 =head1 SYNOPSIS
 
@@ -857,7 +924,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact, upper, lower, abs, trim
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact, upper, lower, abs, trim, startswith, endswith
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -1007,6 +1074,26 @@ Example:
 
   .title | lower      # => "hello world"
   .tags  | lower      # => ["perl", "json"]
+
+=item * startswith("prefix")
+
+Returns true if the current string (or each string inside an array) begins with
+the supplied prefix. Non-string values yield C<false>.
+
+Example:
+
+  .title | startswith("Hello")   # => true
+  .tags  | startswith("j")       # => [false, true, false]
+
+=item * endswith("suffix")
+
+Returns true if the current string (or each string inside an array) ends with
+the supplied suffix. Non-string values yield C<false>.
+
+Example:
+
+  .title | endswith("World")     # => true
+  .tags  | endswith("n")         # => [false, true, false]
 
 =item * abs()
 
