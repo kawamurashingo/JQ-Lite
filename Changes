@@ -1,3 +1,8 @@
+0.68  2025-10-05
+    [Feature]
+    - Added sum_by(path) helper to aggregate numeric values from array items.
+    - Documented the helper across README, POD, CLI help, and tests.
+
 0.67  2025-10-05
     [Feature]
     - Added flatten_all() helper to recursively flatten nested arrays.

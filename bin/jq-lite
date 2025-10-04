@@ -339,6 +339,7 @@ Supported Functions:
   count            - Count total number of matching items
   map(EXPR)        - Map/filter array items with a subquery
   add / sum        - Sum all numeric values in an array
+  sum_by(KEY)      - Sum numeric values projected from each array item
   product          - Multiply all numeric values in an array
   min / max        - Return minimum / maximum numeric value in an array
   avg              - Return the average of numeric values in an array
