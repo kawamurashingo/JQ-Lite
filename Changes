@@ -1,4 +1,4 @@
-0.50  2025-10-05
+0.50  2025-10-04
     - Added trim() helper to remove leading/trailing whitespace from strings
       and array elements recursively.
     - Documented the new function and included it in the --help-functions
@@ -237,6 +237,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
