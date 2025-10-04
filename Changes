@@ -1,4 +1,4 @@
-0.59  2025-10-06
+0.59  2025-10-05
     [Feature]
     - Added product helper to multiply numeric array values.
     - Documented the helper across README, POD, and --help-functions output.
@@ -288,6 +288,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
