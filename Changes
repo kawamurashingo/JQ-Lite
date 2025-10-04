@@ -1,3 +1,8 @@
+0.52  2025-10-05
+    - Added split() helper for splitting string values by a literal separator.
+    - Documented the new function in README, POD, and --help-functions output.
+    - Added regression tests covering scalar strings, nested arrays, and edge cases.
+
 0.51  2025-10-04
     - Added startswith()/endswith() helpers for prefix and suffix checks on
       scalars and arrays of strings.
