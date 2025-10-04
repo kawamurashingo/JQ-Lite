@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.52';
+our $VERSION = '0.53';
 
 sub new {
     my ($class, %opts) = @_;
@@ -228,6 +228,20 @@ sub run_query {
                     $_;
                 }
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for ceil()
+        if ($part eq 'ceil()' || $part eq 'ceil') {
+            @next_results = map { _apply_numeric_function($_, \&_ceil) } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for floor()
+        if ($part eq 'floor()' || $part eq 'floor') {
+            @next_results = map { _apply_numeric_function($_, \&_floor) } @results;
             @results = @next_results;
             next;
         }
@@ -590,6 +604,22 @@ sub _apply_trim {
     return $value;
 }
 
+sub _apply_numeric_function {
+    my ($value, $callback) = @_;
+
+    return undef if !defined $value;
+
+    if (!ref $value) {
+        return looks_like_number($value) ? $callback->($value) : $value;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_numeric_function($_, $callback) } @$value ];
+    }
+
+    return $value;
+}
+
 sub _traverse {
     my ($data, $query) = @_;
     my @steps = split /\./, $query;
@@ -891,6 +921,20 @@ sub _apply_split {
     return [ @parts ];
 }
 
+sub _ceil {
+    my ($number) = @_;
+
+    return $number if int($number) == $number;
+    return $number > 0 ? int($number) + 1 : int($number);
+}
+
+sub _floor {
+    my ($number) = @_;
+
+    return $number if int($number) == $number;
+    return $number > 0 ? int($number) : int($number) - 1;
+}
+
 sub _group_count {
     my ($array_ref, $path) = @_;
     return {} unless ref $array_ref eq 'ARRAY';
@@ -916,7 +960,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.52
+Version 0.53
 
 =head1 SYNOPSIS
 
@@ -953,7 +997,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, trim, startswith, endswith
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, startswith, endswith
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -1144,6 +1188,26 @@ Example:
 
   .temperature | abs      # => 12
   .deltas      | abs      # => [3, 4, 5, "n/a"]
+
+=item * ceil()
+
+Rounds numbers up to the nearest integer. Scalars and array elements that look
+like numbers are rounded upward, while other values pass through unchanged.
+
+Example:
+
+  .price   | ceil     # => 20
+  .changes | ceil     # => [2, -1, "n/a"]
+
+=item * floor()
+
+Rounds numbers down to the nearest integer. Scalars and array elements that
+look like numbers are rounded downward, leaving non-numeric values untouched.
+
+Example:
+
+  .price   | floor    # => 19
+  .changes | floor    # => [1, -2, "n/a"]
 
 =item * trim()
 

@@ -11,6 +11,7 @@ t/arithmetic.t
 t/basic.t
 t/contains.t
 t/case_transform.t
+t/ceil_floor.t
 t/count.t
 t/empty.t
 t/first_last.t
