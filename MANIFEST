@@ -13,6 +13,7 @@ t/contains.t
 t/contains_function.t
 t/case_transform.t
 t/ceil_floor.t
+t/chunks.t
 t/count.t
 t/empty.t
 t/first_last.t

@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.63';
+our $VERSION = '0.64';
 
 sub new {
     my ($class, %opts) = @_;
@@ -230,6 +230,34 @@ sub run_query {
                     $_;
                 }
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for chunks(n)
+        if ($part =~ /^chunks\((\d+)\)$/) {
+            my $size = $1;
+            $size = 1 if $size < 1;
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $arr = $_;
+                    if (!@$arr) {
+                        [];
+                    } else {
+                        my @chunks;
+                        for (my $i = 0; $i < @$arr; $i += $size) {
+                            my $end = $i + $size - 1;
+                            $end = $#$arr if $end > $#$arr;
+                            push @chunks, [ @$arr[$i .. $end] ];
+                        }
+                        \@chunks;
+                    }
+                } else {
+                    $_;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1306,9 +1334,9 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop, chunks
 
-=item * Supports map(...), limit(n), and drop(n) style transformations
+=item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
 =item * Interactive mode for exploring queries line-by-line
 
