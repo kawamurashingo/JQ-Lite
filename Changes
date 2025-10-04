@@ -1,3 +1,9 @@
+0.59  2025-10-06
+    [Feature]
+    - Added product helper to multiply numeric array values.
+    - Documented the helper across README, POD, and --help-functions output.
+    - Extended aggregation tests to cover the new helper.
+
 0.58  2025-10-05
     [Feature]
     - Added sum helper as an alias for add to provide jq-compatible naming.
