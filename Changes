@@ -1,3 +1,9 @@
+0.58  2025-10-05
+    [Feature]
+    - Added sum helper as an alias for add to provide jq-compatible naming.
+    - Documented the new helper across README, POD, and --help-functions output.
+    - Extended aggregation tests to cover the new function.
+
 0.57  2025-10-04
     [Feature]
     - Added substr(start, length) helper to extract substrings from scalars and

@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.57';
+our $VERSION = '0.58';
 
 sub new {
     my ($class, %opts) = @_;
@@ -190,6 +190,15 @@ sub run_query {
 
         # support for add
         if ($part eq 'add') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? sum(map { 0 + $_ } @$_) : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for sum (alias for add)
+        if ($part eq 'sum') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? sum(map { 0 + $_ } @$_) : $_
             } @results;
@@ -1100,7 +1109,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.56
+Version 0.58
 
 =head1 SYNOPSIS
 
@@ -1137,7 +1146,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, min, max, avg, median
 
 =item * Supports map(...) and limit(n) style transformations
 

@@ -14,6 +14,9 @@ my $jq = JQ::Lite->new;
 my ($add) = $jq->run_query($json, 'map(.value) | add');
 is($add, 60, 'add = 60');
 
+my ($sum) = $jq->run_query($json, 'map(.value) | sum');
+is($sum, 60, 'sum = 60');
+
 my ($min) = $jq->run_query($json, 'map(.value) | min');
 is($min, 10, 'min = 10');
 

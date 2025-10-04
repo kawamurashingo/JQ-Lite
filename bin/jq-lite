@@ -334,7 +334,7 @@ Supported Functions:
   limit(N)         - Limit array to first N elements
   count            - Count total number of matching items
   map(EXPR)        - Map/filter array items with a subquery
-  add              - Sum all numeric values in an array
+  add / sum        - Sum all numeric values in an array
   min / max        - Return minimum / maximum numeric value in an array
   avg              - Return the average of numeric values in an array
   median           - Return the median of numeric values in an array
