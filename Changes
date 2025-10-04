@@ -1,4 +1,4 @@
-0.52  2025-10-05
+0.52  2025-10-04
     - Added split() helper for splitting string values by a literal separator.
     - Documented the new function in README, POD, and --help-functions output.
     - Added regression tests covering scalar strings, nested arrays, and edge cases.
@@ -248,6 +248,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
