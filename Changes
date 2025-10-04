@@ -342,3 +342,8 @@
 
 
 
+0.67  2025-10-06
+    [Feature]
+    - Added flatten_all() helper to recursively flatten nested arrays.
+    - Documented the helper across README, POD, CLI help, and tests.
+

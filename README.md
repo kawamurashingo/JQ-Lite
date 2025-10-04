@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `index()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `flatten_all()`, `index()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -78,6 +78,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `join(sep)`    | Join array elements with custom separator (v0.31+)   |
 | `empty()`      | Discard all results (compatible with jq) (v0.33+)    |
 | `flatten()`    | Flatten array one level deep (like `.[]`) (v0.35)    |
+| `flatten_all()`| Recursively flatten nested arrays into a single array (v0.67) |
 | `type()`       | Return the type of the value ("string", "number", "boolean", "array", "object", "null") (v0.36) |
 | `nth(n)`       | Get the nth element of an array (v0.37)              |
 | `index(value)` | Return the zero-based index of the first match in arrays or strings (v0.65) |

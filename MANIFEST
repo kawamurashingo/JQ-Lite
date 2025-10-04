@@ -18,6 +18,7 @@ t/count.t
 t/empty.t
 t/first_last.t
 t/flatten.t
+t/flatten_all.t
 t/friends.t
 t/group_by.t
 t/group_count.t

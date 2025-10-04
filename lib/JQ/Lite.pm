@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.66';
+our $VERSION = '0.67';
 
 sub new {
     my ($class, %opts) = @_;
@@ -570,6 +570,19 @@ sub run_query {
             next;
         }
 
+        # support for flatten_all()
+        if ($part eq 'flatten_all()' || $part eq 'flatten_all') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    _flatten_all($_);
+                } else {
+                    $_;
+                }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for type()
         if ($part eq 'type()' || $part eq 'type') {
             @next_results = map {
@@ -1102,6 +1115,28 @@ sub _group_by {
     return \%groups;
 }
 
+sub _flatten_all {
+    my ($value) = @_;
+
+    return $value unless ref $value eq 'ARRAY';
+
+    my @flattened;
+    for my $item (@$value) {
+        if (ref $item eq 'ARRAY') {
+            my $flattened = _flatten_all($item);
+            if (ref $flattened eq 'ARRAY') {
+                push @flattened, @$flattened;
+            } else {
+                push @flattened, $flattened;
+            }
+        } else {
+            push @flattened, $item;
+        }
+    }
+
+    return \@flattened;
+}
+
 sub _apply_string_predicate {
     my ($value, $needle, $mode) = @_;
 
@@ -1385,7 +1420,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.66
+Version 0.67
 
 =head1 SYNOPSIS
 
@@ -1422,7 +1457,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop, chunks
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop, chunks, flatten_all
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1533,6 +1568,19 @@ Example:
   .users[] | select(.age > 25) | empty
 
 =item * .[] as alias for flattening top-level arrays
+
+=item * flatten_all()
+
+Recursively flattens nested arrays into a single-level array while preserving
+non-array values.
+
+Example:
+
+  [[1, 2], [3, [4]]] | flatten_all
+
+Returns:
+
+  [1, 2, 3, 4]
 
 =item * type()
 

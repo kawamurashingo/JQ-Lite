@@ -362,6 +362,7 @@ Supported Functions:
   contains         - Check if strings include a fragment, arrays contain an element, or hashes have a key
   match("pattern") - Match string using regex
   flatten          - Explicitly flatten arrays (same as .[])
+  flatten_all()    - Recursively flatten nested arrays into a single array
   del(KEY)         - Remove a key from objects in the result
   compact          - Remove undefined values from arrays
   path             - Return available keys for objects or indexes for arrays
