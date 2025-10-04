@@ -1,3 +1,10 @@
+0.62  2025-10-05
+    [Feature]
+    - Added support for negative array indices (e.g. .users[-1]) across
+      queries and the nth() helper.
+    - Documented the new capability in README and module POD.
+    - Added regression tests covering backwards indexing and nth(-1).
+
 0.61  2025-10-05
     [Feature]
     - Added sort_desc helper to sort arrays in descending order using smart

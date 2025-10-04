@@ -15,7 +15,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ **Pure Perl** (no XS, no external binaries)
 - ✅ Dot notation (`.users[].name`)
 - ✅ Optional key access (`.nickname?`)
-- ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
+- ✅ Array indexing and expansion (`.users[0]`, `.users[]`, `.users[-1]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
 - ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `substr()`, `replace()`, `empty()`, `median`, `add`, `sum`, `product`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
@@ -249,6 +249,7 @@ jq-lite '.users | map(.name) | join(", ")' users.json
 jq-lite '.users[] | select(.age > 25) | empty' users.json
 jq-lite '.users[0] | values' users.json
 jq-lite '.users[0].name | type' users.json
+jq-lite '.users[-1].name' users.json
 ```
 
 ---
