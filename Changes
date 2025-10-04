@@ -1,3 +1,8 @@
+0.67  2025-10-06
+    [Feature]
+    - Added flatten_all() helper to recursively flatten nested arrays.
+    - Documented the helper across README, POD, CLI help, and tests.
+
 0.66  2025-10-05
     [Feature]
     - Added slice(start[, length]) helper to extract portions of arrays using
@@ -330,20 +335,3 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
-
-
-
-
-
-
-
-
-
-
-
-
-0.67  2025-10-06
-    [Feature]
-    - Added flatten_all() helper to recursively flatten nested arrays.
-    - Documented the helper across README, POD, CLI help, and tests.
-
