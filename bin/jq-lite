@@ -339,6 +339,8 @@ Supported Functions:
   contains         - Check if array or string contains a value
   match("pattern") - Match string using regex
   flatten          - Explicitly flatten arrays (same as .[])
+  upper()          - Convert scalars and array elements to uppercase
+  lower()          - Convert scalars and array elements to lowercase
   empty            - Discard all output (for side-effect use)
   type()           - Return the type of value ("string", "number", "boolean", "array", "object", "null")
 

@@ -1,3 +1,8 @@
+0.47  2025-10-04
+    - Added upper()/lower() helpers for case conversion of scalars and arrays.
+    - Documented the new functions and listed them in --help-functions output.
+    - Added regression tests covering scalar, array, and pipeline scenarios.
+
 0.46  2025-10-04
     - Added group_count(key) helper to tally grouped results.
     - Documented the new function and added regression tests.

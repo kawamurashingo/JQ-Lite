@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.46';
+our $VERSION = '0.47';
 
 sub new {
     my ($class, %opts) = @_;
@@ -418,6 +418,20 @@ sub run_query {
             next;
         }
 
+        # support for upper()
+        if ($part eq 'upper()' || $part eq 'upper') {
+            @next_results = map { _apply_case_transform($_, 'upper') } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for lower()
+        if ($part eq 'lower()' || $part eq 'lower') {
+            @next_results = map { _apply_case_transform($_, 'lower') } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {
@@ -484,6 +498,24 @@ sub _map {
     }
 
     return @mapped;
+}
+
+sub _apply_case_transform {
+    my ($value, $mode) = @_;
+
+    if (!defined $value) {
+        return undef;
+    }
+
+    if (!ref $value) {
+        return $mode eq 'upper' ? uc $value : lc $value;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_case_transform($_, $mode) } @$value ];
+    }
+
+    return $value;
 }
 
 sub _traverse {
@@ -777,7 +809,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact, upper, lower
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -907,6 +939,26 @@ Example:
 Before: [1, null, 2, null, 3]
 
 After:  [1, 2, 3]
+
+=item * upper()
+
+Converts strings to uppercase. When applied to arrays, each scalar element
+is uppercased recursively, leaving nested hashes or booleans untouched.
+
+Example:
+
+  .title | upper      # => "HELLO WORLD"
+  .tags  | upper      # => ["PERL", "JSON"]
+
+=item * lower()
+
+Converts strings to lowercase. When applied to arrays, each scalar element
+is lowercased recursively, leaving nested hashes or booleans untouched.
+
+Example:
+
+  .title | lower      # => "hello world"
+  .tags  | lower      # => ["perl", "json"]
 
 =back
 
