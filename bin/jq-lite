@@ -339,6 +339,8 @@ Supported Functions:
   avg              - Return the average of numeric values in an array
   median           - Return the median of numeric values in an array
   abs              - Convert numbers (and array elements) to their absolute value
+  ceil()           - Round numbers up to the nearest integer
+  floor()          - Round numbers down to the nearest integer
   nth(N)           - Get the Nth element of an array (zero-based index)
   group_by(KEY)    - Group array items by field
   group_count(KEY) - Count grouped items by field

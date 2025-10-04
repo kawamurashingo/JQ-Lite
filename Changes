@@ -1,3 +1,8 @@
+0.53  2025-10-05
+    - Added ceil()/floor() helpers for rounding numeric scalars and arrays.
+    - Documented the new functions in README, POD, and --help-functions output.
+    - Added regression tests for positive/negative values and nested arrays.
+
 0.52  2025-10-04
     - Added split() helper for splitting string values by a literal separator.
     - Documented the new function in README, POD, and --help-functions output.
