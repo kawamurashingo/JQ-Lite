@@ -31,6 +31,7 @@ t/match_i.t
 t/pipe_select_name.t
 t/pluck.t
 t/reverse.t
+t/replace.t
 t/round.t
 t/split.t
 t/sort_by.t

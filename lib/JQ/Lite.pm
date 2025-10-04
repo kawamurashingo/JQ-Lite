@@ -525,6 +525,17 @@ sub run_query {
             next;
         }
 
+        # support for replace(old, new)
+        if ($part =~ /^replace\((.+)\)$/) {
+            my ($search, $replacement) = _parse_arguments($1);
+            $search      = defined $search      ? $search      : '';
+            $replacement = defined $replacement ? $replacement : '';
+
+            @next_results = map { _apply_replace($_, $search, $replacement) } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for split("separator")
         if ($part =~ /^split\((.+)\)$/) {
             my $separator = _parse_string_argument($1);
@@ -986,6 +997,28 @@ sub _apply_substr {
     }
 
     return substr($value, $start);
+}
+
+sub _apply_replace {
+    my ($value, $search, $replacement) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_replace($_, $search, $replacement) } @$value ];
+    }
+
+    return $value if !defined $value;
+    return $value if ref $value;
+
+    return $value if looks_like_number($value);
+
+    $search      = defined $search      ? "$search"      : '';
+    $replacement = defined $replacement ? "$replacement" : '';
+
+    return $value if $search eq '';
+
+    my $pattern = quotemeta $search;
+    (my $copy = "$value") =~ s/$pattern/$replacement/g;
+    return $copy;
 }
 
 sub _parse_arguments {
