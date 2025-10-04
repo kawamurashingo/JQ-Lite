@@ -30,6 +30,7 @@ t/pluck.t
 t/reverse.t
 t/sort_by.t
 t/sort_unique.t
+t/startswith_endswith.t
 t/trim.t
 t/values.t
 LICENSE
