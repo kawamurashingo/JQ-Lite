@@ -349,6 +349,7 @@ Supported Functions:
   floor()          - Round numbers down to the nearest integer
   round()          - Round numbers to the nearest integer (half-up semantics)
   nth(N)           - Get the Nth element of an array (zero-based index)
+  index(VALUE)     - Return the zero-based index of VALUE within arrays or strings
   group_by(KEY)    - Group array items by field
   group_count(KEY) - Count grouped items by field
   join(SEPARATOR)  - Join array elements with a string

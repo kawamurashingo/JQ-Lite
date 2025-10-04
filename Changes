@@ -1,3 +1,9 @@
+0.65  2025-10-05
+    [Feature]
+    - Added index(value) helper to return the first matching index for arrays or
+      substring position for scalars.
+    - Documented the helper across README, POD, CLI help, and tests.
+
 0.64  2025-10-05
     [Feature]
     - Added chunks(n) helper to split arrays into evenly-sized subarrays.
