@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.48';
+our $VERSION = '0.49';
 
 sub new {
     my ($class, %opts) = @_;
@@ -207,6 +207,26 @@ sub run_query {
         if ($part eq 'avg') {
             @next_results = map {
                 ref $_ eq 'ARRAY' && @$_ ? sum(map { 0 + $_ } @$_) / scalar(@$_) : 0
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for abs
+        if ($part eq 'abs') {
+            @next_results = map {
+                if (!defined $_) {
+                    undef;
+                }
+                elsif (!ref $_) {
+                    looks_like_number($_) ? abs($_) : $_;
+                }
+                elsif (ref $_ eq 'ARRAY') {
+                    [ map { looks_like_number($_) ? abs($_) : $_ } @$_ ];
+                }
+                else {
+                    $_;
+                }
             } @results;
             @results = @next_results;
             next;
@@ -772,7 +792,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.46
+Version 0.49
 
 =head1 SYNOPSIS
 
@@ -809,7 +829,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact, upper, lower
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact, upper, lower, abs
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -959,6 +979,16 @@ Example:
 
   .title | lower      # => "hello world"
   .tags  | lower      # => ["perl", "json"]
+
+=item * abs()
+
+Returns absolute values for numbers. Scalars are converted directly, while
+arrays are processed element-by-element with non-numeric entries preserved.
+
+Example:
+
+  .temperature | abs      # => 12
+  .deltas      | abs      # => [3, 4, 5, "n/a"]
 
 =back
 
