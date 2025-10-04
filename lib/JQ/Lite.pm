@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.65';
+our $VERSION = '0.66';
 
 sub new {
     my ($class, %opts) = @_;
@@ -271,6 +271,16 @@ sub run_query {
                     : $_
             } @results;
             @results = @next_results;
+            next;
+        }
+
+        # support for slice(start[, length])
+        if ($part =~ /^slice(?:\((.*)\))?$/) {
+            my $args_raw = defined $1 ? $1 : '';
+            my @args     = _parse_arguments($args_raw);
+
+            @next_results = map { _apply_slice($_, @args) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -1186,6 +1196,52 @@ sub _apply_substr {
     return substr($value, $start);
 }
 
+sub _apply_slice {
+    my ($value, @args) = @_;
+
+    return undef if !defined $value;
+
+    if (ref $value eq 'ARRAY') {
+        my $array = $value;
+        my $size  = @$array;
+
+        return [] if $size == 0;
+
+        my $raw_start = @args ? $args[0] : 0;
+        my $start     = 0;
+
+        if (defined $raw_start && looks_like_number($raw_start)) {
+            $start = int($raw_start);
+        }
+
+        $start += $size if $start < 0;
+        $start = 0       if $start < 0;
+        return []        if $start >= $size;
+
+        my $length;
+        if (@args > 1 && defined $args[1] && looks_like_number($args[1])) {
+            $length = int($args[1]);
+        }
+
+        my $end;
+        if (defined $length) {
+            return [] if $length <= 0;
+            $end = $start + $length;
+        }
+        else {
+            $end = $size;
+        }
+
+        $end = $size if $end > $size;
+
+        return [] if $end <= $start;
+
+        return [ @$array[$start .. $end - 1] ];
+    }
+
+    return $value;
+}
+
 sub _apply_replace {
     my ($value, $search, $replacement) = @_;
 
@@ -1329,7 +1385,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.62
+Version 0.66
 
 =head1 SYNOPSIS
 
@@ -1366,7 +1422,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop, chunks
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, product, min, max, avg, median, stddev, drop, chunks
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1597,6 +1653,18 @@ Examples:
 
   .title | substr(0, 5)       # => "Hello"
   .tags  | substr(-3)         # => ["erl", "SON"]
+
+=item * slice(start[, length])
+
+Returns a portion of the current array using zero-based indexing. Negative
+start values count from the end of the array. When length is omitted, the
+slice continues through the final element. Non-array inputs pass through
+unchanged so pipelines can mix scalar and array values safely.
+
+Examples:
+
+  .users | slice(0, 2)        # => first two users
+  .users | slice(-2)          # => last two users
 
 =item * index(value)
 
