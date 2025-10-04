@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `empty()`, `median`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `substr()`, `empty()`, `median`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -64,6 +64,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `startswith(prefix)` | Check if a string (or array of strings) begins with `prefix` (v0.51) |
 | `endswith(suffix)` | Check if a string (or array of strings) ends with `suffix` (v0.51) |
 | `split(separator)` | Split a string (or array of strings) using a literal separator (v0.52) |
+| `substr(start, length)` | Extract a substring using zero-based indexing (arrays are processed element-wise) (v0.57) |
 | `contains(value)` | Check whether strings include the value or arrays contain an element (v0.56) |
 | `group_by(key)`| Group array items by field                           |
 | `group_count(key)` | Count how many items fall under each key (v0.46)   |
