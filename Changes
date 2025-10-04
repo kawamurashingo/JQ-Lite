@@ -1,3 +1,7 @@
+0.44  2025-04-29
+    - Prepare release for version 0.44.
+    - Added standalone LICENSE file and included it in MANIFEST for kwalitee compliance.
+
 0.42  2025-04-28
     - Added new function: default(value)
       * default() returns the specified value if the current value is undef or null.

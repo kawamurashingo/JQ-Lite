@@ -5,7 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 
-our $VERSION = '0.43';
+our $VERSION = '0.44';
 
 sub new {
     my ($class, %opts) = @_;

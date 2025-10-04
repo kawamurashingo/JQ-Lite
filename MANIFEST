@@ -27,3 +27,4 @@ t/reverse.t
 t/sort_by.t
 t/sort_unique.t
 t/values.t
+LICENSE
