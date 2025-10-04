@@ -241,9 +241,7 @@ sub run_query {
                     my @sorted = sort {
                         my $a_val = (_traverse($a, $key_path))[0] // '';
                         my $b_val = (_traverse($b, $key_path))[0] // '';
-        
-                        warn "[DEBUG] a=$a_val, b=$b_val => cmp=" . $cmp->($a_val, $b_val) . "\n";
-        
+
                         $cmp->($a_val, $b_val);
                     } @$item;
         
