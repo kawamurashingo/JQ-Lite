@@ -1,3 +1,8 @@
+0.45  2025-10-04
+    - Added median() aggregation helper with numeric filtering using looks_like_number().
+    - Documented the median function and added dedicated tests covering mixed numeric formats.
+    - Updated MANIFEST and module documentation for the new release.
+
 0.44  2025-10-04
     - Prepare release for version 0.44.
     - Added standalone LICENSE file and included it in MANIFEST for kwalitee compliance.

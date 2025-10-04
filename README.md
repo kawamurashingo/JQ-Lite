@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `count`, `join`, `empty()` 
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `count`, `join`, `empty()`, `median`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -55,7 +55,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `limit(n)`     | Limit array to first `n` elements                    |
 | `map(expr)`    | Map/filter values using a subquery                   |
 | `pluck(key)`   | Extract values from an array of objects (v0.43)      |
-| `add`, `min`, `max`, `avg` | Numeric aggregation functions            |
+| `add`, `min`, `max`, `avg`, `median` | Numeric aggregation functions            |
 | `group_by(key)`| Group array items by field                           |
 | `count`        | Count total number of matching items                 |
 | `join(sep)`    | Join array elements with custom separator (v0.31+)   |
