@@ -341,6 +341,7 @@ Supported Functions:
   abs              - Convert numbers (and array elements) to their absolute value
   ceil()           - Round numbers up to the nearest integer
   floor()          - Round numbers down to the nearest integer
+  round()          - Round numbers to the nearest integer (half-up semantics)
   nth(N)           - Get the Nth element of an array (zero-based index)
   group_by(KEY)    - Group array items by field
   group_count(KEY) - Count grouped items by field

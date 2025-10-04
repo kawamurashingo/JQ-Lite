@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.53';
+our $VERSION = '0.54';
 
 sub new {
     my ($class, %opts) = @_;
@@ -242,6 +242,13 @@ sub run_query {
         # support for floor()
         if ($part eq 'floor()' || $part eq 'floor') {
             @next_results = map { _apply_numeric_function($_, \&_floor) } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for round()
+        if ($part eq 'round()' || $part eq 'round') {
+            @next_results = map { _apply_numeric_function($_, \&_round) } @results;
             @results = @next_results;
             next;
         }
@@ -935,6 +942,13 @@ sub _floor {
     return $number > 0 ? int($number) : int($number) - 1;
 }
 
+sub _round {
+    my ($number) = @_;
+
+    return $number if int($number) == $number;
+    return $number >= 0 ? int($number + 0.5) : int($number - 0.5);
+}
+
 sub _group_count {
     my ($array_ref, $path) = @_;
     return {} unless ref $array_ref eq 'ARRAY';
@@ -960,7 +974,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.53
+Version 0.54
 
 =head1 SYNOPSIS
 
@@ -1208,6 +1222,17 @@ Example:
 
   .price   | floor    # => 19
   .changes | floor    # => [1, -2, "n/a"]
+
+=item * round()
+
+Rounds numbers to the nearest integer using standard rounding (half up for
+positive values, half down for negatives). Scalars and array elements that look
+like numbers are adjusted, while other values pass through unchanged.
+
+Example:
+
+  .price   | round    # => 19
+  .changes | round    # => [1, -2, "n/a"]
 
 =item * trim()
 
