@@ -1,4 +1,9 @@
-0.63  2025-10-06
+0.64  2025-10-05
+    [Feature]
+    - Added chunks(n) helper to split arrays into evenly-sized subarrays.
+    - Documented the helper across README, POD, CLI help, and tests.
+
+0.63  2025-10-05
     [Feature]
     - Added drop(n) helper to skip the first N elements of arrays.
     - Documented the helper across README, POD, CLI help, and tests.
@@ -313,6 +318,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
