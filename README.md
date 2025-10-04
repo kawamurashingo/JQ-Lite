@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `substr()`, `replace()`, `empty()`, `median`, `add`, `sum`, `product`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `substr()`, `replace()`, `empty()`, `median`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -57,7 +57,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `limit(n)`     | Limit array to first `n` elements                    |
 | `map(expr)`    | Map/filter values using a subquery                   |
 | `pluck(key)`   | Extract values from an array of objects (v0.43)      |
-| `add`, `sum`, `min`, `max`, `avg`, `median`, `product` | Numeric aggregation functions            |
+| `add`, `sum`, `min`, `max`, `avg`, `median`, `stddev`, `product` | Numeric aggregation functions            |
 | `abs`         | Convert numeric values to their absolute value (v0.49) |
 | `ceil`        | Round numbers up to the nearest integer (v0.53)        |
 | `floor`       | Round numbers down to the nearest integer (v0.53)      |

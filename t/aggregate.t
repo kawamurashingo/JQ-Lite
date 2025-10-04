@@ -26,7 +26,16 @@ is($max, 30, 'max = 30');
 my ($avg) = $jq->run_query($json, 'map(.value) | avg');
 is($avg, 20, 'avg = 20');
 
+my ($stddev) = $jq->run_query($json, 'map(.value) | stddev');
+ok(abs($stddev - 8.1649658) < 1e-6, 'stddev approx 8.1649658');
+
 my ($product) = $jq->run_query($json, 'map(.value) | product');
 is($product, 6000, 'product = 6000');
+
+my ($stddev_single) = $jq->run_query(q([{ "value": 42 }]), 'map(.value) | stddev');
+is($stddev_single, 0, 'stddev of single value = 0');
+
+my ($stddev_non_numeric) = $jq->run_query(q(["alpha", "beta", "gamma"]), 'stddev');
+ok(!defined $stddev_non_numeric, 'stddev returns undef when array has no numeric values');
 
 done_testing;

@@ -1,3 +1,10 @@
+0.62  2025-10-05
+    [Feature]
+    - Added stddev helper to calculate the standard deviation of numeric array
+      values.
+    - Documented the helper across README, POD, and --help-functions output.
+    - Added regression tests covering numeric, mixed, and single-value inputs.
+
 0.61  2025-10-05
     [Feature]
     - Added sort_desc helper to sort arrays in descending order using smart
@@ -301,6 +308,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
