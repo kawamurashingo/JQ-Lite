@@ -1,4 +1,4 @@
-0.44  2025-04-29
+0.44  2025-10-04
     - Prepare release for version 0.44.
     - Added standalone LICENSE file and included it in MANIFEST for kwalitee compliance.
 
@@ -206,3 +206,4 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
