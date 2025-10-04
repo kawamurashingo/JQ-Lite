@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.51';
+our $VERSION = '0.52';
 
 sub new {
     my ($class, %opts) = @_;
@@ -475,6 +475,14 @@ sub run_query {
             next;
         }
 
+        # support for split("separator")
+        if ($part =~ /^split\((.+)\)$/) {
+            my $separator = _parse_string_argument($1);
+            @next_results = map { _apply_split($_, $separator) } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {
@@ -862,6 +870,27 @@ sub _parse_string_argument {
     return $raw;
 }
 
+sub _apply_split {
+    my ($value, $separator) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_split($_, $separator) } @$value ];
+    }
+
+    return [] if !defined $value;
+    return $value if ref $value;
+
+    $separator = '' unless defined $separator;
+
+    if ($separator eq '') {
+        return [ split(//, $value) ];
+    }
+
+    my $pattern = quotemeta $separator;
+    my @parts = split /$pattern/, $value, -1;
+    return [ @parts ];
+}
+
 sub _group_count {
     my ($array_ref, $path) = @_;
     return {} unless ref $array_ref eq 'ARRAY';
@@ -887,7 +916,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.51
+Version 0.52
 
 =head1 SYNOPSIS
 
@@ -924,7 +953,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact, upper, lower, abs, trim, startswith, endswith
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, trim, startswith, endswith
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -992,6 +1021,17 @@ Example:
 Results in:
 
   "Alice, Bob, Carol"
+
+=item * split(separator)
+
+Split string values (and arrays of strings) using a literal separator.
+Example:
+
+  .users[0].name | split("")
+
+Results in:
+
+  ["A", "l", "i", "c", "e"]
 
 =item * values()
 
