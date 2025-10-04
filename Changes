@@ -1,3 +1,8 @@
+0.69  2025-10-05
+    [Feature]
+    - Added titlecase() helper to convert scalars and arrays to title case.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.68  2025-10-05
     [Feature]
     - Added sum_by(path) helper to aggregate numeric values from array items.
