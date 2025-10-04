@@ -1,3 +1,7 @@
+0.46  2025-10-04
+    - Added group_count(key) helper to tally grouped results.
+    - Documented the new function and added regression tests.
+
 0.45  2025-10-04
     - Added median() aggregation helper with numeric filtering using looks_like_number().
     - Documented the median function and added dedicated tests covering mixed numeric formats.

@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.45';
+our $VERSION = '0.46';
 
 sub new {
     my ($class, %opts) = @_;
@@ -235,6 +235,16 @@ sub run_query {
                 } else {
                     $_;
                 }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for group_count(key)
+        if ($part =~ /^group_count\((.+)\)$/) {
+            my $key_path = $1;
+            @next_results = map {
+                _group_count($_, $key_path)
             } @results;
             @results = @next_results;
             next;
@@ -705,6 +715,20 @@ sub _group_by {
     return \%groups;
 }
 
+sub _group_count {
+    my ($array_ref, $path) = @_;
+    return {} unless ref $array_ref eq 'ARRAY';
+
+    my %counts;
+    for my $item (@$array_ref) {
+        my @keys = _traverse($item, $path);
+        my $key = defined $keys[0] ? "$keys[0]" : 'null';
+        $counts{$key}++;
+    }
+
+    return \%counts;
+}
+
 1;
 __END__
 
@@ -716,7 +740,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.45
+Version 0.46
 
 =head1 SYNOPSIS
 
@@ -753,7 +777,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, join, count, empty, type, nth, del, compact
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, group_by, group_count, join, count, empty, type, nth, del, compact
 
 =item * Supports map(...) and limit(n) style transformations
 
@@ -802,6 +826,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * select(.key > 1 and .key2 == "foo") (boolean filters)
 
 =item * group_by(.field) (group array items by key)
+
+=item * group_count(.field) (tally items by key)
 
 =item * sort_by(.key) (sort array of objects by key)
 
