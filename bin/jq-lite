@@ -341,6 +341,7 @@ Supported Functions:
   min / max        - Return minimum / maximum numeric value in an array
   avg              - Return the average of numeric values in an array
   median           - Return the median of numeric values in an array
+  stddev           - Return the standard deviation of numeric values in an array
   abs              - Convert numbers (and array elements) to their absolute value
   ceil()           - Round numbers up to the nearest integer
   floor()          - Round numbers down to the nearest integer

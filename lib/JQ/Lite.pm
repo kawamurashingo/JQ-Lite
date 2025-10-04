@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.61';
+our $VERSION = '0.62';
 
 sub new {
     my ($class, %opts) = @_;
@@ -380,6 +380,32 @@ sub run_query {
                     $_;
                 }
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for stddev
+        if ($part eq 'stddev') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my @numbers = map { 0 + $_ }
+                        grep { looks_like_number($_) }
+                        @$_;
+
+                    if (@numbers) {
+                        my $mean = sum(@numbers) / @numbers;
+                        my $variance = sum(map { ($_ - $mean) ** 2 } @numbers) / @numbers;
+                        sqrt($variance);
+                    }
+                    else {
+                        undef;
+                    }
+                }
+                else {
+                    $_;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1224,7 +1250,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.61
+Version 0.62
 
 =head1 SYNOPSIS
 
@@ -1261,7 +1287,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median, stddev
 
 =item * Supports map(...) and limit(n) style transformations
 

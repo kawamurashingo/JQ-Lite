@@ -1,3 +1,10 @@
+0.62  2025-10-06
+    [Feature]
+    - Added stddev helper to calculate the standard deviation of numeric array
+      values.
+    - Documented the helper across README, POD, and --help-functions output.
+    - Added regression tests covering numeric, mixed, and single-value inputs.
+
 0.61  2025-10-05
     [Feature]
     - Added sort_desc helper to sort arrays in descending order using smart
