@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `empty()`, `median`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `trim()`, `startswith()`, `endswith()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_by`, `unique`, `has`, `map`, `group_by`, `group_count`, `count`, `join`, `split()`, `empty()`, `median`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -59,6 +59,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `abs`         | Convert numeric values to their absolute value (v0.49) |
 | `ceil`        | Round numbers up to the nearest integer (v0.53)        |
 | `floor`       | Round numbers down to the nearest integer (v0.53)      |
+| `round`       | Round numbers to the nearest integer (v0.54)           |
 | `trim`        | Remove leading/trailing whitespace from strings (v0.50) |
 | `startswith(prefix)` | Check if a string (or array of strings) begins with `prefix` (v0.51) |
 | `endswith(suffix)` | Check if a string (or array of strings) ends with `suffix` (v0.51) |
