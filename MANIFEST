@@ -33,6 +33,7 @@ t/pluck.t
 t/reverse.t
 t/replace.t
 t/round.t
+t/sort_desc.t
 t/split.t
 t/sort_by.t
 t/sort_unique.t
