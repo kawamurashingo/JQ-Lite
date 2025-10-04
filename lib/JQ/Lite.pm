@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.58';
+our $VERSION = '0.59';
 
 sub new {
     my ($class, %opts) = @_;
@@ -201,6 +201,26 @@ sub run_query {
         if ($part eq 'sum') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? sum(map { 0 + $_ } @$_) : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for product
+        if ($part eq 'product') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $product    = 1;
+                    my $has_values = 0;
+                    for my $val (@$_) {
+                        next unless defined $val;
+                        $product *= (0 + $val);
+                        $has_values = 1;
+                    }
+                    $has_values ? $product : 1;
+                } else {
+                    $_;
+                }
             } @results;
             @results = @next_results;
             next;
@@ -1142,7 +1162,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.58
+Version 0.59
 
 =head1 SYNOPSIS
 
@@ -1179,7 +1199,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, min, max, avg, median
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_by, unique, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, startswith, endswith, add, sum, product, min, max, avg, median
 
 =item * Supports map(...) and limit(n) style transformations
 

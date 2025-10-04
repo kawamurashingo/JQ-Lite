@@ -26,4 +26,7 @@ is($max, 30, 'max = 30');
 my ($avg) = $jq->run_query($json, 'map(.value) | avg');
 is($avg, 20, 'avg = 20');
 
+my ($product) = $jq->run_query($json, 'map(.value) | product');
+is($product, 6000, 'product = 6000');
+
 done_testing;
