@@ -19,6 +19,7 @@ t/has.t
 t/join.t
 t/limit.t
 t/map.t
+t/median.t
 t/match.t
 t/match_i.t
 t/pipe_select_name.t

@@ -4,8 +4,9 @@ use strict;
 use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
+use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.44';
+our $VERSION = '0.45';
 
 sub new {
     my ($class, %opts) = @_;
@@ -206,6 +207,34 @@ sub run_query {
         if ($part eq 'avg') {
             @next_results = map {
                 ref $_ eq 'ARRAY' && @$_ ? sum(map { 0 + $_ } @$_) / scalar(@$_) : 0
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for median
+        if ($part eq 'median') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY' && @$_) {
+                    my @numbers = sort { $a <=> $b }
+                        map { 0 + $_ }
+                        grep { looks_like_number($_) }
+                        @$_;
+
+                    if (@numbers) {
+                        my $count  = @numbers;
+                        my $middle = int($count / 2);
+                        if ($count % 2) {
+                            $numbers[$middle];
+                        } else {
+                            ($numbers[$middle - 1] + $numbers[$middle]) / 2;
+                        }
+                    } else {
+                        undef;
+                    }
+                } else {
+                    $_;
+                }
             } @results;
             @results = @next_results;
             next;
@@ -687,7 +716,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.42
+Version 0.45
 
 =head1 SYNOPSIS
 
