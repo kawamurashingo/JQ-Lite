@@ -22,6 +22,7 @@ t/friends.t
 t/group_by.t
 t/group_count.t
 t/has.t
+t/index.t
 t/join.t
 t/limit.t
 t/length.t

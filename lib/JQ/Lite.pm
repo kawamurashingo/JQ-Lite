@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.64';
+our $VERSION = '0.65';
 
 sub new {
     my ($class, %opts) = @_;
@@ -704,6 +704,38 @@ sub run_query {
             my $args_raw = defined $1 ? $1 : '';
             my @args = _parse_arguments($args_raw);
             @next_results = map { _apply_substr($_, @args) } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for index(value)
+        if ($part =~ /^index\((.*)\)$/) {
+            my @args   = _parse_arguments($1);
+            my $needle = @args ? $args[0] : undef;
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $array = $_;
+                    my $found;
+                    for my $i (0 .. $#$array) {
+                        if (_values_equal($array->[$i], $needle)) {
+                            $found = $i;
+                            last;
+                        }
+                    }
+                    defined $found ? $found : undef;
+                }
+                elsif (!ref $_ || ref($_) eq 'JSON::PP::Boolean') {
+                    my $haystack = defined $_ ? "$_" : '';
+                    my $fragment = defined $needle ? "$needle" : '';
+                    my $pos      = index($haystack, $fragment);
+                    $pos >= 0 ? $pos : undef;
+                }
+                else {
+                    undef;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1565,6 +1597,19 @@ Examples:
 
   .title | substr(0, 5)       # => "Hello"
   .tags  | substr(-3)         # => ["erl", "SON"]
+
+=item * index(value)
+
+Returns the zero-based index of the first occurrence of the supplied value.
+When the current result is an array, deep comparisons are used so nested
+structures (hashes, arrays, booleans) work as expected. When the current value
+is a string, the function returns the position of the substring, or null when
+not found.
+
+Example:
+
+  .users | index("Alice")     # => 0
+  .tags  | index("json")      # => 1
 
 =item * abs()
 
