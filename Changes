@@ -1,3 +1,7 @@
+0.48  2025-10-05
+    - Updated the --help-functions listing to cover every built-in helper.
+    - Bumped version number for the 0.48 release.
+
 0.47  2025-10-04
     - Added upper()/lower() helpers for case conversion of scalars and arrays.
     - Documented the new functions and listed them in --help-functions output.

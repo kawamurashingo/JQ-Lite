@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.47';
+our $VERSION = '0.48';
 
 sub new {
     my ($class, %opts) = @_;
