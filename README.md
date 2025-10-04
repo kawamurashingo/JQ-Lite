@@ -55,6 +55,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `last`         | Get the last element of an array                     |
 | `reverse`      | Reverse an array                                     |
 | `limit(n)`     | Limit array to first `n` elements                    |
+| `drop(n)`      | Skip the first `n` elements in an array              |
 | `map(expr)`    | Map/filter values using a subquery                   |
 | `pluck(key)`   | Extract values from an array of objects (v0.43)      |
 | `add`, `sum`, `min`, `max`, `avg`, `median`, `stddev`, `product` | Numeric aggregation functions            |
@@ -246,6 +247,7 @@ jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite '.users[] | select(.profile.active == true) | .name' users.json
 jq-lite '.users | sort_by(.age)' users.json
 jq-lite '.users | map(.name) | join(", ")' users.json
+jq-lite '.users | drop(1)' users.json
 jq-lite '.users[] | select(.age > 25) | empty' users.json
 jq-lite '.users[0] | values' users.json
 jq-lite '.users[0].name | type' users.json
