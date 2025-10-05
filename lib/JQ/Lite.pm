@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.72';
+our $VERSION = '0.73';
 
 sub new {
     my ($class, %opts) = @_;
@@ -456,6 +456,21 @@ sub run_query {
         if ($part eq 'round()' || $part eq 'round') {
             @next_results = map { _apply_numeric_function($_, \&_round) } @results;
             @results = @next_results;
+            next;
+        }
+
+        # support for clamp(min, max)
+        if ($part =~ /^clamp\((.*)\)$/) {
+            my @args = _parse_arguments($1);
+            my $min  = @args ? _normalize_numeric_bound($args[0]) : undef;
+            my $max  = @args > 1 ? _normalize_numeric_bound($args[1]) : undef;
+
+            if (defined $min && defined $max && $min > $max) {
+                ($min, $max) = ($max, $min);
+            }
+
+            @next_results = map { _apply_clamp($_, $min, $max) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -989,6 +1004,51 @@ sub _apply_numeric_function {
     }
 
     return $value;
+}
+
+sub _apply_clamp {
+    my ($value, $min, $max) = @_;
+
+    return undef if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        my $numeric = $value ? 1 : 0;
+        return _clamp_scalar($numeric, $min, $max);
+    }
+
+    if (!ref $value) {
+        return _clamp_scalar($value, $min, $max);
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_clamp($_, $min, $max) } @$value ];
+    }
+
+    return $value;
+}
+
+sub _normalize_numeric_bound {
+    my ($value) = @_;
+
+    return undef if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    return looks_like_number($value) ? 0 + $value : undef;
+}
+
+sub _clamp_scalar {
+    my ($value, $min, $max) = @_;
+
+    return $value unless looks_like_number($value);
+
+    my $numeric = 0 + $value;
+    $numeric = $min if defined $min && $numeric < $min;
+    $numeric = $max if defined $max && $numeric > $max;
+
+    return $numeric;
 }
 
 sub _apply_to_number {
@@ -1589,7 +1649,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.72
+Version 0.73
 
 =head1 SYNOPSIS
 
@@ -1626,7 +1686,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth, to_number
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1974,6 +2034,19 @@ Example:
 
   .price   | round    # => 19
   .changes | round    # => [1, -2, "n/a"]
+
+=item * clamp(min, max)
+
+Constrains numeric values within the supplied inclusive range. Scalars and
+array elements that look like numbers are coerced into numeric context and
+clamped between the provided minimum and maximum. When a bound is omitted or
+non-numeric, it is treated as unbounded on that side. Non-numeric values pass
+through unchanged so pipelines remain lossless.
+
+Example:
+
+  .score  | clamp(0, 100)       # => 87
+  .deltas | clamp(-5, 5)        # => [-5, 2, 5, "n/a"]
 
 =item * to_number()
 
