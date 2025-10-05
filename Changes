@@ -1,3 +1,9 @@
+0.73  2025-10-05
+    [Feature]
+    - Added clamp(min, max) helper to constrain numeric values within an
+      inclusive range while leaving non-numeric data untouched.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.72  2025-10-05
     [Feature]
     - Added to_number() helper to coerce numeric-looking strings and booleans

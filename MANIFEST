@@ -12,6 +12,7 @@ t/basic.t
 t/contains.t
 t/contains_function.t
 t/case_transform.t
+t/clamp.t
 t/ceil_floor.t
 t/chunks.t
 t/count.t
