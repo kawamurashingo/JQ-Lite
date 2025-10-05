@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `flatten_all()`, `index()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `flatten_all()`, `index()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -87,6 +87,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `compact()`    | Remove undef/null values from arrays (v0.39)         |
 | `upper()`      | Convert scalars (and array elements) to uppercase (v0.47) |
 | `lower()`      | Convert scalars (and array elements) to lowercase (v0.47) |
+| `titlecase()`  | Convert scalars (and array elements) to title case (v0.69) |
 | `path()`       | Return keys (for objects) or indices (for arrays) (v0.40) |
 | `is_empty`     | True when the value is an empty array or object (v0.41)   |
 | `default(value)` | Substitute a fallback value when the result is undef/null (v0.42) |

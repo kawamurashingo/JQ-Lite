@@ -370,6 +370,7 @@ Supported Functions:
   is_empty         - Check if an array or object is empty
   upper()          - Convert scalars and array elements to uppercase
   lower()          - Convert scalars and array elements to lowercase
+  titlecase()      - Convert scalars and array elements to title case
   trim()           - Strip leading/trailing whitespace from strings (recurses into arrays)
   startswith(PFX)  - Check if a string (or array of strings) begins with PFX
   endswith(SFX)    - Check if a string (or array of strings) ends with SFX

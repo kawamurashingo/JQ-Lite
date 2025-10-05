@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.68';
+our $VERSION = '0.69';
 
 sub new {
     my ($class, %opts) = @_;
@@ -704,6 +704,13 @@ sub run_query {
             next;
         }
 
+        # support for titlecase()
+        if ($part eq 'titlecase()' || $part eq 'titlecase') {
+            @next_results = map { _apply_case_transform($_, 'titlecase') } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for upper()
         if ($part eq 'upper()' || $part eq 'upper') {
             @next_results = map { _apply_case_transform($_, 'upper') } @results;
@@ -884,15 +891,25 @@ sub _apply_case_transform {
         return undef;
     }
 
-    if (!ref $value) {
-        return $mode eq 'upper' ? uc $value : lc $value;
-    }
-
     if (ref $value eq 'ARRAY') {
         return [ map { _apply_case_transform($_, $mode) } @$value ];
     }
 
+    if (!ref $value) {
+        return uc $value      if $mode eq 'upper';
+        return lc $value      if $mode eq 'lower';
+        return _to_titlecase($value);
+    }
+
     return $value;
+}
+
+sub _to_titlecase {
+    my ($value) = @_;
+
+    my $result = lc $value;
+    $result =~ s/(^|[^\p{L}\p{N}])(\p{L})/$1 . uc($2)/ge;
+    return $result;
 }
 
 sub _apply_trim {
@@ -1466,7 +1483,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.68
+Version 0.69
 
 =head1 SYNOPSIS
 
@@ -1503,7 +1520,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1683,6 +1700,17 @@ Example:
 
   .title | upper      # => "HELLO WORLD"
   .tags  | upper      # => ["PERL", "JSON"]
+
+=item * titlecase()
+
+Converts strings to title case (first letter of each word uppercase). When
+applied to arrays, each scalar element is transformed recursively, leaving
+nested hashes or booleans untouched.
+
+Example:
+
+  .title | titlecase   # => "Hello World"
+  .tags  | titlecase   # => ["Perl", "Json"]
 
 =item * lower()
 
