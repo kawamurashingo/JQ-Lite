@@ -71,6 +71,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `replace(old, new)` | Replace all occurrences of a literal substring with another value (arrays processed element-wise) (unreleased) |
 | `substr(start, length)` | Extract a substring using zero-based indexing (arrays are processed element-wise) (v0.57) |
 | `slice(start, length)` | Return a subarray using zero-based indexing with optional length (negative starts count from the end) (v0.66) |
+| `has(key)` | Check if objects contain a key or arrays have an index (v0.71) |
 | `contains(value)` | Check whether strings include the value or arrays contain an element (v0.56) |
 | `group_by(key)`| Group array items by field                           |
 | `group_count(key)` | Count how many items fall under each key (v0.46)   |

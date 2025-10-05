@@ -359,7 +359,7 @@ Supported Functions:
                    - Extract substring using zero-based indices (arrays handled element-wise)
   slice(START[, LENGTH])
                   - Return a subarray using zero-based indices (negative starts count from the end)
-  has              - Check if object has a given key
+  has              - Check if objects contain a key or arrays expose an index
   contains         - Check if strings include a fragment, arrays contain an element, or hashes have a key
   match("pattern") - Match string using regex
   flatten          - Explicitly flatten arrays (same as .[])

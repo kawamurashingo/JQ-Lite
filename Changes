@@ -1,3 +1,8 @@
+0.71  2025-10-05
+    [Feature]
+    - Added has(key) helper to verify object keys and array indexes.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.70  2025-10-05
     [Feature]
     - Added flatten_depth(n) helper to flatten nested arrays up to a specified
