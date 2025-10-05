@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.70';
+our $VERSION = '0.71';
 
 sub new {
     my ($class, %opts) = @_;
@@ -757,6 +757,16 @@ sub run_query {
             next;
         }
 
+        # support for has(key)
+        if ($part =~ /^has\((.+)\)$/) {
+            my @args   = _parse_arguments($1);
+            my $needle = @args ? $args[0] : undef;
+
+            @next_results = map { _apply_has($_, $needle) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for contains(value)
         if ($part =~ /^contains\((.+)\)$/) {
             my $needle = _parse_string_argument($1);
@@ -1449,6 +1459,27 @@ sub _apply_contains {
     return JSON::PP::false;
 }
 
+sub _apply_has {
+    my ($value, $needle) = @_;
+
+    return JSON::PP::false if !defined $needle;
+
+    if (ref $value eq 'HASH') {
+        return exists $value->{$needle} ? JSON::PP::true : JSON::PP::false;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return JSON::PP::false unless looks_like_number($needle);
+
+        my $index = int($needle);
+        return ($index >= 0 && $index < @$value)
+            ? JSON::PP::true
+            : JSON::PP::false;
+    }
+
+    return JSON::PP::false;
+}
+
 sub _values_equal {
     my ($left, $right) = @_;
 
@@ -1782,6 +1813,18 @@ Example:
 
   .title | lower      # => "hello world"
   .tags  | lower      # => ["perl", "json"]
+
+=item * has(key)
+
+Checks whether the current value exposes the supplied key or index.
+
+* For hashes, returns true when the key is present.
+* For arrays, returns true when the zero-based index exists.
+
+Example:
+
+  .meta  | has("version")   # => true
+  .items | has(2)            # => true when at least 3 elements exist
 
 =item * contains(value)
 
