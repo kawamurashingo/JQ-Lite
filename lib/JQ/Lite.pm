@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.69';
+our $VERSION = '0.70';
 
 sub new {
     my ($class, %opts) = @_;
@@ -629,6 +629,31 @@ sub run_query {
             next;
         }
 
+        # support for flatten_depth(n)
+        if ($part =~ /^flatten_depth(?:\((.*)\))?$/) {
+            my $args_raw = defined $1 ? $1 : '';
+            my @args     = length $args_raw ? _parse_arguments($args_raw) : ();
+            my $depth    = @args ? $args[0] : 1;
+
+            if (!defined $depth || !looks_like_number($depth)) {
+                $depth = 1;
+            }
+
+            $depth = int($depth);
+            $depth = 0 if $depth < 0;
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    _flatten_depth($_, $depth);
+                } else {
+                    $_;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
         # support for type()
         if ($part eq 'type()' || $part eq 'type') {
             @next_results = map {
@@ -1200,6 +1225,29 @@ sub _flatten_all {
     return \@flattened;
 }
 
+sub _flatten_depth {
+    my ($value, $depth) = @_;
+
+    return $value unless ref $value eq 'ARRAY';
+    return $value if $depth <= 0;
+
+    my @flattened;
+    for my $item (@$value) {
+        if (ref $item eq 'ARRAY') {
+            my $flattened = _flatten_depth($item, $depth - 1);
+            if (ref $flattened eq 'ARRAY') {
+                push @flattened, @$flattened;
+            } else {
+                push @flattened, $flattened;
+            }
+        } else {
+            push @flattened, $item;
+        }
+    }
+
+    return \@flattened;
+}
+
 sub _apply_string_predicate {
     my ($value, $needle, $mode) = @_;
 
@@ -1483,7 +1531,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.69
+Version 0.70
 
 =head1 SYNOPSIS
 
@@ -1520,7 +1568,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1646,6 +1694,19 @@ Example:
 Returns:
 
   [1, 2, 3, 4]
+
+=item * flatten_depth(n)
+
+Flattens nested arrays up to C<n> levels deep while leaving deeper nesting
+intact.
+
+Example:
+
+  [[1, [2]], [3, [4]]] | flatten_depth(1)
+
+Returns:
+
+  [1, [2], 3, [4]]
 
 =item * type()
 
