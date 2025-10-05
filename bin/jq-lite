@@ -349,6 +349,7 @@ Supported Functions:
   ceil()           - Round numbers up to the nearest integer
   floor()          - Round numbers down to the nearest integer
   round()          - Round numbers to the nearest integer (half-up semantics)
+  to_number()      - Coerce numeric-looking strings/booleans into numbers
   nth(N)           - Get the Nth element of an array (zero-based index)
   index(VALUE)     - Return the zero-based index of VALUE within arrays or strings
   group_by(KEY)    - Group array items by field

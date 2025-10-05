@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.71';
+our $VERSION = '0.72';
 
 sub new {
     my ($class, %opts) = @_;
@@ -455,6 +455,13 @@ sub run_query {
         # support for round()
         if ($part eq 'round()' || $part eq 'round') {
             @next_results = map { _apply_numeric_function($_, \&_round) } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for to_number()
+        if ($part eq 'to_number()' || $part eq 'to_number') {
+            @next_results = map { _apply_to_number($_) } @results;
             @results = @next_results;
             next;
         }
@@ -979,6 +986,26 @@ sub _apply_numeric_function {
 
     if (ref $value eq 'ARRAY') {
         return [ map { _apply_numeric_function($_, $callback) } @$value ];
+    }
+
+    return $value;
+}
+
+sub _apply_to_number {
+    my ($value) = @_;
+
+    return undef if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    if (!ref $value) {
+        return looks_like_number($value) ? 0 + $value : $value;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_to_number($_) } @$value ];
     }
 
     return $value;
@@ -1562,7 +1589,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.70
+Version 0.72
 
 =head1 SYNOPSIS
 
@@ -1599,7 +1626,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth, to_number
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1947,6 +1974,18 @@ Example:
 
   .price   | round    # => 19
   .changes | round    # => [1, -2, "n/a"]
+
+=item * to_number()
+
+Coerces values that look like numbers into actual numeric scalars. Strings are
+converted with Perl's numeric semantics, booleans become 1 or 0, and arrays are
+processed element-by-element. Non-numeric strings, objects, and other references
+are returned unchanged so pipelines remain lossless.
+
+Example:
+
+  .score    | to_number   # => 42
+  .strings  | to_number   # => [10, "n/a", 3.5]
 
 =item * trim()
 
