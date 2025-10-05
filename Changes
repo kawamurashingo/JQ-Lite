@@ -1,3 +1,9 @@
+0.72  2025-10-05
+    [Feature]
+    - Added to_number() helper to coerce numeric-looking strings and booleans
+      into Perl numbers while preserving non-numeric values.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.71  2025-10-05
     [Feature]
     - Added has(key) helper to verify object keys and array indexes.
