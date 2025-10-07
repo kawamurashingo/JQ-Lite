@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.74';
+our $VERSION = '0.75';
 
 sub new {
     my ($class, %opts) = @_;
@@ -373,6 +373,38 @@ sub run_query {
                     $has_number ? $sum : 0;
                 }
                 else {
+                    $_;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
+        # support for max_by(path)
+        if ($part =~ /^max_by\((.+)\)$/) {
+            my ($key_path, $use_entire_item) = _normalize_path_argument($1);
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    _extreme_by($_, $key_path, $use_entire_item, 'max');
+                } else {
+                    $_;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
+        # support for min_by(path)
+        if ($part =~ /^min_by\((.+)\)$/) {
+            my ($key_path, $use_entire_item) = _normalize_path_argument($1);
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    _extreme_by($_, $key_path, $use_entire_item, 'min');
+                } else {
                     $_;
                 }
             } @results;
@@ -1280,6 +1312,78 @@ sub _smart_cmp {
     };
 }
 
+sub _extreme_by {
+    my ($array_ref, $key_path, $use_entire_item, $mode) = @_;
+
+    return undef unless ref $array_ref eq 'ARRAY';
+    return undef unless @$array_ref;
+
+    my $cmp = _smart_cmp();
+    my ($best_item, $best_key);
+
+    for my $element (@$array_ref) {
+        my $candidate = _extract_extreme_key($element, $key_path, $use_entire_item);
+        next unless defined $candidate;
+
+        if (!defined $best_item) {
+            ($best_item, $best_key) = ($element, $candidate);
+            next;
+        }
+
+        my $comparison = $cmp->($candidate, $best_key);
+        if (($mode eq 'max' && $comparison > 0)
+            || ($mode eq 'min' && $comparison < 0)) {
+            ($best_item, $best_key) = ($element, $candidate);
+        }
+    }
+
+    return defined $best_item ? $best_item : undef;
+}
+
+sub _extract_extreme_key {
+    my ($element, $key_path, $use_entire_item) = @_;
+
+    my @values = $use_entire_item ? ($element) : _traverse($element, $key_path);
+    return undef unless @values;
+
+    my $value = $values[0];
+    return _value_to_comparable($value);
+}
+
+sub _value_to_comparable {
+    my ($value) = @_;
+
+    return undef unless defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    if (!ref $value) {
+        return $value;
+    }
+
+    if (ref($value) eq 'HASH' || ref($value) eq 'ARRAY') {
+        return encode_json($value);
+    }
+
+    return undef;
+}
+
+sub _normalize_path_argument {
+    my ($raw_path) = @_;
+
+    $raw_path = '' unless defined $raw_path;
+    $raw_path =~ s/^\s+|\s+$//g;
+    $raw_path =~ s/^['"](.*)['"]$/$1/;
+
+    my $use_entire_item = ($raw_path eq '' || $raw_path eq '.');
+    my $key_path        = $raw_path;
+    $key_path =~ s/^\.// unless $use_entire_item;
+
+    return ($key_path, $use_entire_item);
+}
+
 sub _uniq {
     my %seen;
     return grep { !$seen{_key($_)}++ } @_;
@@ -1681,7 +1785,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.74
+Version 0.75
 
 =head1 SYNOPSIS
 
@@ -1718,7 +1822,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1771,6 +1875,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * group_count(.field) (tally items by key)
 
 =item * sum_by(.field) (sum numeric values projected from each array item)
+
+=item * min_by(.field) / max_by(.field) (select array element with smallest/largest projected value)
 
 =item * sort_desc()
 
