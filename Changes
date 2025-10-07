@@ -1,3 +1,9 @@
+0.75  2025-10-09
+    [Feature]
+    - Added min_by(path) and max_by(path) helpers to select array elements with
+      the smallest or largest projected value.
+    - Documented the helpers across README, POD, CLI help, and regression tests.
+
 0.74  2025-10-08
     [Feature]
     - Added pick(key1, key2, ...) helper to build objects that only include the

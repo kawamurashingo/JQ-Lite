@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `flatten_all()`, `flatten_depth()`, `index()`, `clamp()`, `to_number()`, `pick()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `flatten_all()`, `flatten_depth()`, `index()`, `clamp()`, `to_number()`, `pick()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -49,6 +49,8 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `sort`         | Sort array items                                     |
 | `sort_desc`    | Sort array items in descending order (v0.61)         |
 | `sort_by(key)` | Sort array of objects by field (v0.32)               |
+| `min_by(path)` | Return the element with the smallest projected value (v0.75) |
+| `max_by(path)` | Return the element with the largest projected value (v0.75) |
 | `unique`       | Remove duplicate values                              |
 | `unique_by(path)` | Remove duplicates by projecting each entry to a key path (v0.60) |
 | `first`        | Get the first element of an array                    |
