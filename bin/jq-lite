@@ -329,6 +329,7 @@ Supported Functions:
   sort_desc        - Sort array items in descending order
   sort_by(KEY)     - Sort array of objects by key
   pluck(KEY)       - Collect a key's value from each object in an array
+  pick(KEYS...)    - Build new objects containing only the supplied keys (arrays handled element-wise)
   unique           - Remove duplicate values
   unique_by(KEY)   - Remove duplicates by projecting each item on KEY
   reverse          - Reverse an array
