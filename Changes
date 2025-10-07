@@ -1,3 +1,9 @@
+0.74  2025-10-05
+    [Feature]
+    - Added pick(key1, key2, ...) helper to build objects that only include the
+      requested keys, with array-aware behavior for bulk selection.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.73  2025-10-05
     [Feature]
     - Added clamp(min, max) helper to constrain numeric values within an

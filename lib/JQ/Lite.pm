@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.73';
+our $VERSION = '0.74';
 
 sub new {
     my ($class, %opts) = @_;
@@ -304,6 +304,16 @@ sub run_query {
             } @results;
 
             @results = @next_results;
+            next;
+        }
+
+        # support for pick(key1, key2, ...)
+        if ($part =~ /^pick\((.*)\)$/) {
+            my @keys = map { defined $_ ? "$_" : undef } _parse_arguments($1);
+            @keys = grep { defined $_ } @keys;
+
+            @next_results = map { _apply_pick($_, \@keys) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -1507,6 +1517,28 @@ sub _apply_replace {
     return $copy;
 }
 
+sub _apply_pick {
+    my ($value, $keys) = @_;
+
+    return $value unless @$keys;
+
+    if (ref $value eq 'HASH') {
+        my %subset;
+        for my $key (@$keys) {
+            next unless defined $key;
+            next unless exists $value->{$key};
+            $subset{$key} = $value->{$key};
+        }
+        return \%subset;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_pick($_, $keys) } @$value ];
+    }
+
+    return $value;
+}
+
 sub _parse_arguments {
     my ($raw) = @_;
 
@@ -1649,7 +1681,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.73
+Version 0.74
 
 =head1 SYNOPSIS
 
@@ -1686,7 +1718,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1788,6 +1820,21 @@ Returns all values of a hash as an array.
 Example:
 
   .profile | values
+
+=item * pick(key1, key2, ...)
+
+Builds a new object containing only the supplied keys. When applied to arrays
+of objects, each element is reduced to the requested subset while non-object
+values pass through unchanged.
+
+Example:
+
+  .users | pick("name", "email")
+
+Returns:
+
+  [ { "name": "Alice", "email": "alice\@example.com" },
+    { "name": "Bob" } ]
 
 =item * empty()
 
