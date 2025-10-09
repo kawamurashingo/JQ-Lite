@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `flatten_all()`, `flatten_depth()`, `index()`, `clamp()`, `to_number()`, `pick()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `flatten_all()`, `flatten_depth()`, `index()`, `clamp()`, `to_number()`, `pick()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -62,7 +62,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `map(expr)`    | Map/filter values using a subquery                   |
 | `pluck(key)`   | Extract values from an array of objects (v0.43)      |
 | `pick(keys...)` | Build objects containing only the specified keys (v0.74) |
-| `add`, `sum`, `sum_by(path)`, `min`, `max`, `avg`, `median`, `stddev`, `product` | Numeric aggregation functions            |
+| `add`, `sum`, `sum_by(path)`, `min`, `max`, `avg`, `median`, `mode`, `stddev`, `product` | Numeric and statistical aggregation functions |
 | `abs`         | Convert numeric values to their absolute value (v0.49) |
 | `ceil`        | Round numbers up to the nearest integer (v0.53)        |
 | `floor`       | Round numbers down to the nearest integer (v0.53)      |

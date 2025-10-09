@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.75';
+our $VERSION = '0.76';
 
 sub new {
     my ($class, %opts) = @_;
@@ -547,6 +547,55 @@ sub run_query {
                     $_;
                 }
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for mode
+        if ($part eq 'mode') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    if (!@$_) {
+                        undef;
+                    } else {
+                        my %counts;
+                        my %values;
+                        my %first_index;
+                        my $max_count  = 0;
+                        my $best_index = undef;
+                        my $mode_key;
+
+                        for (my $i = 0; $i < @{$_}; $i++) {
+                            my $item = $_->[$i];
+                            next unless defined $item;
+
+                            my $key = _key($item);
+                            next unless defined $key;
+
+                            $counts{$key}++;
+                            $values{$key}      //= $item;
+                            $first_index{$key} //= $i;
+
+                            my $count = $counts{$key};
+                            my $index = $first_index{$key};
+
+                            if (!defined $mode_key
+                                || $count > $max_count
+                                || ($count == $max_count
+                                    && (!defined $best_index || $index < $best_index))) {
+                                $mode_key   = $key;
+                                $max_count  = $count;
+                                $best_index = $index;
+                            }
+                        }
+
+                        defined $mode_key ? $values{$mode_key} : undef;
+                    }
+                } else {
+                    $_;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1785,7 +1834,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.75
+Version 0.76
 
 =head1 SYNOPSIS
 
@@ -1822,7 +1871,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, mode, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
