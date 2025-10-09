@@ -1,3 +1,9 @@
+0.76  2025-10-10
+    [Feature]
+    - Added mode helper to return the most frequent array value with stable
+      tie-breaking based on first appearance.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.75  2025-10-09
     [Feature]
     - Added min_by(path) and max_by(path) helpers to select array elements with
