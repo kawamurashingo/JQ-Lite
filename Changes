@@ -1,3 +1,9 @@
+0.77  2025-10-10
+    [Feature]
+    - Added variance helper to compute the average squared deviation of numeric
+      array values.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.76  2025-10-10
     [Feature]
     - Added mode helper to return the most frequent array value with stable
@@ -386,5 +392,6 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 

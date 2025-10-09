@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.76';
+our $VERSION = '0.77';
 
 sub new {
     my ($class, %opts) = @_;
@@ -592,6 +592,31 @@ sub run_query {
                         defined $mode_key ? $values{$mode_key} : undef;
                     }
                 } else {
+                    $_;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
+        # support for variance
+        if ($part eq 'variance') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my @numbers = map { 0 + $_ }
+                        grep { looks_like_number($_) }
+                        @$_;
+
+                    if (@numbers) {
+                        my $mean = sum(@numbers) / @numbers;
+                        sum(map { ($_ - $mean) ** 2 } @numbers) / @numbers;
+                    }
+                    else {
+                        undef;
+                    }
+                }
+                else {
                     $_;
                 }
             } @results;
@@ -1871,7 +1896,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, mode, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, mode, variance, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
