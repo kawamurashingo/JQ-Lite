@@ -1,3 +1,10 @@
+0.88  2025-10-11
+    [Feature]
+    - Added explode() and implode() helpers to convert between strings and
+      arrays of Unicode code points, mirroring jq's functions and handling
+      nested arrays element-wise.
+    - Documented the helpers across README, POD, and regression tests.
+
 0.87  2025-10-11
     [Feature]
     - Added ltrimstr(prefix) and rtrimstr(suffix) helpers to remove literal
