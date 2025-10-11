@@ -1,5 +1,14 @@
 0.93  2025-10-12
     [Feature]
+    - Added tojson() helper to encode any value as JSON text, mirroring jq's
+      tojson/0 behavior and complementing existing tostring(). Documented the
+      helper across README, POD, CLI help, and regression tests.
+    [Tests]
+    - Added regression coverage for tojson() to ensure strings, numbers,
+      booleans, nulls, arrays, and objects emit the expected JSON text.
+    [Docs]
+    - Documented tojson() across README, POD, CLI help listings, and function
+      tables alongside existing string helpers.
     - Added delpaths(paths) helper to delete multiple keys or indices using
       jq-compatible path arrays evaluated via arbitrary filters. Updated the
       documentation and regression tests accordingly.

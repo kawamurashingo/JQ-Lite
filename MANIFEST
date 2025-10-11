@@ -64,6 +64,7 @@ t/transpose.t
 t/substr.t
 t/startswith_endswith.t
 t/to_number.t
+t/tojson.t
 t/tostring.t
 t/unique_by.t
 t/trim.t
