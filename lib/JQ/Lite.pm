@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.91';
+our $VERSION = '0.92';
 
 sub new {
     my ($class, %opts) = @_;
@@ -942,6 +942,16 @@ sub run_query {
             next;
         }
 
+        # support for all() / all(expr)
+        if ($part =~ /^all(?:\((.*)\))?$/) {
+            my $expr = defined $1 ? $1 : undef;
+            $expr = undef if defined($expr) && $expr eq '';
+
+            @next_results = map { _apply_all($self, $_, $expr) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for join(", ")
         if ($part =~ /^join\((.*?)\)$/) {
             my $sep = $1;
@@ -1359,6 +1369,36 @@ sub _map {
     }
 
     return @mapped;
+}
+
+sub _apply_all {
+    my ($self, $value, $expr) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return JSON::PP::true unless @$value;
+
+        for my $item (@$value) {
+            if (defined $expr) {
+                my @evaluated = $self->run_query(encode_json($item), $expr);
+                return JSON::PP::false unless @evaluated;
+                return JSON::PP::false if grep { !_is_truthy($_) } @evaluated;
+            }
+            else {
+                return JSON::PP::false unless _is_truthy($item);
+            }
+        }
+
+        return JSON::PP::true;
+    }
+
+    if (defined $expr) {
+        my @evaluated = $self->run_query(encode_json($value), $expr);
+        return (@evaluated && !grep { !_is_truthy($_) } @evaluated)
+            ? JSON::PP::true
+            : JSON::PP::false;
+    }
+
+    return _is_truthy($value) ? JSON::PP::true : JSON::PP::false;
 }
 
 sub _apply_any {
@@ -3134,6 +3174,26 @@ Example:
 
   .flags | any            # => true when any element is truthy
   .users | any(.active)   # => true when any user is active
+
+=item * all([filter])
+
+Returns true only when every value in the input is truthy. When a filter is
+provided, it is evaluated against each array element (or the current value when
+not operating on an array) and every result must be truthy for the helper to
+return true. Arrays with no elements yield true, mirroring jq's vacuous truth
+behaviour.
+
+* For arrays without a filter, returns true when every element is truthy or the
+  array is empty.
+* For arrays with a filter, returns true when the filter yields at least one
+  value for each element and all produced values are truthy.
+* For scalars, hashes, and other values, evaluates the value (or filter results)
+  directly.
+
+Example:
+
+  .flags | all            # => true only when every element is truthy
+  .users | all(.active)   # => true when all users are active
 
 =item * unique_by(".key")
 
