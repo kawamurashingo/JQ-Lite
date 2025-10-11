@@ -1,3 +1,10 @@
+0.87  2025-10-11
+    [Feature]
+    - Added ltrimstr(prefix) and rtrimstr(suffix) helpers to remove literal
+      prefixes/suffixes from strings while preserving non-matching values and
+      recursively processing arrays.
+    - Documented the helpers across README, POD, CLI help, and regression tests.
+
 0.86  2025-10-11
     [Feature]
     - Added range(start; end[, step]) helper to emit numeric sequences matching
