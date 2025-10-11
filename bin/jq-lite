@@ -394,6 +394,8 @@ Supported Functions:
   lower()          - Convert scalars and array elements to lowercase
   titlecase()      - Convert scalars and array elements to title case
   trim()           - Strip leading/trailing whitespace from strings (recurses into arrays)
+  ltrimstr(PFX)    - Remove PFX when it appears at the start of strings (arrays handled element-wise)
+  rtrimstr(SFX)    - Remove SFX when it appears at the end of strings (arrays handled element-wise)
   startswith(PFX)  - Check if a string (or array of strings) begins with PFX
   endswith(SFX)    - Check if a string (or array of strings) ends with SFX
   empty            - Discard all output (for side-effect use)

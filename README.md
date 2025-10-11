@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `median_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `range()`, `index()`, `clamp()`, `tostring()`, `to_number()`, `pick()`, `merge_objects()`, `to_entries()`, `from_entries()`, `with_entries()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `median_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `ltrimstr()`, `rtrimstr()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `range()`, `index()`, `clamp()`, `tostring()`, `to_number()`, `pick()`, `merge_objects()`, `to_entries()`, `from_entries()`, `with_entries()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -80,6 +80,8 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `tostring`    | Convert values to their JSON string representation (v0.85) |
 | `to_number`   | Convert numeric-looking strings/booleans to numbers (v0.72) |
 | `trim`        | Remove leading/trailing whitespace from strings (v0.50) |
+| `ltrimstr(prefix)` | Remove `prefix` from the start of strings when present (v0.87) |
+| `rtrimstr(suffix)` | Remove `suffix` from the end of strings when present (v0.87) |
 | `startswith(prefix)` | Check if a string (or array of strings) begins with `prefix` (v0.51) |
 | `endswith(suffix)` | Check if a string (or array of strings) ends with `suffix` (v0.51) |
 | `split(separator)` | Split a string (or array of strings) using a literal separator (v0.52) |

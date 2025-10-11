@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.86';
+our $VERSION = '0.87';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1142,6 +1142,22 @@ sub run_query {
             next;
         }
 
+        # support for ltrimstr("prefix")
+        if ($part =~ /^ltrimstr\((.+)\)$/) {
+            my $needle = _parse_string_argument($1);
+            @next_results = map { _apply_trimstr($_, $needle, 'left') } @results;
+            @results      = @next_results;
+            next;
+        }
+
+        # support for rtrimstr("suffix")
+        if ($part =~ /^rtrimstr\((.+)\)$/) {
+            my $needle = _parse_string_argument($1);
+            @next_results = map { _apply_trimstr($_, $needle, 'right') } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for has(key)
         if ($part =~ /^has\((.+)\)$/) {
             my @args   = _parse_arguments($1);
@@ -1351,6 +1367,42 @@ sub _apply_trim {
     }
 
     return $value;
+}
+
+sub _apply_trimstr {
+    my ($value, $needle, $mode) = @_;
+
+    if (!defined $value) {
+        return undef;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_trimstr($_, $needle, $mode) } @$value ];
+    }
+
+    if (ref $value) {
+        return $value;
+    }
+
+    $needle = '' unless defined $needle;
+    my $target = "$value";
+    my $pattern = "$needle";
+    my $len = length $pattern;
+
+    return $target if $len == 0;
+
+    if ($mode eq 'left') {
+        return $target if index($target, $pattern) != 0;
+        return substr($target, $len);
+    }
+
+    if ($mode eq 'right') {
+        return $target if $len > length($target);
+        return $target unless substr($target, -$len) eq $pattern;
+        return substr($target, 0, length($target) - $len);
+    }
+
+    return $target;
 }
 
 sub _apply_tostring {
@@ -2425,7 +2477,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.83
+Version 0.87
 
 =head1 SYNOPSIS
 
@@ -2462,7 +2514,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -2991,6 +3043,28 @@ Example:
 
   .title | trim          # => "Hello World"
   .tags  | trim          # => ["perl", "json"]
+
+=item * ltrimstr("prefix")
+
+Removes C<prefix> from the start of strings when present. Arrays are processed
+recursively so nested string values receive the same treatment. Inputs that do
+not begin with the supplied prefix are returned unchanged.
+
+Example:
+
+  .title | ltrimstr("Hello ")  # => "World"
+  .tags  | ltrimstr("#")       # => ["perl", "json"]
+
+=item * rtrimstr("suffix")
+
+Removes C<suffix> from the end of strings when present. Arrays are processed
+recursively so nested string values are handled consistently. Inputs that do
+not end with the supplied suffix are returned unchanged.
+
+Example:
+
+  .title | rtrimstr(" World")  # => "Hello"
+  .tags  | rtrimstr("ing")     # => ["perl", "json"]
 
 =back
 
