@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.77';
+our $VERSION = '0.78';
 
 sub new {
     my ($class, %opts) = @_;
@@ -371,6 +371,46 @@ sub run_query {
                     }
 
                     $has_number ? $sum : 0;
+                }
+                else {
+                    $_;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
+        # support for avg_by(path)
+        if ($part =~ /^avg_by\((.+)\)$/) {
+            my ($key_path, $use_entire_item) = _normalize_path_argument($1);
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $sum   = 0;
+                    my $count = 0;
+
+                    for my $element (@$_) {
+                        my @values = $use_entire_item
+                            ? ($element)
+                            : _traverse($element, $key_path);
+
+                        for my $value (@values) {
+                            next unless defined $value;
+
+                            my $num = $value;
+                            if (ref($num) eq 'JSON::PP::Boolean') {
+                                $num = $num ? 1 : 0;
+                            }
+
+                            next if ref $num;
+                            next unless looks_like_number($num);
+                            $sum   += $num;
+                            $count += 1;
+                        }
+                    }
+
+                    $count ? $sum / $count : 0;
                 }
                 else {
                     $_;
@@ -1896,7 +1936,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, product, min, max, avg, median, mode, variance, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
 
 =item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
 
@@ -1949,6 +1989,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * group_count(.field) (tally items by key)
 
 =item * sum_by(.field) (sum numeric values projected from each array item)
+
+=item * avg_by(.field) (average numeric values projected from each array item)
 
 =item * min_by(.field) / max_by(.field) (select array element with smallest/largest projected value)
 

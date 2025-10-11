@@ -1,3 +1,9 @@
+0.78  2025-10-11
+    [Feature]
+    - Added avg_by(path) helper to compute the arithmetic mean of numeric values
+      projected from each array item, mirroring the behavior of sum_by.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.77  2025-10-10
     [Feature]
     - Added variance helper to compute the average squared deviation of numeric
