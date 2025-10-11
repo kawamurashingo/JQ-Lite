@@ -6,32 +6,105 @@ use JSON::PP;
 use IO::File;
 use FindBin;
 use Term::ANSIColor;
+use Getopt::Long qw(GetOptions :config no_ignore_case bundling no_pass_through);
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
 
 my $decoder;
 my $decoder_module;
-my $decoder_debug = 0;
+my $decoder_debug   = 0;
 my $decoder_choice;
+my $raw_output      = 0;
+my $color_output    = 0;
 
-# Parse command-line args before anything else
-for (my $i = 0; $i < @ARGV; $i++) {
-    if ($ARGV[$i] eq '--debug') {
-        $decoder_debug = 1;
-        splice @ARGV, $i, 1;
-        redo;
-    }
-    if ($ARGV[$i] eq '--use') {
-        $decoder_choice = $ARGV[$i + 1];
-        splice @ARGV, $i, 2;
-        redo;
-    }
-    if ($ARGV[$i] eq '--help-functions') {
-        print_supported_functions();
-        exit 0;
-    }
+# ---------- Help text ----------
+my $USAGE = <<'USAGE';
+jq-lite - A lightweight jq-like JSON query tool written in pure Perl
+
+Usage:
+  jq-lite [options] '.query' [file.json]
+
+Options:
+  -r, --raw-output     Print raw strings instead of JSON-encoded values
+  --color              Colorize JSON output (keys, strings, numbers, booleans)
+  --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
+  --debug              Show which JSON module is being used
+  -h, --help           Show this help message
+  --help-functions     Show list of all supported functions
+  -v, --version        Show version information
+
+Examples:
+  cat users.json | jq-lite '.users[].name'
+  jq-lite '.users[] | select(.age > 25)' users.json
+  jq-lite -r '.users[] | .name' users.json
+  jq-lite '.meta has "version"' config.json
+  jq-lite --color '.items | sort | reverse | first' data.json
+
+Homepage:
+  https://metacpan.org/pod/JQ::Lite
+USAGE
+
+# ---------- Option parsing (Getopt::Long) ----------
+my ($want_help, $want_version, $help_functions) = (0, 0, 0);
+
+GetOptions(
+    'raw-output|r'    => \$raw_output,
+    'color'           => \$color_output,
+    'use=s'           => \$decoder_choice,
+    'debug'           => \$decoder_debug,
+    'help|h'          => \$want_help,
+    'help-functions'  => \$help_functions,
+    'version|v'       => \$want_version,
+) or die "[ERROR] Unknown option(s)\n";
+
+if ($help_functions) {
+    print_supported_functions();
+    exit 0;
 }
 
+if ($want_help) {
+    print $USAGE;
+    exit 0;
+}
+
+if ($want_version) {
+    print "jq-lite version $JQ::Lite::VERSION\n";
+    exit 0;
+}
+
+# ---------- Positional args: '.query' and [file.json] ----------
+# Unknown options are already rejected above; only query and file remain.
+my ($query, $filename);
+
+if (@ARGV == 0) {
+    # If no args, show help
+    print $USAGE;
+    exit 0;
+}
+elsif (@ARGV == 1) {
+    # Single arg: query or file
+    if (-f $ARGV[0]) {
+        $filename = $ARGV[0];
+        # No query -> go to interactive mode (handled later)
+    } else {
+        $query = $ARGV[0];
+    }
+}
+elsif (@ARGV == 2) {
+    # Two args: query + file (in this order)
+    $query = $ARGV[0];
+    my $f = $ARGV[1];
+    if (-f $f) {
+        $filename = $f;
+    } else {
+        die "Cannot open file '$f': $!\n";
+    }
+}
+else {
+    die "Usage: jq-lite [options] '.query' [file.json]\n";
+}
+
+# ---------- JSON decoder selection ----------
 if ($decoder_choice) {
     if ($decoder_choice eq 'JSON::MaybeXS') {
         require JSON::MaybeXS;
@@ -77,107 +150,9 @@ else {
     }
 }
 
-# debug
 warn "[DEBUG] Using $decoder_module\n" if $decoder_debug;
 
-# Show help if no arguments are given
-if (!@ARGV) {
-    print <<'USAGE';
-jq-lite - A lightweight jq-like JSON query tool written in pure Perl
-
-Usage:
-  jq-lite [options] '.query' [file.json]
-
-Options:
-  -r, --raw-output     Print raw strings instead of JSON-encoded values
-  --color              Colorize JSON output (keys, strings, numbers, booleans)
-  --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
-  --debug              Show which JSON module is being used
-  -h, --help           Show this help message
-  --help-functions     Show list of all supported functions
-  -v, --version        Show version information
-
-Examples:
-  cat users.json | jq-lite '.users[].name'
-  jq-lite '.users[] | select(.age > 25)' users.json
-  jq-lite -r '.users[] | .name' users.json
-  jq-lite '.meta has "version"' config.json
-  jq-lite --color '.items | sort | reverse | first' data.json
-
-Homepage:
-  https://metacpan.org/pod/JQ::Lite
-USAGE
-    exit 0;
-}
-
-# Argument parsing
-my $raw_output   = 0;
-my $color_output = 0;
-my $query;
-my $filename;
-
-while (@ARGV) {
-    my $arg = shift @ARGV;
-
-    if ($arg eq '--raw-output' || $arg eq '-r') {
-        $raw_output = 1;
-    }
-    elsif ($arg eq '--color') {
-        $color_output = 1;
-    }
-    elsif ($arg eq '--help' || $arg eq '-h') {
-        print <<'USAGE';
-jq-lite - A lightweight jq-like JSON query tool written in pure Perl
-
-Usage:
-  jq-lite [options] '.query' [file.json]
-
-Options:
-  -r, --raw-output     Print raw strings instead of JSON-encoded values
-  --color              Colorize JSON output (keys, strings, numbers, booleans)
-  --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
-  --debug              Show which JSON module is being used
-  -h, --help           Show this help message
-  --help-functions     Show list of all supported functions
-  -v, --version        Show version information
-
-Examples:
-  cat users.json | jq-lite '.users[].name'
-  jq-lite '.users[] | select(.age > 25)' users.json
-  jq-lite -r '.users[] | .name' users.json
-  jq-lite '.meta has "version"' config.json
-  jq-lite --color '.items | sort | reverse | first' data.json
-
-Homepage:
-  https://metacpan.org/pod/JQ::Lite
-USAGE
-        exit 0;
-    }
-    elsif ($arg eq '--version' || $arg eq '-v') {
-        print "jq-lite version $JQ::Lite::VERSION\n";
-        exit 0;
-    }
-    # First check if this argument is a file
-    elsif (!defined $filename && -f $arg) {
-        $filename = $arg;
-    }
-    # If not a file and query is not yet set, treat it as the query string
-    elsif ($arg =~ /^-/) {
-        die "[ERROR] Unknown option: $arg\n";
-    }
-    elsif (!defined $query) {
-        $query = $arg;
-    }
-    # Secondary filename fallback
-    elsif (!defined $filename && -f $arg) {
-        $filename = $arg;
-    }
-    else {
-        die "Usage: jq-lite [options] '.query' [file.json]\n";
-    }
-}
-
-# Load JSON from file or STDIN
+# ---------- Read JSON input ----------
 my $json_text;
 if (defined $filename) {
     open my $fh, '<', $filename or die "Cannot open file '$filename': $!\n";
@@ -186,14 +161,18 @@ if (defined $filename) {
     close $fh;
 }
 else {
+    # When no file is given, if STDIN is a TTY, error out to avoid blocking
+    if (-t STDIN) {
+        die "[ERROR] No input provided. Pass a file or pipe JSON via STDIN.\n";
+    }
     local $/;
     $json_text = <STDIN>;
 }
 
-# Create JQ::Lite object
+# ---------- JQ::Lite core ----------
 my $jq = JQ::Lite->new(raw => $raw_output);
 
-# Colorizing helper
+# ---------- Colorization ----------
 sub colorize_json {
     my $json = shift;
 
@@ -205,7 +184,7 @@ sub colorize_json {
     return $json;
 }
 
-# Output helper
+# ---------- Output ----------
 sub print_results {
     my @results = @_;
     my $pp = JSON::PP->new->utf8->canonical->pretty;
@@ -225,7 +204,7 @@ sub print_results {
     }
 }
 
-# Interactive mode
+# ---------- Interactive mode ----------
 if (!defined $query) {
     system("stty -icanon -echo");
 
@@ -264,7 +243,7 @@ if (!defined $query) {
         sysread(STDIN, $char, 1);
 
         my $ord = ord($char);
-        last if $ord == 27;
+        last if $ord == 27; # ESC
 
         if ($ord == 127 || $char eq "\b") {
             chop $input if length($input);
@@ -310,7 +289,7 @@ if (!defined $query) {
     exit 0;
 }
 
-# One-shot mode
+# ---------- One-shot mode ----------
 my @results = eval { $jq->run_query($json_text, $query) };
 if ($@) {
     die "[ERROR] Invalid query: $@\n";
