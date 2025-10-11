@@ -1,3 +1,10 @@
+0.91  2025-10-11
+    [Feature]
+    - Added indices(value) helper to emit every index where the supplied value
+      occurs within arrays or strings, matching jq's behaviour for substring and
+      element searches. Documented the helper across README, POD, CLI help, and
+      regression tests.
+
 0.90  2025-10-11
     [Feature]
     - Added any([filter]) helper to mirror jq's any/0 and any/1 behaviour for
