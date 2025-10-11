@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.87';
+our $VERSION = '0.88';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1192,6 +1192,20 @@ sub run_query {
             next;
         }
 
+        # support for explode()
+        if ($part eq 'explode()' || $part eq 'explode') {
+            @next_results = map { _apply_explode($_) } @results;
+            @results      = @next_results;
+            next;
+        }
+
+        # support for implode()
+        if ($part eq 'implode()' || $part eq 'implode') {
+            @next_results = map { _apply_implode($_) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for replace(old, new)
         if ($part =~ /^replace\((.+)\)$/) {
             my ($search, $replacement) = _parse_arguments($1);
@@ -2089,6 +2103,49 @@ sub _apply_split {
     return [ @parts ];
 }
 
+sub _apply_explode {
+    my ($value) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_explode($_) } @$value ];
+    }
+
+    return undef if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        $value = $value ? 'true' : 'false';
+    }
+
+    return $value if ref $value;
+
+    my @chars = split(//u, "$value");
+    return [ map { ord($_) } @chars ];
+}
+
+sub _apply_implode {
+    my ($value) = @_;
+
+    return undef if !defined $value;
+
+    if (ref $value eq 'ARRAY') {
+        my $has_nested = grep { ref $_ } @$value;
+
+        if ($has_nested) {
+            return [ map { _apply_implode($_) } @$value ];
+        }
+
+        my $string = '';
+        for my $code (@$value) {
+            next unless defined $code;
+            next unless looks_like_number($code);
+            $string .= chr(int($code));
+        }
+        return $string;
+    }
+
+    return $value;
+}
+
 sub _apply_substr {
     my ($value, @args) = @_;
 
@@ -2514,7 +2571,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -2617,6 +2674,36 @@ Example:
 Results in:
 
   ["A", "l", "i", "c", "e"]
+
+=item * explode()
+
+Convert strings into arrays of Unicode code points. When applied to arrays the
+conversion happens element-wise, while non-string values (including hashes) are
+passed through untouched. This mirrors jq's C<explode> helper and pairs with
+C<implode> for round-trip transformations.
+
+Example:
+
+  .title | explode
+
+Returns:
+
+  [67, 79, 68, 69]
+
+=item * implode()
+
+Perform the inverse of C<explode> by turning arrays of Unicode code points back
+into strings. Nested arrays are processed recursively so pipelines like
+C<explode | implode> work over heterogeneous structures. Non-array inputs pass
+through unchanged.
+
+Example:
+
+  .codes | implode
+
+Returns:
+
+  "CODE"
 
 
 =item * keys_unsorted()
