@@ -1,3 +1,9 @@
+0.84  2025-10-11
+    [Feature]
+    - Added to_entries(), from_entries(), and with_entries(filter) helpers to
+      round out jq's entry transformation workflow for objects and arrays.
+    - Documented the helpers across README, POD, CLI help, and regression tests.
+
 0.83  2025-10-11
     [Feature]
     - Added median_by(path) helper to compute the median of numeric values
@@ -430,6 +436,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
