@@ -34,6 +34,7 @@ t/limit.t
 t/length.t
 t/map.t
 t/merge_objects.t
+t/median_by.t
 t/median.t
 t/mode.t
 t/min_max_by.t
