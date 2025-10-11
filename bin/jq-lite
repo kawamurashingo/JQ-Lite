@@ -352,6 +352,7 @@ Supported Functions:
   avg              - Return the average of numeric values in an array
   median           - Return the median of numeric values in an array
   mode             - Return the most frequent value in an array (ties pick earliest occurrence)
+  percentile(P)    - Return the requested percentile (0-100 or 0-1) of numeric array values
   variance         - Return the variance of numeric values in an array
   stddev           - Return the standard deviation of numeric values in an array
   abs              - Convert numbers (and array elements) to their absolute value

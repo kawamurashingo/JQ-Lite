@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.81';
+our $VERSION = '0.82';
 
 sub new {
     my ($class, %opts) = @_;
@@ -676,6 +676,35 @@ sub run_query {
             next;
         }
 
+        # support for percentile(p)
+        if ($part =~ /^percentile(?:\((.*)\))?$/) {
+            my $args_raw = defined $1 ? $1 : '';
+            my @args     = length $args_raw ? _parse_arguments($args_raw) : ();
+            my $fraction = @args ? _normalize_percentile($args[0]) : 0.5;
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY' && @$_) {
+                    my @numbers = sort { $a <=> $b }
+                        map { 0 + $_ }
+                        grep { looks_like_number($_) }
+                        @$_;
+
+                    if (@numbers) {
+                        defined $fraction ? _percentile_value(\@numbers, $fraction) : undef;
+                    }
+                    else {
+                        undef;
+                    }
+                }
+                else {
+                    $_;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
         # support for mode
         if ($part eq 'mode') {
             @next_results = map {
@@ -1310,6 +1339,54 @@ sub _apply_to_number {
     }
 
     return $value;
+}
+
+sub _normalize_percentile {
+    my ($value) = @_;
+
+    return undef if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        $value = $value ? 1 : 0;
+    }
+
+    return undef if ref $value;
+    return undef unless looks_like_number($value);
+
+    my $fraction = 0 + $value;
+
+    if ($fraction > 1) {
+        $fraction /= 100 if $fraction <= 100;
+    }
+
+    $fraction = 0 if $fraction < 0;
+    $fraction = 1 if $fraction > 1;
+
+    return $fraction;
+}
+
+sub _percentile_value {
+    my ($numbers, $fraction) = @_;
+
+    return undef unless ref $numbers eq 'ARRAY';
+    return undef unless @$numbers;
+
+    $fraction = 0 if $fraction < 0;
+    $fraction = 1 if $fraction > 1;
+
+    return $numbers->[0] if @$numbers == 1;
+
+    my $rank        = $fraction * (@$numbers - 1);
+    my $lower_index = int($rank);
+    my $upper_index = $lower_index == @$numbers - 1 ? $lower_index : $lower_index + 1;
+    my $weight      = $rank - $lower_index;
+
+    return $numbers->[$lower_index] if $upper_index == $lower_index;
+
+    my $lower = $numbers->[$lower_index];
+    my $upper = $numbers->[$upper_index];
+
+    return $lower + ($upper - $lower) * $weight;
 }
 
 sub _apply_merge_objects {
@@ -2007,7 +2084,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.79
+Version 0.82
 
 =head1 SYNOPSIS
 
@@ -2044,7 +2121,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), and enumerate() style transformations
 
@@ -2099,6 +2176,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * sum_by(.field) (sum numeric values projected from each array item)
 
 =item * avg_by(.field) (average numeric values projected from each array item)
+
+=item * percentile(p) (return the requested percentile for numeric array values)
 
 =item * min_by(.field) / max_by(.field) (select array element with smallest/largest projected value)
 

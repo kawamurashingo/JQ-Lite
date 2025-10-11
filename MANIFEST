@@ -40,6 +40,7 @@ t/min_max_by.t
 t/match.t
 t/match_i.t
 t/pipe_select_name.t
+t/percentile.t
 t/pick.t
 t/pluck.t
 t/reverse.t
