@@ -317,6 +317,41 @@ sub run_query {
             next;
         }
 
+        # support for transpose()
+        if ($part eq 'transpose()' || $part eq 'transpose') {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $outer = $_;
+
+                    if (!@$outer) {
+                        [];
+                    }
+                    elsif (grep { ref $_ ne 'ARRAY' } @$outer) {
+                        $_;
+                    }
+                    else {
+                        my @lengths = map { scalar(@$_) } @$outer;
+                        my $limit   = @lengths ? min(@lengths) : 0;
+
+                        if ($limit <= 0) {
+                            [];
+                        } else {
+                            my @transposed;
+                            for my $idx (0 .. $limit - 1) {
+                                push @transposed, [ map { $_->[$idx] } @$outer ];
+                            }
+                            \@transposed;
+                        }
+                    }
+                } else {
+                    $_;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
         # support for slice(start[, length])
         if ($part =~ /^slice(?:\((.*)\))?$/) {
             my $args_raw = defined $1 ? $1 : '';
@@ -2009,7 +2044,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, tail, chunks, enumerate, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), and enumerate() style transformations
 
@@ -2156,6 +2191,20 @@ Example:
   .users[] | select(.age > 25) | empty
 
 =item * .[] as alias for flattening top-level arrays
+
+=item * transpose()
+
+Pivots an array of arrays from row-oriented to column-oriented form. When
+rows have different lengths, the result truncates to the shortest row so that
+every column contains the same number of elements.
+
+Example:
+
+  [[1, 2, 3], [4, 5, 6]] | transpose
+
+Returns:
+
+  [[1, 4], [2, 5], [3, 6]]
 
 =item * flatten_all()
 
