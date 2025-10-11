@@ -37,6 +37,7 @@ t/keys_unsorted.t
 t/limit.t
 t/length.t
 t/map.t
+t/map_values.t
 t/merge_objects.t
 t/median_by.t
 t/median.t
