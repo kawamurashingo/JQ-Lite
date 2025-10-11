@@ -372,6 +372,7 @@ Supported Functions:
   has              - Check if objects contain a key or arrays expose an index
   contains         - Check if strings include a fragment, arrays contain an element, or hashes have a key
   any([FILTER])    - Return true if any input (optionally filtered) is truthy
+  all([FILTER])    - Return true if every input (optionally filtered) is truthy
   match("pattern") - Match string using regex
   explode()        - Convert strings to arrays of Unicode code points
   implode()        - Turn arrays of code points back into strings

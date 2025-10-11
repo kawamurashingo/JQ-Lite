@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.93';
+our $VERSION = '0.94';
 
 sub new {
     my ($class, %opts) = @_;
@@ -947,6 +947,16 @@ sub run_query {
             next;
         }
 
+        # support for all() / all(expr)
+        if ($part =~ /^all(?:\((.*)\))?$/) {
+            my $expr = defined $1 ? $1 : undef;
+            $expr = undef if defined($expr) && $expr eq '';
+
+            @next_results = map { _apply_all($self, $_, $expr) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for any() / any(expr)
         if ($part =~ /^any(?:\((.*)\))?$/) {
             my $expr = defined $1 ? $1 : undef;
@@ -1382,6 +1392,35 @@ sub _map {
     }
 
     return @mapped;
+}
+
+sub _apply_all {
+    my ($self, $value, $expr) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return JSON::PP::true unless @$value;
+
+        for my $item (@$value) {
+            if (defined $expr) {
+                my @evaluated = $self->run_query(encode_json($item), $expr);
+                return JSON::PP::false unless @evaluated;
+                return JSON::PP::false if grep { !_is_truthy($_) } @evaluated;
+            }
+            else {
+                return JSON::PP::false unless _is_truthy($item);
+            }
+        }
+
+        return JSON::PP::true;
+    }
+
+    if (defined $expr) {
+        my @evaluated = $self->run_query(encode_json($value), $expr);
+        return JSON::PP::false unless @evaluated;
+        return grep { !_is_truthy($_) } @evaluated ? JSON::PP::false : JSON::PP::true;
+    }
+
+    return _is_truthy($value) ? JSON::PP::true : JSON::PP::false;
 }
 
 sub _apply_any {
@@ -2881,7 +2920,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.92
+Version 0.94
 
 =head1 SYNOPSIS
 
@@ -2918,7 +2957,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, paths, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, paths, indices
 
 =item * Supports map(...), map_values(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3331,6 +3370,29 @@ Example:
   .title | contains("perl")     # => true
   .tags  | contains("json")     # => true
   .meta  | contains("lang")     # => true
+
+=item * all([filter])
+
+Evaluates whether every element (optionally projected through C<filter>) is
+truthy, mirroring jq's C<all/1> helper.
+
+=over 4
+
+=item * For arrays without a filter, returns true when every element is truthy
+  (empty arrays yield true).
+
+=item * For arrays with a filter, applies the filter to each element and
+  requires every produced value to be truthy.
+
+=item * When the current input is a scalar, falls back to checking the value's
+  truthiness (or the filter's results when supplied).
+
+=back
+
+Examples:
+
+  .flags | all            # => true when every element is truthy (empty => true)
+  .users | all(.active)   # => true when every user is active
 
 =item * any([filter])
 
