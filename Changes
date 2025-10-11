@@ -1,4 +1,4 @@
-0.79  2025-10-12
+0.79  2025-10-11
     [Feature]
     - Added tail(n) helper to return the last N elements from arrays while
       preserving shorter inputs unchanged.
@@ -404,6 +404,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
