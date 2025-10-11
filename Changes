@@ -1,4 +1,4 @@
-0.85  2025-10-12
+0.85  2025-10-11
     [Feature]
     - Added tostring() helper to convert values into their JSON string form,
       matching jq's behavior for scalars, booleans, null, arrays, and objects.
@@ -442,6 +442,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
