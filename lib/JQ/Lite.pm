@@ -742,6 +742,13 @@ sub run_query {
             next;
         }
 
+        # support for tojson()
+        if ($part eq 'tojson()' || $part eq 'tojson') {
+            @next_results = map { _apply_tojson($_) } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for to_number()
         if ($part eq 'to_number()' || $part eq 'to_number') {
             @next_results = map { _apply_to_number($_) } @results;
@@ -1579,6 +1586,12 @@ sub _apply_tostring {
     if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
         return encode_json($value);
     }
+
+    return encode_json($value);
+}
+
+sub _apply_tojson {
+    my ($value) = @_;
 
     return encode_json($value);
 }
@@ -2905,7 +2918,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, paths, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, paths, indices
 
 =item * Supports map(...), map_values(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3521,6 +3534,19 @@ Example:
 
   .score   | tostring   # => "42"
   .profile | tostring   # => "{\"name\":\"Alice\"}"
+
+=item * tojson()
+
+Encodes the current value as JSON text regardless of its original type,
+mirroring jq's C<tojson>. Scalars, booleans, nulls, arrays, and objects all
+produce a JSON string, allowing raw string inputs to be re-escaped safely for
+embedding or subsequent decoding.
+
+Example:
+
+  .score   | tojson   # => "42"
+  .name    | tojson   # => "\"Alice\""
+  .profile | tojson   # => "{\"name\":\"Alice\"}"
 
 =item * to_number()
 
