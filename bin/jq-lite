@@ -343,6 +343,7 @@ Supported Functions:
   range(START; END[, STEP])
                    - Emit numbers from START (default 0) up to but not including END using STEP (default 1)
   enumerate()      - Pair each array element with its zero-based index
+  transpose()      - Rotate arrays-of-arrays from rows into columns
   count            - Count total number of matching items
   map(EXPR)        - Map/filter array items with a subquery
   add / sum        - Sum all numeric values in an array
@@ -377,6 +378,8 @@ Supported Functions:
                    - Extract substring using zero-based indices (arrays handled element-wise)
   slice(START[, LENGTH])
                   - Return a subarray using zero-based indices (negative starts count from the end)
+  replace(OLD; NEW)
+                   - Replace literal substrings (arrays handled element-wise)
   to_entries       - Convert objects/arrays into [{"key","value"}, ...] pairs
   from_entries     - Convert entry arrays back into an object
   with_entries(FILTER)
@@ -385,12 +388,15 @@ Supported Functions:
   contains         - Check if strings include a fragment, arrays contain an element, or hashes have a key
   any([FILTER])    - Return true if any input (optionally filtered) is truthy
   match("pattern") - Match string using regex
+  explode()        - Convert strings to arrays of Unicode code points
+  implode()        - Turn arrays of code points back into strings
   flatten          - Explicitly flatten arrays (same as .[])
   flatten_all()    - Recursively flatten nested arrays into a single array
   flatten_depth(N) - Flatten nested arrays up to N levels deep
   del(KEY)         - Remove a key from objects in the result
   compact          - Remove undefined values from arrays
   path             - Return available keys for objects or indexes for arrays
+  paths            - Emit every path to nested values as an array of keys/indices
   is_empty         - Check if an array or object is empty
   upper()          - Convert scalars and array elements to uppercase
   lower()          - Convert scalars and array elements to lowercase
