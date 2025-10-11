@@ -1,3 +1,9 @@
+0.92  2025-10-11
+    [Feature]
+    - Added all([filter]) helper mirroring jq's all/0 and all/1 behaviour,
+      requiring every evaluated value to be truthy. Documented the helper
+      across README, POD, CLI help, and regression tests.
+
 0.91  2025-10-11
     [Feature]
     - Added indices(value) helper to emit every index where the supplied value
