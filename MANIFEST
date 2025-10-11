@@ -47,6 +47,7 @@ t/percentile.t
 t/pick.t
 t/pluck.t
 t/reverse.t
+t/range.t
 t/replace.t
 t/round.t
 t/sort_desc.t

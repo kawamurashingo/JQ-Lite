@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.85';
+our $VERSION = '0.86';
 
 sub new {
     my ($class, %opts) = @_;
@@ -298,6 +298,20 @@ sub run_query {
                     $_;
                 }
             } @results;
+
+            @results = @next_results;
+            next;
+        }
+
+        # support for range(...)
+        if ($part =~ /^range\((.*)\)$/) {
+            my $args_raw = $1;
+            my @args     = _parse_range_arguments($args_raw);
+
+            @next_results = ();
+            for my $value (@results) {
+                push @next_results, _apply_range($value, \@args);
+            }
 
             @results = @next_results;
             next;
@@ -2149,6 +2163,140 @@ sub _parse_arguments {
     return map { s/^\s+|\s+$//gr } @parts;
 }
 
+sub _parse_range_arguments {
+    my ($raw) = @_;
+
+    return () unless defined $raw;
+
+    $raw =~ s/^\s+|\s+$//g;
+    return () if $raw eq '';
+
+    my @segments;
+    my $current    = '';
+    my $in_single  = 0;
+    my $in_double  = 0;
+    my $escape     = 0;
+
+    for my $char (split //, $raw) {
+        if ($escape) {
+            $current .= $char;
+            $escape = 0;
+            next;
+        }
+
+        if ($char eq '\\' && $in_double) {
+            $current .= $char;
+            $escape = 1;
+            next;
+        }
+
+        if ($char eq '"' && !$in_single) {
+            $in_double = !$in_double;
+            $current  .= $char;
+            next;
+        }
+
+        if ($char eq "'" && !$in_double) {
+            $in_single = !$in_single;
+            $current  .= $char;
+            next;
+        }
+
+        if ($char eq ';' && !$in_single && !$in_double) {
+            push @segments, $current;
+            $current = '';
+            next;
+        }
+
+        $current .= $char;
+    }
+
+    push @segments, $current;
+
+    my @args;
+    for my $segment (@segments) {
+        next unless defined $segment;
+        my $clean = $segment;
+        $clean =~ s/^\s+|\s+$//g;
+        next if $clean eq '';
+
+        my @values = _parse_arguments($clean);
+        my $value  = @values ? $values[0] : undef;
+        push @args, $value;
+    }
+
+    return @args;
+}
+
+sub _apply_range {
+    my ($value, $args_ref) = @_;
+
+    my $sequence = _build_range_sequence($args_ref);
+    return defined $sequence ? @$sequence : ($value);
+}
+
+sub _build_range_sequence {
+    my ($args_ref) = @_;
+
+    my @args = @$args_ref;
+    return undef unless @args;
+
+    @args = @args[0 .. 2] if @args > 3;
+
+    my ($start, $end, $step);
+
+    if (@args == 1) {
+        $start = 0;
+        $end   = _coerce_range_number($args[0]);
+        $step  = 1;
+    }
+    elsif (@args == 2) {
+        $start = _coerce_range_number($args[0]);
+        $end   = _coerce_range_number($args[1]);
+        $step  = 1;
+    }
+    else {
+        $start = _coerce_range_number($args[0]);
+        $end   = _coerce_range_number($args[1]);
+        $step  = _coerce_range_number($args[2]);
+    }
+
+    return undef unless defined $start && defined $end;
+    return undef if !defined $step;
+    return []    if $step == 0;
+
+    if ($step > 0) {
+        return [] if $start >= $end;
+        my @sequence;
+        for (my $current = $start; $current < $end; $current += $step) {
+            push @sequence, 0 + $current;
+        }
+        return \@sequence;
+    }
+
+    # negative step
+    return [] if $start <= $end;
+
+    my @sequence;
+    for (my $current = $start; $current > $end; $current += $step) {
+        push @sequence, 0 + $current;
+    }
+
+    return \@sequence;
+}
+
+sub _coerce_range_number {
+    my ($value) = @_;
+
+    return undef if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    return looks_like_number($value) ? 0 + $value : undef;
+}
+
 sub _apply_contains {
     my ($value, $needle) = @_;
 
@@ -2314,9 +2462,9 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
 
-=item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), and enumerate() style transformations
+=item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
 =item * Interactive mode for exploring queries line-by-line
 
@@ -2716,6 +2864,20 @@ Examples:
 
   .users | tail(2)            # => last two users
   .users | tail(10)           # => full array when shorter than 10
+
+=item * range(start; end[, step])
+
+Emits a numeric sequence that begins at C<start> (default C<0>) and advances
+by C<step> (default C<1>) until reaching but not including C<end>. When the
+step is negative the helper counts downward and stops once the value is less
+than or equal to the exclusive bound. Non-numeric arguments result in the
+input being passed through unchanged so pipelines remain resilient.
+
+Examples:
+
+  null | range(5)           # => 0,1,2,3,4
+  null | range(2; 6; 2)     # => 2,4
+  null | range(10; 2; -4)   # => 10,6
 
 =item * enumerate()
 
