@@ -1,3 +1,9 @@
+0.86  2025-10-11
+    [Feature]
+    - Added range(start; end[, step]) helper to emit numeric sequences matching
+      jq's range function, including descending and custom step behavior.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.85  2025-10-11
     [Feature]
     - Added tostring() helper to convert values into their JSON string form,

@@ -340,6 +340,8 @@ Supported Functions:
   drop(N)          - Skip the first N elements of an array
   tail(N)          - Return the final N elements of an array
   chunks(N)        - Split array into subarrays each containing up to N items
+  range(START; END[, STEP])
+                   - Emit numbers from START (default 0) up to but not including END using STEP (default 1)
   enumerate()      - Pair each array element with its zero-based index
   count            - Count total number of matching items
   map(EXPR)        - Map/filter array items with a subquery
