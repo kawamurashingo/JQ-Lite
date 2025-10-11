@@ -1,4 +1,4 @@
-0.93  2025-10-11
+0.93  2025-10-12
     [Feature]
     - Added delpaths(paths) helper to delete multiple keys or indices using
       jq-compatible path arrays evaluated via arbitrary filters. Updated the
@@ -497,6 +497,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
