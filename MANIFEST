@@ -17,6 +17,7 @@ t/case_transform.t
 t/clamp.t
 t/ceil_floor.t
 t/chunks.t
+t/delpaths.t
 t/count.t
 t/empty.t
 t/entries.t

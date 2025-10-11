@@ -378,6 +378,7 @@ Supported Functions:
   flatten_all()    - Recursively flatten nested arrays into a single array
   flatten_depth(N) - Flatten nested arrays up to N levels deep
   del(KEY)         - Remove a key from objects in the result
+  delpaths(PATHS)  - Remove nested keys/indices described by PATH arrays (jq-compatible)
   compact          - Remove undefined values from arrays
   path             - Return available keys for objects or indexes for arrays
   paths            - Emit every path to nested values as an array of keys/indices
