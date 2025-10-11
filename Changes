@@ -3,6 +3,8 @@
     - Added enumerate() helper to pair array elements with their zero-based
       index for downstream processing.
     - Documented the helper across README, POD, CLI help, and regression tests.
+    - Added transpose() helper to pivot arrays-of-arrays from rows into
+      columns, truncating to the shortest length for uneven input.
 
 0.80  2025-10-11
     [Feature]
