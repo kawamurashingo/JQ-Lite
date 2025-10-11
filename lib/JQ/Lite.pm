@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.79';
+our $VERSION = '0.80';
 
 sub new {
     my ($class, %opts) = @_;
@@ -337,6 +337,13 @@ sub run_query {
             @keys = grep { defined $_ } @keys;
 
             @next_results = map { _apply_pick($_, \@keys) } @results;
+            @results      = @next_results;
+            next;
+        }
+
+        # support for merge_objects()
+        if ($part eq 'merge_objects()' || $part eq 'merge_objects') {
+            @next_results = map { _apply_merge_objects($_) } @results;
             @results      = @next_results;
             next;
         }
@@ -1251,6 +1258,29 @@ sub _apply_to_number {
     return $value;
 }
 
+sub _apply_merge_objects {
+    my ($value) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        my %merged;
+        my $saw_object = 0;
+
+        for my $element (@$value) {
+            next unless ref $element eq 'HASH';
+            %merged = (%merged, %$element);
+            $saw_object = 1;
+        }
+
+        return $saw_object ? \%merged : {};
+    }
+
+    if (ref $value eq 'HASH') {
+        return { %$value };
+    }
+
+    return $value;
+}
+
 sub _traverse {
     my ($data, $query) = @_;
     my @steps = split /\./, $query;
@@ -1960,7 +1990,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, tail, chunks, flatten_all, flatten_depth, clamp, to_number, pick
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, tail, chunks, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
 
 =item * Supports map(...), limit(n), drop(n), tail(n), and chunks(n) style transformations
 
@@ -2081,6 +2111,21 @@ Returns:
 
   [ { "name": "Alice", "email": "alice\@example.com" },
     { "name": "Bob" } ]
+
+=item * merge_objects()
+
+Merges arrays of objects into a single hash reference using last-write-wins
+semantics. Non-object values within the array are ignored. When no objects are
+found, an empty hash reference is returned. Applying the helper directly to an
+object returns a shallow copy of that object.
+
+Example:
+
+  .items | merge_objects()
+
+Returns:
+
+  { "name": "Widget", "value": 2, "active": true }
 
 =item * empty()
 
