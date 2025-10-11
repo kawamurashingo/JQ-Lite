@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.84';
+our $VERSION = '0.85';
 
 sub new {
     my ($class, %opts) = @_;
@@ -696,6 +696,13 @@ sub run_query {
             next;
         }
 
+        # support for tostring()
+        if ($part eq 'tostring()' || $part eq 'tostring') {
+            @next_results = map { _apply_tostring($_) } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for to_number()
         if ($part eq 'to_number()' || $part eq 'to_number') {
             @next_results = map { _apply_to_number($_) } @results;
@@ -1313,6 +1320,28 @@ sub _apply_trim {
     }
 
     return $value;
+}
+
+sub _apply_tostring {
+    my ($value) = @_;
+
+    if (!defined $value) {
+        return 'null';
+    }
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 'true' : 'false';
+    }
+
+    if (!ref $value) {
+        return "$value";
+    }
+
+    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
+        return encode_json($value);
+    }
+
+    return encode_json($value);
 }
 
 sub _apply_numeric_function {
@@ -2738,6 +2767,18 @@ Example:
 
   .score  | clamp(0, 100)       # => 87
   .deltas | clamp(-5, 5)        # => [-5, 2, 5, "n/a"]
+
+=item * tostring()
+
+Converts the current value into a JSON string representation. Scalars are
+stringified directly, booleans become C<"true">/C<"false">, and undefined
+values are rendered as C<"null">. Arrays and objects are encoded to their JSON
+text form so the output matches jq's behavior when applied to structured data.
+
+Example:
+
+  .score   | tostring   # => "42"
+  .profile | tostring   # => "{\"name\":\"Alice\"}"
 
 =item * to_number()
 

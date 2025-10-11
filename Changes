@@ -1,3 +1,9 @@
+0.85  2025-10-12
+    [Feature]
+    - Added tostring() helper to convert values into their JSON string form,
+      matching jq's behavior for scalars, booleans, null, arrays, and objects.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.84  2025-10-11
     [Feature]
     - Added to_entries(), from_entries(), and with_entries(filter) helpers to
