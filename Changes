@@ -1,3 +1,10 @@
+0.92  2025-10-11
+    [Feature]
+    - Added map_values(filter) helper to transform every value within objects
+      using jq-compatible filter semantics, dropping keys when the filter
+      yields no result and recursing through arrays of objects. Documented the
+      helper across README, POD, CLI help, and regression tests.
+
 0.91  2025-10-11
     [Feature]
     - Added indices(value) helper to emit every index where the supplied value

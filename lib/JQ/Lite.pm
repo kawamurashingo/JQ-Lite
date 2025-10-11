@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.91';
+our $VERSION = '0.92';
 
 sub new {
     my ($class, %opts) = @_;
@@ -326,6 +326,14 @@ sub run_query {
                     : $_
             } @results;
             @results = @next_results;
+            next;
+        }
+
+        # support for map_values(filter)
+        if ($part =~ /^map_values\((.+)\)$/) {
+            my $filter = $1;
+            @next_results = map { _apply_map_values($self, $_, $filter) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -1770,6 +1778,29 @@ sub _apply_with_entries {
     return _from_entries(\@transformed);
 }
 
+sub _apply_map_values {
+    my ($self, $value, $filter) = @_;
+
+    return $value if !defined $value;
+
+    if (ref $value eq 'HASH') {
+        my %result;
+        for my $key (keys %$value) {
+            my $original = $value->{$key};
+            my @outputs  = $self->run_query(encode_json($original), $filter);
+            next unless @outputs;
+            $result{$key} = $outputs[0];
+        }
+        return \%result;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_map_values($self, $_, $filter) } @$value ];
+    }
+
+    return $value;
+}
+
 sub _normalize_entry {
     my ($entry) = @_;
 
@@ -2698,7 +2729,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.91
+Version 0.92
 
 =head1 SYNOPSIS
 
@@ -2735,9 +2766,9 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries, paths, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, paths, indices
 
-=item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
+=item * Supports map(...), map_values(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
 =item * Interactive mode for exploring queries line-by-line
 
@@ -2965,6 +2996,22 @@ reconstruction.
 Example:
 
   .profile | with_entries(select(.key != "password"))
+
+=item * map_values(filter)
+
+Applies the supplied filter to every value within an object, mirroring jq's
+C<map_values>. When the filter returns no results for a key the entry is
+removed, allowing constructs such as C<map_values(select(. > 0))> to prune
+falsy values. Arrays are processed element-wise, so arrays of objects can be
+transformed in a single step.
+
+Example:
+
+  .profile | map_values(tostring)
+
+Returns:
+
+  { "name": "Alice", "age": "42" }
 
 =item * empty()
 
