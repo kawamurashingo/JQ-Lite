@@ -1,3 +1,9 @@
+0.82  2025-10-12
+    [Feature]
+    - Added percentile(p) helper to compute linear-interpolated percentiles for
+      numeric array values.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.81  2025-10-11
     [Feature]
     - Added enumerate() helper to pair array elements with their zero-based

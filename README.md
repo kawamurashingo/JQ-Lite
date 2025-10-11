@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `index()`, `clamp()`, `to_number()`, `pick()`, `merge_objects()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `count`, `join`, `split()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `index()`, `clamp()`, `to_number()`, `pick()`, `merge_objects()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -66,7 +66,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `pluck(key)`   | Extract values from an array of objects (v0.43)      |
 | `pick(keys...)` | Build objects containing only the specified keys (v0.74) |
 | `merge_objects()` | Shallow-merge arrays of objects into a single hash with last-write-wins semantics (v0.80) |
-| `add`, `sum`, `sum_by(path)`, `avg_by(path)`, `min`, `max`, `avg`, `median`, `mode`, `variance`, `stddev`, `product` | Numeric and statistical aggregation functions |
+| `add`, `sum`, `sum_by(path)`, `avg_by(path)`, `min`, `max`, `avg`, `median`, `mode`, `percentile(p)`, `variance`, `stddev`, `product` | Numeric and statistical aggregation functions |
 | `abs`         | Convert numeric values to their absolute value (v0.49) |
 | `ceil`        | Round numbers up to the nearest integer (v0.53)        |
 | `floor`       | Round numbers down to the nearest integer (v0.53)      |
