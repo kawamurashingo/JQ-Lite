@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `map`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `median_by()`, `count`, `join`, `split()`, `explode()`, `implode()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `ltrimstr()`, `rtrimstr()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `range()`, `index()`, `clamp()`, `tostring()`, `to_number()`, `pick()`, `merge_objects()`, `to_entries()`, `from_entries()`, `with_entries()`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `any()`, `map`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `median_by()`, `count`, `join`, `split()`, `explode()`, `implode()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `ltrimstr()`, `rtrimstr()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `range()`, `index()`, `clamp()`, `tostring()`, `to_number()`, `pick()`, `merge_objects()`, `to_entries()`, `from_entries()`, `with_entries()`
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
 - ✅ Reads from STDIN or file
@@ -92,6 +92,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `slice(start, length)` | Return a subarray using zero-based indexing with optional length (negative starts count from the end) (v0.66) |
 | `has(key)` | Check if objects contain a key or arrays have an index (v0.71) |
 | `contains(value)` | Check whether strings include the value or arrays contain an element (v0.56) |
+| `any([filter])` | Return true when any input (optionally filtered) is truthy (v0.90) |
 | `group_by(key)`| Group array items by field                           |
 | `group_count(key)` | Count how many items fall under each key (v0.46)   |
 | `sum_by(path)` | Sum numeric values projected from each array item (v0.68) |
