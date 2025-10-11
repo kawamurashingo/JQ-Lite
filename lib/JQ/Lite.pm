@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.88';
+our $VERSION = '0.89';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1266,6 +1266,13 @@ sub run_query {
             next;
         }
 
+        # support for paths()
+        if ($part eq 'paths()' || $part eq 'paths') {
+            @next_results = map { _apply_paths($_) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {
@@ -1417,6 +1424,50 @@ sub _apply_trimstr {
     }
 
     return $target;
+}
+
+sub _apply_paths {
+    my ($value) = @_;
+
+    if (!ref $value || ref($value) eq 'JSON::PP::Boolean') {
+        return [ [] ];
+    }
+
+    my @paths;
+    _collect_paths($value, [], \@paths);
+    return \@paths;
+}
+
+sub _collect_paths {
+    my ($value, $current_path, $paths) = @_;
+
+    if (ref $value eq 'HASH') {
+        for my $key (sort keys %$value) {
+            my $child = $value->{$key};
+            my @next  = (@$current_path, $key);
+            push @$paths, [@next];
+
+            if (ref $child eq 'HASH' || ref $child eq 'ARRAY') {
+                _collect_paths($child, \@next, $paths);
+            }
+        }
+        return;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        for my $index (0 .. $#$value) {
+            my $child = $value->[$index];
+            my @next  = (@$current_path, $index);
+            push @$paths, [@next];
+
+            if (ref $child eq 'HASH' || ref $child eq 'ARRAY') {
+                _collect_paths($child, \@next, $paths);
+            }
+        }
+        return;
+    }
+
+    push @$paths, [@$current_path];
 }
 
 sub _apply_tostring {
@@ -2571,7 +2622,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries, paths
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -2722,6 +2773,22 @@ Returns all values of a hash as an array.
 Example:
 
   .profile | values
+
+=item * paths()
+
+Enumerates every path within the current value, mirroring jq's C<paths>
+helper. Each path is emitted as an array of keys and/or indices leading to
+objects, arrays, and their nested scalars. Scalars (including booleans and
+null) yield a single empty path, while empty arrays and objects contribute only
+their immediate location.
+
+Example:
+
+  .user | paths
+
+Returns:
+
+  [ ["name"], ["tags"], ["tags",0], ["tags",1], ["active"] ]
 
 =item * pick(key1, key2, ...)
 

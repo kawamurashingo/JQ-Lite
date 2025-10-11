@@ -111,6 +111,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `lower()`      | Convert scalars (and array elements) to lowercase (v0.47) |
 | `titlecase()`  | Convert scalars (and array elements) to title case (v0.69) |
 | `path()`       | Return keys (for objects) or indices (for arrays) (v0.40) |
+| `paths()`      | Emit every path to nested values as arrays of keys/indices (v0.89) |
 | `is_empty`     | True when the value is an empty array or object (v0.41)   |
 | `default(value)` | Substitute a fallback value when the result is undef/null (v0.42) |
 
