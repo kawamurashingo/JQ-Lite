@@ -6,6 +6,7 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 README.md
 t/abs.t
+t/all.t
 t/aggregate.t
 t/any.t
 t/avg_by.t

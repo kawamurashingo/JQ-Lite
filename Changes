@@ -1,3 +1,14 @@
+0.94  2025-10-12
+    [Feature]
+    - Added all([filter]) helper mirroring jq's all/0 and all/1 semantics for
+      truthiness checks across arrays and scalars.
+    [Tests]
+    - Added regression coverage for all() with and without filters, including
+      edge cases for empty arrays and scalar inputs.
+    [Docs]
+    - Documented the new helper across README, POD, and --help-functions
+      listings.
+
 0.93  2025-10-12
     [Feature]
     - Added tojson() helper to encode any value as JSON text, mirroring jq's
