@@ -31,6 +31,7 @@ t/has.t
 t/has_function.t
 t/index.t
 t/join.t
+t/keys_unsorted.t
 t/limit.t
 t/length.t
 t/map.t
