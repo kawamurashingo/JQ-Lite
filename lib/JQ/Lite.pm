@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.90';
+our $VERSION = '0.91';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1241,6 +1241,16 @@ sub run_query {
             my @args = _parse_arguments($args_raw);
             @next_results = map { _apply_substr($_, @args) } @results;
             @results = @next_results;
+            next;
+        }
+
+        # support for indices(value)
+        if ($part =~ /^indices\((.*)\)$/) {
+            my @args   = _parse_arguments($1);
+            my $needle = @args ? $args[0] : undef;
+
+            @next_results = map { _apply_indices($_, $needle) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -2547,6 +2557,44 @@ sub _apply_contains {
     return JSON::PP::false;
 }
 
+sub _apply_indices {
+    my ($value, $needle) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        my @matches;
+        for my $i (0 .. $#$value) {
+            push @matches, $i if _values_equal($value->[$i], $needle);
+        }
+        return \@matches;
+    }
+
+    return [] if !defined $value;
+
+    if (!ref $value || ref($value) eq 'JSON::PP::Boolean') {
+        return [] unless defined $needle;
+
+        my $haystack = "$value";
+        my $fragment = "$needle";
+
+        my @positions;
+        if ($fragment eq '') {
+            @positions = (0 .. length($haystack));
+        }
+        else {
+            my $pos = -1;
+            while (1) {
+                $pos = index($haystack, $fragment, $pos + 1);
+                last if $pos == -1;
+                push @positions, $pos;
+            }
+        }
+
+        return \@positions;
+    }
+
+    return [];
+}
+
 sub _apply_has {
     my ($value, $needle) = @_;
 
@@ -2650,7 +2698,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.87
+Version 0.91
 
 =head1 SYNOPSIS
 
@@ -2687,7 +2735,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries, paths
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries, paths, indices
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3191,6 +3239,21 @@ Example:
 
   .users | index("Alice")     # => 0
   .tags  | index("json")      # => 1
+
+=item * indices(value)
+
+Returns every zero-based index where the supplied value appears. For arrays,
+deep comparisons are performed against each element and the matching indexes
+are collected into an array. For strings, the helper searches for literal
+substring matches (including overlapping ones) and emits each starting
+position. When the fragment is empty, positions for every character boundary
+are returned to mirror jq's behaviour.
+
+Example:
+
+  .users | indices("Alice")     # => [0, 3]
+  "banana" | indices("an")      # => [1, 3]
+  "perl"   | indices("")        # => [0, 1, 2, 3, 4]
 
 =item * abs()
 
