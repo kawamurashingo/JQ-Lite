@@ -91,6 +91,23 @@ sub run_query {
             next;
         }
 
+        # support for keys_unsorted
+        if ($part eq 'keys_unsorted' || $part eq 'keys_unsorted()') {
+            @next_results = map {
+                if (ref $_ eq 'HASH') {
+                    [ keys %$_ ];
+                }
+                elsif (ref $_ eq 'ARRAY') {
+                    [ 0 .. $#{$_} ];
+                }
+                else {
+                    undef;
+                }
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for sort
         if ($part eq 'sort') {
             @next_results = map {
@@ -2297,7 +2314,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), and enumerate() style transformations
 
@@ -2400,6 +2417,17 @@ Example:
 Results in:
 
   ["A", "l", "i", "c", "e"]
+
+
+=item * keys_unsorted()
+
+Returns the keys of an object without sorting them, mirroring jq's
+C<keys_unsorted> helper. Arrays yield their zero-based indices, while
+non-object/array inputs return C<undef> to match the behaviour of C<keys>.
+
+Example:
+
+  .profile | keys_unsorted
 
 =item * values()
 

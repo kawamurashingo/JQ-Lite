@@ -3,6 +3,8 @@
     - Added tostring() helper to convert values into their JSON string form,
       matching jq's behavior for scalars, booleans, null, arrays, and objects.
     - Documented the helper across README, POD, CLI help, and regression tests.
+    - Added keys_unsorted helper to expose jq's unsorted key traversal for
+      objects, along with documentation and regression tests.
 
 0.84  2025-10-11
     [Feature]

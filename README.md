@@ -45,6 +45,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 |----------------|-------------------------------------------------------|
 | `length`       | Get number of elements in an array, keys in a hash, or characters in scalars |
 | `keys`         | Extract sorted keys from a hash                      |
+| `keys_unsorted` | Extract object keys without sorting (jq-compatible) |
 | `values`       | Extract values from a hash (v0.34)                   |
 | `sort`         | Sort array items                                     |
 | `sort_desc`    | Sort array items in descending order (v0.61)         |
