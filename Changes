@@ -1,4 +1,10 @@
-0.80  2025-10-12
+0.81  2025-10-11
+    [Feature]
+    - Added enumerate() helper to pair array elements with their zero-based
+      index for downstream processing.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
+0.80  2025-10-11
     [Feature]
     - Added merge_objects() helper to flatten arrays of hashes into a single
       object using last-write-wins semantics while ignoring non-object entries.
@@ -410,6 +416,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 

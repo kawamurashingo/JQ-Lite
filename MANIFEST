@@ -18,6 +18,7 @@ t/ceil_floor.t
 t/chunks.t
 t/count.t
 t/empty.t
+t/enumerate.t
 t/first_last.t
 t/flatten.t
 t/flatten_all.t

@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.80';
+our $VERSION = '0.81';
 
 sub new {
     my ($class, %opts) = @_;
@@ -294,6 +294,25 @@ sub run_query {
                     ? [ grep { defined($_) } map { $self->run_query(encode_json($_), $filter) } @$_ ]
                     : $_
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for enumerate()
+        if ($part =~ /^enumerate(?:\(\))?$/) {
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $arr = $_;
+                    my @pairs;
+                    for my $idx (0 .. $#$arr) {
+                        push @pairs, { index => $idx, value => $arr->[$idx] };
+                    }
+                    \@pairs;
+                } else {
+                    $_;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1990,9 +2009,9 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, tail, chunks, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, tail, chunks, enumerate, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
 
-=item * Supports map(...), limit(n), drop(n), tail(n), and chunks(n) style transformations
+=item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), and enumerate() style transformations
 
 =item * Interactive mode for exploring queries line-by-line
 
@@ -2330,6 +2349,18 @@ Examples:
 
   .users | tail(2)            # => last two users
   .users | tail(10)           # => full array when shorter than 10
+
+=item * enumerate()
+
+Converts arrays into an array of objects pairing each element with its
+zero-based index. Each object contains two keys: C<index> for the position and
+C<value> for the original element. Non-array inputs are returned unchanged so
+the helper composes inside pipelines that may yield scalars or hashes.
+
+Examples:
+
+  .users | enumerate()          # => [{"index":0,"value":...}, ...]
+  .numbers | enumerate() | map(.index)
 
 =item * index(value)
 
