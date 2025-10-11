@@ -1,3 +1,10 @@
+0.90  2025-10-11
+    [Feature]
+    - Added any([filter]) helper to mirror jq's any/0 and any/1 behaviour for
+      truthiness checks over arrays and scalars, including nested filter
+      evaluation. Documented the helper across README, POD, CLI help, and
+      regression tests.
+
 0.89  2025-10-11
     [Feature]
     - Added paths() helper to enumerate every nested key/index path in objects,

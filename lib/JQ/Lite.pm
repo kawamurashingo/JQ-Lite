@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.89';
+our $VERSION = '0.90';
 
 sub new {
     my ($class, %opts) = @_;
@@ -932,6 +932,16 @@ sub run_query {
             next;
         }
 
+        # support for any() / any(expr)
+        if ($part =~ /^any(?:\((.*)\))?$/) {
+            my $expr = defined $1 ? $1 : undef;
+            $expr = undef if defined($expr) && $expr eq '';
+
+            @next_results = map { _apply_any($self, $_, $expr) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for join(", ")
         if ($part =~ /^join\((.*?)\)$/) {
             my $sep = $1;
@@ -1339,6 +1349,61 @@ sub _map {
     }
 
     return @mapped;
+}
+
+sub _apply_any {
+    my ($self, $value, $expr) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return JSON::PP::false unless @$value;
+
+        for my $item (@$value) {
+            if (defined $expr) {
+                my @evaluated = $self->run_query(encode_json($item), $expr);
+                return JSON::PP::true if grep { _is_truthy($_) } @evaluated;
+            }
+            else {
+                return JSON::PP::true if _is_truthy($item);
+            }
+        }
+
+        return JSON::PP::false;
+    }
+
+    if (defined $expr) {
+        my @evaluated = $self->run_query(encode_json($value), $expr);
+        return grep { _is_truthy($_) } @evaluated ? JSON::PP::true : JSON::PP::false;
+    }
+
+    return _is_truthy($value) ? JSON::PP::true : JSON::PP::false;
+}
+
+sub _is_truthy {
+    my ($value) = @_;
+
+    return 0 unless defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return @$value ? 1 : 0;
+    }
+
+    if (ref $value eq 'HASH') {
+        return scalar(keys %$value) ? 1 : 0;
+    }
+
+    if (!ref $value) {
+        return 0 if $value eq '';
+        if (looks_like_number($value)) {
+            return $value != 0 ? 1 : 0;
+        }
+        return 1;
+    }
+
+    return 1;
 }
 
 sub _apply_case_transform {
@@ -3004,6 +3069,23 @@ Example:
   .title | contains("perl")     # => true
   .tags  | contains("json")     # => true
   .meta  | contains("lang")     # => true
+
+=item * any([filter])
+
+Returns true when at least one value in the input is truthy. When a filter is
+provided, it is evaluated against each array element (or the current value when
+not operating on an array) and the truthiness of the filter's results is used.
+
+* For arrays without a filter, returns true if any element is truthy.
+* For arrays with a filter, returns true when the filter yields a truthy value
+  for any element.
+* For scalars, hashes, and other values, evaluates the value (or filter results)
+  directly.
+
+Example:
+
+  .flags | any            # => true when any element is truthy
+  .users | any(.active)   # => true when any user is active
 
 =item * unique_by(".key")
 
