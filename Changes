@@ -1,3 +1,9 @@
+0.80  2025-10-12
+    [Feature]
+    - Added merge_objects() helper to flatten arrays of hashes into a single
+      object using last-write-wins semantics while ignoring non-object entries.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.79  2025-10-11
     [Feature]
     - Added tail(n) helper to return the last N elements from arrays while
