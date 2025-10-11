@@ -1,3 +1,10 @@
+0.93  2025-10-11
+    [Feature]
+    - Added delpaths(paths) helper to delete nested keys and array indices
+      using jq-compatible path arrays, including support for removing the
+      root value via an empty path. Documented the helper across README,
+      POD, CLI help, and regression tests.
+
 0.92  2025-10-11
     [Feature]
     - Added map_values(filter) helper to transform every value within objects

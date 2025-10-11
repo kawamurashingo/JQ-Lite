@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.92';
+our $VERSION = '0.93';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1117,6 +1117,16 @@ sub run_query {
             next;
         }
 
+        # support for delpaths(paths)
+        if ($part =~ /^delpaths\((.*)\)$/) {
+            my $filter = $1;
+            $filter =~ s/^\s+|\s+$//g;
+
+            @next_results = map { _apply_delpaths($self, $_, $filter) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for compact()
         if ($part eq 'compact()' || $part eq 'compact') {
             @next_results = map {
@@ -1549,6 +1559,170 @@ sub _collect_paths {
     }
 
     push @$paths, [@$current_path];
+}
+
+sub _apply_delpaths {
+    my ($self, $value, $filter) = @_;
+
+    return $value unless defined $filter && length $filter;
+
+    my $encoded = defined $value ? encode_json($value) : 'null';
+
+    my @paths;
+
+    my $decoded = eval { decode_json($filter) };
+    push @paths, _extract_delpaths($decoded) if !$@;
+
+    my @path_results = $self->run_query($encoded, $filter);
+    push @paths, _extract_delpaths(@path_results);
+
+    return $value unless @paths;
+
+    my $copy = _clone_structure($value);
+
+    for my $path (@paths) {
+        next unless ref($path) eq 'ARRAY';
+        $copy = _delete_path($copy, $path);
+        last if !defined $copy;
+    }
+
+    return $copy;
+}
+
+sub _extract_delpaths {
+    my (@results) = @_;
+
+    my @paths;
+
+    RESULT:
+    for my $entry (@results) {
+        next unless defined $entry;
+
+        if (ref($entry) eq 'JSON::PP::Boolean') {
+            next;
+        }
+
+        if (ref($entry) eq 'ARRAY') {
+            next if @$entry == 0;    # empty array => no paths
+
+            my $has_refs   = 0;
+            my $all_arrays = 1;
+
+            for my $item (@$entry) {
+                if (ref $item) {
+                    $has_refs = 1;
+                    $all_arrays = 0 unless ref($item) eq 'ARRAY';
+                }
+                else {
+                    $all_arrays = 0;
+                }
+            }
+
+            if (!$has_refs) {
+                push @paths, [@$entry];
+                next RESULT;
+            }
+
+            for my $path (@$entry) {
+                next unless ref($path) eq 'ARRAY';
+                push @paths, [@$path];
+            }
+
+            next RESULT;
+        }
+    }
+
+    return @paths;
+}
+
+sub _clone_structure {
+    my ($value) = @_;
+
+    return undef unless defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? JSON::PP::true : JSON::PP::false;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _clone_structure($_) } @$value ];
+    }
+
+    if (ref $value eq 'HASH') {
+        my %copy;
+        for my $key (keys %$value) {
+            $copy{$key} = _clone_structure($value->{$key});
+        }
+        return \%copy;
+    }
+
+    return $value;
+}
+
+sub _delete_path {
+    my ($value, $path) = @_;
+
+    return $value unless ref($path) eq 'ARRAY';
+
+    if (@$path == 0) {
+        return undef;
+    }
+
+    my $current = $value;
+
+    for my $i (0 .. $#$path - 1) {
+        my $key = $path->[$i];
+
+        if (ref $current eq 'HASH') {
+            return $value unless exists $current->{$key};
+            $current = $current->{$key};
+            next;
+        }
+
+        if (ref $current eq 'ARRAY') {
+            my $index = _coerce_index($key);
+            return $value unless defined $index;
+            return $value if $index > $#$current;
+            $current = $current->[$index];
+            next;
+        }
+
+        return $value;
+    }
+
+    my $final_key = $path->[-1];
+
+    if (ref $current eq 'HASH') {
+        delete $current->{$final_key};
+        return $value;
+    }
+
+    if (ref $current eq 'ARRAY') {
+        my $index = _coerce_index($final_key);
+        return $value unless defined $index;
+        return $value if $index > $#$current;
+        splice @$current, $index, 1;
+        return $value;
+    }
+
+    return $value;
+}
+
+sub _coerce_index {
+    my ($value) = @_;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    return undef if ref $value;
+    return undef unless defined $value;
+    return undef unless $value =~ /^-?\d+$/;
+
+    my $index = 0 + $value;
+    return undef if $index < 0;
+
+    return $index;
 }
 
 sub _apply_tostring {
@@ -2764,7 +2938,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, paths, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, paths, indices
 
 =item * Supports map(...), map_values(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3093,6 +3267,24 @@ Example:
 If the key does not exist, returns the original hash unchanged.
 
 If applied to a non-hash object, returns the object unchanged.
+
+=item * delpaths(paths)
+
+Deletes nested keys or array indices described by each path array. The
+argument must evaluate to arrays of path elements, matching jq's
+C<delpaths>. Each path is traversed on a cloned copy of the input so the
+original value is never mutated.
+
+Examples:
+
+  .user | delpaths([["profile", "email"], ["roles", 0]])
+
+Removes the C<email> field under C<profile> and deletes the first entry
+from C<roles>.
+
+  . | delpaths([[]])
+
+Removes the entire value, yielding C<null>, just like jq.
 
 =item * compact()
 
