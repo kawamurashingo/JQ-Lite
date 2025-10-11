@@ -1,4 +1,4 @@
-0.89  2025-10-12
+0.89  2025-10-11
     [Feature]
     - Added paths() helper to enumerate every nested key/index path in objects,
       arrays, and scalars (empty path) matching jq's behaviour.
@@ -470,6 +470,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
