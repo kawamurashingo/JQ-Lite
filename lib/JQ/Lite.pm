@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.82';
+our $VERSION = '0.83';
 
 sub new {
     my ($class, %opts) = @_;
@@ -456,6 +456,39 @@ sub run_query {
                     }
 
                     $has_number ? $sum : 0;
+                }
+                else {
+                    $_;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
+        # support for median_by(path)
+        if ($part =~ /^median_by\((.+)\)$/) {
+            my ($key_path, $use_entire_item) = _normalize_path_argument($1);
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my @numbers;
+                    for my $element (@$_) {
+                        push @numbers, _project_numeric_values($element, $key_path, $use_entire_item);
+                    }
+
+                    if (@numbers) {
+                        @numbers = sort { $a <=> $b } @numbers;
+                        my $count  = @numbers;
+                        my $middle = int($count / 2);
+                        if ($count % 2) {
+                            $numbers[$middle];
+                        } else {
+                            ($numbers[$middle - 1] + $numbers[$middle]) / 2;
+                        }
+                    } else {
+                        undef;
+                    }
                 }
                 else {
                     $_;
@@ -1683,6 +1716,31 @@ sub _normalize_path_argument {
     return ($key_path, $use_entire_item);
 }
 
+sub _project_numeric_values {
+    my ($element, $key_path, $use_entire_item) = @_;
+
+    my @values = $use_entire_item
+        ? ($element)
+        : _traverse($element, $key_path);
+
+    my @numbers;
+    for my $value (@values) {
+        next unless defined $value;
+
+        if (ref($value) eq 'JSON::PP::Boolean') {
+            push @numbers, $value ? 1 : 0;
+            next;
+        }
+
+        next if ref $value;
+        next unless looks_like_number($value);
+
+        push @numbers, 0 + $value;
+    }
+
+    return @numbers;
+}
+
 sub _uniq {
     my %seen;
     return grep { !$seen{_key($_)}++ } @_;
@@ -2084,7 +2142,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.82
+Version 0.83
 
 =head1 SYNOPSIS
 
@@ -2121,7 +2179,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), and enumerate() style transformations
 
@@ -2176,6 +2234,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * sum_by(.field) (sum numeric values projected from each array item)
 
 =item * avg_by(.field) (average numeric values projected from each array item)
+
+=item * median_by(.field) (median of numeric values projected from each array item)
 
 =item * percentile(p) (return the requested percentile for numeric array values)
 

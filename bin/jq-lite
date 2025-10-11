@@ -345,6 +345,7 @@ Supported Functions:
   add / sum        - Sum all numeric values in an array
   sum_by(KEY)      - Sum numeric values projected from each array item
   avg_by(KEY)      - Average numeric values projected from each array item
+  median_by(KEY)   - Return the median of numeric values projected from each array item
   min_by(PATH)     - Return the element with the smallest projected value
   max_by(PATH)     - Return the element with the largest projected value
   product          - Multiply all numeric values in an array

@@ -1,3 +1,9 @@
+0.83  2025-10-11
+    [Feature]
+    - Added median_by(path) helper to compute the median of numeric values
+      projected from array elements, mirroring the semantics of median.
+    - Documented the helper across README, POD, CLI help, and regression tests.
+
 0.82  2025-10-11
     [Feature]
     - Added percentile(p) helper to compute linear-interpolated percentiles for
