@@ -162,6 +162,9 @@ USAGE
         $filename = $arg;
     }
     # If not a file and query is not yet set, treat it as the query string
+    elsif ($arg =~ /^-/) {
+        die "[ERROR] Unknown option: $arg\n";
+    }
     elsif (!defined $query) {
         $query = $arg;
     }
