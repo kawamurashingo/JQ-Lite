@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.78';
+our $VERSION = '0.79';
 
 sub new {
     my ($class, %opts) = @_;
@@ -230,6 +230,30 @@ sub run_query {
                     $_;
                 }
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for tail(n)
+        if ($part =~ /^tail\((\d+)\)$/) {
+            my $count = $1;
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $arr = $_;
+
+                    if ($count == 0 || !@$arr) {
+                        [];
+                    } else {
+                        my $start = @$arr - $count;
+                        $start = 0 if $start < 0;
+
+                        [ @$arr[$start .. $#$arr] ];
+                    }
+                } else {
+                    $_;
+                }
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1899,7 +1923,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.76
+Version 0.79
 
 =head1 SYNOPSIS
 
@@ -1936,9 +1960,9 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, chunks, flatten_all, flatten_depth, clamp, to_number, pick
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, product, min, max, avg, median, mode, variance, stddev, drop, tail, chunks, flatten_all, flatten_depth, clamp, to_number, pick
 
-=item * Supports map(...), limit(n), drop(n), and chunks(n) style transformations
+=item * Supports map(...), limit(n), drop(n), tail(n), and chunks(n) style transformations
 
 =item * Interactive mode for exploring queries line-by-line
 
@@ -2249,6 +2273,18 @@ Examples:
 
   .users | slice(0, 2)        # => first two users
   .users | slice(-2)          # => last two users
+
+=item * tail(n)
+
+Returns the final C<n> elements of the current array. When C<n> is zero the
+result is an empty array, and when C<n> exceeds the array length the entire
+array is returned unchanged. Non-array inputs pass through untouched so the
+helper composes cleanly inside pipelines that also yield scalars or objects.
+
+Examples:
+
+  .users | tail(2)            # => last two users
+  .users | tail(10)           # => full array when shorter than 10
 
 =item * index(value)
 

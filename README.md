@@ -58,6 +58,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `reverse`      | Reverse an array                                     |
 | `limit(n)`     | Limit array to first `n` elements                    |
 | `drop(n)`      | Skip the first `n` elements in an array              |
+| `tail(n)`      | Return the final `n` elements in an array (v0.79)    |
 | `chunks(n)`    | Split an array into subarrays with `n` items each (v0.64) |
 | `map(expr)`    | Map/filter values using a subquery                   |
 | `pluck(key)`   | Extract values from an array of objects (v0.43)      |
