@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.83';
+our $VERSION = '0.84';
 
 sub new {
     my ($class, %opts) = @_;
@@ -314,6 +314,28 @@ sub run_query {
             } @results;
 
             @results = @next_results;
+            next;
+        }
+
+        # support for to_entries
+        if ($part eq 'to_entries') {
+            @next_results = map { _to_entries($_) } @results;
+            @results      = @next_results;
+            next;
+        }
+
+        # support for from_entries
+        if ($part eq 'from_entries') {
+            @next_results = map { _from_entries($_) } @results;
+            @results      = @next_results;
+            next;
+        }
+
+        # support for with_entries(filter)
+        if ($part =~ /^with_entries\((.+)\)$/) {
+            my $filter = $1;
+            @next_results = map { _apply_with_entries($self, $_, $filter) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -1445,6 +1467,73 @@ sub _apply_merge_objects {
     return $value;
 }
 
+sub _to_entries {
+    my ($value) = @_;
+
+    if (ref $value eq 'HASH') {
+        return [ map { { key => $_, value => $value->{$_} } } sort keys %$value ];
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { { key => $_, value => $value->[$_] } } 0 .. $#$value ];
+    }
+
+    return $value;
+}
+
+sub _from_entries {
+    my ($value) = @_;
+
+    return $value unless ref $value eq 'ARRAY';
+
+    my %result;
+    for my $entry (@$value) {
+        my $normalized = _normalize_entry($entry);
+        next unless $normalized;
+
+        my $key = $normalized->{key};
+        $result{$key} = $normalized->{value};
+    }
+
+    return \%result;
+}
+
+sub _apply_with_entries {
+    my ($self, $value, $filter) = @_;
+
+    return $value unless ref $value eq 'HASH' || ref $value eq 'ARRAY';
+
+    my $entries = _to_entries($value);
+    return $value unless ref $entries eq 'ARRAY';
+
+    my @transformed;
+    for my $entry (@$entries) {
+        my @results = $self->run_query(encode_json($entry), $filter);
+        for my $result (@results) {
+            my $normalized = _normalize_entry($result);
+            push @transformed, $normalized if $normalized;
+        }
+    }
+
+    return _from_entries(\@transformed);
+}
+
+sub _normalize_entry {
+    my ($entry) = @_;
+
+    if (ref $entry eq 'HASH') {
+        return unless exists $entry->{key};
+        return { key => $entry->{key}, value => $entry->{value} };
+    }
+
+    if (ref $entry eq 'ARRAY') {
+        return unless @$entry >= 2;
+        return { key => $entry->[0], value => $entry->[1] };
+    }
+
+    return;
+}
+
 sub _traverse {
     my ($data, $query) = @_;
     my @steps = split /\./, $query;
@@ -2179,7 +2268,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects
+=item * Built-in functions: length, keys, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, group_by, group_count, join, split, count, empty, type, nth, del, compact, upper, lower, titlecase, abs, ceil, floor, trim, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, enumerate, transpose, flatten_all, flatten_depth, clamp, to_number, pick, merge_objects, to_entries, from_entries, with_entries
 
 =item * Supports map(...), limit(n), drop(n), tail(n), chunks(n), and enumerate() style transformations
 
@@ -2319,6 +2408,39 @@ Example:
 Returns:
 
   { "name": "Widget", "value": 2, "active": true }
+
+=item * to_entries()
+
+Converts objects (and arrays) into an array of entry hashes, each consisting of
+C<key> and C<value> fields in the jq style. Array entries use zero-based index
+values for the key so they can be transformed uniformly.
+
+Example:
+
+  .profile | to_entries
+  .tags    | to_entries
+
+=item * from_entries()
+
+Performs the inverse of C<to_entries>. Accepts arrays containing
+C<{ key => ..., value => ... }> hashes or C<[key, value]> tuples and rebuilds a
+hash from them. Later entries overwrite earlier ones when duplicate keys are
+encountered.
+
+Example:
+
+  .pairs | from_entries
+
+=item * with_entries(filter)
+
+Transforms objects by mapping over their entries with the supplied filter,
+mirroring jq's C<with_entries>. Each entry is exposed as a C<{ key, value }>
+hash to the filter, and any entries filtered out are dropped prior to
+reconstruction.
+
+Example:
+
+  .profile | with_entries(select(.key != "password"))
 
 =item * empty()
 
