@@ -1,3 +1,9 @@
+0.89  2025-10-12
+    [Feature]
+    - Added paths() helper to enumerate every nested key/index path in objects,
+      arrays, and scalars (empty path) matching jq's behaviour.
+    - Documented the helper across README, POD, and regression tests.
+
 0.88  2025-10-11
     [Feature]
     - Added explode() and implode() helpers to convert between strings and
