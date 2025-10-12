@@ -1,3 +1,13 @@
+0.95  2025-10-12
+    [Feature]
+    - Added walk(filter) helper to recursively traverse arrays and objects while
+      applying jq-compatible filters to every value.
+    [Tests]
+    - Added regression coverage for walk() to ensure nested scalars and arrays
+      are transformed recursively.
+    [Docs]
+    - Documented walk() across README, POD, and --help-functions listings.
+
 0.94  2025-10-12
     [Feature]
     - Added all([filter]) helper mirroring jq's all/0 and all/1 semantics for

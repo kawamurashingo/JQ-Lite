@@ -71,4 +71,5 @@ t/unique_by.t
 t/trim.t
 t/trimstr.t
 t/values.t
+t/walk.t
 LICENSE
