@@ -1,3 +1,13 @@
+0.96  2025-10-12
+    [Feature]
+    - Added leaf_paths() helper mirroring jq's paths(scalars) traversal to
+      emit only terminal key/index chains.
+    [Tests]
+    - Added regression coverage for leaf_paths() to ensure arrays, objects,
+      and scalars produce the correct terminal paths.
+    [Docs]
+    - Documented leaf_paths() in README, module POD, and CLI helper listings.
+
 0.95  2025-10-12
     [Feature]
     - Added walk(filter) helper to recursively traverse arrays and objects while
