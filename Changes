@@ -1,3 +1,14 @@
+0.97  2025-10-12
+    [Feature]
+    - Added getpath(path_expr) helper mirroring jq's getpath/1 to retrieve
+      values from literal path arrays or dynamically generated paths.
+    [Tests]
+    - Added regression coverage ensuring getpath handles nested hashes, array
+      indices (including negatives), boolean values, and filter-produced paths.
+    [Docs]
+    - Documented getpath() in README, module POD, CLI helper listings, and
+      updated MANIFEST.
+
 0.96  2025-10-12
     [Feature]
     - Added leaf_paths() helper mirroring jq's paths(scalars) traversal to
