@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.96';
+our $VERSION = '0.97';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1341,6 +1341,15 @@ sub run_query {
             next;
         }
 
+        # support for getpath(path_expr)
+        if ($part =~ /^getpath\((.*)\)$/) {
+            my $path_expr = defined $1 ? $1 : '';
+
+            @next_results = map { _apply_getpath($self, $_, $path_expr) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {
@@ -1602,6 +1611,57 @@ sub _apply_leaf_paths {
     return \@paths;
 }
 
+sub _apply_getpath {
+    my ($self, $value, $expr) = @_;
+
+    return undef unless defined $value;
+
+    $expr //= '';
+    $expr =~ s/^\s+|\s+$//g;
+    return undef if $expr eq '';
+
+    my @paths;
+
+    my $decoded = eval { decode_json($expr) };
+    if (!$@ && defined $decoded) {
+        if (ref $decoded eq 'ARRAY') {
+            if (@$decoded && ref $decoded->[0] eq 'ARRAY') {
+                push @paths, map { [ @$_ ] } @$decoded;
+            }
+            else {
+                push @paths, [ @$decoded ];
+            }
+        }
+        else {
+            push @paths, [ $decoded ];
+        }
+    }
+
+    if (!@paths) {
+        my @outputs = $self->run_query(encode_json($value), $expr);
+        for my $output (@outputs) {
+            next unless defined $output;
+
+            if (ref $output eq 'ARRAY') {
+                if (@$output && ref $output->[0] eq 'ARRAY') {
+                    push @paths, grep { ref $_ eq 'ARRAY' } @$output;
+                }
+                elsif (!@$output || !ref $output->[0]) {
+                    push @paths, [ @$output ];
+                }
+            }
+            elsif (!ref $output || ref($output) eq 'JSON::PP::Boolean') {
+                push @paths, [ $output ];
+            }
+        }
+    }
+
+    return undef unless @paths;
+
+    my @values = map { _traverse_path_array($value, $_) } @paths;
+    return @values == 1 ? $values[0] : \@values;
+}
+
 sub _collect_paths {
     my ($value, $current_path, $paths) = @_;
 
@@ -1632,6 +1692,45 @@ sub _collect_paths {
     }
 
     push @$paths, [@$current_path];
+}
+
+sub _traverse_path_array {
+    my ($value, $path) = @_;
+
+    return undef unless defined $value;
+    return $value unless defined $path;
+    return $value if ref($path) ne 'ARRAY';
+
+    my $cursor = $value;
+    for my $segment (@$path) {
+        return undef unless defined $cursor;
+
+        if (ref $cursor eq 'HASH') {
+            my $key = defined $segment ? "$segment" : return undef;
+            return undef unless exists $cursor->{$key};
+            $cursor = $cursor->{$key};
+            next;
+        }
+
+        if (ref $cursor eq 'ARRAY') {
+            return undef unless defined $segment;
+
+            my $index = "$segment";
+            if ($index =~ /^-?\d+$/) {
+                my $numeric = int($index);
+                $numeric += @$cursor if $numeric < 0;
+                return undef if $numeric < 0 || $numeric > $#$cursor;
+                $cursor = $cursor->[$numeric];
+                next;
+            }
+
+            return undef;
+        }
+
+        return undef;
+    }
+
+    return $cursor;
 }
 
 sub _collect_leaf_paths {
@@ -3229,6 +3328,20 @@ Example:
 Returns:
 
   [ ["name"], ["tags",0], ["tags",1], ["active"] ]
+
+=item * getpath(path)
+
+Retrieves the value referenced by the supplied path array (or filter producing
+path arrays), mirroring jq's C<getpath/1>. Literal JSON arrays can be passed
+directly while expressions such as C<paths()> are evaluated against the current
+input to collect candidate paths. When multiple paths are returned the helper
+yields an array of values in the same order.
+
+Examples:
+
+  .profile | getpath(["name"])          # => "Alice"
+  .profile | getpath(["emails", 1])     # => "alice.work\@example.com"
+  .profile | getpath(paths())
 
 =item * pick(key1, key2, ...)
 
