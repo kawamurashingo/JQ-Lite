@@ -35,6 +35,7 @@ t/index.t
 t/indices.t
 t/join.t
 t/keys_unsorted.t
+t/leaf_paths.t
 t/limit.t
 t/length.t
 t/map.t

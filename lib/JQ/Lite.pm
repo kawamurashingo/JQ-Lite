@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.95';
+our $VERSION = '0.96';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1334,6 +1334,13 @@ sub run_query {
             next;
         }
 
+        # support for leaf_paths()
+        if ($part eq 'leaf_paths()' || $part eq 'leaf_paths') {
+            @next_results = map { _apply_leaf_paths($_) } @results;
+            @results      = @next_results;
+            next;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {
@@ -1583,6 +1590,18 @@ sub _apply_paths {
     return \@paths;
 }
 
+sub _apply_leaf_paths {
+    my ($value) = @_;
+
+    if (_is_leaf_value($value)) {
+        return [ [] ];
+    }
+
+    my @paths;
+    _collect_leaf_paths($value, [], \@paths);
+    return \@paths;
+}
+
 sub _collect_paths {
     my ($value, $current_path, $paths) = @_;
 
@@ -1613,6 +1632,52 @@ sub _collect_paths {
     }
 
     push @$paths, [@$current_path];
+}
+
+sub _collect_leaf_paths {
+    my ($value, $current_path, $paths) = @_;
+
+    if (ref $value eq 'HASH') {
+        for my $key (sort keys %$value) {
+            my $child = $value->{$key};
+            my @next  = (@$current_path, $key);
+
+            if (_is_leaf_value($child)) {
+                push @$paths, [@next];
+            }
+            else {
+                _collect_leaf_paths($child, \@next, $paths);
+            }
+        }
+        return;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        for my $index (0 .. $#$value) {
+            my $child = $value->[$index];
+            my @next  = (@$current_path, $index);
+
+            if (_is_leaf_value($child)) {
+                push @$paths, [@next];
+            }
+            else {
+                _collect_leaf_paths($child, \@next, $paths);
+            }
+        }
+        return;
+    }
+
+    push @$paths, [@$current_path];
+}
+
+sub _is_leaf_value {
+    my ($value) = @_;
+
+    return 1 unless ref $value;
+    return 1 if ref($value) eq 'JSON::PP::Boolean';
+    return 0 if ref($value) eq 'ARRAY';
+    return 0 if ref($value) eq 'HASH';
+    return 1;
 }
 
 sub _apply_tostring {
@@ -2947,7 +3012,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.95
+Version 0.96
 
 =head1 SYNOPSIS
 
@@ -2984,7 +3049,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, indices
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3151,6 +3216,19 @@ Example:
 Returns:
 
   [ ["name"], ["tags"], ["tags",0], ["tags",1], ["active"] ]
+
+=item * leaf_paths()
+
+Enumerates only the paths that terminate in non-container values, mirroring
+jq's C<leaf_paths> helper. This is equivalent to C<paths(scalars)> in jq.
+
+Example:
+
+  .user | leaf_paths
+
+Returns:
+
+  [ ["name"], ["tags",0], ["tags",1], ["active"] ]
 
 =item * pick(key1, key2, ...)
 
