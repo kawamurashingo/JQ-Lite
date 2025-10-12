@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.94';
+our $VERSION = '0.95';
 
 sub new {
     my ($class, %opts) = @_;
@@ -333,6 +333,14 @@ sub run_query {
         if ($part =~ /^map_values\((.+)\)$/) {
             my $filter = $1;
             @next_results = map { _apply_map_values($self, $_, $filter) } @results;
+            @results      = @next_results;
+            next;
+        }
+
+        # support for walk(filter)
+        if ($part =~ /^walk\((.+)\)$/) {
+            my $filter = $1;
+            @next_results = map { _apply_walk($self, $_, $filter) } @results;
             @results      = @next_results;
             next;
         }
@@ -1861,6 +1869,25 @@ sub _apply_map_values {
     return $value;
 }
 
+sub _apply_walk {
+    my ($self, $value, $filter) = @_;
+
+    if (ref $value eq 'HASH') {
+        my %copy;
+        for my $key (keys %$value) {
+            $copy{$key} = _apply_walk($self, $value->{$key}, $filter);
+        }
+        $value = \%copy;
+    }
+    elsif (ref $value eq 'ARRAY') {
+        my @copy = map { _apply_walk($self, $_, $filter) } @$value;
+        $value   = \@copy;
+    }
+
+    my @results = $self->run_query(encode_json($value), $filter);
+    return @results ? $results[0] : undef;
+}
+
 sub _apply_delpaths {
     my ($self, $value, $filter) = @_;
 
@@ -2920,7 +2947,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.94
+Version 0.95
 
 =head1 SYNOPSIS
 
@@ -2957,9 +2984,9 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, paths, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, indices
 
-=item * Supports map(...), map_values(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
+=item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
 =item * Interactive mode for exploring queries line-by-line
 
@@ -3203,6 +3230,21 @@ Example:
 Returns:
 
   { "name": "Alice", "age": "42" }
+
+=item * walk(filter)
+
+Recursively traverses arrays and objects, applying the supplied filter to each
+value after its children have been transformed, matching jq's C<walk/1>
+behaviour. Arrays and hashes are rebuilt so nested values can be updated in a
+single pass, while scalars pass directly to the filter.
+
+Example:
+
+  .profile | walk(upper)
+
+Returns:
+
+  { "name": "ALICE", "note": "TEAM LEAD" }
 
 =item * empty()
 

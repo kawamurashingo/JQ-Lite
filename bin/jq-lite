@@ -330,6 +330,7 @@ Supported Functions:
   map(EXPR)        - Map/filter array items with a subquery
   map_values(FILTER)
                    - Apply FILTER to each value in an object (dropping keys when FILTER yields no result)
+  walk(FILTER)     - Recursively apply FILTER to every value in arrays and objects
   add / sum        - Sum all numeric values in an array
   sum_by(KEY)      - Sum numeric values projected from each array item
   avg_by(KEY)      - Average numeric values projected from each array item
