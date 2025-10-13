@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.98';
+our $VERSION = '0.99';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1028,6 +1028,15 @@ sub run_query {
         if ($part eq 'values') {
             @next_results = map {
                 ref $_ eq 'HASH' ? [ values %$_ ] : $_
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for arrays
+        if ($part eq 'arrays()' || $part eq 'arrays') {
+            @next_results = map {
+                ref $_ eq 'ARRAY' ? $_ : ()
             } @results;
             @results = @next_results;
             next;
@@ -3143,7 +3152,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.98
+Version 0.99
 
 =head1 SYNOPSIS
 
@@ -3519,6 +3528,19 @@ Example:
 Returns:
 
   [1, [2], 3, [4]]
+
+
+=item * arrays
+
+Emits its input only when the value is an array reference, mirroring jq's
+C<arrays> filter. Scalars and objects yield no output, making it convenient to
+select array inputs prior to additional processing.
+
+Example:
+
+  .items[] | arrays
+
+Returns only the array entries from C<.items>.
 
 =item * type()
 

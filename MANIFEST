@@ -8,6 +8,7 @@ README.md
 t/abs.t
 t/all.t
 t/aggregate.t
+t/arrays.t
 t/any.t
 t/avg_by.t
 t/arithmetic.t
