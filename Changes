@@ -1,4 +1,4 @@
-0.101  2025-10-14
+0.101  2025-10-13
     [Feature]
     - Added scalars helper mirroring jq's scalars/0 filter to pass through only
       scalar inputs while skipping arrays and objects.
@@ -591,6 +591,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
