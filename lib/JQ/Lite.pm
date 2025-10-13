@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.99';
+our $VERSION = '0.100';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1037,6 +1037,15 @@ sub run_query {
         if ($part eq 'arrays()' || $part eq 'arrays') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? $_ : ()
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for objects
+        if ($part eq 'objects()' || $part eq 'objects') {
+            @next_results = map {
+                ref $_ eq 'HASH' ? $_ : ()
             } @results;
             @results = @next_results;
             next;
@@ -3189,7 +3198,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3541,6 +3550,18 @@ Example:
   .items[] | arrays
 
 Returns only the array entries from C<.items>.
+
+=item * objects
+
+Emits its input only when the value is a hash reference, mirroring jq's
+C<objects> filter. Scalars and arrays yield no output, letting you isolate
+objects inside heterogeneous streams.
+
+Example:
+
+  .items[] | objects
+
+Returns only the object entries from C<.items>.
 
 =item * type()
 

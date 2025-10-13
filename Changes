@@ -1,3 +1,14 @@
+0.100  2025-10-13
+    [Feature]
+    - Added objects helper mirroring jq's objects/0 filter to pass through only
+      hash inputs while skipping scalars and arrays.
+    [Tests]
+    - Added regression coverage ensuring objects() mirrors jq semantics for
+      arrays, scalars, and nested objects.
+    [Docs]
+    - Documented objects across README, module POD, helper listings, and
+      updated MANIFEST.
+
 0.99  2025-10-13
     [Feature]
     - Added arrays helper mirroring jq's arrays/0 filter to pass through only
