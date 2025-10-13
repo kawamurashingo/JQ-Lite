@@ -1,3 +1,15 @@
+0.103  2025-10-13
+    [Feature]
+    - Added numbers helper mirroring jq's numbers/0 filter to emit only numeric
+      scalars decoded from JSON input while skipping strings, booleans, arrays,
+      and objects.
+    [Tests]
+    - Added regression coverage ensuring numbers() accepts integers, floats, and
+      zero while rejecting booleans, arrays, and numeric-looking strings.
+    [Docs]
+    - Documented numbers across README, module POD, CLI helper listings, and
+      updated MANIFEST.
+
 0.102  2025-10-13
     [Feature]
     - Added not helper mirroring jq's logical negation semantics, yielding
