@@ -44,6 +44,7 @@ t/map.t
 t/map_values.t
 t/merge_objects.t
 t/objects.t
+t/scalars.t
 t/median_by.t
 t/median.t
 t/mode.t
