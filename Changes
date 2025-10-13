@@ -1,3 +1,13 @@
+0.101  2025-10-14
+    [Feature]
+    - Added scalars helper mirroring jq's scalars/0 filter to pass through only
+      scalar inputs while skipping arrays and objects.
+    [Tests]
+    - Added regression coverage ensuring scalars() keeps strings, numbers,
+      booleans, and nulls while dropping containers.
+    [Docs]
+    - Documented scalars across README, module POD, and helper listings.
+
 0.100  2025-10-13
     [Feature]
     - Added objects helper mirroring jq's objects/0 filter to pass through only
