@@ -1,3 +1,12 @@
+0.104  2025-10-13
+    [Feature]
+    - Added assignment support for simple jq-style expressions such as
+      `.path = value`, allowing in-place updates of decoded data structures
+      within pipelines.
+    [Tests]
+    - Added regression coverage for assignments across scalars, nested hashes,
+      arrays, and null literals.
+
 0.103  2025-10-13
     [Feature]
     - Added recurse helper mirroring jq's recurse/0 and recurse/1 to emit the

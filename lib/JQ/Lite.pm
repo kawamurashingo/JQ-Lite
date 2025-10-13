@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.103';
+our $VERSION = '0.104';
 
 sub new {
     my ($class, %opts) = @_;
@@ -108,6 +108,18 @@ sub run_query {
                     undef;
                 }
             } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for assignment (e.g., .spec.replicas = 3)
+        if (_looks_like_assignment($part)) {
+            my ($path, $value_spec) = _parse_assignment_expression($part);
+
+            @next_results = map {
+                _apply_assignment($_, $path, $value_spec)
+            } @results;
+
             @results = @next_results;
             next;
         }
@@ -1491,6 +1503,181 @@ sub run_query {
     }
 
     return @results;
+}
+
+sub _looks_like_assignment {
+    my ($expr) = @_;
+
+    return 0 unless defined $expr;
+    return 0 if $expr =~ /[()]/;
+    return 0 if $expr =~ /(?:==|!=|>=|<=|=>|=<)/;
+    return ($expr =~ /=/);
+}
+
+sub _parse_assignment_expression {
+    my ($expr) = @_;
+
+    $expr //= '';
+    my ($lhs, $rhs) = split(/=/, $expr, 2);
+    $lhs //= '';
+    $rhs //= '';
+
+    $lhs =~ s/^\s+|\s+$//g;
+    $rhs =~ s/^\s+|\s+$//g;
+
+    $lhs =~ s/^\.//;
+
+    my $value_spec = _parse_assignment_value($rhs);
+
+    return ($lhs, $value_spec);
+}
+
+sub _parse_assignment_value {
+    my ($raw) = @_;
+
+    $raw //= '';
+    $raw =~ s/^\s+|\s+$//g;
+
+    if ($raw =~ /^\.(.+)$/) {
+        return { type => 'path', value => $1 };
+    }
+
+    my $decoded = eval { decode_json($raw) };
+    if (!$@) {
+        return { type => 'literal', value => $decoded };
+    }
+
+    if ($raw =~ /^'(.*)'$/) {
+        return { type => 'literal', value => $1 };
+    }
+
+    return { type => 'literal', value => $raw };
+}
+
+sub _apply_assignment {
+    my ($item, $path, $value_spec) = @_;
+
+    return $item unless defined $item;
+    return $item unless defined $path && length $path;
+
+    my $value = _resolve_assignment_value($item, $value_spec);
+    _set_path_value($item, $path, $value);
+
+    return $item;
+}
+
+sub _resolve_assignment_value {
+    my ($item, $value_spec) = @_;
+
+    return undef unless defined $value_spec;
+
+    if ($value_spec->{type} && $value_spec->{type} eq 'path') {
+        my $path = $value_spec->{value} // '';
+        $path =~ s/^\.//;
+
+        my @values = _traverse($item, $path);
+        return _clone_for_assignment($values[0]);
+    }
+
+    return _clone_for_assignment($value_spec->{value});
+}
+
+sub _set_path_value {
+    my ($target, $path, $value) = @_;
+
+    return unless defined $target;
+
+    my @segments = _parse_path_segments($path);
+    return unless @segments;
+
+    my $cursor = $target;
+    for my $index (0 .. $#segments) {
+        my $segment = $segments[$index];
+        my $is_last = ($index == $#segments);
+
+        if ($segment->{type} eq 'key') {
+            return unless ref $cursor eq 'HASH';
+            my $key = $segment->{value};
+
+            if ($is_last) {
+                $cursor->{$key} = $value;
+                last;
+            }
+
+            if (!exists $cursor->{$key} || !defined $cursor->{$key}) {
+                my $next = $segments[$index + 1];
+                $cursor->{$key} = ($next->{type} eq 'index') ? [] : {};
+            }
+
+            $cursor = $cursor->{$key};
+            next;
+        }
+
+        if ($segment->{type} eq 'index') {
+            return unless ref $cursor eq 'ARRAY';
+
+            my $idx = $segment->{value};
+            my $numeric = int($idx);
+            if ($idx =~ /^-?\d+$/) {
+                $numeric += @$cursor if $numeric < 0;
+            }
+
+            return if $numeric < 0;
+
+            if ($is_last) {
+                $cursor->[$numeric] = $value;
+                last;
+            }
+
+            if (!defined $cursor->[$numeric]) {
+                my $next = $segments[$index + 1];
+                $cursor->[$numeric] = ($next->{type} eq 'index') ? [] : {};
+            }
+
+            $cursor = $cursor->[$numeric];
+            next;
+        }
+    }
+
+    return;
+}
+
+sub _parse_path_segments {
+    my ($path) = @_;
+
+    $path //= '';
+    $path =~ s/^\s+|\s+$//g;
+
+    my @segments;
+    for my $chunk (split /\./, $path) {
+        next if $chunk eq '';
+
+        while (length $chunk) {
+            if ($chunk =~ s/^\[(\-?\d+)\]//) {
+                push @segments, { type => 'index', value => $1 };
+                next;
+            }
+
+            if ($chunk =~ s/^([^\[]+)//) {
+                push @segments, { type => 'key', value => $1 };
+                next;
+            }
+
+            last;
+        }
+    }
+
+    return @segments;
+}
+
+sub _clone_for_assignment {
+    my ($value) = @_;
+
+    return undef unless defined $value;
+    return $value unless ref $value;
+
+    my $json = encode_json($value);
+    return decode_json($json);
 }
 
 sub _map {
