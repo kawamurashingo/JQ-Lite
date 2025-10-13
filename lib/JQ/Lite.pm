@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.103';
+our $VERSION = '0.104';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1274,6 +1274,18 @@ sub run_query {
             my $needle = _parse_string_argument($1);
             @next_results = map { _apply_contains($_, $needle) } @results;
             @results = @next_results;
+            next;
+        }
+
+        # support for test("pattern"[, "flags"])
+        if ($part =~ /^test\((.+)\)$/) {
+            my @args     = _parse_function_arguments($1);
+            my $pattern  = @args ? $args[0] : undef;
+            my $flags    = @args > 1 ? $args[1] : '';
+            my $compiled = _build_regex($pattern, $flags);
+
+            @next_results = map { _apply_test($_, $compiled) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -2940,7 +2952,7 @@ sub _parse_arguments {
     } @parts;
 }
 
-sub _parse_range_arguments {
+sub _parse_function_arguments {
     my ($raw) = @_;
 
     return () unless defined $raw;
@@ -3003,6 +3015,10 @@ sub _parse_range_arguments {
     }
 
     return @args;
+}
+
+sub _parse_range_arguments {
+    return _parse_function_arguments(@_);
 }
 
 sub _apply_range {
@@ -3097,6 +3113,59 @@ sub _apply_contains {
     }
 
     return JSON::PP::false;
+}
+
+sub _apply_test {
+    my ($value, $regex) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_test($_, $regex) } @$value ];
+    }
+
+    return JSON::PP::false if !defined $regex;
+    return JSON::PP::false if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        my $text = $value ? 'true' : 'false';
+        return $text =~ $regex ? JSON::PP::true : JSON::PP::false;
+    }
+
+    if (!ref $value) {
+        my $text = "$value";
+        return $text =~ $regex ? JSON::PP::true : JSON::PP::false;
+    }
+
+    return JSON::PP::false;
+}
+
+sub _build_regex {
+    my ($pattern, $flags) = @_;
+
+    return undef unless defined $pattern;
+
+    my $text     = "$pattern";
+    my $options  = defined $flags ? "$flags" : '';
+    my %allowed  = map { $_ => 1 } qw(i m s x);
+    my %seen;
+    my $modifiers = '';
+
+    for my $flag (split //, $options) {
+        next if $flag =~ /\s/;
+        return undef unless $allowed{$flag};
+        next if $seen{$flag}++;
+        $modifiers .= $flag;
+    }
+
+    my $regex = eval {
+        no warnings 'regexp';
+        return $modifiers eq ''
+            ? qr/$text/
+            : qr/(?$modifiers:$text)/;
+    };
+
+    return undef if $@;
+
+    return $regex;
 }
 
 sub _apply_indices {
@@ -3277,7 +3346,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, test, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3851,6 +3920,19 @@ Example:
 
   .users | unique_by(.name)      # => keeps first record for each name
   .tags  | unique_by(.)          # => removes duplicate scalars
+
+=item * test("pattern"[, "flags"])
+
+Evaluates the supplied regular expression against the current string,
+returning JSON booleans. Arrays are processed element-wise while non-scalar
+values yield C<false>. Optional flag strings may include any combination of
+C<i>, C<m>, C<s>, or C<x> to enable case-insensitive, multi-line, dotall, or
+extended matching, mirroring jq's C<test/2> behaviour.
+
+Example:
+
+  .title | test("Perl")          # => true
+  .tags  | test("^j"; "i")       # => [false, true, true]
 
 =item * startswith("prefix")
 

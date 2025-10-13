@@ -1,3 +1,15 @@
+0.104  2025-10-13
+    [Feature]
+    - Added test(pattern[, flags]) helper mirroring jq's test/1 and test/2
+      to run regular expressions with optional flag strings across scalars
+      and arrays, returning JSON booleans.
+    [Tests]
+    - Added regression coverage asserting string, numeric, array, object,
+      and invalid-pattern behaviour for the new test() helper.
+    [Docs]
+    - Documented test() across README, module POD, CLI helper listings, and
+      updated MANIFEST.
+
 0.103  2025-10-13
     [Feature]
     - Added recurse helper mirroring jq's recurse/0 and recurse/1 to emit the
