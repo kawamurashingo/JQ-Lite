@@ -1,3 +1,14 @@
+0.99  2025-10-14
+    [Feature]
+    - Added arrays helper mirroring jq's arrays/0 filter to pass through only
+      array inputs while dropping scalars and objects.
+    [Tests]
+    - Added regression coverage ensuring arrays() filters pipelines and
+      non-array inputs as jq does.
+    [Docs]
+    - Documented arrays across README, module POD, CLI helper listings, and
+      updated MANIFEST.
+
 0.98  2025-10-13
     [Feature]
     - Added rindex(value) helper mirroring jq's rindex/1 to locate the final

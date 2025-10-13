@@ -107,6 +107,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `flatten()`    | Flatten array one level deep (like `.[]`) (v0.35)    |
 | `flatten_all()`| Recursively flatten nested arrays into a single array (v0.67) |
 | `flatten_depth(n)` | Flatten nested arrays up to `n` levels deep (v0.70) |
+| `arrays`       | Emit input values only when they are arrays (v0.99) |
 | `type()`       | Return the type of the value ("string", "number", "boolean", "array", "object", "null") (v0.36) |
 | `nth(n)`       | Get the nth element of an array (v0.37)              |
 | `index(value)` | Return the zero-based index of the first match in arrays or strings (v0.65) |
