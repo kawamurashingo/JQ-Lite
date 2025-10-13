@@ -67,6 +67,7 @@ t/split.t
 t/slice.t
 t/sort_by.t
 t/sort_unique.t
+t/test_function.t
 t/sum_by.t
 t/tail.t
 t/transpose.t
