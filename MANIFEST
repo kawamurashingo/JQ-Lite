@@ -12,6 +12,7 @@ t/arrays.t
 t/any.t
 t/avg_by.t
 t/arithmetic.t
+t/assignment.t
 t/basic.t
 t/contains.t
 t/contains_function.t
