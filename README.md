@@ -170,6 +170,69 @@ curl -fsSL https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/install
 
 ---
 
+## 🌍 Environment Compatibility
+
+`JQ::Lite` (Perl-based jq alternative) runs in almost **any Linux environment** where Perl is available — even when installing `jq` itself is difficult or impossible.
+
+### 🧱 1. Legacy Distributions (CentOS 6 / RHEL 6 / Ubuntu 12.04, etc.)
+
+| Distribution | jq-lite Support | Notes |
+|---------------|----------------|-------|
+| **CentOS 6 / RHEL 6** | ⚠️ Almost works | Default Perl 5.10.1 works fine. SSL/TLS errors may occur during CPAN install; use `--local-lib` or tarball install. |
+| **Ubuntu 12.04 / 14.04** | ✅ Works | Perl 5.14–5.18; installable via `cpan install JQ::Lite`. |
+| **Debian 7 (Wheezy)** | ✅ Works | Perl 5.14.2 standard; `apt-get install cpanminus` → `cpanm JQ::Lite` runs cleanly. |
+| **SLES 11 and earlier** | ⚠️ Conditional | Perl 5.10–5.12 works, but CPAN TLS issues may require offline installation. |
+
+✅ **Conclusion:**  
+Even on legacy environments without jq, `JQ::Lite` runs as long as Perl ≥ 5.10.1 is available.
+
+---
+
+### 🐧 2. Minimalist Distributions (Alpine / BusyBox / TinyCore)
+
+| Distribution | jq-lite Support | Notes |
+|---------------|----------------|-------|
+| **Alpine Linux (3.x+)** | ✅ Works | Install with `apk add perl perl-utils build-base`. Excellent compatibility. |
+| **BusyBox-based (Buildroot, OpenWRT)** | ⚠️ Difficult | Usually no Perl or CPAN; requires prebuilt Perl or cross-compilation. |
+| **TinyCore Linux** | ⚠️ Conditional | Install `tce-load -wi perl5.tcz` first. Limited storage may be a constraint. |
+
+✅ **Conclusion:**  
+Except BusyBox-only systems, lightweight distros like Alpine can run `jq-lite` smoothly.
+
+---
+
+### ☁️ 3. Restricted / Enterprise Networks
+
+| Environment | jq-lite Support | Notes |
+|--------------|----------------|-------|
+| **No internet (CPAN disabled)** | ✅ Works (offline) | Copy tarball (`cpanm --look JQ::Lite`) and install manually via `perl Makefile.PL && make install`. |
+| **Proxy environment** | ✅ Supported | Example: `cpanm -v --proxy http://sysworks101z.prod.jp.local:3128 JQ::Lite`. |
+| **No root privilege** | ✅ Supported | Use `cpanm --local-lib ~/perl5 JQ::Lite` for user-space installation. |
+
+✅ **Conclusion:**  
+`jq-lite` can be installed and used in **closed, proxy, and non-root environments** where jq cannot.
+
+---
+
+### 🔧 Summary
+
+| Environment Type     | jq | jq-lite |
+|----------------------|----|---------|
+| Legacy CentOS / RHEL | ❌  | ✅       |
+| Older Ubuntu / Debian| ⚠️  | ✅       |
+| Alpine Linux         | ⚠️  | ✅       |
+| BusyBox / OpenWRT    | ❌  | ⚠️ (Perl required) |
+| Air-gapped Servers   | ❌  | ✅       |
+| No Root Privilege    | ⚠️  | ✅       |
+
+---
+
+### ✅ Overall Conclusion
+
+> **`jq-lite` works in almost every Linux environment** — including legacy, lightweight, or isolated systems where installing jq is impractical.
+
+---
+
 ## 🚀 Usage
 
 ### As a Perl module
@@ -321,4 +384,5 @@ This module is released under the same terms as Perl itself.
 **Kawamura Shingo**  
 📧 pannakoota1@gmail.com  
 🔗 [GitHub @kawamurashingo](https://github.com/kawamurashingo/JQ-Lite)
+
 
