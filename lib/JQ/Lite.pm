@@ -5,6 +5,7 @@ use warnings;
 use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
+use B qw(SVf_IOK SVf_NOK);
 
 our $VERSION = '0.102';
 
@@ -1060,6 +1061,13 @@ sub run_query {
                 }
             } @results;
             @results = @next_results;
+            next;
+        }
+
+        # support for numbers
+        if ($part eq 'numbers()' || $part eq 'numbers') {
+            @next_results = map { _extract_numbers($_) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -2130,6 +2138,42 @@ sub _apply_walk {
 
     my @results = $self->run_query(encode_json($value), $filter);
     return @results ? $results[0] : undef;
+}
+
+sub _extract_numbers {
+    my ($value) = @_;
+
+    return () if !defined $value;
+
+    if (!ref $value) {
+        return _is_json_number($value) ? (0 + $value) : ();
+    }
+
+    my $ref_type = ref $value;
+
+    return () if $ref_type eq 'JSON::PP::Boolean';
+
+    if ($ref_type eq 'ARRAY') {
+        return map { _extract_numbers($_) } @$value;
+    }
+
+    if ($ref_type eq 'HASH') {
+        return map { _extract_numbers($_) } values %$value;
+    }
+
+    return ();
+}
+
+sub _is_json_number {
+    my ($value) = @_;
+
+    return 0 if !defined $value;
+    return 0 if ref $value;
+
+    my $sv    = B::svref_2object(\$value);
+    my $flags = $sv->FLAGS;
+
+    return ($flags & (SVf_IOK | SVf_NOK)) ? 1 : 0;
 }
 
 sub _apply_delpaths {
@@ -3232,7 +3276,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars, numbers
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3609,6 +3653,19 @@ Example:
   .items[] | scalars
 
 Returns only the scalar entries from C<.items>.
+
+=item * numbers
+
+Emits every numeric value contained within the current input, recursively
+traversing arrays and objects just like jq's C<numbers> helper. Non-numeric
+values (including booleans) are skipped entirely.
+
+Example:
+
+  .items[] | numbers
+
+Given a heterogeneous structure this returns only the numeric entries while
+preserving jq's streaming behaviour.
 
 =item * type()
 

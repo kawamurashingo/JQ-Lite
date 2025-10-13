@@ -1,3 +1,14 @@
+0.103  2025-10-13
+    [Feature]
+    - Added numbers helper mirroring jq's numbers/0 filter to emit every
+      numeric value found within nested structures while skipping non-numeric
+      types.
+    [Tests]
+    - Added regression coverage exercising numbers across scalars, arrays,
+      objects, booleans, and nulls.
+    [Docs]
+    - Documented numbers in README and module POD helper listings.
+
 0.102  2025-10-13
     [Feature]
     - Added not helper mirroring jq's logical negation semantics, yielding
