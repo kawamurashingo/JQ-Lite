@@ -109,7 +109,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `flatten_all()`| Recursively flatten nested arrays into a single array (v0.67) |
 | `flatten_depth(n)` | Flatten nested arrays up to `n` levels deep (v0.70) |
 | `arrays`       | Emit input values only when they are arrays (v0.99) |
-| `numbers()`    | Emit every numeric value found within the input, recursively (unreleased) |
+| `numbers()`    | Emit every numeric value found within the input, recursively (v0.103) |
 | `objects`      | Emit input values only when they are objects (v0.100) |
 | `scalars`      | Emit input values only when they are scalars (strings, numbers, booleans, null) (unreleased) |
 | `type()`       | Return the type of the value ("string", "number", "boolean", "array", "object", "null") (v0.36) |

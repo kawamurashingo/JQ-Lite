@@ -7,7 +7,7 @@ use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 use B qw(SVf_IOK SVf_NOK);
 
-our $VERSION = '0.102';
+our $VERSION = '0.103';
 
 sub new {
     my ($class, %opts) = @_;
