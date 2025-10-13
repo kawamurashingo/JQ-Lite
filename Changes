@@ -1,3 +1,13 @@
+0.100  2025-10-13
+    [Feature]
+    - Added numbers helper mirroring jq's numbers/0 filter to emit numeric
+      values from arbitrarily nested inputs.
+    [Tests]
+    - Added regression coverage ensuring numbers() recurses through arrays
+      and objects and registered the test in MANIFEST.
+    [Docs]
+    - Documented numbers in README feature tables and module POD.
+
 0.99  2025-10-13
     [Feature]
     - Added arrays helper mirroring jq's arrays/0 filter to pass through only
