@@ -1,3 +1,14 @@
+0.98  2025-10-12
+    [Feature]
+    - Added rindex(value) helper mirroring jq's rindex/1 to locate the final
+      occurrence of a value within arrays (deep comparing elements) or strings.
+    [Tests]
+    - Added regression coverage ensuring rindex() handles arrays of scalars,
+      nested hashes, booleans, empty fragments, and missing values.
+    [Docs]
+    - Documented rindex() across README, module POD, CLI help listings, and
+      updated MANIFEST.
+
 0.97  2025-10-12
     [Feature]
     - Added getpath(path_expr) helper mirroring jq's getpath/1 to retrieve

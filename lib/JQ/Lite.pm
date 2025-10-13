@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.97';
+our $VERSION = '0.98';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1316,6 +1316,38 @@ sub run_query {
                     my $haystack = defined $_ ? "$_" : '';
                     my $fragment = defined $needle ? "$needle" : '';
                     my $pos      = index($haystack, $fragment);
+                    $pos >= 0 ? $pos : undef;
+                }
+                else {
+                    undef;
+                }
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
+        # support for rindex(value)
+        if ($part =~ /^rindex\((.*)\)$/) {
+            my @args   = _parse_arguments($1);
+            my $needle = @args ? $args[0] : undef;
+
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    my $array = $_;
+                    my $found;
+                    for (my $i = $#$array; $i >= 0; $i--) {
+                        if (_values_equal($array->[$i], $needle)) {
+                            $found = $i;
+                            last;
+                        }
+                    }
+                    defined $found ? $found : undef;
+                }
+                elsif (!ref $_ || ref($_) eq 'JSON::PP::Boolean') {
+                    my $haystack = defined $_ ? "$_" : '';
+                    my $fragment = defined $needle ? "$needle" : '';
+                    my $pos      = rindex($haystack, $fragment);
                     $pos >= 0 ? $pos : undef;
                 }
                 else {
@@ -3111,7 +3143,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.96
+Version 0.98
 
 =head1 SYNOPSIS
 
@@ -3148,7 +3180,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3748,6 +3780,19 @@ Example:
 
   .users | index("Alice")     # => 0
   .tags  | index("json")      # => 1
+
+=item * rindex(value)
+
+Returns the zero-based index of the final occurrence of the supplied value.
+Array inputs are scanned from the end using deep comparisons, while string
+inputs return the position of the last matching substring (or null when not
+found).
+
+Example:
+
+  .users | rindex("Alice")    # => 3
+  .tags  | rindex("perl")     # => 2
+  "banana" | rindex("an")    # => 3
 
 =item * indices(value)
 
