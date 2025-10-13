@@ -1,4 +1,4 @@
-0.98  2025-10-12
+0.98  2025-10-13
     [Feature]
     - Added rindex(value) helper mirroring jq's rindex/1 to locate the final
       occurrence of a value within arrays (deep comparing elements) or strings.
@@ -559,6 +559,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
