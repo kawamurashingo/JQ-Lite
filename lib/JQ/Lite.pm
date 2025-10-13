@@ -25,7 +25,11 @@ sub run_query {
     }
     
     # instead of: my @parts = split /\|/, $query;
-    my @parts = map { s/^\s+|\s+$//gr } split /\|/, $query;
+    my @parts = map {
+        my $part = $_;
+        $part =~ s/^\s+|\s+$//g;
+        $part;
+    } split /\|/, $query;
     
     # detect .[] and convert to pseudo-command
     @parts = map {
@@ -2875,7 +2879,11 @@ sub _parse_arguments {
     }
 
     my @parts = split /,/, $raw;
-    return map { s/^\s+|\s+$//gr } @parts;
+    return map {
+        my $part = $_;
+        $part =~ s/^\s+|\s+$//g;
+        $part;
+    } @parts;
 }
 
 sub _parse_range_arguments {
