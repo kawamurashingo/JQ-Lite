@@ -3178,7 +3178,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.99
+Version 0.101
 
 =head1 SYNOPSIS
 
@@ -4063,5 +4063,6 @@ Kawamura Shingo E<lt>pannakoota1@gmail.comE<gt>
 Same as Perl itself.
 
 =cut
+
 
 
