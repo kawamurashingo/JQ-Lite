@@ -114,10 +114,10 @@ sub run_query {
 
         # support for assignment (e.g., .spec.replicas = 3)
         if (_looks_like_assignment($part)) {
-            my ($path, $value_spec) = _parse_assignment_expression($part);
+            my ($path, $value_spec, $operator) = _parse_assignment_expression($part);
 
             @next_results = map {
-                _apply_assignment($_, $path, $value_spec)
+                _apply_assignment($_, $path, $value_spec, $operator)
             } @results;
 
             @results = @next_results;
@@ -1518,9 +1518,12 @@ sub _parse_assignment_expression {
     my ($expr) = @_;
 
     $expr //= '';
-    my ($lhs, $rhs) = split(/=/, $expr, 2);
+
+    my ($lhs, $op, $rhs) = ($expr =~ /^(.*?)\s*([+\-*\/]?=)\s*(.*)$/);
+
     $lhs //= '';
     $rhs //= '';
+    $op  //= '=';
 
     $lhs =~ s/^\s+|\s+$//g;
     $rhs =~ s/^\s+|\s+$//g;
@@ -1529,7 +1532,7 @@ sub _parse_assignment_expression {
 
     my $value_spec = _parse_assignment_value($rhs);
 
-    return ($lhs, $value_spec);
+    return ($lhs, $value_spec, $op);
 }
 
 sub _parse_assignment_value {
@@ -1555,15 +1558,106 @@ sub _parse_assignment_value {
 }
 
 sub _apply_assignment {
-    my ($item, $path, $value_spec) = @_;
+    my ($item, $path, $value_spec, $operator) = @_;
 
     return $item unless defined $item;
     return $item unless defined $path && length $path;
 
+    $operator //= '=';
+
     my $value = _resolve_assignment_value($item, $value_spec);
+
+    if ($operator ne '=') {
+        my $current = _clone_for_assignment(_get_path_value($item, $path));
+        my $current_num = _coerce_number($current);
+        my $value_num   = _coerce_number($value);
+
+        return $item unless defined $current_num && defined $value_num;
+
+        my $result;
+        if ($operator eq '+=') {
+            $result = $current_num + $value_num;
+        }
+        elsif ($operator eq '-=') {
+            $result = $current_num - $value_num;
+        }
+        elsif ($operator eq '*=') {
+            $result = $current_num * $value_num;
+        }
+        elsif ($operator eq '/=') {
+            return $item if $value_num == 0;
+            $result = $current_num / $value_num;
+        }
+        else {
+            return $item;
+        }
+
+        $value = $result;
+    }
+
     _set_path_value($item, $path, $value);
 
     return $item;
+}
+
+sub _get_path_value {
+    my ($target, $path) = @_;
+
+    return undef unless defined $target;
+    return undef unless defined $path && length $path;
+
+    my @segments = _parse_path_segments($path);
+    return undef unless @segments;
+
+    my $cursor = $target;
+    for my $index (0 .. $#segments) {
+        my $segment = $segments[$index];
+        my $is_last = ($index == $#segments);
+
+        if ($segment->{type} eq 'key') {
+            return undef unless ref $cursor eq 'HASH';
+            my $key = $segment->{value};
+
+            return $cursor->{$key} if $is_last;
+
+            return undef unless exists $cursor->{$key};
+            $cursor = $cursor->{$key};
+            next;
+        }
+
+        if ($segment->{type} eq 'index') {
+            return undef unless ref $cursor eq 'ARRAY';
+
+            my $idx = $segment->{value};
+            my $numeric = int($idx);
+            if ($idx =~ /^-?\d+$/) {
+                $numeric += @$cursor if $numeric < 0;
+            }
+
+            return undef if $numeric < 0 || $numeric > $#$cursor;
+
+            return $cursor->[$numeric] if $is_last;
+
+            $cursor = $cursor->[$numeric];
+            next;
+        }
+    }
+
+    return undef;
+}
+
+sub _coerce_number {
+    my ($value) = @_;
+
+    return 0 if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    return 0 + $value if looks_like_number($value);
+
+    return undef;
 }
 
 sub _resolve_assignment_value {

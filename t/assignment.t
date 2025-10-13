@@ -56,4 +56,48 @@ subtest 'assign null literal' => sub {
     ok(!defined $result->{spec}{replicas}, 'value set to null');
 };
 
+subtest 'compound assignments on numbers' => sub {
+    subtest 'addition assignment' => sub {
+        my $data = { spec => { count => 2 } };
+        my ($result) = apply_query($data, '.spec.count += 3');
+
+        is($result->{spec}{count}, 5, 'count increased by 3');
+    };
+
+    subtest 'subtraction assignment' => sub {
+        my $data = { spec => { count => 10 } };
+        my ($result) = apply_query($data, '.spec.count -= 4');
+
+        is($result->{spec}{count}, 6, 'count decreased by 4');
+    };
+
+    subtest 'multiplication assignment' => sub {
+        my $data = { spec => { factor => 3 } };
+        my ($result) = apply_query($data, '.spec.factor *= 5');
+
+        is($result->{spec}{factor}, 15, 'factor multiplied by 5');
+    };
+
+    subtest 'division assignment' => sub {
+        my $data = { spec => { ratio => 20 } };
+        my ($result) = apply_query($data, '.spec.ratio /= 4');
+
+        is($result->{spec}{ratio}, 5, 'ratio divided by 4');
+    };
+
+    subtest 'addition assignment on missing key initializes value' => sub {
+        my $data = { spec => {} };
+        my ($result) = apply_query($data, '.spec.count += 4');
+
+        is($result->{spec}{count}, 4, 'missing count treated as zero');
+    };
+
+    subtest 'division assignment by zero leaves value unchanged' => sub {
+        my $data = { spec => { ratio => 10 } };
+        my ($result) = apply_query($data, '.spec.ratio /= 0');
+
+        is($result->{spec}{ratio}, 10, 'division by zero ignored');
+    };
+};
+
 done_testing();
