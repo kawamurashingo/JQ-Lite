@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.97';
+our $VERSION = '0.98';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1224,6 +1224,18 @@ sub run_query {
             my $needle = _parse_string_argument($1);
             @next_results = map { _apply_contains($_, $needle) } @results;
             @results = @next_results;
+            next;
+        }
+
+        # support for test("pattern"[; flags])
+        if ($part =~ /^test\((.*)\)$/) {
+            my @args = _parse_range_arguments($1);
+            my $pattern = @args ? $args[0] : undef;
+            my $flags   = @args > 1 ? $args[1] : undef;
+
+            my $regex = _compile_regex($pattern, $flags);
+            @next_results = map { _apply_test($_, $regex) } @results;
+            @results      = @next_results;
             next;
         }
 
@@ -2604,6 +2616,53 @@ sub _string_predicate_result {
     return JSON::PP::false;
 }
 
+sub _compile_regex {
+    my ($pattern, $flags) = @_;
+
+    return undef unless defined $pattern;
+
+    my $modifiers = '';
+    if (defined $flags && !ref $flags) {
+        for my $char (split //, $flags) {
+            next if index($modifiers, $char) >= 0;
+            $modifiers .= $char if $char =~ /^[imsx]$/;
+        }
+    }
+
+    my $escaped = "$pattern";
+    $escaped =~ s{/}{\/}g;
+
+    my $regex;
+    if ($modifiers eq '') {
+        $regex = eval { qr/$escaped/ };
+    } else {
+        my $group = "(?$modifiers:$escaped)";
+        $regex = eval { qr/$group/ };
+    }
+
+    return $regex;
+}
+
+sub _apply_test {
+    my ($value, $regex) = @_;
+
+    return JSON::PP::false unless defined $regex;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_test($_, $regex) } @$value ];
+    }
+
+    return JSON::PP::false if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        $value = $value ? 'true' : 'false';
+    }
+
+    return JSON::PP::false if ref $value;
+
+    return $value =~ $regex ? JSON::PP::true : JSON::PP::false;
+}
+
 sub _parse_string_argument {
     my ($raw) = @_;
 
@@ -3148,7 +3207,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, indices
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, test, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, indices
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3603,6 +3662,23 @@ Example:
   .title | contains("perl")     # => true
   .tags  | contains("json")     # => true
   .meta  | contains("lang")     # => true
+
+=item * test("pattern"[, flags])
+
+Tests whether the current string matches the supplied regular expression. When
+the input is an array, each element is evaluated and an array of boolean
+results is returned. Invalid or undefined patterns yield C<false>.
+
+* Flags support jq-style modifiers (C<i>, C<m>, C<s>, C<x>) supplied as a
+  string, mirroring jq's optional flag argument.
+* Non-string values (including objects) return C<false>, while booleans are
+  converted to their string form before testing.
+
+Example:
+
+  .title | test("perl")          # => true
+  .title | test("PERL"; "i")    # => true (case-insensitive)
+  .tags  | test("^j")           # => [false, true, false]
 
 =item * all([filter])
 
