@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.100';
+our $VERSION = '0.101';
 
 sub new {
     my ($class, %opts) = @_;
@@ -4063,4 +4063,5 @@ Kawamura Shingo E<lt>pannakoota1@gmail.comE<gt>
 Same as Perl itself.
 
 =cut
+
 
