@@ -48,6 +48,7 @@ t/scalars.t
 t/median_by.t
 t/median.t
 t/mode.t
+t/not.t
 t/min_max_by.t
 t/match.t
 t/match_i.t

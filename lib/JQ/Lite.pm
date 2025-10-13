@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.101';
+our $VERSION = '0.102';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1449,11 +1449,20 @@ sub run_query {
             next;
         }
 
+        # support for not (logical negation)
+        if ($part eq 'not' || $part eq 'not()') {
+            @next_results = map {
+                _is_truthy($_) ? JSON::PP::false : JSON::PP::true
+            } @results;
+            @results = @next_results;
+            next;
+        }
+
         # support for default(value)
         if ($part =~ /^default\((.+)\)$/) {
             my $default_value = $1;
-            $default_value =~ s/^['"](.*?)['"]$/$1/; 
-        
+            $default_value =~ s/^['"](.*?)['"]$/$1/;
+
             @results = @results ? @results : (undef);
         
             @next_results = map {
@@ -3223,7 +3232,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
- =item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -3756,6 +3765,19 @@ Example:
 
   .flags | any            # => true when any element is truthy
   .users | any(.active)   # => true when any user is active
+
+=item * not
+
+Performs logical negation using jq's truthiness rules. Returns C<true> when the
+current input is falsy (e.g. C<false>, C<null>, empty string, empty array, or
+empty object) and C<false> otherwise. Arrays and objects are considered truthy
+when they contain at least one element or key, respectively.
+
+Examples:
+
+  true  | not   # => false
+  []    | not   # => true
+  .ok   | not   # => negates the truthiness of .ok
 
 =item * unique_by(".key")
 

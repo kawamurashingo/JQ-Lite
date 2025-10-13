@@ -1,3 +1,14 @@
+0.102  2025-10-13
+    [Feature]
+    - Added not helper mirroring jq's logical negation semantics, yielding
+      JSON booleans based on jq-lite's truthiness rules across scalars,
+      arrays, and objects.
+    [Tests]
+    - Added regression coverage ensuring not() inverts truthiness for
+      booleans, nulls, arrays, and objects.
+    [Docs]
+    - Documented not across README, module POD, and CLI helper listings.
+
 0.101  2025-10-13
     [Feature]
     - Added scalars helper mirroring jq's scalars/0 filter to pass through only
