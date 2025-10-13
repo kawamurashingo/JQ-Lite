@@ -372,6 +372,8 @@ Supported Functions:
                    - Transform entries using FILTER and rebuild an object
   has              - Check if objects contain a key or arrays expose an index
   contains         - Check if strings include a fragment, arrays contain an element, or hashes have a key
+  test("pattern"[, flags])
+                  - Test strings (and arrays of strings) against a regex with optional flags
   any([FILTER])    - Return true if any input (optionally filtered) is truthy
   all([FILTER])    - Return true if every input (optionally filtered) is truthy
   match("pattern") - Match string using regex

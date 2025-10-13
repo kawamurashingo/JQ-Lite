@@ -1,3 +1,15 @@
+0.98  2025-10-13
+    [Feature]
+    - Added test(pattern[, flags]) helper to evaluate strings and arrays of
+      strings against regular expressions with optional jq-compatible flag
+      strings.
+    [Tests]
+    - Added regression coverage ensuring test() handles scalars, arrays,
+      booleans, invalid patterns, and multi-flag inputs.
+    [Docs]
+    - Documented test() across README, module POD, CLI help output, and updated
+      the MANIFEST.
+
 0.97  2025-10-12
     [Feature]
     - Added getpath(path_expr) helper mirroring jq's getpath/1 to retrieve
