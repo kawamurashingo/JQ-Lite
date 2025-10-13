@@ -383,6 +383,9 @@ Supported Functions:
   flatten_all()    - Recursively flatten nested arrays into a single array
   flatten_depth(N) - Flatten nested arrays up to N levels deep
   arrays           - Pass through inputs that are arrays, discarding others
+  objects          - Pass through inputs that are objects, discarding others
+  scalars          - Pass through inputs that are scalars (strings, numbers, booleans, null)
+  numbers          - Pass through inputs that are numeric scalars, discarding others
   del(KEY)         - Remove a key from objects in the result
   compact          - Remove undefined values from arrays
   path             - Return available keys for objects or indexes for arrays
