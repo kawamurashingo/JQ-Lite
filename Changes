@@ -1,3 +1,14 @@
+0.103  2025-10-13
+    [Feature]
+    - Added recurse helper mirroring jq's recurse/0 and recurse/1 to emit the
+      current value alongside depth-first descendants using optional child
+      filters.
+    [Tests]
+    - Added regression coverage ensuring recurse() traverses nested objects,
+      arrays, and custom child relationships.
+    [Docs]
+    - Documented recurse across README, module POD, and CLI helper listings.
+
 0.102  2025-10-13
     [Feature]
     - Added not helper mirroring jq's logical negation semantics, yielding

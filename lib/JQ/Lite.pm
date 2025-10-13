@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.102';
+our $VERSION = '0.103';
 
 sub new {
     my ($class, %opts) = @_;
@@ -345,6 +345,17 @@ sub run_query {
         if ($part =~ /^walk\((.+)\)$/) {
             my $filter = $1;
             @next_results = map { _apply_walk($self, $_, $filter) } @results;
+            @results      = @next_results;
+            next;
+        }
+
+        # support for recurse([filter])
+        if ($part =~ /^recurse(?:\((.*)\))?$/) {
+            my $filter = defined $1 ? $1 : '';
+            $filter =~ s/^\s+|\s+$//g;
+            $filter = undef if $filter eq '';
+
+            @next_results = map { _apply_recurse($self, $_, $filter) } @results;
             @results      = @next_results;
             next;
         }
@@ -2132,6 +2143,40 @@ sub _apply_walk {
     return @results ? $results[0] : undef;
 }
 
+sub _apply_recurse {
+    my ($self, $value, $filter) = @_;
+
+    my @stack   = ($value);
+    my @outputs;
+
+    while (@stack) {
+        my $current = pop @stack;
+        push @outputs, $current;
+
+        next unless defined $current;
+
+        my @children;
+        if (defined $filter) {
+            my $json = encode_json($current);
+            @children = $self->run_query($json, $filter);
+        }
+        elsif (ref $current eq 'ARRAY') {
+            @children = @$current;
+        }
+        elsif (ref $current eq 'HASH') {
+            @children = map { $current->{$_} } sort keys %$current;
+        }
+
+        next unless @children;
+
+        for my $child (reverse @children) {
+            push @stack, $child;
+        }
+    }
+
+    return @outputs;
+}
+
 sub _apply_delpaths {
     my ($self, $value, $filter) = @_;
 
@@ -3520,6 +3565,23 @@ Example:
 Returns:
 
   { "name": "ALICE", "note": "TEAM LEAD" }
+
+=item * recurse([filter])
+
+Performs a depth-first traversal mirroring jq's C<recurse>. Each invocation
+emits the current value and then evaluates either the optional child filter or,
+when omitted, the object's values and array elements. This makes it easy to
+walk arbitrary tree structures:
+
+Example:
+
+  .users[0] | recurse(.children[]?) | .name
+
+Returns:
+
+  "Alice"
+  "Bob"
+  "Carol"
 
 =item * empty()
 
