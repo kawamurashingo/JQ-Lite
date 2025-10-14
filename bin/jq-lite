@@ -16,6 +16,7 @@ my $decoder_debug   = 0;
 my $decoder_choice;
 my $raw_output      = 0;
 my $color_output    = 0;
+my $interactive     = 0;
 
 # ---------- Help text ----------
 my $USAGE = <<'USAGE';
@@ -29,6 +30,7 @@ Options:
   --color              Colorize JSON output (keys, strings, numbers, booleans)
   --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
   --debug              Show which JSON module is being used
+  --interactive        Enable interactive mode when no query is provided
   -h, --help           Show this help message
   --help-functions     Show list of all supported functions
   -v, --version        Show version information
@@ -52,6 +54,7 @@ GetOptions(
     'color'           => \$color_output,
     'use=s'           => \$decoder_choice,
     'debug'           => \$decoder_debug,
+    'interactive'     => \$interactive,
     'help|h'          => \$want_help,
     'help-functions'  => \$help_functions,
     'version|v'       => \$want_version,
@@ -85,7 +88,6 @@ elsif (@ARGV == 1) {
     # Single arg: query or file
     if (-f $ARGV[0]) {
         $filename = $ARGV[0];
-        # No query -> go to interactive mode (handled later)
     } else {
         $query = $ARGV[0];
     }
@@ -101,7 +103,15 @@ elsif (@ARGV == 2) {
     }
 }
 else {
-    die "Usage: jq-lite [options] '.query' [file.json]\n";
+    die "Usage: jq-lite [options] '.query' [file.json]\n";  
+}
+
+if ($interactive && defined $query) {
+    die "[ERROR] --interactive cannot be used together with a query.\n";
+}
+
+if (!$interactive && !defined $query) {
+    die "[ERROR] Missing query. Provide a query or use --interactive.\n";
 }
 
 # ---------- JSON decoder selection ----------
@@ -205,7 +215,7 @@ sub print_results {
 }
 
 # ---------- Interactive mode ----------
-if (!defined $query) {
+if ($interactive) {
     system("stty -icanon -echo");
 
     $SIG{INT} = sub {
