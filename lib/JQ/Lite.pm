@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.104';
+our $VERSION = '1.00';
 
 sub new {
     my ($class, %opts) = @_;
@@ -3521,7 +3521,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 0.101
+Version 1.00
 
 =head1 SYNOPSIS
 
