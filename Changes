@@ -1,3 +1,8 @@
+1.00   2025-10-13
+    [Maintenance]
+    - Promote the release version to 1.00 to ensure Perl's version parsing
+      keeps this release newer than the historical 0.99.
+
 0.104  2025-10-13
     [Feature]
     - Added assignment support for simple jq-style expressions such as
