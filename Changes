@@ -1,3 +1,13 @@
+0.105  2025-10-13
+    [Feature]
+    - Added support for jq's // alternative operator to fall back to secondary
+      expressions when the primary value is null or missing.
+    [Tests]
+    - Added coverage ensuring // preserves existing values, handles nulls,
+      cooperates with booleans, and works inside map pipelines.
+    [Docs]
+    - Documented availability of the // operator in the feature overview.
+
 0.104  2025-10-13
     [Feature]
     - Added assignment support for simple jq-style expressions such as

@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '0.104';
+our $VERSION = '0.105';
 
 sub new {
     my ($class, %opts) = @_;
@@ -1481,6 +1481,20 @@ sub run_query {
             next;
         }
 
+        # support for // (alternative operator)
+        if ($part =~ /^(.*)\s*\/\/\s*(.+)$/) {
+            my ($lhs_expr, $rhs_expr) = ($1, $2);
+            $lhs_expr =~ s/^\s+|\s+$//g;
+            $rhs_expr =~ s/^\s+|\s+$//g;
+
+            @next_results = map {
+                _apply_alternative($self, $_, $lhs_expr, $rhs_expr)
+            } @results;
+
+            @results = @next_results;
+            next;
+        }
+
         # support for default(value)
         if ($part =~ /^default\((.+)\)$/) {
             my $default_value = $1;
@@ -2380,6 +2394,62 @@ sub _apply_with_entries {
     }
 
     return _from_entries(\@transformed);
+}
+
+sub _apply_alternative {
+    my ($self, $input, $lhs_expr, $rhs_expr) = @_;
+
+    my @lhs_results = _evaluate_expression($self, $input, $lhs_expr);
+    my @lhs_defined = grep { defined $_ } @lhs_results;
+
+    if (@lhs_defined) {
+        return @lhs_defined;
+    }
+
+    return _evaluate_expression($self, $input, $rhs_expr);
+}
+
+sub _evaluate_expression {
+    my ($self, $input, $expr) = @_;
+
+    $expr //= '.';
+    $expr =~ s/^\s+|\s+$//g;
+
+    return ($input) if $expr eq '' || $expr eq '.';
+
+    if ($expr =~ /^'(.*)'$/s) {
+        my $inner = $1;
+        $inner =~ s/\\'/\'/g;
+        return ($inner);
+    }
+
+    if ($expr =~ /^".*"$/s || $expr =~ /^[\[{]/) {
+        my $decoded = eval { decode_json($expr) };
+        if (!$@) {
+            return ($decoded);
+        }
+    }
+
+    if ($expr =~ /^(?:-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)$/) {
+        return (0 + $expr);
+    }
+
+    if ($expr eq 'null') {
+        return (undef);
+    }
+    if ($expr eq 'true') {
+        return (JSON::PP::true);
+    }
+    if ($expr eq 'false') {
+        return (JSON::PP::false);
+    }
+
+    my $json = eval { encode_json($input) };
+    if ($@) {
+        return (undef);
+    }
+
+    return $self->run_query($json, $expr);
 }
 
 sub _apply_map_values {
@@ -3559,6 +3629,8 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 =item * Pipe-style query chaining using | operator
 
 =item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
+
+=item * Alternative operator C<//> for null-coalescing defaults
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
