@@ -1,15 +1,21 @@
-1.01   2025-10-16
+1.02   2025-10-16
     [Maintenance]
-    - Promote the release version to 1.01 to ensure Perl's version parsing
+    - Promote the release version to 1.02 to ensure Perl's version parsing
       keeps this release newer than the historical 0.99.
     [Feature]
     - Added fromjson() helper to decode JSON text back into native data
       structures, mirroring jq's behaviour and complementing tojson().
+    - Implemented jq's `//` alternative operator so pipelines can fall back to
+      secondary expressions when the primary value is null or missing.
     [Tests]
     - Added regression coverage asserting fromjson() handles objects, arrays,
       invalid JSON text, and null propagation.
+    - Added coalesce-focused regression tests covering literals, booleans, and
+      chained fallbacks.
     [Docs]
     - Documented fromjson() across README, CLI helper listings, and module POD.
+    - Documented the new alternative operator in README, CLI help, and module
+      POD alongside examples.
 
 0.104  2025-10-13
     [Feature]

@@ -402,6 +402,7 @@ Supported Functions:
   endswith(SFX)    - Check if a string (or array of strings) ends with SFX
   empty            - Discard all output (for side-effect use)
   type()           - Return the type of value ("string", "number", "boolean", "array", "object", "null")
+  lhs // rhs       - jq-style alternative operator yielding rhs when lhs is null/missing
   default(VALUE)   - Substitute VALUE when result is undefined
 
 EOF
