@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 my $FROMJSON_DECODER = JSON::PP->new->allow_nonref;
 
@@ -1490,13 +1490,35 @@ sub run_query {
             next;
         }
 
+        # support for jq's alternative operator: lhs // rhs
+        my $coalesce_expr = $part;
+        if (defined $coalesce_expr) {
+            my $stripped = $coalesce_expr;
+            while ($stripped =~ /^\((.*)\)$/) {
+                $stripped = $1;
+                $stripped =~ s/^\s+|\s+$//g;
+            }
+
+            if ($stripped =~ /^(.*?)\s*\/\/\s*(.+)$/) {
+                my ($lhs_raw, $rhs_raw) = ($1, $2);
+                my $lhs_expr = $lhs_raw;
+                my $rhs_expr = $rhs_raw;
+                $lhs_expr =~ s/^\s+|\s+$//g;
+                $rhs_expr =~ s/^\s+|\s+$//g;
+
+                @next_results = map { _apply_coalesce($self, $_, $lhs_expr, $rhs_expr) } @results;
+                @results      = @next_results;
+                next;
+            }
+        }
+
         # support for default(value)
         if ($part =~ /^default\((.+)\)$/) {
             my $default_value = $1;
             $default_value =~ s/^['"](.*?)['"]$/$1/;
 
             @results = @results ? @results : (undef);
-        
+
             @next_results = map {
                 defined($_) ? $_ : $default_value
             } @results;
@@ -2631,6 +2653,65 @@ sub _normalize_entry {
     return;
 }
 
+sub _apply_coalesce {
+    my ($self, $value, $lhs_expr, $rhs_expr) = @_;
+
+    my @lhs_values = _evaluate_coalesce_operand($self, $value, $lhs_expr);
+    for my $candidate (@lhs_values) {
+        return $candidate if defined $candidate;
+    }
+
+    my @rhs_values = _evaluate_coalesce_operand($self, $value, $rhs_expr);
+    for my $candidate (@rhs_values) {
+        return $candidate if defined $candidate;
+    }
+
+    return undef;
+}
+
+sub _evaluate_coalesce_operand {
+    my ($self, $context, $expr) = @_;
+
+    return () unless defined $expr;
+
+    my $copy = $expr;
+    $copy =~ s/^\s+|\s+$//g;
+    return () if $copy eq '';
+
+    while ($copy =~ /^\((.*)\)$/) {
+        $copy = $1;
+        $copy =~ s/^\s+|\s+$//g;
+    }
+
+    if ($copy =~ /^(.*?)\s*\/\/\s*(.+)$/) {
+        my ($lhs, $rhs) = ($1, $2);
+        my $result = _apply_coalesce($self, $context, $lhs, $rhs);
+        return ($result);
+    }
+
+    if ($copy eq '.') {
+        return ($context);
+    }
+
+    my $decoded = eval { decode_json($copy) };
+    if (!$@) {
+        return ($decoded);
+    }
+
+    if ($copy =~ /^'(.*)'$/) {
+        my $text = $1;
+        $text =~ s/\\'/'/g;
+        return ($text);
+    }
+
+    return () unless defined $context;
+
+    my $path = $copy;
+    $path =~ s/^\.//;
+
+    return _traverse($context, $path);
+}
+
 sub _traverse {
     my ($data, $query) = @_;
     my @steps = split /\./, $query;
@@ -3547,7 +3628,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 1.01
+Version 1.02
 
 =head1 SYNOPSIS
 
@@ -3989,6 +4070,30 @@ Example:
   .name | type     # => "string"
   .tags | type     # => "array"
   .profile | type  # => "object"
+
+=item * lhs // rhs
+
+Implements jq's alternative operator. The left-hand side is returned when it
+produces a defined value (including false or empty arrays); otherwise the
+right-hand expression is evaluated as a fallback.
+
+Example:
+
+  .users[] | (.nickname // .name)
+
+Returns the nickname when present, otherwise the name field.
+
+=item * default(value)
+
+Provides a convenience helper to replace undefined or null pipeline values
+with a literal fallback.
+
+Example:
+
+  .nickname | default("unknown")
+
+Ensures the string C<"unknown"> is emitted when C<.nickname> is missing or
+null.
 
 =item * nth(n)
 

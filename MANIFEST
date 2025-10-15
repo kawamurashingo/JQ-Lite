@@ -21,6 +21,7 @@ t/clamp.t
 t/ceil_floor.t
 t/chunks.t
 t/count.t
+t/coalesce.t
 t/empty.t
 t/entries.t
 t/enumerate.t
