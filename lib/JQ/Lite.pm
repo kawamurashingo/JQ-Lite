@@ -6,7 +6,9 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
+
+my $FROMJSON_DECODER = JSON::PP->new->allow_nonref;
 
 sub new {
     my ($class, %opts) = @_;
@@ -780,6 +782,13 @@ sub run_query {
         # support for tojson()
         if ($part eq 'tojson()' || $part eq 'tojson') {
             @next_results = map { _apply_tojson($_) } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for fromjson()
+        if ($part eq 'fromjson()' || $part eq 'fromjson') {
+            @next_results = map { _apply_fromjson($_) } @results;
             @results = @next_results;
             next;
         }
@@ -2179,6 +2188,23 @@ sub _apply_tojson {
     return encode_json($value);
 }
 
+sub _apply_fromjson {
+    my ($value) = @_;
+
+    return undef if !defined $value;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_fromjson($_) } @$value ];
+    }
+
+    return $value if ref $value;
+
+    my $text = "$value";
+    my $decoded = eval { $FROMJSON_DECODER->decode($text) };
+
+    return $@ ? $value : $decoded;
+}
+
 sub _apply_numeric_function {
     my ($value, $callback) = @_;
 
@@ -3521,7 +3547,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 1.00
+Version 1.01
 
 =head1 SYNOPSIS
 
@@ -3558,7 +3584,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, fromjson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -4333,6 +4359,18 @@ Example:
   .score   | tojson   # => "42"
   .name    | tojson   # => "\"Alice\""
   .profile | tojson   # => "{\"name\":\"Alice\"}"
+
+=item * fromjson()
+
+Parses JSON text back into native Perl data structures. Plain strings are
+decoded directly, while arrays are processed element-by-element to mirror jq's
+convenient broadcasting behaviour. Invalid JSON inputs are passed through
+unchanged so pipelines remain lossless.
+
+Example:
+
+  .raw   | fromjson   # => {"name":"Bob"}
+  .lines | fromjson   # => [1, true, null]
 
 =item * to_number()
 

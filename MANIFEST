@@ -28,6 +28,7 @@ t/first_last.t
 t/flatten.t
 t/flatten_all.t
 t/flatten_depth.t
+t/fromjson.t
 t/getpath.t
 t/friends.t
 t/group_by.t
