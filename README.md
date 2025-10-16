@@ -131,7 +131,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `leaf_paths()` | Emit only the paths that terminate in non-container values (v0.96) |
 | `getpath(path)` | Retrieve the value(s) at the supplied path array or expression (unreleased) |
 | `is_empty`     | True when the value is an empty array or object (v0.41)   |
-| `expr // fallback` | Use jq's alternative operator to supply defaults when the left side is null or missing (v1.03) |
+| `expr // fallback` | Use jq's alternative operator to supply defaults when the left side is null or missing (v1.02) |
 | `default(value)` | Substitute a fallback value when the result is undef/null (v0.42) |
 
 ---
@@ -392,5 +392,6 @@ This module is released under the same terms as Perl itself.
 **Kawamura Shingo**  
 📧 pannakoota1@gmail.com  
 🔗 [GitHub @kawamurashingo](https://github.com/kawamurashingo/JQ-Lite)
+
 
 
