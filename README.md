@@ -17,7 +17,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
-- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `any()`, `all()`, `not`, `map`, `map_values()`, `walk()`, `recurse()`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `median_by()`, `count`, `join`, `split()`, `explode()`, `implode()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `ltrimstr()`, `rtrimstr()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `range()`, `index()`, `rindex()`, `indices()`, `clamp()`, `tostring()`, `tojson()`, `fromjson()`, `to_number()`, `pick()`, `merge_objects()`, `to_entries()`, `from_entries()`, `with_entries()`, `paths()`, `leaf_paths()`, `getpath()`, `delpaths()`, `arrays`, `objects`, `scalars`
+- ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `test()`, `any()`, `all()`, `not`, `map`, `map_values()`, `walk()`, `recurse()`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `median_by()`, `count`, `join`, `split()`, `explode()`, `implode()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `ltrimstr()`, `rtrimstr()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `range()`, `index()`, `rindex()`, `indices()`, `clamp()`, `tostring()`, `tojson()`, `fromjson()`, `to_number()`, `pick()`, `merge_objects()`, `to_entries()`, `from_entries()`, `with_entries()`, `paths()`, `leaf_paths()`, `getpath()`, `delpaths()`, `arrays`, `objects`, `scalars`
 - ✅ jq-style alternative operator (`lhs // rhs`) for concise default values
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`) 
 - ✅ Command-line interface: `jq-lite`
@@ -90,6 +90,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `rtrimstr(suffix)` | Remove `suffix` from the end of strings when present (v0.87) |
 | `startswith(prefix)` | Check if a string (or array of strings) begins with `prefix` (v0.51) |
 | `endswith(suffix)` | Check if a string (or array of strings) ends with `suffix` (v0.51) |
+| `test(pattern[, flags])` | Return JSON booleans indicating whether strings match a regex (arrays processed element-wise) (unreleased) |
 | `split(separator)` | Split a string (or array of strings) using a literal separator (v0.52) |
 | `explode()` | Convert strings into arrays of Unicode code points (v0.88) |
 | `implode()` | Turn arrays of code points back into strings (v0.88) |
@@ -130,7 +131,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `leaf_paths()` | Emit only the paths that terminate in non-container values (v0.96) |
 | `getpath(path)` | Retrieve the value(s) at the supplied path array or expression (unreleased) |
 | `is_empty`     | True when the value is an empty array or object (v0.41)   |
-| `expr // fallback` | Use jq's alternative operator to supply defaults when the left side is null or missing (v1.02) |
+| `expr // fallback` | Use jq's alternative operator to supply defaults when the left side is null or missing (v1.03) |
 | `default(value)` | Substitute a fallback value when the result is undef/null (v0.42) |
 
 ---
