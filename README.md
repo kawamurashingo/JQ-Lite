@@ -184,13 +184,13 @@ curl -fsSL https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/install
 
 | Distribution | jq-lite Support | Notes |
 |---------------|----------------|-------|
-| **CentOS 6 / RHEL 6** | ⚠️ Almost works | Default Perl 5.10.1 works fine. SSL/TLS errors may occur during CPAN install; use `--local-lib` or tarball install. |
+| **CentOS 6 / RHEL 6** | ⚠️ Requires upgrade | Default Perl 5.10.1 is too old; upgrade Perl to ≥ 5.14 (e.g. via perlbrew) before installing. |
 | **Ubuntu 12.04 / 14.04** | ✅ Works | Perl 5.14–5.18; installable via `cpan install JQ::Lite`. |
 | **Debian 7 (Wheezy)** | ✅ Works | Perl 5.14.2 standard; `apt-get install cpanminus` → `cpanm JQ::Lite` runs cleanly. |
-| **SLES 11 and earlier** | ⚠️ Conditional | Perl 5.10–5.12 works, but CPAN TLS issues may require offline installation. |
+| **SLES 11 and earlier** | ❌ Not supported | System Perl 5.10–5.12 is below the minimum requirement; upgrade Perl to ≥ 5.14 to use JQ::Lite. |
 
 ✅ **Conclusion:**  
-Even on legacy environments without jq, `JQ::Lite` runs as long as Perl ≥ 5.10.1 is available.
+Even on legacy environments without jq, `JQ::Lite` runs as long as Perl ≥ 5.14 is available.
 
 ---
 
