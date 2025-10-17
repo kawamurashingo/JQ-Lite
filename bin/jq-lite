@@ -16,6 +16,7 @@ my $decoder_debug   = 0;
 my $decoder_choice;
 my $raw_output      = 0;
 my $color_output    = 0;
+my $null_input      = 0;
 
 # ---------- Help text ----------
 my $USAGE = <<'USAGE';
@@ -29,6 +30,7 @@ Options:
   --color              Colorize JSON output (keys, strings, numbers, booleans)
   --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
   --debug              Show which JSON module is being used
+  -n, --null-input     Use null as input instead of reading JSON data
   -h, --help           Show this help message
   --help-functions     Show list of all supported functions
   -v, --version        Show version information
@@ -52,6 +54,7 @@ GetOptions(
     'color'           => \$color_output,
     'use=s'           => \$decoder_choice,
     'debug'           => \$decoder_debug,
+    'null-input|n'    => \$null_input,
     'help|h'          => \$want_help,
     'help-functions'  => \$help_functions,
     'version|v'       => \$want_version,
@@ -77,13 +80,17 @@ if ($want_version) {
 my ($query, $filename);
 
 if (@ARGV == 0) {
-    # If no args, show help
-    print $USAGE;
-    exit 0;
+    if ($null_input) {
+        $query = '.';
+    } else {
+        # If no args, show help
+        print $USAGE;
+        exit 0;
+    }
 }
 elsif (@ARGV == 1) {
     # Single arg: query or file
-    if (-f $ARGV[0]) {
+    if (!$null_input && -f $ARGV[0]) {
         $filename = $ARGV[0];
         # No query -> go to interactive mode (handled later)
     } else {
@@ -92,6 +99,8 @@ elsif (@ARGV == 1) {
 }
 elsif (@ARGV == 2) {
     # Two args: query + file (in this order)
+    die "[ERROR] --null-input cannot be combined with file input\n" if $null_input;
+
     $query = $ARGV[0];
     my $f = $ARGV[1];
     if (-f $f) {
@@ -154,7 +163,10 @@ warn "[DEBUG] Using $decoder_module\n" if $decoder_debug;
 
 # ---------- Read JSON input ----------
 my $json_text;
-if (defined $filename) {
+if ($null_input) {
+    $json_text = 'null';
+}
+elsif (defined $filename) {
     open my $fh, '<', $filename or die "Cannot open file '$filename': $!\n";
     local $/;
     $json_text = <$fh>;
