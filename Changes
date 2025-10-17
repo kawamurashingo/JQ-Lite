@@ -1,4 +1,4 @@
-1.03   2025-10-18
+1.04   2025-10-18
     [Features]
     - Added jq-compatible --null-input (-n) option to jq-lite so filters can
       run against null without providing input data.
