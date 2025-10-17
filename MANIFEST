@@ -78,6 +78,7 @@ t/startswith_endswith.t
 t/to_number.t
 t/tojson.t
 t/tostring.t
+t/test_regex.t
 t/unique_by.t
 t/trim.t
 t/trimstr.t

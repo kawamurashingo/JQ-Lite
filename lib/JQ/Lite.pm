@@ -6,7 +6,7 @@ use JSON::PP;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 
 my $FROMJSON_DECODER = JSON::PP->new->allow_nonref;
 
@@ -1294,6 +1294,33 @@ sub run_query {
         if ($part =~ /^contains\((.+)\)$/) {
             my $needle = _parse_string_argument($1);
             @next_results = map { _apply_contains($_, $needle) } @results;
+            @results = @next_results;
+            next;
+        }
+
+        # support for test(pattern[, flags])
+        if ($part =~ /^test\((.+)\)$/) {
+            my $args_raw = $1;
+            my ($pattern_raw, $flags_raw);
+
+            if ($args_raw =~ /;/) {
+                ($pattern_raw, $flags_raw) = split /;/, $args_raw, 2;
+                $pattern_raw =~ s/^\s+|\s+$//g if defined $pattern_raw;
+                $flags_raw   =~ s/^\s+|\s+$//g if defined $flags_raw;
+            }
+            else {
+                my @args = _parse_arguments($args_raw);
+                $pattern_raw = @args ? shift @args : undef;
+                $flags_raw   = @args ? shift @args : undef;
+            }
+
+            my $pattern  = _parse_string_argument(defined $pattern_raw ? $pattern_raw : undef);
+            my $flags    = defined $flags_raw ? _parse_string_argument($flags_raw) : undef;
+            my $compiled = _compile_regex($pattern, $flags);
+
+            @next_results = map {
+                defined $compiled ? _apply_test($_, $compiled) : JSON::PP::false
+            } @results;
             @results = @next_results;
             next;
         }
@@ -3134,6 +3161,26 @@ sub _parse_string_argument {
     return $raw;
 }
 
+sub _normalize_regex_argument {
+    my ($value) = @_;
+
+    return undef if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 'true' : 'false';
+    }
+
+    if (ref $value) {
+        return "$value";
+    }
+
+    my $normalized = "$value";
+    $normalized =~ s/^\s+|\s+$//g;
+    $normalized =~ s/^['"]//;
+    $normalized =~ s/['"]$//;
+    return $normalized;
+}
+
 sub _apply_split {
     my ($value, $separator) = @_;
 
@@ -3487,6 +3534,59 @@ sub _apply_contains {
     return JSON::PP::false;
 }
 
+sub _compile_regex {
+    my ($pattern_raw, $flags_raw) = @_;
+
+    my $pattern = _normalize_regex_argument($pattern_raw);
+    $pattern = '' unless defined $pattern;
+
+    my $flags = _normalize_regex_argument($flags_raw);
+    $flags = '' unless defined $flags;
+
+    my %valid = map { $_ => 1 } qw(i m s x);
+    my %seen;
+    my $inline = '';
+
+    for my $char (split //, $flags) {
+        next unless $valid{$char};
+        next if $seen{$char}++;
+        $inline .= $char;
+    }
+
+    my $wrapped = $pattern;
+    if ($inline ne '') {
+        $wrapped = '(?' . $inline . ':' . $pattern . ')';
+    }
+
+    my $regex = eval { qr/$wrapped/ };
+    return $regex if !$@;
+
+    return undef;
+}
+
+sub _apply_test {
+    my ($value, $regex) = @_;
+
+    return JSON::PP::false if !defined $regex;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_test($_, $regex) } @$value ];
+    }
+
+    return JSON::PP::false if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        my $string = $value ? 'true' : 'false';
+        return $string =~ $regex ? JSON::PP::true : JSON::PP::false;
+    }
+
+    if (!ref $value) {
+        return $value =~ $regex ? JSON::PP::true : JSON::PP::false;
+    }
+
+    return JSON::PP::false;
+}
+
 sub _apply_indices {
     my ($value, $needle) = @_;
 
@@ -3628,7 +3728,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 1.02
+Version 1.03
 
 =head1 SYNOPSIS
 
@@ -3665,7 +3765,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, fromjson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, test, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, fromjson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -4283,6 +4383,20 @@ Example:
 
   .title | endswith("World")     # => true
   .tags  | endswith("n")         # => [false, true, false]
+
+=item * test(pattern[, flags])
+
+Evaluates a Perl-compatible regular expression against strings, returning JSON
+booleans. Arrays are processed element-wise, while hashes and undefined values
+produce JSON false. The optional C<flags> argument recognises the same
+modifiers as jq: C<i> (case-insensitive), C<m> (multi-line), C<s> (dot matches
+newlines), and C<x> (extended whitespace/comments). Invalid regular
+expressions yield false so pipelines can continue gracefully.
+
+Example:
+
+  .title | test("world"; "i")    # => true
+  .names | test("^A")            # => [true, false, false]
 
 =item * substr(start[, length])
 
