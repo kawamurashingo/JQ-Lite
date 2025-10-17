@@ -1,3 +1,21 @@
+1.03   2025-10-18
+    [Refactor]
+    - Refactored JQ::Lite to delegate query parsing and filter execution to
+      dedicated modules, keeping only orchestration logic in the main package.
+    - Introduced JQ::Lite::Parser to normalize query strings before execution,
+      handling trimming and shorthand conversions such as `.[]` into flatten
+      semantics.
+    - Centralized jq-style filter implementations in JQ::Lite::Filters, wiring
+      each command to shared utility routines and standardizing result handling.
+    - Moved shared helper functions into JQ::Lite::Util, consolidating common
+      operations like assignments, traversal, and numeric utilities.
+
+    [Maintenance]
+    - Improved internal structure for clarity, maintainability, and easier
+      extension of jq-compatible features in future releases.
+    - No user-facing behavior changes; this refactor is fully backward
+      compatible.
+
 1.02   2025-10-16
     [Maintenance]
     - Promote the release version to 1.02 to ensure Perl's version parsing
@@ -654,6 +672,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
