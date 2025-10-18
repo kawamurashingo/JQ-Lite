@@ -9,12 +9,13 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '1.04';
+our $VERSION = '1.05';
 
 sub new {
     my ($class, %opts) = @_;
     my $self = {
         raw => $opts{raw} || 0,
+        _vars => {},
     };
     return bless $self, $class;
 }
@@ -56,7 +57,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 1.04
+Version 1.05
 
 =head1 SYNOPSIS
 
@@ -142,6 +143,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * select(.key > 1 and .key2 == "foo") (boolean filters)
 
 =item * group_by(.field) (group array items by key)
+
+=item * reduce expr as $var (init; update) (accumulate values with lexical bindings)
 
 =item * group_count(.field) (tally items by key)
 

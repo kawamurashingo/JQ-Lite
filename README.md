@@ -18,6 +18,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
 - ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `any()`, `all()`, `not`, `map`, `map_values()`, `walk()`, `recurse()`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `median_by()`, `count`, `join`, `split()`, `explode()`, `implode()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `ltrimstr()`, `rtrimstr()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `range()`, `index()`, `rindex()`, `indices()`, `clamp()`, `tostring()`, `tojson()`, `fromjson()`, `to_number()`, `pick()`, `merge_objects()`, `to_entries()`, `from_entries()`, `with_entries()`, `paths()`, `leaf_paths()`, `getpath()`, `setpath()`, `delpaths()`, `arrays`, `objects`, `scalars`
+- ✅ `reduce expr as $var (init; update)` for jq-style accumulation with lexical variable bindings
 - ✅ jq-style alternative operator (`lhs // rhs`) for concise default values
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`)
 - ✅ Command-line interface: `jq-lite`

@@ -20,7 +20,13 @@ sub parse_query {
             'flatten';
         }
         elsif ($_ =~ /^\.(.+)$/) {
-            $1;
+            my $rest = $1;
+            if ($rest =~ /^\s*[+\-*\/]/) {
+                $_;
+            }
+            else {
+                $rest;
+            }
         }
         else {
             $_;
