@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '1.08';
+our $VERSION = '1.09';
 
 sub new {
     my ($class, %opts) = @_;
@@ -57,7 +57,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 1.08
+Version 1.09
 
 =head1 SYNOPSIS
 
@@ -94,7 +94,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, fromjson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, getpath, setpath, index, rindex, indices, arrays, objects, scalars
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, test, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, fromjson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, getpath, setpath, index, rindex, indices, arrays, objects, scalars
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -646,6 +646,24 @@ Example:
   .title | contains("perl")     # => true
   .tags  | contains("json")     # => true
   .meta  | contains("lang")     # => true
+
+=item * test(pattern[, flags])
+
+Evaluates whether the current string input matches a regular expression. The
+pattern is interpreted as a Perl-compatible regex, and optional flag strings
+support the common jq modifiers C<i>, C<m>, C<s>, and C<x>.
+
+* Scalars are coerced to strings before matching (booleans become C<"true"> or
+  C<"false">).
+* Arrays are processed element-wise, returning arrays of JSON booleans.
+* Non-string container values that cannot be coerced yield C<false>.
+
+Examples:
+
+  .title | test("^Hello")           # => true
+  .title | test("world")            # => false (case-sensitive)
+  .title | test("world"; "i")      # => true (case-insensitive)
+  .tags  | test("^p")               # => [true, false, false]
 
 =item * all([filter])
 

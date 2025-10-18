@@ -2145,6 +2145,58 @@ sub _string_predicate_result {
     return JSON::PP::false;
 }
 
+sub _apply_test {
+    my ($value, $pattern, $flags) = @_;
+
+    my ($regex, $error) = _build_regex($pattern, $flags);
+    return JSON::PP::false if $error;
+
+    return _test_against_regex($value, $regex);
+}
+
+sub _test_against_regex {
+    my ($value, $regex) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _test_against_regex($_, $regex) } @$value ];
+    }
+
+    return JSON::PP::false if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        $value = $value ? 'true' : 'false';
+    }
+
+    return JSON::PP::false if ref $value;
+
+    return $value =~ $regex ? JSON::PP::true : JSON::PP::false;
+}
+
+sub _build_regex {
+    my ($pattern, $flags) = @_;
+
+    $pattern = '' unless defined $pattern;
+    $flags   = '' unless defined $flags;
+
+    my %allowed = map { $_ => 1 } qw(i m s x);
+    my $modifiers = '';
+    for my $flag (split //, $flags) {
+        next unless $allowed{$flag};
+        next if index($modifiers, $flag) >= 0;
+        $modifiers .= $flag;
+    }
+
+    my $escaped = $pattern;
+    $escaped =~ s/'/\\'/g;
+
+    my $regex = eval "qr'$escaped'$modifiers";
+    if ($@) {
+        return (undef, $@);
+    }
+
+    return ($regex, undef);
+}
+
 sub _parse_string_argument {
     my ($raw) = @_;
 
