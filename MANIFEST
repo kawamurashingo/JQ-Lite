@@ -39,6 +39,7 @@ t/setpath.t
 t/slurp_cli.t
 t/has.t
 t/has_function.t
+t/if_then_else.t
 t/index.t
 t/indices.t
 t/join.t

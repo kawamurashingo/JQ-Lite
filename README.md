@@ -21,6 +21,10 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ `reduce expr as $var (init; update)` for jq-style accumulation with lexical variable bindings
 - ✅ `foreach expr as $var (init; update [; extract])` for jq-compatible streaming accumulation with optional emitters
 - ✅ jq-style alternative operator (`lhs // rhs`) for concise default values
+- ✅ Conditional branching with jq-style `if ... then ... elif ... else ... end`
+  ```jq
+  if .score >= 90 then "A" elif .score >= 80 then "B" else "C" end
+  ```
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`)
 - ✅ Command-line interface: `jq-lite`
 - ✅ jq-compatible `--null-input` (`-n`) flag to start from `null` without providing JSON input

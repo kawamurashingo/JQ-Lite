@@ -93,6 +93,63 @@ sub apply {
             return 1;
         }
 
+        if (my $if_expr = JQ::Lite::Util::_parse_if_expression($normalized)) {
+            @next_results = ();
+
+            for my $value (@results) {
+                my $json     = encode_json($value);
+                my $matched  = 0;
+
+                BRANCH: for my $branch (@{ $if_expr->{branches} }) {
+                    my @cond_results = $self->run_query($json, $branch->{condition});
+                    my $truthy       = 0;
+
+                    for my $cond_value (@cond_results) {
+                        if (JQ::Lite::Util::_is_truthy($cond_value)) {
+                            $truthy = 1;
+                            last;
+                        }
+                    }
+
+                    if (!$truthy && !@cond_results) {
+                        $truthy = JQ::Lite::Util::_evaluate_condition($value, $branch->{condition}) ? 1 : 0;
+                    }
+
+                    next BRANCH unless $truthy;
+
+                    my ($branch_values, $branch_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $branch->{then});
+
+                    if ($branch_ok) {
+                        push @next_results, @$branch_values;
+                    }
+                    else {
+                        my @outputs = $self->run_query($json, $branch->{then});
+                        push @next_results, @outputs;
+                    }
+
+                    $matched = 1;
+                    last BRANCH;
+                }
+
+                next if $matched;
+
+                if (defined $if_expr->{else}) {
+                    my ($else_values, $else_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $if_expr->{else});
+
+                    if ($else_ok) {
+                        push @next_results, @$else_values;
+                    }
+                    else {
+                        my @else_outputs = $self->run_query($json, $if_expr->{else});
+                        push @next_results, @else_outputs;
+                    }
+                }
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         if (my $reduce = JQ::Lite::Util::_parse_reduce_expression($normalized)) {
             @next_results = ();
 
