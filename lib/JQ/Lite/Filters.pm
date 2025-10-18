@@ -44,6 +44,53 @@ sub apply {
             return 1;
         }
 
+        # support for array constructors [expr, expr, ...]
+        if ($normalized =~ /^\[(.*)\]$/s) {
+            my $inner = $1;
+            my @elements = ();
+            if ($inner =~ /\S/) {
+                @elements = JQ::Lite::Util::_split_top_level_commas($inner);
+            }
+
+            for my $item (@results) {
+                my @built;
+
+                for my $element (@elements) {
+                    next if !defined $element;
+                    $element =~ s/^\s+|\s+$//g;
+                    next if $element eq '';
+
+                    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $element);
+                    if ($ok) {
+                        if (@$values) {
+                            push @built, @$values;
+                        } else {
+                            push @built, undef;
+                        }
+                        next;
+                    }
+
+                    my $json = encode_json($item);
+                    my @outputs = $self->run_query($json, $element);
+                    if (@outputs) {
+                        push @built, @outputs;
+                    } else {
+                        push @built, undef;
+                    }
+                }
+
+                push @next_results, \@built;
+            }
+
+            # handle empty [] constructor
+            if (!@elements) {
+                @next_results = map { [] } @results;
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         if (my $foreach = JQ::Lite::Util::_parse_foreach_expression($normalized)) {
             @next_results = ();
 
