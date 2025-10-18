@@ -1,8 +1,10 @@
 1.06   2025-10-18
-    - Added jq-style reduce syntax (`reduce expr as $var (init; update)`) with
-      lexical variable bindings and `. +` arithmetic support.
     - Added jq-compatible `--compact-output` (`-c`) flag to emit single-line
       JSON results from the jq-lite CLI.
+
+1.05   2025-10-18
+    - Added jq-style reduce syntax (`reduce expr as $var (init; update)`) with
+      lexical variable bindings and `. +` arithmetic support.
 
 1.04   2025-10-18
     [Features]
@@ -684,6 +686,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
