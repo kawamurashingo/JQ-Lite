@@ -26,6 +26,7 @@ t/empty.t
 t/entries.t
 t/enumerate.t
 t/first_last.t
+t/foreach.t
 t/flatten.t
 t/flatten_all.t
 t/flatten_depth.t

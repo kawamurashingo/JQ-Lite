@@ -44,6 +44,55 @@ sub apply {
             return 1;
         }
 
+        if (my $foreach = JQ::Lite::Util::_parse_foreach_expression($normalized)) {
+            @next_results = ();
+
+            for my $value (@results) {
+                my $json = encode_json($value);
+                my @items = $self->run_query($json, $foreach->{generator});
+
+                my ($init_values, $init_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $foreach->{init_expr});
+                my $acc = ($init_ok && @$init_values) ? $init_values->[0] : undef;
+
+                for my $element (@items) {
+                    my %existing = %{ $self->{_vars} || {} };
+                    local $self->{_vars} = { %existing, $foreach->{var_name} => $element };
+
+                    my ($updated_values, $updated_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $foreach->{update_expr});
+                    my $next;
+                    if ($updated_ok) {
+                        $next = @$updated_values ? $updated_values->[0] : undef;
+                    }
+                    else {
+                        my @outputs = $self->run_query(encode_json($acc), $foreach->{update_expr});
+                        $next = @outputs ? $outputs[0] : undef;
+                    }
+
+                    $acc = $next;
+
+                    if (defined $foreach->{extract_expr} && length $foreach->{extract_expr}) {
+                        my ($extract_values, $extract_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $foreach->{extract_expr});
+                        my $output;
+                        if ($extract_ok) {
+                            $output = @$extract_values ? $extract_values->[0] : undef;
+                        }
+                        else {
+                            my @extracted = $self->run_query(encode_json($acc), $foreach->{extract_expr});
+                            $output = @extracted ? $extracted[0] : undef;
+                        }
+
+                        push @next_results, $output;
+                    }
+                    else {
+                        push @next_results, $acc;
+                    }
+                }
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         if (my $reduce = JQ::Lite::Util::_parse_reduce_expression($normalized)) {
             @next_results = ();
 

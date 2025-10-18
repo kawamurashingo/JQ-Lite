@@ -347,6 +347,8 @@ Supported Functions:
   map(EXPR)        - Map/filter array items with a subquery
   map_values(FILTER)
                    - Apply FILTER to each value in an object (dropping keys when FILTER yields no result)
+  foreach(EXPR as $var (init; update [; extract]))
+                   - jq-compatible streaming reducer with lexical bindings and optional emitters
   walk(FILTER)     - Recursively apply FILTER to every value in arrays and objects
   recurse([FILTER])
                    - Emit the current value and depth-first descendants using optional FILTER for children
