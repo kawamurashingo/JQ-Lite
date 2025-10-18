@@ -262,6 +262,7 @@ print join("\n", @names), "\n";
 cat users.json | jq-lite '.users[].name'
 jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite -r '.users[].name' users.json
+jq-lite -c '.users[0]' users.json
 ```
 
 For Windows:
@@ -272,6 +273,9 @@ jq-lite -r ".users[].name" users.json
 ```
 
 > ⚠️ `jq-lite` is named to avoid conflict with the original `jq`.
+
+Use `-c` / `--compact-output` when you need jq-style single-line JSON that is
+easier to pipe into other tools or compare in scripts.
 
 ---
 

@@ -15,6 +15,7 @@ my $decoder_module;
 my $decoder_debug   = 0;
 my $decoder_choice;
 my $raw_output      = 0;
+my $compact_output  = 0;
 my $color_output    = 0;
 my $null_input      = 0;
 
@@ -27,6 +28,7 @@ Usage:
 
 Options:
   -r, --raw-output     Print raw strings instead of JSON-encoded values
+  -c, --compact-output Print JSON results on a single line (no pretty-printing)
   --color              Colorize JSON output (keys, strings, numbers, booleans)
   --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
   --debug              Show which JSON module is being used
@@ -51,6 +53,7 @@ my ($want_help, $want_version, $help_functions) = (0, 0, 0);
 
 GetOptions(
     'raw-output|r'    => \$raw_output,
+    'compact-output|c'=> \$compact_output,
     'color'           => \$color_output,
     'use=s'           => \$decoder_choice,
     'debug'           => \$decoder_debug,
@@ -189,9 +192,9 @@ sub colorize_json {
     my $json = shift;
 
     $json =~ s/"([^"]+)"(?=\s*:)/color("cyan")."\"$1\"".color("reset")/ge;
-    $json =~ s/: "([^"]*)"/": ".color("green")."\"$1\"".color("reset")/ge;
-    $json =~ s/: (\d+(\.\d+)?)/": ".color("yellow")."$1".color("reset")/ge;
-    $json =~ s/: (true|false|null)/": ".color("magenta")."$1".color("reset")/ge;
+    $json =~ s/(:\s*)"([^"]*)"/$1.color("green")."\"$2\"".color("reset")/ge;
+    $json =~ s/(:\s*)(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/$1.color("yellow")."$2".color("reset")/ge;
+    $json =~ s/(:\s*)(true|false|null)/$1.color("magenta")."$2".color("reset")/ge;
 
     return $json;
 }
@@ -199,7 +202,8 @@ sub colorize_json {
 # ---------- Output ----------
 sub print_results {
     my @results = @_;
-    my $pp = JSON::PP->new->utf8->canonical->pretty;
+    my $pp = JSON::PP->new->utf8->canonical;
+    $pp->pretty unless $compact_output;
 
     for my $r (@results) {
         if (!defined $r) {
@@ -212,6 +216,7 @@ sub print_results {
             my $json = $pp->encode($r);
             $json = colorize_json($json) if $color_output;
             print $json;
+            print "\n" unless $json =~ /\n\z/;
         }
     }
 }
