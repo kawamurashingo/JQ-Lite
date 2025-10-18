@@ -61,6 +61,7 @@ t/percentile.t
 t/pick.t
 t/pluck.t
 t/recurse.t
+t/reduce.t
 t/reverse.t
 t/rindex.t
 t/range.t

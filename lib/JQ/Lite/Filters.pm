@@ -14,6 +14,70 @@ sub apply {
     my @results = @$results_ref;
     my @next_results;
 
+    my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
+
+        # support for variable references like $var or $var.path
+        if ($normalized =~ /^\$(\w+)(.*)$/s) {
+            my ($var_name, $suffix) = ($1, $2 // '');
+            for my $item (@results) {
+                my @values = JQ::Lite::Util::_evaluate_variable_reference($self, $var_name, $suffix);
+                if (@values) {
+                    push @next_results, @values;
+                } else {
+                    push @next_results, undef;
+                }
+            }
+            @$out_ref = @next_results;
+            return 1;
+        }
+
+        # support for addition (. + expr)
+        if ($normalized =~ /^\.\s*\+\s*(.+)$/s) {
+            my $rhs_expr = $1;
+            @next_results = map {
+                my $lhs = $_;
+                my ($rhs_values, $rhs_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $lhs, $rhs_expr);
+                my $rhs = ($rhs_ok && @$rhs_values) ? $rhs_values->[0] : undef;
+                JQ::Lite::Util::_apply_addition($lhs, $rhs);
+            } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
+        if (my $reduce = JQ::Lite::Util::_parse_reduce_expression($normalized)) {
+            @next_results = ();
+
+            for my $value (@results) {
+                my $json = encode_json($value);
+                my @items = $self->run_query($json, $reduce->{generator});
+
+                my ($init_values, $init_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $reduce->{init_expr});
+                my $acc = ($init_ok && @$init_values) ? $init_values->[0] : undef;
+
+                for my $element (@items) {
+                    my %existing = %{ $self->{_vars} || {} };
+                    local $self->{_vars} = { %existing, $reduce->{var_name} => $element };
+
+                    my ($updated_values, $updated_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $reduce->{update_expr});
+                    my $next;
+                    if ($updated_ok) {
+                        $next = @$updated_values ? $updated_values->[0] : undef;
+                    }
+                    else {
+                        my @outputs = $self->run_query(encode_json($acc), $reduce->{update_expr});
+                        $next = @outputs ? $outputs[0] : undef;
+                    }
+
+                    $acc = $next;
+                }
+
+                push @next_results, $acc;
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for flatten (alias for .[])
         if ($part eq 'flatten') {
             @next_results = map {

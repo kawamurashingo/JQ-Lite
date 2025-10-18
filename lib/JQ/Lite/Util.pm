@@ -9,6 +9,291 @@ use Scalar::Util qw(looks_like_number);
 
 my $FROMJSON_DECODER = JSON::PP->new->allow_nonref;
 
+sub _are_brackets_balanced {
+    my ($text) = @_;
+
+    return 1 unless defined $text && length $text;
+
+    my %pairs = (
+        '(' => ')',
+        '[' => ']',
+        '{' => '}',
+    );
+    my %closing = reverse %pairs;
+
+    my @stack;
+    my $string;
+    my $escape = 0;
+
+    for my $char (split //, $text) {
+        if (defined $string) {
+            if ($escape) {
+                $escape = 0;
+                next;
+            }
+
+            if ($char eq '\\') {
+                $escape = 1;
+                next;
+            }
+
+            if ($char eq $string) {
+                undef $string;
+            }
+
+            next;
+        }
+
+        if ($char eq "'" || $char eq '"') {
+            $string = $char;
+            next;
+        }
+
+        if (exists $pairs{$char}) {
+            push @stack, $char;
+            next;
+        }
+
+        if (exists $closing{$char}) {
+            return 0 unless @stack;
+            my $open = pop @stack;
+            return 0 unless $pairs{$open} eq $char;
+            next;
+        }
+    }
+
+    return !@stack && !defined $string;
+}
+
+sub _strip_wrapping_parens {
+    my ($text) = @_;
+
+    return '' unless defined $text;
+
+    my $copy = $text;
+    $copy =~ s/^\s+|\s+$//g;
+
+    while ($copy =~ /^\((.*)\)$/s) {
+        my $inner = $1;
+        last unless _are_brackets_balanced($inner);
+        $inner =~ s/^\s+|\s+$//g;
+        $copy = $inner;
+    }
+
+    return $copy;
+}
+
+sub _split_top_level_semicolon {
+    my ($text) = @_;
+
+    return unless defined $text;
+
+    my %pairs = (
+        '(' => ')',
+        '[' => ']',
+        '{' => '}',
+    );
+    my %closing = reverse %pairs;
+
+    my @stack;
+    my $string;
+    my $escape = 0;
+
+    for (my $i = 0; $i < length $text; $i++) {
+        my $char = substr($text, $i, 1);
+
+        if (defined $string) {
+            if ($escape) {
+                $escape = 0;
+                next;
+            }
+
+            if ($char eq '\\') {
+                $escape = 1;
+                next;
+            }
+
+            if ($char eq $string) {
+                undef $string;
+            }
+
+            next;
+        }
+
+        if ($char eq "'" || $char eq '"') {
+            $string = $char;
+            next;
+        }
+
+        if (exists $pairs{$char}) {
+            push @stack, $char;
+            next;
+        }
+
+        if (exists $closing{$char}) {
+            return unless @stack;
+            my $open = pop @stack;
+            return unless $pairs{$open} eq $char;
+            next;
+        }
+
+        next unless $char eq ';';
+
+        if (!@stack) {
+            my $left  = substr($text, 0, $i);
+            my $right = substr($text, $i + 1);
+            return ($left, $right);
+        }
+    }
+
+    return;
+}
+
+sub _parse_reduce_expression {
+    my ($expr) = @_;
+
+    return undef unless defined $expr;
+
+    my $copy = _strip_wrapping_parens($expr);
+    return undef unless $copy =~ /^reduce\s+(.+?)\s+as\s+\$(\w+)\s*\((.*)\)$/s;
+
+    my ($generator, $var_name, $body) = ($1, $2, $3);
+    my ($init_expr, $update_expr) = _split_top_level_semicolon($body);
+    return undef unless defined $init_expr && defined $update_expr;
+
+    $generator   =~ s/^\s+|\s+$//g;
+    $init_expr   =~ s/^\s+|\s+$//g;
+    $update_expr =~ s/^\s+|\s+$//g;
+
+    return {
+        generator   => $generator,
+        var_name    => $var_name,
+        init_expr   => $init_expr,
+        update_expr => $update_expr,
+    };
+}
+
+sub _resolve_variable_reference {
+    my ($self, $name) = @_;
+
+    return (undef, 0) unless defined $self && ref($self) eq 'JQ::Lite';
+    return (undef, 0) unless defined $name && length $name;
+
+    my $vars = $self->{_vars} || {};
+    return (undef, 0) unless exists $vars->{$name};
+
+    return ($vars->{$name}, 1);
+}
+
+sub _evaluate_variable_reference {
+    my ($self, $name, $suffix) = @_;
+
+    my ($value, $exists) = _resolve_variable_reference($self, $name);
+    return () unless $exists;
+
+    return ($value) if !defined $suffix || $suffix !~ /\S/;
+
+    my $expr = $suffix;
+    $expr =~ s/^\s+//;
+
+    my ($values, $ok) = _evaluate_value_expression($self, $value, $expr);
+    return $ok ? @$values : ();
+}
+
+sub _evaluate_value_expression {
+    my ($self, $context, $expr) = @_;
+
+    return ([], 0) unless defined $expr;
+
+    my $copy = _strip_wrapping_parens($expr);
+    $copy =~ s/^\s+|\s+$//g;
+    return ([], 0) if $copy eq '';
+
+    if ($copy =~ /^\$(\w+)(.*)$/s) {
+        my ($var, $suffix) = ($1, $2 // '');
+        my @values = _evaluate_variable_reference($self, $var, $suffix);
+        return (\@values, 1);
+    }
+
+    if ($copy =~ /^\[(.*)$/s) {
+        $copy = ".$copy";
+    }
+
+    if ($copy eq '.') {
+        return ([ $context ], 1);
+    }
+
+    if ($copy =~ /^\.(.*)$/s) {
+        my $path = $1;
+        $path =~ s/^\s+|\s+$//g;
+        return ([], 0) if $path =~ /\s/;
+        return ([], 0) if $path =~ /[+\-*\/]/;
+        return ([], 1) unless defined $context;
+        return ([], 1) if $path eq '';
+
+        my @values = _traverse($context, $path);
+        return (\@values, 1);
+    }
+
+    my $decoded = eval { decode_json($copy) };
+    if (!$@) {
+        return ([ $decoded ], 1);
+    }
+
+    if ($copy =~ /^'(.*)'$/s) {
+        my $text = $1;
+        $text =~ s/\\'/'/g;
+        return ([ $text ], 1);
+    }
+
+    return ([], 0);
+}
+
+sub _apply_addition {
+    my ($left, $right) = @_;
+
+    return $right if !defined $left;
+    return $left  if !defined $right;
+
+    if (ref($left) eq 'JSON::PP::Boolean') {
+        $left = $left ? 1 : 0;
+    }
+
+    if (ref($right) eq 'JSON::PP::Boolean') {
+        $right = $right ? 1 : 0;
+    }
+
+    if (!ref $left && !ref $right) {
+        if (looks_like_number($left) && looks_like_number($right)) {
+            return 0 + $left + $right;
+        }
+        $left  = '' unless defined $left;
+        $right = '' unless defined $right;
+        return "$left$right";
+    }
+
+    if (ref $left eq 'ARRAY' && ref $right eq 'ARRAY') {
+        return [ @$left, @$right ];
+    }
+
+    if (ref $left eq 'ARRAY') {
+        return [ @$left, $right ];
+    }
+
+    if (ref $right eq 'ARRAY') {
+        return [ $left, @$right ];
+    }
+
+    if (ref $left eq 'HASH' && ref $right eq 'HASH') {
+        return { %$left, %$right };
+    }
+
+    return $right if !ref $left && ref $right eq 'HASH';
+    return $left  if ref $left eq 'HASH' && !ref $right;
+
+    return undef;
+}
+
 sub _looks_like_assignment {
     my ($expr) = @_;
 
@@ -1408,8 +1693,21 @@ sub _traverse {
         for my $item (@stack) {
             next if !defined $item;
 
+            # direct index access: [index]
+            if ($step =~ /^\[(\d+)\]$/) {
+                my $index = $1;
+                if (ref $item eq 'ARRAY' && defined $item->[$index]) {
+                    push @next_stack, $item->[$index];
+                }
+            }
+            # array expansion without key: []
+            elsif ($step eq '[]') {
+                if (ref $item eq 'ARRAY') {
+                    push @next_stack, @$item;
+                }
+            }
             # index access: key[index]
-            if ($step =~ /^(.*?)\[(\d+)\]$/) {
+            elsif ($step =~ /^(.*?)\[(\d+)\]$/) {
                 my ($key, $index) = ($1, $2);
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my $val = $item->{$key};
