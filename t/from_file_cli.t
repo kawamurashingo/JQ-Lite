@@ -4,13 +4,16 @@ use Test::More;
 use IPC::Open3;
 use Symbol qw(gensym);
 use File::Temp qw(tempfile);
+use File::Spec;
+use FindBin;
 
 my ($fh, $filter_path) = tempfile();
 print {$fh} ".users[]\n";
 close $fh;
 
 my $err = gensym;
-my $pid = open3(my $in, my $out, $err, $^X, 'bin/jq-lite', '-c', '-f', $filter_path, 'users.json');
+my $users_file = File::Spec->catfile($FindBin::Bin, '..', 'users.json');
+my $pid = open3(my $in, my $out, $err, $^X, 'bin/jq-lite', '-c', '-f', $filter_path, $users_file);
 close $in;
 
 my $stdout = do { local $/; <$out> } // '';
