@@ -1,3 +1,12 @@
+1.15   2025-10-18
+    [Feature]
+    - Implement jq-compatible addition handling so `+` performs numeric sums
+      and string concatenations across filters and value expressions.
+
+    [Tests]
+    - Extend arithmetic coverage to assert array mapping and concatenation
+      queries that rely on addition semantics.
+
 1.14   2025-10-18
     [Fixes]
     - Expand jq-style object constructor shorthand (e.g. `{name, age}`) to
