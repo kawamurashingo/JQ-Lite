@@ -148,6 +148,22 @@ Returns a list of matched results. Each result is a Perl scalar
 
 =item * foreach expr as $var (init; update [; extract]) (stream results while folding values)
 
+=item * if CONDITION then FILTER [elif CONDITION then FILTER ...] [else FILTER] end (conditional branching)
+
+Evaluates jq-style conditional expressions. Conditions are treated as filters
+executed against the current input; the first branch whose condition produces a
+truthy result has its filter evaluated and emitted. Optional C<elif> clauses
+cascade additional tests, and the optional C<else> filter runs only when no
+prior branch matched. When no C<else> clause is supplied and every condition is
+falsey the expression yields no output.
+
+Example:
+
+  if .score >= 90 then "A"
+  elif .score >= 80 then "B"
+  else "C"
+  end
+
 =item * group_count(.field) (tally items by key)
 
 =item * sum_by(.field) (sum numeric values projected from each array item)

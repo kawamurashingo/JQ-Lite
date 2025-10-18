@@ -162,6 +162,216 @@ sub _split_top_level_semicolon {
     return @parts;
 }
 
+sub _matches_keyword {
+    my ($text, $pos, $keyword) = @_;
+
+    return 0 unless defined $text;
+    return 0 if $pos < 0;
+
+    my $kw_len = length $keyword;
+    return 0 if $pos + $kw_len > length $text;
+    return 0 if substr($text, $pos, $kw_len) ne $keyword;
+
+    my $before = $pos == 0 ? '' : substr($text, $pos - 1, 1);
+    my $after  = ($pos + $kw_len) < length $text ? substr($text, $pos + $kw_len, 1) : '';
+
+    return 0 if $before =~ /[A-Za-z0-9_]/;
+    return 0 if $after  =~ /[A-Za-z0-9_]/;
+
+    return 1;
+}
+
+sub _parse_if_expression {
+    my ($expr) = @_;
+
+    return undef unless defined $expr;
+
+    my $copy = _strip_wrapping_parens($expr);
+    $copy =~ s/^\s+|\s+$//g;
+    return undef unless $copy =~ /^if\b/;
+
+    my $len = length $copy;
+    my $pos = 0;
+
+    return undef unless _matches_keyword($copy, $pos, 'if');
+    $pos += 2;
+
+    my $depth      = 1;
+    my $state      = 'condition';
+    my $current    = '';
+    my $condition;
+    my @branches;
+    my $else_expr;
+
+    my $in_single = 0;
+    my $in_double = 0;
+    my $escape    = 0;
+
+    while ($pos < $len) {
+        my $char = substr($copy, $pos, 1);
+
+        if ($escape) {
+            $current .= $char;
+            $escape = 0;
+            $pos++;
+            next;
+        }
+
+        if ($in_single) {
+            if ($char eq '\\') {
+                $escape = 1;
+            }
+            elsif ($char eq "'") {
+                $in_single = 0;
+            }
+            $current .= $char;
+            $pos++;
+            next;
+        }
+
+        if ($in_double) {
+            if ($char eq '\\') {
+                $escape = 1;
+            }
+            elsif ($char eq '"') {
+                $in_double = 0;
+            }
+            $current .= $char;
+            $pos++;
+            next;
+        }
+
+        if ($char eq "'") {
+            $in_single = 1;
+            $current  .= $char;
+            $pos++;
+            next;
+        }
+
+        if ($char eq '"') {
+            $in_double = 1;
+            $current  .= $char;
+            $pos++;
+            next;
+        }
+
+        if (_matches_keyword($copy, $pos, 'if')) {
+            $depth++;
+            $current .= 'if';
+            $pos += 2;
+            next;
+        }
+
+        if (_matches_keyword($copy, $pos, 'then') && $depth == 1 && $state eq 'condition') {
+            $condition = $current;
+            $condition =~ s/^\s+|\s+$//g;
+            return undef unless defined $condition && length $condition;
+
+            $current = '';
+            $state   = 'then';
+            $pos    += 4;
+            next;
+        }
+
+        if (_matches_keyword($copy, $pos, 'elif') && $depth == 1 && $state eq 'then') {
+            my $then_expr = $current;
+            $then_expr =~ s/^\s+|\s+$//g;
+            $then_expr = '.' if !length $then_expr;
+
+            return undef unless defined $condition;
+            push @branches, { condition => $condition, then => $then_expr };
+
+            $condition = undef;
+            $current   = '';
+            $state     = 'condition';
+            $pos      += 4;
+            next;
+        }
+
+        if (_matches_keyword($copy, $pos, 'else') && $depth == 1 && $state eq 'then') {
+            my $then_expr = $current;
+            $then_expr =~ s/^\s+|\s+$//g;
+            $then_expr = '.' if !length $then_expr;
+
+            return undef unless defined $condition;
+            push @branches, { condition => $condition, then => $then_expr };
+
+            $condition = undef;
+            $current   = '';
+            $state     = 'else';
+            $pos      += 4;
+            next;
+        }
+
+        if (_matches_keyword($copy, $pos, 'end')) {
+            if ($depth == 1) {
+                if ($state eq 'then') {
+                    my $then_expr = $current;
+                    $then_expr =~ s/^\s+|\s+$//g;
+                    $then_expr = '.' if !length $then_expr;
+
+                    return undef unless defined $condition;
+                    push @branches, { condition => $condition, then => $then_expr };
+                }
+                elsif ($state eq 'else') {
+                    my $else = $current;
+                    $else =~ s/^\s+|\s+$//g;
+                    $else_expr = length $else ? $else : undef;
+                }
+                elsif ($state eq 'condition') {
+                    return undef;
+                }
+
+                $depth = 0;
+                $pos  += 3;
+                $current = '';
+                $state   = 'done';
+                last;
+            }
+            else {
+                $depth--;
+                $current .= 'end';
+                $pos     += 3;
+                next;
+            }
+        }
+
+        if (_matches_keyword($copy, $pos, 'then') && $depth > 1) {
+            $current .= 'then';
+            $pos     += 4;
+            next;
+        }
+
+        if (_matches_keyword($copy, $pos, 'elif') && $depth > 1) {
+            $current .= 'elif';
+            $pos     += 4;
+            next;
+        }
+
+        if (_matches_keyword($copy, $pos, 'else') && $depth > 1) {
+            $current .= 'else';
+            $pos     += 4;
+            next;
+        }
+
+        $current .= $char;
+        $pos++;
+    }
+
+    return undef unless @branches;
+
+    if ($pos < $len) {
+        my $remaining = substr($copy, $pos);
+        $remaining =~ s/^\s+//;
+        return undef if $remaining =~ /\S/;
+    }
+
+    return {
+        branches => \@branches,
+        else     => $else_expr,
+    };
+}
+
 sub _parse_reduce_expression {
     my ($expr) = @_;
 

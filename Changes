@@ -1,3 +1,17 @@
+1.10   2025-10-18
+    [Feature]
+    - Added jq-style `if ... then ... elif ... else ... end` conditional
+      expressions so queries can branch using familiar jq syntax, including
+      cascading elif clauses and optional fallbacks.
+
+    [Tests]
+    - Added regression coverage for if/elif/else handling, including nested
+      branches and expressions without an else clause.
+
+    [Docs]
+    - Documented conditional expressions across README, module POD, and the CLI
+      help output.
+
 1.09   2025-10-18
     - Promote the release version to 1.09 after adding jq-compatible
       foreach folding and test() helper support.
