@@ -555,7 +555,6 @@ sub _apply_setpath {
 
     for my $path (@paths) {
         next unless ref $path eq 'ARRAY';
-        next unless @$path;
         $result = _set_value_at_path($result, [@$path], $replacement);
     }
 
