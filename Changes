@@ -1,3 +1,15 @@
+1.11   2025-10-19
+    [Feature]
+    - Added jq-compatible `--from-file` (`-f`) option so filters can be read
+      from standalone jq scripts instead of the command line.
+
+    [Tests]
+    - Added CLI regression coverage ensuring queries loaded from files execute
+      successfully and honor `--null-input` constraints.
+
+    [Docs]
+    - Documented the new `--from-file` flag across README and CLI usage text.
+
 1.10   2025-10-18
     [Feature]
     - Added jq-style `if ... then ... elif ... else ... end` conditional
