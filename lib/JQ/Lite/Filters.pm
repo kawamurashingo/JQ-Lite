@@ -1419,6 +1419,16 @@ sub apply {
             return 1;
         }
 
+        # support for setpath(path_expr; value_expr)
+        if ($part =~ /^setpath\((.*)\)$/) {
+            my $args_raw = defined $1 ? $1 : '';
+            my ($paths_expr, $value_expr) = JQ::Lite::Util::_split_semicolon_arguments($args_raw, 2);
+
+            @next_results = map { JQ::Lite::Util::_apply_setpath($self, $_, $paths_expr, $value_expr) } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for path()
         if ($part eq 'path') {
             @next_results = map {

@@ -2,6 +2,8 @@
     [Features]
     - Added jq-compatible --null-input (-n) option to jq-lite so filters can
       run against null without providing input data.
+    - Implemented jq's setpath(path; value) helper to create/update nested
+      structures using literal paths or filter-generated path arrays.
 
     [Refactor]
     - Refactored JQ::Lite to delegate query parsing and filter execution to
