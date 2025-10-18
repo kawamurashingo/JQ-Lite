@@ -1,4 +1,4 @@
-1.11   2025-10-19
+1.11   2025-10-18
     [Feature]
     - Added jq-compatible `--from-file` (`-f`) option so filters can be read
       from standalone jq scripts instead of the command line.
@@ -735,6 +735,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
