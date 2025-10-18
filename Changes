@@ -1,3 +1,12 @@
+1.13   2025-10-18
+    [Feature]
+    - Promote the release to 1.13 to ship jq-style object constructors so
+      filters like `{ "name": .name }` emit hashes for each pipeline item.
+
+    [Tests]
+    - Include regression coverage for object constructor queries to lock in the
+      new behavior.
+
 1.12   2025-10-18
     [Feature]
     - Added jq-compatible array constructors so filters like `[.name, .age]`

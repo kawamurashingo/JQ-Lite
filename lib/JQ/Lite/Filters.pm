@@ -91,6 +91,56 @@ sub apply {
             return 1;
         }
 
+        # support for object constructors {key: expr, ...}
+        if ($normalized =~ /^\{(.*)\}$/s) {
+            my $inner = $1;
+            my @pairs = ();
+            if ($inner =~ /\S/) {
+                @pairs = JQ::Lite::Util::_split_top_level_commas($inner);
+            }
+
+            for my $item (@results) {
+                my %built;
+
+                for my $pair (@pairs) {
+                    next if !defined $pair;
+
+                    my ($raw_key, $raw_expr) = JQ::Lite::Util::_split_top_level_colon($pair);
+                    next if !defined $raw_key;
+
+                    my $key = JQ::Lite::Util::_interpret_object_key($raw_key);
+                    next if !defined $key;
+
+                    my $value_expr = defined $raw_expr ? $raw_expr : '';
+                    $value_expr =~ s/^\s+|\s+$//g;
+                    next if $value_expr eq '';
+
+                    my $value;
+
+                    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $value_expr);
+                    if ($ok) {
+                        $value = @$values ? $values->[0] : undef;
+                    }
+                    else {
+                        my $json = encode_json($item);
+                        my @outputs = $self->run_query($json, $value_expr);
+                        $value = @outputs ? $outputs[0] : undef;
+                    }
+
+                    $built{$key} = $value;
+                }
+
+                push @next_results, \%built;
+            }
+
+            if (!@pairs) {
+                @next_results = map { {} } @results;
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         if (my $foreach = JQ::Lite::Util::_parse_foreach_expression($normalized)) {
             @next_results = ();
 
