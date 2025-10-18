@@ -3,48 +3,47 @@ use warnings;
 use Test::More;
 use IPC::Open3;
 use Symbol qw(gensym);
-use File::Temp qw(tempfile);
+use File::Temp qw(tempfile tempdir);
 use File::Spec;
+use Cwd qw(abs_path);
+
+# 仮想ワークディレクトリ（掃除はTempのライフサイクル任せ）
+my $tmpdir = tempdir(CLEANUP => 1);
+
+# フィルタファイル
+my ($fh_filter, $filter_path) = tempfile(DIR => $tmpdir, UNLINK => 1);
+print {$fh_filter} ".users[]\n";
+close $fh_filter;
+
+# 入力JSON（テストが期待する内容をここに書く）
+my ($fh_users, $users_path) = tempfile(DIR => $tmpdir, UNLINK => 1);
+print {$fh_users} <<'JSON';
+{
+  "users": [
+    {"name":"Alice","age":30,"profile":{"active":true,"country":"US"}},
+    {"name":"Bob","age":25,"profile":{"active":false,"country":"JP"}}
+  ]
+}
+JSON
+close $fh_users;
+
+# 実行ファイルは絶対パスで
 use FindBin;
+my $exe = abs_path(File::Spec->catfile($FindBin::Bin, '..', 'bin', 'jq-lite'));
 
-# Create a temporary filter file
-my ($fh, $filter_path) = tempfile();
-print {$fh} ".users[]\n";
-close $fh;
-
-# Prepare stderr handle
 my $err = gensym;
-
-# Path to the users.json test fixture (relative to test directory)
-my $users_file = File::Spec->catfile($FindBin::Bin, '..', 'users.json');
-
-# Execute jq-lite using Perl's open3 to capture stdout and stderr
-my $pid = open3(my $in, my $out, $err, $^X, 'bin/jq-lite', '-c', '-f', $filter_path, $users_file);
+my $pid = open3(my $in, my $out, $err,
+    $^X, $exe, '-c', '--from-file', $filter_path, $users_path);
 close $in;
 
-# Read stdout and stderr
 my $stdout = do { local $/; <$out> } // '';
 my $stderr = do { local $/; <$err> } // '';
-
-# Wait for the jq-lite process to finish
 waitpid($pid, 0);
-
-# Verify output content
-is(
-    $stdout,
-    "{\"age\":30,\"name\":\"Alice\",\"profile\":{\"active\":true,\"country\":\"US\"}}\n"
-    . "{\"age\":25,\"name\":\"Bob\",\"profile\":{\"active\":false,\"country\":\"JP\"}}\n",
-    'filters loaded from files emit expected JSON'
-);
-
-# Ensure there are no warnings on stderr
-like($stderr, qr/^\s*\z/, 'no warnings emitted when using --from-file');
-
-# Verify exit code is 0
 my $exit_code = $? >> 8;
-is($exit_code, 0, 'process exits successfully with --from-file');
 
-# Clean up temporary filter file
-unlink $filter_path;
+is($stdout, qq({"age":30,"name":"Alice","profile":{"active":true,"country":"US"}}\n{"age":25,"name":"Bob","profile":{"active":false,"country":"JP"}}\n),
+   'filters loaded from files emit expected JSON');
+like($stderr, qr/^\s*\z/, 'no warnings emitted when using --from-file');
+is($exit_code, 0, 'process exits successfully with --from-file');
 
 done_testing;
