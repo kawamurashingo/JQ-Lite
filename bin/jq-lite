@@ -21,6 +21,9 @@ my $color_output    = 0;
 my $null_input      = 0;
 my $slurp_input     = 0;
 my $query_file;
+my $force_yaml      = 0;
+my $yaml_module;
+my $yaml_loader;
 
 # ---------- Help text ----------
 my $USAGE = <<'USAGE';
@@ -39,6 +42,7 @@ Options:
   -f, --from-file FILE Read jq filter from FILE instead of the command line
   -n, --null-input     Use null as input instead of reading JSON data
   -s, --slurp          Read entire input stream as an array of JSON values
+  --yaml               Parse input as YAML (auto-detected for .yml/.yaml files)
   -h, --help           Show this help message
   --help-functions     Show list of all supported functions
   -v, --version        Show version information
@@ -65,6 +69,7 @@ GetOptions(
     'debug'           => \$decoder_debug,
     'null-input|n'    => \$null_input,
     'slurp|s'         => \$slurp_input,
+    'yaml'            => \$force_yaml,
     'help|h'          => \$want_help,
     'help-functions'  => \$help_functions,
     'version|v'       => \$want_version,
@@ -203,6 +208,7 @@ warn "[DEBUG] Using $decoder_module\n" if $decoder_debug;
 
 # ---------- Read JSON input ----------
 my $json_text;
+my $use_yaml = 0;
 if ($null_input) {
     $json_text = $slurp_input ? '[]' : 'null';
 }
@@ -211,6 +217,7 @@ elsif (defined $filename) {
     local $/;
     $json_text = <$fh>;
     close $fh;
+    $use_yaml = 1 if !$force_yaml && $filename =~ /\.ya?ml\z/i;
 }
 else {
     # When no file is given, if STDIN is a TTY, error out to avoid blocking
@@ -219,6 +226,13 @@ else {
     }
     local $/;
     $json_text = <STDIN>;
+}
+
+$use_yaml = 1 if $force_yaml && !$null_input;
+
+if ($use_yaml) {
+    $json_text = convert_yaml_to_json($json_text);
+    warn "[DEBUG] Parsing YAML with $yaml_module\n" if $decoder_debug && $yaml_module;
 }
 
 if ($slurp_input && !$null_input) {
@@ -249,6 +263,63 @@ if ($slurp_input && !$null_input) {
 
 # ---------- JQ::Lite core ----------
 my $jq = JQ::Lite->new(raw => $raw_output);
+
+sub convert_yaml_to_json {
+    my ($text) = @_;
+    $text = '' unless defined $text;
+
+    ($yaml_loader, $yaml_module) = _build_yaml_loader() unless $yaml_loader;
+
+    my @docs = eval { $yaml_loader->($text) };
+    if (my $err = $@) {
+        $err =~ s/\s+\z//;
+        die "[ERROR] Failed to parse YAML input: $err\n";
+    }
+
+    my $data;
+    if (!@docs) {
+        $data = undef;
+    }
+    elsif (@docs == 1) {
+        $data = $docs[0];
+    }
+    else {
+        $data = \@docs;
+    }
+
+    return JSON::PP->new->encode($data);
+}
+
+sub _build_yaml_loader {
+    if (eval { require YAML::XS; 1 }) {
+        return (sub { YAML::XS::Load($_[0]) }, 'YAML::XS');
+    }
+    elsif (eval { require YAML::PP; 1 }) {
+        require YAML::PP;
+        my $yp = YAML::PP->new(boolean => 'JSON');
+        return (sub { $yp->load_string($_[0]) }, 'YAML::PP');
+    }
+    else {
+        require CPAN::Meta::YAML;
+        return (
+            sub {
+                my $string = shift // '';
+                my $docs   = CPAN::Meta::YAML->read_string($string);
+                if (!defined $docs) {
+                    my $err;
+                    {
+                        no warnings 'once';
+                        $err = $CPAN::Meta::YAML::errstr;
+                    }
+                    $err ||= 'Unknown YAML parsing error';
+                    die $err;
+                }
+                return @{$docs};
+            },
+            'CPAN::Meta::YAML'
+        );
+    }
+}
 
 # ---------- Colorization ----------
 sub colorize_json {
