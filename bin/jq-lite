@@ -18,6 +18,7 @@ my $raw_output      = 0;
 my $compact_output  = 0;
 my $color_output    = 0;
 my $null_input      = 0;
+my $slurp_input     = 0;
 
 # ---------- Help text ----------
 my $USAGE = <<'USAGE';
@@ -33,6 +34,7 @@ Options:
   --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
   --debug              Show which JSON module is being used
   -n, --null-input     Use null as input instead of reading JSON data
+  -s, --slurp          Read entire input stream as an array of JSON values
   -h, --help           Show this help message
   --help-functions     Show list of all supported functions
   -v, --version        Show version information
@@ -58,6 +60,7 @@ GetOptions(
     'use=s'           => \$decoder_choice,
     'debug'           => \$decoder_debug,
     'null-input|n'    => \$null_input,
+    'slurp|s'         => \$slurp_input,
     'help|h'          => \$want_help,
     'help-functions'  => \$help_functions,
     'version|v'       => \$want_version,
@@ -167,7 +170,7 @@ warn "[DEBUG] Using $decoder_module\n" if $decoder_debug;
 # ---------- Read JSON input ----------
 my $json_text;
 if ($null_input) {
-    $json_text = 'null';
+    $json_text = $slurp_input ? '[]' : 'null';
 }
 elsif (defined $filename) {
     open my $fh, '<', $filename or die "Cannot open file '$filename': $!\n";
@@ -182,6 +185,32 @@ else {
     }
     local $/;
     $json_text = <STDIN>;
+}
+
+if ($slurp_input && !$null_input) {
+    my $text   = $json_text // '';
+    my $length = length $text;
+    my $offset = 0;
+    my @values;
+    my $decoder = JSON::PP->new->allow_nonref;
+
+    while (1) {
+        while ($offset < $length && substr($text, $offset, 1) =~ /\s/) {
+            $offset++;
+        }
+        last if $offset >= $length;
+
+        my ($value, $consumed);
+        my $ok = eval { ($value, $consumed) = $decoder->decode_prefix(substr($text, $offset)); 1 };
+        if (!$ok) {
+            die "[ERROR] Failed to decode JSON stream for --slurp: $@\n";
+        }
+
+        push @values, $value;
+        $offset += $consumed;
+    }
+
+    $json_text = JSON::PP->new->encode(\@values);
 }
 
 # ---------- JQ::Lite core ----------

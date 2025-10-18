@@ -1,7 +1,9 @@
-1.07   2025-10-18
+1.08   2025-10-18
     [Feature]
     - Added jq-compatible `foreach expr as $var (init; update [; extract])`
       folding with optional emitters so streaming reductions mirror jq.
+    - Added jq-compatible `--slurp` (`-s`) option to wrap every JSON document
+      from the input stream in a single array before executing filters.
 
     [Tests]
     - Added regression coverage ensuring foreach accumulates values and
