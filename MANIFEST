@@ -34,6 +34,7 @@ t/getpath.t
 t/friends.t
 t/group_by.t
 t/group_count.t
+t/setpath.t
 t/has.t
 t/has_function.t
 t/index.t

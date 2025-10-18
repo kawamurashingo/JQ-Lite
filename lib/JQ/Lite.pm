@@ -93,7 +93,7 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =item * Pipe-style query chaining using | operator
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, fromjson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, index, rindex, indices, arrays, objects, scalars
+=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, fromjson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, getpath, setpath, index, rindex, indices, arrays, objects, scalars
 
 =item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
 
@@ -287,6 +287,20 @@ Examples:
   .profile | getpath(["name"])          # => "Alice"
   .profile | getpath(["emails", 1])     # => "alice.work\@example.com"
   .profile | getpath(paths())
+
+=item * setpath(path; value)
+
+Sets or creates a value at the supplied path, following jq's C<setpath/2>
+semantics. The first argument may be a literal JSON array or any filter that
+emits path arrays. The second argument can be a literal (including JSON
+objects/arrays) or another filter evaluated against the current input. Nested
+hashes/arrays are automatically created as needed, and the original input is
+never mutated.
+
+Examples:
+
+  .settings | setpath(["flags", "beta"]; true)
+  .user     | setpath(["profile", "full_name"]; .name)
 
 =item * pick(key1, key2, ...)
 

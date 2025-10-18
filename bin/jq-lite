@@ -403,6 +403,8 @@ Supported Functions:
   path             - Return available keys for objects or indexes for arrays
   paths            - Emit every path to nested values as an array of keys/indices
   getpath(PATH)    - Retrieve the value(s) at the supplied path array or expression
+  setpath(PATH; VALUE)
+                   - Set or create value(s) at a path using literal or filter input
   is_empty         - Check if an array or object is empty
   upper()          - Convert scalars and array elements to uppercase
   lower()          - Convert scalars and array elements to lowercase

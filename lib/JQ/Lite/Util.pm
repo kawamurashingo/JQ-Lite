@@ -538,6 +538,218 @@ sub _apply_getpath {
     return @values == 1 ? $values[0] : \@values;
 }
 
+sub _apply_setpath {
+    my ($self, $value, $paths_expr, $value_expr) = @_;
+
+    return $value unless defined $value;
+
+    $paths_expr //= '';
+    $paths_expr =~ s/^\s+|\s+$//g;
+    return $value if $paths_expr eq '';
+
+    my @paths = _resolve_paths_from_expr($self, $value, $paths_expr);
+    return $value unless @paths;
+
+    my $replacement = _evaluate_setpath_value($self, $value, $value_expr);
+    my $result      = $value;
+
+    for my $path (@paths) {
+        next unless ref $path eq 'ARRAY';
+        next unless @$path;
+        $result = _set_value_at_path($result, [@$path], $replacement);
+    }
+
+    return $result;
+}
+
+sub _resolve_paths_from_expr {
+    my ($self, $value, $expr) = @_;
+
+    return () unless defined $expr;
+
+    my $clean = $expr;
+    $clean =~ s/^\s+|\s+$//g;
+    return () if $clean eq '';
+
+    my @paths;
+
+    my $decoded = eval { decode_json($clean) };
+    if (!$@ && defined $decoded) {
+        if (ref $decoded eq 'ARRAY') {
+            if (@$decoded && ref $decoded->[0] eq 'ARRAY') {
+                push @paths, map { [ @$_ ] } @$decoded;
+            }
+            else {
+                push @paths, [ @$decoded ];
+            }
+        }
+        else {
+            push @paths, [ $decoded ];
+        }
+    }
+
+    if (!@paths) {
+        my @outputs = $self->run_query(encode_json($value), $clean);
+        for my $output (@outputs) {
+            next unless defined $output;
+
+            if (ref $output eq 'ARRAY') {
+                if (@$output && ref $output->[0] eq 'ARRAY') {
+                    push @paths, grep { ref $_ eq 'ARRAY' } @$output;
+                }
+                elsif (!@$output || !ref $output->[0]) {
+                    push @paths, [ @$output ];
+                }
+            }
+            elsif (!ref $output || ref($output) eq 'JSON::PP::Boolean') {
+                push @paths, [ $output ];
+            }
+        }
+    }
+
+    return @paths;
+}
+
+sub _evaluate_setpath_value {
+    my ($self, $context, $expr) = @_;
+
+    return undef unless defined $expr;
+
+    my $clean = $expr;
+    $clean =~ s/^\s+|\s+$//g;
+    return undef if $clean eq '';
+
+    my $decoded = eval { decode_json($clean) };
+    if (!$@) {
+        return $decoded;
+    }
+
+    if ($clean =~ /^'(.*)'$/) {
+        my $text = $1;
+        $text =~ s/\\'/'/g;
+        return $text;
+    }
+
+    if ($clean =~ /^\.(.+)$/) {
+        my $path = $1;
+        my @values = _traverse($context, $path);
+        return @values ? $values[0] : undef;
+    }
+
+    my @outputs = $self->run_query(encode_json($context), $clean);
+    return @outputs ? $outputs[0] : undef;
+}
+
+sub _set_value_at_path {
+    my ($current, $path, $replacement) = @_;
+
+    return _deep_clone($replacement) unless @$path;
+
+    my ($segment, @rest) = @$path;
+
+    if (ref $current eq 'HASH') {
+        my $key = _coerce_hash_key($segment);
+        return $current unless defined $key;
+
+        my %copy = %$current;
+        if (@rest) {
+            my $next_value = exists $copy{$key} ? $copy{$key} : _guess_container_for_segment($rest[0]);
+            $copy{$key} = _set_value_at_path($next_value, \@rest, $replacement);
+        }
+        else {
+            $copy{$key} = _deep_clone($replacement);
+        }
+
+        return \%copy;
+    }
+
+    if (ref $current eq 'ARRAY') {
+        my $index = _normalize_array_index_for_set($segment, scalar @$current);
+        return $current unless defined $index;
+
+        my @copy = @$current;
+        _ensure_array_length(\@copy, $index);
+
+        if (@rest) {
+            my $next_value = defined $copy[$index] ? $copy[$index] : _guess_container_for_segment($rest[0]);
+            $copy[$index] = _set_value_at_path($next_value, \@rest, $replacement);
+        }
+        else {
+            $copy[$index] = _deep_clone($replacement);
+        }
+
+        return \@copy;
+    }
+
+    my $container = _guess_container_for_segment($segment);
+    return _set_value_at_path($container, $path, $replacement);
+}
+
+sub _coerce_hash_key {
+    my ($segment) = @_;
+
+    return undef if !defined $segment;
+
+    if (ref($segment) eq 'JSON::PP::Boolean') {
+        return $segment ? 'true' : 'false';
+    }
+
+    return undef if ref $segment;
+
+    return "$segment";
+}
+
+sub _guess_container_for_segment {
+    my ($segment) = @_;
+
+    return [] if _is_numeric_segment($segment);
+    return {};
+}
+
+sub _is_numeric_segment {
+    my ($segment) = @_;
+
+    return 0 if !defined $segment;
+
+    if (ref($segment) eq 'JSON::PP::Boolean') {
+        return 1;
+    }
+
+    return 0 if ref $segment;
+
+    return ($segment =~ /^-?\d+$/) ? 1 : 0;
+}
+
+sub _normalize_array_index_for_set {
+    my ($segment, $length) = @_;
+
+    return undef if !defined $segment;
+
+    if (ref($segment) eq 'JSON::PP::Boolean') {
+        $segment = $segment ? 1 : 0;
+    }
+
+    return undef if ref $segment;
+    return undef if $segment !~ /^-?\d+$/;
+
+    my $index = int($segment);
+    $index += $length if $index < 0;
+
+    return undef if $index < 0;
+
+    return $index;
+}
+
+sub _ensure_array_length {
+    my ($array_ref, $index) = @_;
+
+    return unless ref $array_ref eq 'ARRAY';
+
+    while (@$array_ref <= $index) {
+        push @$array_ref, undef;
+    }
+}
+
 sub _collect_paths {
     my ($value, $current_path, $paths) = @_;
 
@@ -1799,6 +2011,76 @@ sub _parse_arguments {
         $part =~ s/^\s+|\s+$//g;
         $part;
     } @parts;
+}
+
+sub _split_semicolon_arguments {
+    my ($raw, $expected) = @_;
+
+    $raw //= '';
+
+    my @segments;
+    my $current   = '';
+    my $depth     = 0;
+    my $in_single = 0;
+    my $in_double = 0;
+    my $escape    = 0;
+
+    for my $char (split //, $raw) {
+        if ($escape) {
+            $current .= $char;
+            $escape = 0;
+            next;
+        }
+
+        if ($char eq '\\' && $in_double) {
+            $current .= $char;
+            $escape = 1;
+            next;
+        }
+
+        if ($char eq '"' && !$in_single) {
+            $in_double = !$in_double;
+            $current  .= $char;
+            next;
+        }
+
+        if ($char eq "'" && !$in_double) {
+            $in_single = !$in_single;
+            $current  .= $char;
+            next;
+        }
+
+        if (!$in_single && !$in_double) {
+            if ($char =~ /[\[\{\(]/) {
+                $depth++;
+            }
+            elsif ($char =~ /[\]\}\)]/ && $depth > 0) {
+                $depth--;
+            }
+            elsif ($char eq ';' && $depth == 0) {
+                my $segment = $current;
+                $segment =~ s/^\s+|\s+$//g;
+                push @segments, length $segment ? $segment : undef;
+                $current = '';
+                next;
+            }
+        }
+
+        $current .= $char;
+    }
+
+    my $final = $current;
+    $final =~ s/^\s+|\s+$//g;
+    push @segments, length $final ? $final : undef;
+
+    if (defined $expected) {
+        $expected = int($expected);
+        if ($expected > @segments) {
+            push @segments, (undef) x ($expected - @segments);
+        }
+    }
+
+    return @segments;
 }
 
 sub _parse_range_arguments {
