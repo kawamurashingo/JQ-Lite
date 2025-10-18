@@ -1,3 +1,14 @@
+1.17   2025-10-18
+    [Feature]
+    - Add optional YAML parsing to the jq-lite CLI via a --yaml flag and
+      automatic .yml/.yaml detection.
+
+    [Docs]
+    - Document YAML workflows, module fallbacks, and examples in the README.
+
+    [Tests]
+    - Add CLI regression coverage that exercises YAML input handling.
+
 1.16   2025-10-18
     [Fixes]
     - Configure the shared JSON::PP decoder with `allow_nonref` so Perl 5.22.3

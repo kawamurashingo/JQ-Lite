@@ -31,6 +31,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ jq-compatible `--slurp` (`-s`) flag to collect every JSON document from the input stream into a single array
 - ✅ jq-compatible `--from-file` (`-f`) option to load filters from reusable script files
 - ✅ Reads from STDIN or file
+- ✅ Reads YAML via `--yaml` or `.yml`/`.yaml` files (auto-converted to JSON on the fly)
 - ✅ **Interactive mode** for exploring JSON line-by-line
 - ✅ `--use` option to select decoder (JSON::PP, JSON::XS, etc.)
 - ✅ `--debug` option to show active JSON module
@@ -271,6 +272,9 @@ cat users.json | jq-lite '.users[].name'
 jq-lite '.users[] | select(.age > 25)' users.json
 jq-lite -r '.users[].name' users.json
 jq-lite -c '.users[0]' users.json
+# YAML input (auto-detected by extension or by using --yaml)
+jq-lite '.users[].name' users.yaml
+cat users.yaml | jq-lite --yaml '.users[].name'
 ```
 
 For Windows:
@@ -284,6 +288,10 @@ jq-lite -r ".users[].name" users.json
 
 Use `-c` / `--compact-output` when you need jq-style single-line JSON that is
 easier to pipe into other tools or compare in scripts.
+
+When parsing YAML, `jq-lite` automatically selects `YAML::XS`, `YAML::PP`, or the
+core `CPAN::Meta::YAML` parser (in that order of preference) and converts the
+data to JSON before running filters.
 
 ---
 
