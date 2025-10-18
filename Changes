@@ -1,3 +1,8 @@
+1.16   2025-10-18
+    [Fixes]
+    - Configure the shared JSON::PP decoder with `allow_nonref` so Perl 5.22.3
+      environments accept scalar-only documents without dying.
+
 1.15   2025-10-18
     [Feature]
     - Implement jq-compatible addition handling so `+` performs numeric sums

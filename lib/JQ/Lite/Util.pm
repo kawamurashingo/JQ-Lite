@@ -3,11 +3,17 @@ package JQ::Lite::Util;
 use strict;
 use warnings;
 
-use JSON::PP;
+use JSON::PP qw(encode_json);
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 
-my $FROMJSON_DECODER = JSON::PP->new->allow_nonref;
+my $JSON_DECODER     = JSON::PP->new->utf8->allow_nonref;
+my $FROMJSON_DECODER = JSON::PP->new->utf8->allow_nonref;
+
+sub _decode_json {
+    my ($text) = @_;
+    return $JSON_DECODER->decode($text);
+}
 
 sub _are_brackets_balanced {
     my ($text) = @_;
@@ -769,7 +775,7 @@ sub _evaluate_value_expression {
         return ([ $json_bool ], 1);
     }
 
-    my $decoded = eval { decode_json($copy) };
+    my $decoded = eval { _decode_json($copy) };
     if (!$@) {
         return ([ $decoded ], 1);
     }
@@ -868,7 +874,7 @@ sub _parse_assignment_value {
         return { type => 'path', value => $1 };
     }
 
-    my $decoded = eval { decode_json($raw) };
+    my $decoded = eval { _decode_json($raw) };
     if (!$@) {
         return { type => 'literal', value => $decoded };
     }
@@ -1094,7 +1100,7 @@ sub _clone_for_assignment {
     return $value unless ref $value;
 
     my $json = encode_json($value);
-    return decode_json($json);
+    return _decode_json($json);
 }
 
 sub _map {
@@ -1317,7 +1323,7 @@ sub _apply_getpath {
 
     my @paths;
 
-    my $decoded = eval { decode_json($expr) };
+    my $decoded = eval { _decode_json($expr) };
     if (!$@ && defined $decoded) {
         if (ref $decoded eq 'ARRAY') {
             if (@$decoded && ref $decoded->[0] eq 'ARRAY') {
@@ -1391,7 +1397,7 @@ sub _resolve_paths_from_expr {
 
     my @paths;
 
-    my $decoded = eval { decode_json($clean) };
+    my $decoded = eval { _decode_json($clean) };
     if (!$@ && defined $decoded) {
         if (ref $decoded eq 'ARRAY') {
             if (@$decoded && ref $decoded->[0] eq 'ARRAY') {
@@ -1437,7 +1443,7 @@ sub _evaluate_setpath_value {
     $clean =~ s/^\s+|\s+$//g;
     return undef if $clean eq '';
 
-    my $decoded = eval { decode_json($clean) };
+    my $decoded = eval { _decode_json($clean) };
     if (!$@) {
         return $decoded;
     }
@@ -2020,7 +2026,7 @@ sub _apply_delpaths {
     return $value if $filter eq '';
 
     my @paths;
-    my $decoded_paths = eval { decode_json($filter) };
+    my $decoded_paths = eval { _decode_json($filter) };
     if (!$@ && defined $decoded_paths) {
         if (ref $decoded_paths eq 'ARRAY') {
             if (@$decoded_paths && ref $decoded_paths->[0] eq 'ARRAY') {
@@ -2074,7 +2080,7 @@ sub _deep_clone {
     return $value if !ref $value || ref($value) eq 'JSON::PP::Boolean';
 
     my $json = encode_json($value);
-    return decode_json($json);
+    return _decode_json($json);
 }
 
 sub _delete_path_inplace {
@@ -2196,7 +2202,7 @@ sub _evaluate_coalesce_operand {
         return ($context);
     }
 
-    my $decoded = eval { decode_json($copy) };
+    my $decoded = eval { _decode_json($copy) };
     if (!$@) {
         return ($decoded);
     }
@@ -2690,7 +2696,7 @@ sub _parse_string_argument {
 
     return '' if !defined $raw;
 
-    my $parsed = eval { decode_json($raw) };
+    my $parsed = eval { _decode_json($raw) };
     if (!$@) {
         $parsed = '' if !defined $parsed;
         return $parsed;
@@ -2883,7 +2889,7 @@ sub _parse_arguments {
 
     return () unless defined $raw;
 
-    my $parsed = eval { decode_json("[$raw]") };
+    my $parsed = eval { _decode_json("[$raw]") };
     if (!$@ && ref $parsed eq 'ARRAY') {
         return @$parsed;
     }

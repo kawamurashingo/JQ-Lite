@@ -9,6 +9,7 @@ use Term::ANSIColor;
 use Getopt::Long qw(GetOptions :config no_ignore_case bundling no_pass_through);
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
+use JQ::Lite::Util ();
 
 my $decoder;
 my $decoder_module;
@@ -171,7 +172,7 @@ if ($decoder_choice) {
     }
     elsif ($decoder_choice eq 'JSON::PP') {
         require JSON::PP;
-        $decoder = \&JSON::PP::decode_json;
+        $decoder = \&JQ::Lite::Util::_decode_json;
         $decoder_module = 'JSON::PP';
     }
     else {
@@ -193,7 +194,7 @@ else {
     }
     else {
         require JSON::PP;
-        $decoder = \&JSON::PP::decode_json;
+        $decoder = \&JQ::Lite::Util::_decode_json;
         $decoder_module = 'JSON::PP';
     }
 }
@@ -225,7 +226,7 @@ if ($slurp_input && !$null_input) {
     my $length = length $text;
     my $offset = 0;
     my @values;
-    my $decoder = JSON::PP->new->allow_nonref;
+    my $decoder = JSON::PP->new->utf8->allow_nonref;
 
     while (1) {
         while ($offset < $length && substr($text, $offset, 1) =~ /\s/) {
@@ -301,7 +302,7 @@ if (!defined $query) {
         1;
     };
     if (!$ok || !@last_results) {
-        my $data = eval { JSON::PP->new->decode($json_text) };
+        my $data = eval { JQ::Lite::Util::_decode_json($json_text) };
         if ($data) {
             @last_results = ($data);
         }
