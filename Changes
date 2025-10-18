@@ -1,3 +1,15 @@
+1.14   2025-10-18
+    [Fixes]
+    - Expand jq-style object constructor shorthand (e.g. `{name, age}`) to
+      explicit key/value pairs so map projections emit the expected hashes.
+    - Ensure `map(...)` evaluates its filter against each array element,
+      allowing comparisons like `(.age >= 20)` to yield booleans instead of
+      null.
+
+    [Tests]
+    - Extend the map regression coverage to lock in shorthand object
+      projections and boolean evaluation on each element.
+
 1.13   2025-10-18
     [Feature]
     - Promote the release to 1.13 to ship jq-style object constructors so
