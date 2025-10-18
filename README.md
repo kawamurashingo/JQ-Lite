@@ -24,6 +24,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Pipe-style queries with `.[]` (e.g. `.[] | select(...) | .name`)
 - ✅ Command-line interface: `jq-lite`
 - ✅ jq-compatible `--null-input` (`-n`) flag to start from `null` without providing JSON input
+- ✅ jq-compatible `--slurp` (`-s`) flag to collect every JSON document from the input stream into a single array
 - ✅ Reads from STDIN or file
 - ✅ **Interactive mode** for exploring JSON line-by-line
 - ✅ `--use` option to select decoder (JSON::PP, JSON::XS, etc.)
