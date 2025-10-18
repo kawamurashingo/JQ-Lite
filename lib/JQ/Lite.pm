@@ -146,6 +146,8 @@ Returns a list of matched results. Each result is a Perl scalar
 
 =item * reduce expr as $var (init; update) (accumulate values with lexical bindings)
 
+=item * foreach expr as $var (init; update [; extract]) (stream results while folding values)
+
 =item * group_count(.field) (tally items by key)
 
 =item * sum_by(.field) (sum numeric values projected from each array item)

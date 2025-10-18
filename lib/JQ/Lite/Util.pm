@@ -83,7 +83,7 @@ sub _strip_wrapping_parens {
     return $copy;
 }
 
-sub _split_top_level_semicolon {
+sub _split_top_level_semicolons {
     my ($text) = @_;
 
     return unless defined $text;
@@ -98,6 +98,8 @@ sub _split_top_level_semicolon {
     my @stack;
     my $string;
     my $escape = 0;
+    my @parts;
+    my $start = 0;
 
     for (my $i = 0; $i < length $text; $i++) {
         my $char = substr($text, $i, 1);
@@ -140,13 +142,24 @@ sub _split_top_level_semicolon {
         next unless $char eq ';';
 
         if (!@stack) {
-            my $left  = substr($text, 0, $i);
-            my $right = substr($text, $i + 1);
-            return ($left, $right);
+            my $chunk = substr($text, $start, $i - $start);
+            push @parts, $chunk;
+            $start = $i + 1;
         }
     }
 
-    return;
+    push @parts, substr($text, $start) if $start <= length $text;
+
+    return @parts;
+}
+
+sub _split_top_level_semicolon {
+    my ($text) = @_;
+
+    my @parts = _split_top_level_semicolons($text);
+    return unless @parts == 2;
+
+    return @parts;
 }
 
 sub _parse_reduce_expression {
@@ -158,8 +171,9 @@ sub _parse_reduce_expression {
     return undef unless $copy =~ /^reduce\s+(.+?)\s+as\s+\$(\w+)\s*\((.*)\)$/s;
 
     my ($generator, $var_name, $body) = ($1, $2, $3);
-    my ($init_expr, $update_expr) = _split_top_level_semicolon($body);
-    return undef unless defined $init_expr && defined $update_expr;
+    my @parts = _split_top_level_semicolons($body);
+    return undef unless @parts == 2;
+    my ($init_expr, $update_expr) = @parts;
 
     $generator   =~ s/^\s+|\s+$//g;
     $init_expr   =~ s/^\s+|\s+$//g;
@@ -170,6 +184,38 @@ sub _parse_reduce_expression {
         var_name    => $var_name,
         init_expr   => $init_expr,
         update_expr => $update_expr,
+    };
+}
+
+sub _parse_foreach_expression {
+    my ($expr) = @_;
+
+    return undef unless defined $expr;
+
+    my $copy = _strip_wrapping_parens($expr);
+    return undef unless $copy =~ /^foreach\s+(.+?)\s+as\s+\$(\w+)\s*\((.*)\)$/s;
+
+    my ($generator, $var_name, $body) = ($1, $2, $3);
+    my @parts = _split_top_level_semicolons($body);
+    return undef unless @parts >= 2 && @parts <= 3;
+
+    my ($init_expr, $update_expr, $extract_expr) = @parts;
+
+    for ($generator, $init_expr, $update_expr) {
+        next unless defined $_;
+        s/^\s+|\s+$//g;
+    }
+
+    if (defined $extract_expr) {
+        $extract_expr =~ s/^\s+|\s+$//g;
+    }
+
+    return {
+        generator    => $generator,
+        var_name     => $var_name,
+        init_expr    => $init_expr,
+        update_expr  => $update_expr,
+        extract_expr => $extract_expr,
     };
 }
 

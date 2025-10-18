@@ -1,3 +1,15 @@
+1.07   2025-10-18
+    [Feature]
+    - Added jq-compatible `foreach expr as $var (init; update [; extract])`
+      folding with optional emitters so streaming reductions mirror jq.
+
+    [Tests]
+    - Added regression coverage ensuring foreach accumulates values and
+      supports extract expressions referencing the iteration variable.
+
+    [Docs]
+    - Documented foreach across README, module POD, and CLI helper listings.
+
 1.06   2025-10-18
     - Added jq-compatible `--compact-output` (`-c`) flag to emit single-line
       JSON results from the jq-lite CLI.
