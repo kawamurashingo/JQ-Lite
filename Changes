@@ -1,16 +1,25 @@
+1.09   2025-10-18
+    - Promote the release version to 1.09 after adding jq-compatible
+      foreach folding and test() helper support.
+
 1.08   2025-10-18
     [Feature]
     - Added jq-compatible `foreach expr as $var (init; update [; extract])`
       folding with optional emitters so streaming reductions mirror jq.
     - Added jq-compatible `--slurp` (`-s`) option to wrap every JSON document
       from the input stream in a single array before executing filters.
+    - Added jq's `test(pattern[, flags])` helper for regex matching with
+      optional `imxs` modifiers.
 
     [Tests]
     - Added regression coverage ensuring foreach accumulates values and
       supports extract expressions referencing the iteration variable.
+    - Added tests covering regex matches, flag handling, and array mapping via
+      the new test() helper.
 
     [Docs]
     - Documented foreach across README, module POD, and CLI helper listings.
+    - Documented test() in README, POD, and CLI help output.
 
 1.06   2025-10-18
     - Added jq-compatible `--compact-output` (`-c`) flag to emit single-line

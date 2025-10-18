@@ -1377,6 +1377,17 @@ sub apply {
             return 1;
         }
 
+        # support for test("pattern"[, "flags"])
+        if ($part =~ /^test\((.+)\)$/) {
+            my ($pattern_expr, $flags_expr) = JQ::Lite::Util::_split_semicolon_arguments($1, 2);
+            my $pattern = defined $pattern_expr ? JQ::Lite::Util::_parse_string_argument($pattern_expr) : '';
+            my $flags   = defined $flags_expr   ? JQ::Lite::Util::_parse_string_argument($flags_expr)   : '';
+
+            @next_results = map { JQ::Lite::Util::_apply_test($_, $pattern, $flags) } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for startswith("prefix")
         if ($part =~ /^startswith\((.+)\)$/) {
             my $needle = JQ::Lite::Util::_parse_string_argument($1);
