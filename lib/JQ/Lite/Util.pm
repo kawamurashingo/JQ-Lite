@@ -223,6 +223,83 @@ sub _split_top_level_commas {
     return @parts;
 }
 
+sub _split_top_level_operator {
+    my ($text, $operator) = @_;
+
+    return unless defined $text && defined $operator && length($operator) == 1;
+
+    my %pairs = (
+        '(' => ')',
+        '[' => ']',
+        '{' => '}',
+    );
+    my %closing = reverse %pairs;
+
+    my @stack;
+    my $string;
+    my $escape = 0;
+
+    for (my $i = 0; $i < length $text; $i++) {
+        my $char = substr($text, $i, 1);
+
+        if (defined $string) {
+            if ($escape) {
+                $escape = 0;
+                next;
+            }
+
+            if ($char eq '\\') {
+                $escape = 1;
+                next;
+            }
+
+            if ($char eq $string) {
+                undef $string;
+            }
+
+            next;
+        }
+
+        if ($char eq "'" || $char eq '"') {
+            $string = $char;
+            next;
+        }
+
+        if (exists $pairs{$char}) {
+            push @stack, $char;
+            next;
+        }
+
+        if (exists $closing{$char}) {
+            return if !@stack;
+            my $open = pop @stack;
+            return if $pairs{$open} ne $char;
+            next;
+        }
+
+        next if $char ne $operator;
+
+        if (!@stack) {
+            if ($operator eq '+' || $operator eq '-') {
+                my $prev = $i > 0 ? substr($text, $i - 1, 1) : '';
+                my $next = $i + 1 < length $text ? substr($text, $i + 1, 1) : '';
+                if ($prev =~ /[eE]/ && $next =~ /[0-9]/) {
+                    next;
+                }
+                if ($next eq '=') {
+                    next;
+                }
+            }
+
+            my $lhs = substr($text, 0, $i);
+            my $rhs = substr($text, $i + 1);
+            return ($lhs, $rhs);
+        }
+    }
+
+    return;
+}
+
 sub _split_top_level_colon {
     my ($text) = @_;
 
@@ -648,6 +725,37 @@ sub _evaluate_value_expression {
 
             my @values = _traverse($context, $path);
             return (\@values, 1);
+        }
+    }
+
+    my ($lhs_expr, $rhs_expr) = _split_top_level_operator($copy, '+');
+    if (defined $lhs_expr && defined $rhs_expr) {
+        $lhs_expr =~ s/^\s+|\s+$//g;
+        $rhs_expr =~ s/^\s+|\s+$//g;
+
+        if (length $lhs_expr && length $rhs_expr) {
+            my ($lhs_values, $lhs_ok) = _evaluate_value_expression($self, $context, $lhs_expr);
+            my $lhs;
+            if ($lhs_ok) {
+                $lhs = @$lhs_values ? $lhs_values->[0] : undef;
+            }
+            else {
+                my @outputs = $self->run_query(encode_json($context), $lhs_expr);
+                $lhs = @outputs ? $outputs[0] : undef;
+            }
+
+            my ($rhs_values, $rhs_ok) = _evaluate_value_expression($self, $context, $rhs_expr);
+            my $rhs;
+            if ($rhs_ok) {
+                $rhs = @$rhs_values ? $rhs_values->[0] : undef;
+            }
+            else {
+                my @outputs = $self->run_query(encode_json($context), $rhs_expr);
+                $rhs = @outputs ? $outputs[0] : undef;
+            }
+
+            my $combined = _apply_addition($lhs, $rhs);
+            return ([ $combined ], 1);
         }
     }
 

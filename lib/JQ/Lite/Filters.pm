@@ -44,6 +44,16 @@ sub apply {
             return 1;
         }
 
+        my ($add_lhs, $add_rhs) = JQ::Lite::Util::_split_top_level_operator($normalized, '+');
+        if (defined $add_lhs && defined $add_rhs) {
+            @next_results = map {
+                my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $_, $normalized);
+                ($ok && @$values) ? $values->[0] : undef;
+            } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for array constructors [expr, expr, ...]
         if ($normalized =~ /^\[(.*)\]$/s) {
             my $inner = $1;
