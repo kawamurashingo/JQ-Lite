@@ -641,13 +641,24 @@ sub _evaluate_value_expression {
     if ($copy =~ /^\.(.*)$/s) {
         my $path = $1;
         $path =~ s/^\s+|\s+$//g;
-        return ([], 0) if $path =~ /\s/;
-        return ([], 0) if $path =~ /[+\-*\/]/;
-        return ([], 1) unless defined $context;
-        return ([], 1) if $path eq '';
 
-        my @values = _traverse($context, $path);
-        return (\@values, 1);
+        if ($path !~ /\s/ && $path !~ /[+\-*\/]/) {
+            return ([], 1) unless defined $context;
+            return ([], 1) if $path eq '';
+
+            my @values = _traverse($context, $path);
+            return (\@values, 1);
+        }
+    }
+
+    if ($copy !~ /\bthen\b/i
+        && $copy !~ /\belse\b/i
+        && $copy !~ /\bend\b/i
+        && $copy =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b|\bcontains\b|\bhas\b|\bmatch\b)/)
+    {
+        my $bool = _evaluate_condition($context, $copy);
+        my $json_bool = $bool ? JSON::PP::true : JSON::PP::false;
+        return ([ $json_bool ], 1);
     }
 
     my $decoded = eval { decode_json($copy) };
