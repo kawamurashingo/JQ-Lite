@@ -6,6 +6,7 @@ use warnings;
 use JSON::PP qw(encode_json);
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
+use JQ::Lite::Expression ();
 
 my $JSON_DECODER     = JSON::PP->new->utf8->allow_nonref;
 my $FROMJSON_DECODER = JSON::PP->new->utf8->allow_nonref;
@@ -707,6 +708,47 @@ sub _evaluate_value_expression {
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
 
+    if (_looks_like_expression($copy)) {
+        my %builtins = (
+            floor => sub {
+                my ($value) = @_;
+                my $numeric = _coerce_number_strict($value, 'floor() argument');
+                return _floor($numeric);
+            },
+            ceil => sub {
+                my ($value) = @_;
+                my $numeric = _coerce_number_strict($value, 'ceil() argument');
+                return _ceil($numeric);
+            },
+            round => sub {
+                my ($value) = @_;
+                my $numeric = _coerce_number_strict($value, 'round() argument');
+                return _round($numeric);
+            },
+            tonumber => sub {
+                my ($value) = @_;
+                return _tonumber($value);
+            },
+        );
+
+        my ($ok, $value) = JQ::Lite::Expression::evaluate(
+            expr          => $copy,
+            context       => $context,
+            resolve_path  => sub {
+                my ($ctx, $path) = @_;
+                return $ctx if !defined $path || $path eq '';
+                my @values = _traverse($ctx, $path);
+                return @values ? $values[0] : undef;
+            },
+            coerce_number => \&_coerce_number_strict,
+            builtins      => \%builtins,
+        );
+
+        if ($ok) {
+            return ([ $value ], 1);
+        }
+    }
+
     if ($copy =~ /^\$(\w+)(.*)$/s) {
         my ($var, $suffix) = ($1, $2 // '');
         my @values = _evaluate_variable_reference($self, $var, $suffix);
@@ -832,6 +874,55 @@ sub _apply_addition {
     return $left  if ref $left eq 'HASH' && !ref $right;
 
     return undef;
+}
+
+sub _coerce_number_strict {
+    my ($value, $label) = @_;
+
+    $label ||= 'value';
+
+    die "$label must be a number" unless defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    die "$label must be a number" if ref $value;
+    die "$label must be a number" unless looks_like_number($value);
+
+    return 0 + $value;
+}
+
+sub _tonumber {
+    my ($value) = @_;
+
+    return undef unless defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 1 : 0;
+    }
+
+    if (ref $value) {
+        die 'tonumber(): argument must be a string or number';
+    }
+
+    my $text = "$value";
+    $text =~ s/^\s+|\s+$//g;
+
+    die 'tonumber(): not a numeric string' unless length $text && looks_like_number($text);
+
+    return 0 + $text;
+}
+
+sub _looks_like_expression {
+    my ($expr) = @_;
+
+    return 0 unless defined $expr;
+
+    return 1 if $expr =~ /[\-*\/%]/;
+    return 1 if $expr =~ /\b(?:floor|ceil|round|tonumber)\b/;
+
+    return 0;
 }
 
 sub _looks_like_assignment {

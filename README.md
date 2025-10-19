@@ -16,6 +16,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 - ✅ Optional key access (`.nickname?`)
 - ✅ Array indexing and expansion (`.users[0]`, `.users[]`)
 - ✅ `select(...)` filters with `==`, `!=`, `<`, `>`, `and`, `or`
+- ✅ Arithmetic expressions (`+`, `-`, `*`, `/`, `%`) with parentheses and numeric helpers (`floor()`, `ceil()`, `round()`, `tonumber()`)
 - ✅ Built-in functions: `length`, `keys`, `values`, `first`, `last`, `reverse`, `sort`, `sort_desc`, `sort_by`, `min_by()`, `max_by()`, `unique`, `unique_by()`, `has`, `contains()`, `test()`, `any()`, `all()`, `not`, `map`, `map_values()`, `walk()`, `recurse()`, `group_by`, `group_count`, `sum_by()`, `avg_by()`, `median_by()`, `count`, `join`, `split()`, `explode()`, `implode()`, `substr()`, `slice()`, `replace()`, `empty()`, `median`, `mode`, `percentile()`, `variance`, `stddev`, `add`, `sum`, `product`, `upper()`, `lower()`, `titlecase()`, `abs()`, `ceil()`, `floor()`, `round()`, `trim()`, `ltrimstr()`, `rtrimstr()`, `startswith()`, `endswith()`, `chunks()`, `enumerate()`, `transpose()`, `flatten_all()`, `flatten_depth()`, `range()`, `index()`, `rindex()`, `indices()`, `clamp()`, `tostring()`, `tojson()`, `fromjson()`, `to_number()`, `pick()`, `merge_objects()`, `to_entries()`, `from_entries()`, `with_entries()`, `paths()`, `leaf_paths()`, `getpath()`, `setpath()`, `delpaths()`, `arrays`, `objects`, `scalars`
 - ✅ `reduce expr as $var (init; update)` for jq-style accumulation with lexical variable bindings
 - ✅ `foreach expr as $var (init; update [; extract])` for jq-compatible streaming accumulation with optional emitters
@@ -94,6 +95,7 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `tojson`      | Encode any value as JSON text (unreleased)                |
 | `fromjson`    | Decode JSON text into native values (arrays handled element-wise) (unreleased) |
 | `to_number`   | Convert numeric-looking strings/booleans to numbers (v0.72) |
+| `tonumber`    | Strict numeric conversion that raises on invalid input (v1.19) |
 | `trim`        | Remove leading/trailing whitespace from strings (v0.50) |
 | `ltrimstr(prefix)` | Remove `prefix` from the start of strings when present (v0.87) |
 | `rtrimstr(suffix)` | Remove `suffix` from the end of strings when present (v0.87) |
@@ -143,6 +145,27 @@ It allows you to extract, traverse, and filter JSON data using a simplified jq-l
 | `is_empty`     | True when the value is an empty array or object (v0.41)   |
 | `expr // fallback` | Use jq's alternative operator to supply defaults when the left side is null or missing (v1.02) |
 | `default(value)` | Substitute a fallback value when the result is undef/null (v0.42) |
+
+### 🔢 Arithmetic expressions
+
+`JQ::Lite` understands numeric expressions with the usual operator precedence:
+
+- `*`, `/`, and `%` bind tighter than `+` and `-`
+- Parentheses force explicit grouping
+- Unary minus (`-expr`) works for negation
+
+The math helpers `floor()`, `ceil()`, `round()`, and the strict `tonumber()` converter are available both as pipeline filters and inside expressions. Division or modulo by zero raises a descriptive error so mistakes are caught early.
+
+```bash
+# Convert bytes to mebibytes and drop the fractional part
+jq-lite '.mem.used_bytes / 1048576 | floor' stats.json
+
+# Explicit conversions before adding numbers stored as strings
+jq-lite 'tonumber(.s) + 1' sample.json
+
+# Parentheses give you full control over evaluation order
+jq-lite '(1 + 2) * 3'
+```
 
 ---
 
