@@ -223,7 +223,7 @@ Except BusyBox-only systems, lightweight distros like Alpine can run `jq-lite` s
 | Environment | jq-lite Support | Notes |
 |--------------|----------------|-------|
 | **No internet (CPAN disabled)** | ✅ Works (offline) | Copy tarball (`cpanm --look JQ::Lite`) and install manually via `perl Makefile.PL && make install`. |
-| **Proxy environment** | ✅ Supported | Example: `cpanm -v --proxy http://sysworks101z.prod.jp.local:3128 JQ::Lite`. |
+| **Proxy environment** | ✅ Supported | Example: `cpanm -v JQ::Lite`. |
 | **No root privilege** | ✅ Supported | Use `cpanm --local-lib ~/perl5 JQ::Lite` for user-space installation. |
 
 ✅ **Conclusion:**  
@@ -413,6 +413,7 @@ This module is released under the same terms as Perl itself.
 **Kawamura Shingo**  
 📧 pannakoota1@gmail.com  
 🔗 [GitHub @kawamurashingo](https://github.com/kawamurashingo/JQ-Lite)
+
 
 
 
