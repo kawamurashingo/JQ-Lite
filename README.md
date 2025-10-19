@@ -2,7 +2,6 @@
 
 # JQ::Lite
 
-[![MetaCPAN]](https://metacpan.org/pod/JQ::Lite)
 [![GitHub](https://img.shields.io/github/stars/kawamurashingo/JQ-Lite?style=social)](https://github.com/kawamurashingo/JQ-Lite)
 
 **JQ::Lite** is a lightweight, pure-Perl JSON query engine inspired by the [`jq`](https://stedolan.github.io/jq/) command-line tool.  
@@ -414,6 +413,7 @@ This module is released under the same terms as Perl itself.
 **Kawamura Shingo**  
 📧 pannakoota1@gmail.com  
 🔗 [GitHub @kawamurashingo](https://github.com/kawamurashingo/JQ-Lite)
+
 
 
 
