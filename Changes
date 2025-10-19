@@ -1,4 +1,4 @@
-1.21  2025-10-19
+1.21  2025-10-20
     [Fixes]
     - Allow `tojson` to encode scalar values by configuring JSON::PP with
       `allow_nonref`, restoring compatibility with Perl 5.22.
@@ -815,6 +815,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
