@@ -1,3 +1,7 @@
+1.18   2025-10-20
+    [Maintenance]
+    - Bump version to 1.18.
+
 1.17   2025-10-19
     [Feature]
     - Add optional YAML parsing to the jq-lite CLI via a --yaml flag and
