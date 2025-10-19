@@ -1,3 +1,10 @@
+1.19  2025-10-19
+    - Fixed Kwalitee issue: "no_files_to_be_skipped"
+    - Updated MANIFEST.SKIP to correctly preserve META.json while excluding other JSON files
+    - Ensured proper handling of .git/, .github/ and temporary files
+    - Rebuilt META.json and MANIFEST to align with CPAN packaging standards
+    - No functional code changes; this release focuses on distribution quality improvements
+
 1.18   2025-10-19
     [Maintenance]
     - Bump version to 1.18.
@@ -794,6 +801,8 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
+
 
 
 
