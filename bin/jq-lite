@@ -7,6 +7,7 @@ use IO::File;
 use FindBin;
 use Term::ANSIColor;
 use Getopt::Long qw(GetOptions :config no_ignore_case bundling no_pass_through);
+use Scalar::Util qw(blessed);
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
 use JQ::Lite::Util ();
@@ -270,21 +271,22 @@ sub convert_yaml_to_json {
 
     ($yaml_loader, $yaml_module) = _build_yaml_loader() unless $yaml_loader;
 
-    my @docs = eval { $yaml_loader->($text) };
+    my $docs_ref = eval { [ $yaml_loader->($text) ] };
     if (my $err = $@) {
         $err =~ s/\s+\z//;
         die "[ERROR] Failed to parse YAML input: $err\n";
     }
 
+    my @docs = @{$docs_ref};
     my $data;
     if (!@docs) {
         $data = undef;
     }
     elsif (@docs == 1) {
-        $data = $docs[0];
+        $data = _normalize_yaml_value($docs[0]);
     }
     else {
-        $data = \@docs;
+        $data = [ map { _normalize_yaml_value($_) } @docs ];
     }
 
     return JSON::PP->new->allow_nonref->encode($data);
@@ -292,12 +294,28 @@ sub convert_yaml_to_json {
 
 sub _build_yaml_loader {
     if (eval { require YAML::XS; 1 }) {
-        return (sub { YAML::XS::Load($_[0]) }, 'YAML::XS');
+        return (
+            sub {
+                my $string = shift // '';
+                no warnings 'once';
+                local $YAML::XS::LoadBlessed = 0;
+                my @docs = YAML::XS::Load($string);
+                return @docs;
+            },
+            'YAML::XS'
+        );
     }
     elsif (eval { require YAML::PP; 1 }) {
         require YAML::PP;
         my $yp = YAML::PP->new(boolean => 'JSON');
-        return (sub { $yp->load_string($_[0]) }, 'YAML::PP');
+        return (
+            sub {
+                my $string = shift // '';
+                my @docs   = $yp->load_string($string);
+                return @docs;
+            },
+            'YAML::PP'
+        );
     }
     else {
         require CPAN::Meta::YAML;
@@ -319,6 +337,55 @@ sub _build_yaml_loader {
             'CPAN::Meta::YAML'
         );
     }
+}
+
+sub _normalize_yaml_value {
+    my ($value) = @_;
+
+    return undef unless defined $value;
+
+    my $ref = ref $value;
+    if ($ref eq 'ARRAY') {
+        return [ map { _normalize_yaml_value($_) } @{$value} ];
+    }
+    if ($ref eq 'HASH') {
+        my %copy;
+        for my $key (keys %{$value}) {
+            $copy{$key} = _normalize_yaml_value($value->{$key});
+        }
+        return \%copy;
+    }
+    if ($ref && _is_json_boolean($value)) {
+        return $value;
+    }
+
+    return _coerce_yaml_scalar($value);
+}
+
+sub _coerce_yaml_scalar {
+    my ($value) = @_;
+
+    return undef unless defined $value;
+
+    my $lc = lc $value;
+    if ($lc eq 'null' || $lc eq '~') {
+        return undef;
+    }
+    if ($lc =~ /\A(?:true|yes|y|on)\z/) {
+        require JSON::PP;
+        return JSON::PP::true();
+    }
+    if ($lc =~ /\A(?:false|no|n|off)\z/) {
+        require JSON::PP;
+        return JSON::PP::false();
+    }
+
+    return $value;
+}
+
+sub _is_json_boolean {
+    my ($value) = @_;
+    return blessed($value) && blessed($value) eq 'JSON::PP::Boolean';
 }
 
 # ---------- Colorization ----------
