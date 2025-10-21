@@ -1,3 +1,6 @@
+1.25  2025-10-22
+    - Bump version to 1.25.
+
 1.24  2025-10-22
     [Tests]
     - Rewrite t/yaml_cli.t to remove dependency on YAML::XS.
