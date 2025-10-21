@@ -1,4 +1,11 @@
 1.25  2025-10-22
+    [Fixes]
+    - Normalize CLI YAML parsing across YAML::XS, YAML::PP, and CPAN::Meta::YAML so
+      all loaders return equivalent data structures without blessed values.
+    - Coerce YAML scalars into JSON-compatible booleans and undef values to avoid
+      backend-specific truthiness or null handling surprises during conversion.
+
+    [Maintenance]
     - Bump version to 1.25.
 
 1.24  2025-10-22
