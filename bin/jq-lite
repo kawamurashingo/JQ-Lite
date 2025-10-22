@@ -336,7 +336,7 @@ sub colorize_json {
 # ---------- Output ----------
 sub print_results {
     my @results = @_;
-    my $pp = JSON::PP->new->utf8->canonical;
+    my $pp = JSON::PP->new->utf8->allow_nonref->canonical;
     $pp->pretty unless $compact_output;
 
     for my $r (@results) {
