@@ -17,7 +17,7 @@ It allows you to query and transform JSON using jq-like syntax — without exter
 * 📊 Built-in 100+ jq functions (see [`FUNCTIONS.md`](FUNCTIONS.md))
 * 💻 Interactive mode for exploring JSON
 * 🧰 Works with JSON or YAML input
-* 🌐 Compatible with almost any Linux (even legacy or air-gapped)
+* 🌐 Compatible with almost any Linux (even legacy or air-gapped) (see [`VISION.md`](VISION.md))
 
 ---
 
@@ -119,5 +119,6 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
