@@ -21,6 +21,41 @@ It allows you to query and transform JSON using jq-like syntax — without exter
 
 ---
 
+## 💡 Why Pure Perl?
+
+Unlike the original **jq** written in C, **JQ::Lite** is implemented entirely in Perl.  
+This design choice brings several practical advantages:
+
+### 🧩 Portability
+No compilation, no shared libraries — it runs anywhere Perl runs.  
+Perfect for **restricted**, **legacy**, or **air-gapped** environments.
+
+### 🧰 Extensibility
+Add or customize jq-like functions directly in Perl.  
+Leverage CPAN modules (`LWP`, `DBI`, etc.) to integrate with APIs, databases, or filesystems.
+
+### 🧱 Integration
+Use it seamlessly inside Perl scripts:
+```perl
+use JQ::Lite;
+my $jq = JQ::Lite->new;
+say for $jq->run_query($json, '.users[].name');
+````
+
+No need to call external binaries or parse command output.
+
+### ⚙️ Lightweight Installation
+
+No XS/C libraries or `make install` required — just `cpanm JQ::Lite` or the portable installer.
+Ideal for CI/CD pipelines or user-level installations.
+
+### 🔍 Maintainability
+
+Perl’s expressive syntax allows faster development and debugging.
+Community patches and feature extensions are easier than C-level contributions.
+
+---
+
 ## ⚙️ Installation
 
 ### 🛠 From CPAN
@@ -119,6 +154,4 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
-
-
 
