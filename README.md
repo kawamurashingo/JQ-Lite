@@ -1,3 +1,4 @@
+![JQ::Lite](./images/JQ_Lite_logo_small.png)
 # 🧩 JQ::Lite — Lightweight jq in Pure Perl
 
 [![GitHub](https://img.shields.io/github/stars/kawamurashingo/JQ-Lite?style=social)](https://github.com/kawamurashingo/JQ-Lite)
@@ -118,4 +119,5 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
