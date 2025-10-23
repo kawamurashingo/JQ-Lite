@@ -1,10 +1,10 @@
-1.26  2025-10-25
+1.26  2025-10-24
   [Behavior]
   - Run select() predicates as streaming filters so inputs pass once for each
     truthy predicate result while preserving compatibility with comparison
     expressions.
 
-1.25  2025-10-24
+1.25  2025-10-23
   [CLI]
   - Fix YAML input handling in jq-lite: allow scalar (non-ref) results to be
     encoded without warnings or failure by adding `allow_nonref` to the
@@ -865,6 +865,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
