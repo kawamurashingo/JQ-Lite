@@ -1,3 +1,9 @@
+1.26  2025-10-25
+  [Behavior]
+  - Run select() predicates as streaming filters so inputs pass once for each
+    truthy predicate result while preserving compatibility with comparison
+    expressions.
+
 1.25  2025-10-24
   [CLI]
   - Fix YAML input handling in jq-lite: allow scalar (non-ref) results to be
