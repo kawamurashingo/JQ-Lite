@@ -3,9 +3,10 @@ package JQ::Lite::Util;
 use strict;
 use warnings;
 
-use JSON::PP ();
+use JSON::PP (); 
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
+use B ();
 use JQ::Lite::Expression ();
 
 my $JSON_DECODER     = JSON::PP->new->utf8->allow_nonref;
@@ -2805,6 +2806,64 @@ sub _parse_string_argument {
     $raw =~ s/^['"]//;
     $raw =~ s/['"]$//;
     return $raw;
+}
+
+sub _apply_csv {
+    my ($value) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        my @fields = map { _format_csv_field($_) } @$value;
+        return join(',', @fields);
+    }
+
+    return _format_csv_field($value);
+}
+
+sub _format_csv_field {
+    my ($value) = @_;
+
+    return '' if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 'true' : 'false';
+    }
+
+    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
+        my $encoded = _encode_json($value);
+        return _quote_csv_text($encoded);
+    }
+
+    if (ref $value) {
+        my $stringified = "$value";
+        return _quote_csv_text($stringified);
+    }
+
+    if (_is_unquoted_csv_number($value)) {
+        return "$value";
+    }
+
+    my $text = "$value";
+    return _quote_csv_text($text);
+}
+
+sub _quote_csv_text {
+    my ($text) = @_;
+
+    $text = '' unless defined $text;
+    $text =~ s/"/""/g;
+    return '"' . $text . '"';
+}
+
+sub _is_unquoted_csv_number {
+    my ($value) = @_;
+
+    return 0 if !defined $value;
+    return 0 if ref $value;
+
+    my $sv = B::svref_2object(\$value);
+    my $flags = $sv->FLAGS;
+
+    return ($flags & (B::SVp_IOK() | B::SVp_NOK())) ? 1 : 0;
 }
 
 sub _apply_split {
