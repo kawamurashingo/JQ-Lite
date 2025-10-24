@@ -3,6 +3,7 @@ package JQ::Lite::Filters;
 use strict;
 use warnings;
 
+use B qw(svref_2object SVf_IOK SVf_NOK);
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 use JQ::Lite::Util ();
@@ -1401,6 +1402,18 @@ sub apply {
             return 1;
         }
 
+        # support for numbers()
+        if ($part eq 'numbers()' || $part eq 'numbers') {
+            for my $item (@results) {
+                my @collected;
+                _collect_numbers($item, \@collected);
+                push @next_results, @collected if @collected;
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for scalars
         if ($part eq 'scalars()' || $part eq 'scalars') {
             @next_results = map {
@@ -1871,6 +1884,45 @@ sub apply {
         }
 
     return 0;
+}
+
+sub _collect_numbers {
+    my ($value, $out) = @_;
+
+    return if !defined $value;
+
+    if (ref($value) eq 'ARRAY') {
+        _collect_numbers($_, $out) for @$value;
+        return;
+    }
+
+    if (ref($value) eq 'HASH') {
+        _collect_numbers($_, $out) for values %$value;
+        return;
+    }
+
+    if (ref($value)) {
+        return if ref($value) eq 'JSON::PP::Boolean';
+        return;
+    }
+
+    if (!_is_numeric_scalar($value)) {
+        return;
+    }
+
+    push @$out, $value;
+}
+
+sub _is_numeric_scalar {
+    my ($value) = @_;
+
+    return 0 if !defined $value;
+    return 0 if ref($value);
+
+    my $sv    = svref_2object(\$value);
+    my $flags = $sv->FLAGS;
+
+    return ($flags & (SVf_IOK | SVf_NOK)) ? 1 : 0;
 }
 
 1;

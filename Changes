@@ -1,3 +1,8 @@
+1.28  2025-10-24
+  [Features]
+  - Add a jq-compatible `numbers` filter that recursively emits numeric values
+    from arrays and objects while skipping numeric-looking strings.
+
 1.27  2025-10-24
   [Release]
   - Bump version to 1.27 to publish the select() predicate evaluation fixes.

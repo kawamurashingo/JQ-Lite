@@ -541,6 +541,7 @@ Supported Functions:
   flatten_all()    - Recursively flatten nested arrays into a single array
   flatten_depth(N) - Flatten nested arrays up to N levels deep
   arrays           - Pass through inputs that are arrays, discarding others
+  numbers          - Emit all numeric values found within the input (jq-compatible)
   del(KEY)         - Remove a key from objects in the result
   compact          - Remove undefined values from arrays
   path             - Return available keys for objects or indexes for arrays

@@ -106,6 +106,7 @@ Functions are grouped by purpose for easier lookup.
 | `arrays`  | Pass only arrays                            |
 | `objects` | Pass only objects                           |
 | `scalars` | Pass only scalars (string/number/bool/null) |
+| `numbers` | Emit all numeric values recursively         |
 
 ---
 
