@@ -2487,27 +2487,29 @@ sub _evaluate_condition {
         }
 
         my @values = _traverse($item, $path);
-        my $field_val = $values[0];
+        return 0 unless @values;
 
-        return 0 unless defined $field_val;
+        for my $field_val (@values) {
+            next unless defined $field_val;
 
-        my $is_number = (!ref($field_val) && $field_val =~ /^-?\d+(?:\.\d+)?$/)
-                     && (!ref($value)     && $value     =~ /^-?\d+(?:\.\d+)?$/);
+            my $is_number = (!ref($field_val) && $field_val =~ /^-?\d+(?:\.\d+)?$/)
+                         && (!ref($value)     && $value     =~ /^-?\d+(?:\.\d+)?$/);
 
-        if ($op eq '==') {
-            return $is_number ? ($field_val == $value) : ($field_val eq $value);
-        } elsif ($op eq '!=') {
-            return $is_number ? ($field_val != $value) : ($field_val ne $value);
-        } elsif ($is_number) {
-            # perform numeric comparisons only when applicable
-            if ($op eq '>') {
-                return $field_val > $value;
-            } elsif ($op eq '>=') {
-                return $field_val >= $value;
-            } elsif ($op eq '<') {
-                return $field_val < $value;
-            } elsif ($op eq '<=') {
-                return $field_val <= $value;
+            if ($op eq '==') {
+                return 1 if $is_number ? ($field_val == $value) : ($field_val eq $value);
+            } elsif ($op eq '!=') {
+                return 1 if $is_number ? ($field_val != $value) : ($field_val ne $value);
+            } elsif ($is_number) {
+                # perform numeric comparisons only when applicable
+                if ($op eq '>') {
+                    return 1 if $field_val > $value;
+                } elsif ($op eq '>=') {
+                    return 1 if $field_val >= $value;
+                } elsif ($op eq '<') {
+                    return 1 if $field_val < $value;
+                } elsif ($op eq '<=') {
+                    return 1 if $field_val <= $value;
+                }
             }
         }
     }

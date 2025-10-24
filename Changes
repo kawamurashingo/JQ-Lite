@@ -1,3 +1,7 @@
+1.27  2025-10-24
+  [Release]
+  - Bump version to 1.27 to publish the select() predicate evaluation fixes.
+
 1.26  2025-10-24
   [Behavior]
   - Run select() predicates as streaming filters so inputs pass once for each
