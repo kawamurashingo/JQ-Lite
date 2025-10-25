@@ -2894,6 +2894,17 @@ sub _apply_csv {
     return _format_csv_field($value);
 }
 
+sub _apply_tsv {
+    my ($value) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        my @fields = map { _format_tsv_field($_) } @$value;
+        return join("\t", @fields);
+    }
+
+    return _format_tsv_field($value);
+}
+
 sub _format_csv_field {
     my ($value) = @_;
 
@@ -2921,12 +2932,46 @@ sub _format_csv_field {
     return _quote_csv_text($text);
 }
 
+sub _format_tsv_field {
+    my ($value) = @_;
+
+    return '' if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        return $value ? 'true' : 'false';
+    }
+
+    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
+        my $encoded = _encode_json($value);
+        return _escape_tsv_text($encoded);
+    }
+
+    if (ref $value) {
+        my $stringified = "$value";
+        return _escape_tsv_text($stringified);
+    }
+
+    my $text = "$value";
+    return _escape_tsv_text($text);
+}
+
 sub _quote_csv_text {
     my ($text) = @_;
 
     $text = '' unless defined $text;
     $text =~ s/"/""/g;
     return '"' . $text . '"';
+}
+
+sub _escape_tsv_text {
+    my ($text) = @_;
+
+    $text = '' unless defined $text;
+    $text =~ s/\\/\\\\/g;
+    $text =~ s/\t/\\t/g;
+    $text =~ s/\r/\\r/g;
+    $text =~ s/\n/\\n/g;
+    return $text;
 }
 
 sub _is_unquoted_csv_number {

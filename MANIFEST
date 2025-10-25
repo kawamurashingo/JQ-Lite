@@ -17,6 +17,7 @@ t/assignment.t
 t/basic.t
 t/contains.t
 t/contains_function.t
+t/csv_format.t
 t/case_transform.t
 t/clamp.t
 t/ceil_floor.t
@@ -78,6 +79,7 @@ t/slice.t
 t/sort_by.t
 t/sort_unique.t
 t/sum_by.t
+t/tsv_format.t
 t/tail.t
 t/test_function.t
 t/transpose.t
