@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JQ::Lite - 古いサーバでもJSONを自在に扱う</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+  <!-- Header -->
+  <header class="flex justify-between items-center p-6 bg-white shadow">
+    <h1 class="text-2xl font-bold text-blue-700">JQ::Lite</h1>
+    <nav class="space-x-6">
+      <a href="#features" class="hover:text-blue-600">特徴</a>
+      <a href="#usecases" class="hover:text-blue-600">利用例</a>
+      <a href="#install" class="hover:text-blue-600">導入</a>
+      <a href="#contact" class="hover:text-blue-600">問い合わせ</a>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="text-center py-20 bg-gradient-to-b from-blue-50 to-white">
+    <h2 class="text-4xl font-bold mb-4 text-gray-900">リプレース不要。古いサーバでも、JSONを自在に。</h2>
+    <p class="text-lg mb-8">JQ::Lite は純Perlで動作する軽量JSONクエリ＆編集ツール。<br>jqが入らない環境でも、データをスマートに扱えます。</p>
+    <div class="space-x-4">
+      <a href="https://github.com/kawamurashingo/JQ-Lite" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">GitHubで見る</a>
+      <a href="#usecases" class="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300">導入事例を見る</a>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-16 max-w-5xl mx-auto px-4">
+    <h3 class="text-3xl font-bold mb-10 text-center">特徴</h3>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div class="p-6 bg-white rounded-2xl shadow">
+        <h4 class="text-xl font-semibold mb-2">純Perl実装</h4>
+        <p>外部ライブラリ不要。Perl 5.10以降でそのまま動作します。</p>
+      </div>
+      <div class="p-6 bg-white rounded-2xl shadow">
+        <h4 class="text-xl font-semibold mb-2">軽量＆高速</h4>
+        <p>ワンファイル構成で、サーバの負担を最小限に。</p>
+      </div>
+      <div class="p-6 bg-white rounded-2xl shadow">
+        <h4 class="text-xl font-semibold mb-2">安全・安定</h4>
+        <p>コンパイル不要・依存なし。制限環境でも安心して導入できます。</p>
+      </div>
+      <div class="p-6 bg-white rounded-2xl shadow">
+        <h4 class="text-xl font-semibold mb-2">CLI / モジュール両対応</h4>
+        <p>Perlスクリプトにもシェルスクリプトにも自然に統合できます。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases -->
+  <section id="usecases" class="py-16 bg-gray-100">
+    <div class="max-w-5xl mx-auto px-4">
+      <h3 class="text-3xl font-bold mb-10 text-center">利用シーン</h3>
+      <ul class="space-y-6 text-lg">
+        <li>🧩 jqが使えない閉鎖環境でJSONデータを整形・抽出</li>
+        <li>⚙️ 既存Perlスクリプトで設定ファイル(JSON)を自動更新</li>
+        <li>📊 レガシーシステムのログをJSONに変換し可視化</li>
+        <li>🚀 CI/CD環境でのJSONレポート出力・検証</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Installation -->
+  <section id="install" class="py-16 max-w-5xl mx-auto px-4">
+    <h3 class="text-3xl font-bold mb-10 text-center">導入方法</h3>
+    <div class="bg-white p-8 rounded-2xl shadow">
+      <pre class="bg-gray-900 text-green-300 p-4 rounded overflow-x-auto text-sm">
+# CPAN からインストール
+cpanm JQ::Lite
+
+# または手動で実行
+perl jq-lite -f data.json '.users[].name'
+      </pre>
+      <div class="text-center mt-6">
+        <a href="https://github.com/kawamurashingo/JQ-Lite" class="text-blue-600 font-semibold hover:underline">GitHubでソースを見る →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="py-16 bg-blue-50">
+    <div class="max-w-3xl mx-auto text-center px-4">
+      <h3 class="text-3xl font-bold mb-6">お問い合わせ</h3>
+      <p class="mb-8">レガシー環境への導入や企業向けサポートのご相談はこちら。</p>
+      <a href="mailto:info@example.com" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700">メールで問い合わせる</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="text-center py-8 text-sm text-gray-500 border-t">
+    © 2025 JQ::Lite Project — Built with ❤️ in Perl
+  </footer>
+</body>
+</html>
