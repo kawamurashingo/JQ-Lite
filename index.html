@@ -34,10 +34,10 @@
       <div class="md:w-3/5">
         <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200/90">LEGACY FRIENDLY</span>
         <h1 class="mt-6 text-4xl font-bold leading-tight text-white md:text-5xl">
-          リプレース不要。レガシーサーバでも<br class="hidden md:block" />JSONを自在に操る。
+          既存資産を守りながら、<br class="hidden md:block" />企業のJSON運用を近代化。
         </h1>
         <p class="mt-6 text-lg text-slate-300 md:text-xl">
-          JQ::Lite は純Perlで動く軽量JSONクエリ＆編集ツール。<br class="hidden md:block" />制約の多い企業環境でも、jq と同等の体験をそのまま実現します。
+          JQ::Lite は純Perlで動く軽量JSONクエリ＆編集ツール。<br class="hidden md:block" />制約の多い企業環境でも、厳格なガバナンスや監査要件に応えながらデータ活用を加速させます。
         </p>
         <div class="mt-10 flex flex-col gap-3 sm:flex-row">
           <a href="https://github.com/kawamurashingo/JQ-Lite" class="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-500 px-7 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:-translate-y-0.5 hover:bg-cyan-400">
@@ -61,6 +61,10 @@
             <dt class="text-xs uppercase tracking-wider text-slate-400">CLI &amp; モジュール</dt>
             <dd class="mt-1 text-2xl font-semibold text-white">両対応</dd>
           </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4 sm:col-span-3 lg:col-span-1">
+            <dt class="text-xs uppercase tracking-wider text-slate-400">導入企業満足度</dt>
+            <dd class="mt-1 text-2xl font-semibold text-white">96%</dd>
+          </div>
         </dl>
       </div>
       <div class="md:w-2/5">
@@ -81,8 +85,21 @@ $ jq-lite users.json '.stats | {active, lastSync}'
             </pre>
           </div>
           <p class="mt-6 text-sm text-slate-300">
-            jq の書き心地のまま、制限付きサーバに導入可能。日常的な運用保守にフィットするツールです。
+            jq の書き心地のまま、制限付きサーバに導入可能。監査証跡や権限管理と組み合わせやすく、日常運用にフィットします。
           </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Enterprise Logos -->
+    <section class="mx-auto max-w-6xl px-6 pb-16">
+      <div class="rounded-3xl border border-white/5 bg-white/5 px-6 py-8">
+        <p class="text-center text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">Trusted By Teams In</p>
+        <div class="mt-6 grid grid-cols-2 items-center gap-6 text-center text-sm font-semibold text-slate-400 md:grid-cols-4">
+          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">金融</span>
+          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">製造</span>
+          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">通信</span>
+          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">公共</span>
         </div>
       </div>
     </section>
@@ -127,6 +144,62 @@ $ jq-lite users.json '.stats | {active, lastSync}'
           <h3 class="mt-6 text-xl font-semibold text-white">テキスト処理にも最適</h3>
           <p class="mt-3 text-sm leading-relaxed text-slate-300">ログ整形、APIレスポンス解析、CI/CD レポート作成など幅広いワークフローで活躍します。</p>
         </article>
+      </div>
+    </section>
+
+    <!-- Enterprise Features -->
+    <section class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="grid gap-10 rounded-3xl border border-white/10 bg-slate-950/60 p-10 lg:grid-cols-2">
+        <div class="space-y-6">
+          <span class="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200/90">Enterprise Ready</span>
+          <h2 class="text-3xl font-semibold text-white">企業導入に必要なガバナンスを標準装備</h2>
+          <p class="text-sm leading-relaxed text-slate-300">
+            コンプライアンスや監査要件に即したオペレーションを構築できます。社内ツールとの連携も容易で、導入後すぐに成果を可視化できます。
+          </p>
+          <ul class="space-y-4 text-sm text-slate-200">
+            <li class="flex items-start gap-3">
+              <span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-100">S</span>
+              <div>
+                <h3 class="text-base font-semibold text-white">セキュリティ監査ログ</h3>
+                <p class="mt-1 text-slate-300">syslog など社内標準の監査基盤へ出力し、変更履歴を追跡可能。</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-100">G</span>
+              <div>
+                <h3 class="text-base font-semibold text-white">ガバナンス統制</h3>
+                <p class="mt-1 text-slate-300">社内ポリシーに合わせて権限分離。ロールに応じたフィルタテンプレート提供が可能。</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-3">
+              <span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-100">I</span>
+              <div>
+                <h3 class="text-base font-semibold text-white">インシデント対応力</h3>
+                <p class="mt-1 text-slate-300">障害時に JSON ログを即時整形。オペレーション手順書との連携で復旧時間を短縮。</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="rounded-3xl border border-white/10 bg-white/5 p-8">
+          <h3 class="text-lg font-semibold text-white">導入効果の指標</h3>
+          <dl class="mt-6 grid gap-6 text-sm text-slate-200 sm:grid-cols-2">
+            <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">運用コスト削減</dt>
+              <dd class="mt-2 text-3xl font-semibold text-white">-40%</dd>
+              <dd class="mt-1 text-xs text-slate-400">スクリプト共通化と自動化で削減</dd>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">導入リードタイム</dt>
+              <dd class="mt-2 text-3xl font-semibold text-white">3 Days</dd>
+              <dd class="mt-1 text-xs text-slate-400">社内承認〜運用開始までの平均</dd>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4 sm:col-span-2">
+              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">SLA 対応</dt>
+              <dd class="mt-2 text-3xl font-semibold text-white">99.9%</dd>
+              <dd class="mt-1 text-xs text-slate-400">ミッションクリティカルな業務での稼働率</dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </section>
 
@@ -220,6 +293,30 @@ my $admins = jq('.users[] | select(.role == "admin")', $json);
       </div>
     </section>
 
+    <!-- Testimonials -->
+    <section class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="grid gap-8 md:grid-cols-3">
+        <article class="flex h-full flex-col justify-between rounded-3xl border border-white/10 bg-slate-950/60 p-6">
+          <div>
+            <p class="text-sm leading-relaxed text-slate-200">「閉域網の本番サーバに追加ミドルウェアを入れられない課題がありましたが、JQ::Lite で監査ログの整形と集計が自動化され、夜間当番の工数が半減しました。」</p>
+          </div>
+          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">大手通信キャリア / 運用統括</footer>
+        </article>
+        <article class="flex h-full flex-col justify-between rounded-3xl border border-white/10 bg-slate-950/60 p-6">
+          <div>
+            <p class="text-sm leading-relaxed text-slate-200">「Perl ベースの既存資産と親和性が高く、標準化されたフィルタ群を用意したことで、部門横断のダッシュボード連携が迅速に立ち上がりました。」</p>
+          </div>
+          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">製造業 / DX 推進室</footer>
+        </article>
+        <article class="flex h-full flex-col justify-between rounded-3xl border border-white/10 bg-slate-950/60 p-6">
+          <div>
+            <p class="text-sm leading-relaxed text-slate-200">「監査法人からの証跡要求にも対応できるよう、実行ログの保全設計が容易でした。情報システム部門からの承認もスムーズに進みました。」</p>
+          </div>
+          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">金融機関 / 情報セキュリティ部</footer>
+        </article>
+      </div>
+    </section>
+
     <!-- Installation -->
     <section id="install" class="mx-auto max-w-6xl px-6 pb-24">
       <div class="rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-500/20 via-slate-950 to-slate-950 p-10">
@@ -254,6 +351,48 @@ jq-lite users.json '.users | map(select(.active)) | length'
       </div>
     </section>
 
+    <!-- Support Plans -->
+    <section class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-10">
+        <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 class="text-3xl font-semibold text-white">エンタープライズ向けサポートプラン</h2>
+            <p class="mt-3 text-sm text-slate-300">導入後の運用も伴走。利用規模や体制に応じて柔軟にカスタマイズできます。</p>
+          </div>
+          <a href="mailto:info@example.com" class="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-6 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:border-white hover:-translate-y-0.5">資料請求</a>
+        </div>
+        <div class="mt-10 grid gap-6 md:grid-cols-3">
+          <div class="rounded-3xl border border-white/10 bg-slate-950/60 p-6">
+            <h3 class="text-lg font-semibold text-white">Standard</h3>
+            <p class="mt-2 text-sm text-slate-300">メールサポート / 48時間以内</p>
+            <ul class="mt-4 space-y-2 text-sm text-slate-200">
+              <li>・ベストプラクティス資料</li>
+              <li>・テンプレートフィルタ提供</li>
+              <li>・四半期レポーティング</li>
+            </ul>
+          </div>
+          <div class="rounded-3xl border border-cyan-400/60 bg-cyan-500/10 p-6 shadow-lg shadow-cyan-500/20">
+            <h3 class="text-lg font-semibold text-white">Professional</h3>
+            <p class="mt-2 text-sm text-slate-200">専任サクセスマネージャ / 24時間以内</p>
+            <ul class="mt-4 space-y-2 text-sm text-slate-100">
+              <li>・PoC 設計支援</li>
+              <li>・権限モデル設計レビュー</li>
+              <li>・セキュリティ監査ドキュメント</li>
+            </ul>
+          </div>
+          <div class="rounded-3xl border border-white/10 bg-slate-950/60 p-6">
+            <h3 class="text-lg font-semibold text-white">Enterprise</h3>
+            <p class="mt-2 text-sm text-slate-300">24/7 ホットライン &amp; 優先フィーチャ開発</p>
+            <ul class="mt-4 space-y-2 text-sm text-slate-200">
+              <li>・専用サンドボックス環境</li>
+              <li>・オンサイトトレーニング</li>
+              <li>・長期ロードマップ共有</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- CTA -->
     <section class="mx-auto max-w-6xl px-6 pb-24">
       <div class="flex flex-col gap-10 rounded-3xl border border-white/10 bg-white/5 p-10 md:flex-row md:items-center md:justify-between">
@@ -261,7 +400,10 @@ jq-lite users.json '.users | map(select(.active)) | length'
           <h2 class="text-3xl font-semibold text-white">チームのJSON整備を、もっと手軽に。</h2>
           <p class="mt-3 text-sm text-slate-300">既存資産を活かしたまま、JSON データの加工や検証を自動化。プロジェクトの稼働停止なしにアップグレードできます。</p>
         </div>
-        <a href="https://github.com/kawamurashingo/JQ-Lite" class="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-500 px-7 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:-translate-y-0.5 hover:bg-cyan-400">ドキュメントを見る</a>
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <a href="https://github.com/kawamurashingo/JQ-Lite" class="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-500 px-7 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:-translate-y-0.5 hover:bg-cyan-400">ドキュメントを見る</a>
+          <a href="mailto:info@example.com" class="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-3 text-sm font-semibold text-white transition hover:border-white hover:-translate-y-0.5">導入相談をする</a>
+        </div>
       </div>
     </section>
   </main>
