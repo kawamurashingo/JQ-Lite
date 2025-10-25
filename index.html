@@ -62,8 +62,8 @@
             <dd class="mt-1 text-2xl font-semibold text-white">両対応</dd>
           </div>
           <div class="rounded-2xl border border-white/10 bg-white/5 p-4 sm:col-span-3 lg:col-span-1">
-            <dt class="text-xs uppercase tracking-wider text-slate-400">導入企業満足度</dt>
-            <dd class="mt-1 text-2xl font-semibold text-white">96%</dd>
+            <dt class="text-xs uppercase tracking-wider text-slate-400">コミュニティサポート</dt>
+            <dd class="mt-1 text-sm font-medium text-slate-200">Issue / Pull Request を通じて随時改善中</dd>
           </div>
         </dl>
       </div>
@@ -94,13 +94,14 @@ $ jq-lite users.json '.stats | {active, lastSync}'
     <!-- Enterprise Logos -->
     <section class="mx-auto max-w-6xl px-6 pb-16">
       <div class="rounded-3xl border border-white/5 bg-white/5 px-6 py-8">
-        <p class="text-center text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">Trusted By Teams In</p>
+        <p class="text-center text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">POSSIBLE USE CASES</p>
         <div class="mt-6 grid grid-cols-2 items-center gap-6 text-center text-sm font-semibold text-slate-400 md:grid-cols-4">
-          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">金融</span>
-          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">製造</span>
-          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">通信</span>
-          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">公共</span>
+          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">金融（想定）</span>
+          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">製造（想定）</span>
+          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">通信（想定）</span>
+          <span class="rounded-full border border-white/10 bg-slate-950/60 px-4 py-2">公共（想定）</span>
         </div>
+        <p class="mt-4 text-center text-xs text-slate-400">※ 実際の導入事例はコミュニティからのフィードバックをお待ちしています。</p>
       </div>
     </section>
 
@@ -181,22 +182,19 @@ $ jq-lite users.json '.stats | {active, lastSync}'
           </ul>
         </div>
         <div class="rounded-3xl border border-white/10 bg-white/5 p-8">
-          <h3 class="text-lg font-semibold text-white">導入効果の指標</h3>
+          <h3 class="text-lg font-semibold text-white">検討時のチェックポイント</h3>
           <dl class="mt-6 grid gap-6 text-sm text-slate-200 sm:grid-cols-2">
             <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">運用コスト削減</dt>
-              <dd class="mt-2 text-3xl font-semibold text-white">-40%</dd>
-              <dd class="mt-1 text-xs text-slate-400">スクリプト共通化と自動化で削減</dd>
+              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">運用フローとの適合性</dt>
+              <dd class="mt-2 text-sm text-slate-200">既存スクリプトや手順書に無理なく組み込めるかを確認しましょう。</dd>
             </div>
             <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">導入リードタイム</dt>
-              <dd class="mt-2 text-3xl font-semibold text-white">3 Days</dd>
-              <dd class="mt-1 text-xs text-slate-400">社内承認〜運用開始までの平均</dd>
+              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">社内ポリシーとの整合</dt>
+              <dd class="mt-2 text-sm text-slate-200">監査・セキュリティ要件に沿った運用ルールを事前に設計するのがおすすめです。</dd>
             </div>
             <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4 sm:col-span-2">
-              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">SLA 対応</dt>
-              <dd class="mt-2 text-3xl font-semibold text-white">99.9%</dd>
-              <dd class="mt-1 text-xs text-slate-400">ミッションクリティカルな業務での稼働率</dd>
+              <dt class="text-xs uppercase tracking-[0.3em] text-slate-400">継続的な改善体制</dt>
+              <dd class="mt-2 text-sm text-slate-200">Issue やディスカッションを活用し、必要な機能をコミュニティとともに育ててください。</dd>
             </div>
           </dl>
         </div>
@@ -298,21 +296,21 @@ my $admins = jq('.users[] | select(.role == "admin")', $json);
       <div class="grid gap-8 md:grid-cols-3">
         <article class="flex h-full flex-col justify-between rounded-3xl border border-white/10 bg-slate-950/60 p-6">
           <div>
-            <p class="text-sm leading-relaxed text-slate-200">「閉域網の本番サーバに追加ミドルウェアを入れられない課題がありましたが、JQ::Lite で監査ログの整形と集計が自動化され、夜間当番の工数が半減しました。」</p>
+            <p class="text-sm leading-relaxed text-slate-200">「活用事例を募集中です。導入いただいた際の知見や工夫をぜひ共有してください。」</p>
           </div>
-          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">大手通信キャリア / 運用統括</footer>
+          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">コミュニティメンバーより</footer>
         </article>
         <article class="flex h-full flex-col justify-between rounded-3xl border border-white/10 bg-slate-950/60 p-6">
           <div>
-            <p class="text-sm leading-relaxed text-slate-200">「Perl ベースの既存資産と親和性が高く、標準化されたフィルタ群を用意したことで、部門横断のダッシュボード連携が迅速に立ち上がりました。」</p>
+            <p class="text-sm leading-relaxed text-slate-200">「JQ::Lite をどのように業務に組み込んでいるか、ブログや OSS リポジトリで紹介いただけると励みになります。」</p>
           </div>
-          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">製造業 / DX 推進室</footer>
+          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">メンテナからのお願い</footer>
         </article>
         <article class="flex h-full flex-col justify-between rounded-3xl border border-white/10 bg-slate-950/60 p-6">
           <div>
-            <p class="text-sm leading-relaxed text-slate-200">「監査法人からの証跡要求にも対応できるよう、実行ログの保全設計が容易でした。情報システム部門からの承認もスムーズに進みました。」</p>
+            <p class="text-sm leading-relaxed text-slate-200">「実際の導入状況を把握できていないため、フィードバックフォームや Issue でのご連絡を歓迎しています。」</p>
           </div>
-          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">金融機関 / 情報セキュリティ部</footer>
+          <footer class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">プロジェクトチーム</footer>
         </article>
       </div>
     </section>
