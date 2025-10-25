@@ -1715,6 +1715,13 @@ sub apply {
             return 1;
         }
 
+        # support for @tsv (format array/scalar as TSV row)
+        if ($part eq '@tsv' || $part eq '@tsv()') {
+            @next_results = map { JQ::Lite::Util::_apply_tsv($_) } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for split("separator")
         if ($part =~ /^split\((.+)\)$/) {
             my $separator = JQ::Lite::Util::_parse_string_argument($1);
