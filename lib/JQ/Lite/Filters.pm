@@ -15,6 +15,36 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+        my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($normalized);
+        if (@sequence_parts > 1) {
+            @next_results = ();
+
+            for my $item (@results) {
+                my $json = JQ::Lite::Util::_encode_json($item);
+
+                for my $segment (@sequence_parts) {
+                    next unless defined $segment;
+                    my $filter = $segment;
+                    $filter =~ s/^\s+|\s+$//g;
+                    next if $filter eq '';
+
+                    if ($filter !~ /^[\[{]/) {
+                        my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $filter);
+                        if ($ok) {
+                            push @next_results, @$values if @$values;
+                            next;
+                        }
+                    }
+
+                    my @outputs = $self->run_query($json, $filter);
+                    push @next_results, @outputs;
+                }
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for variable references like $var or $var.path
         if ($normalized =~ /^\$(\w+)(.*)$/s) {
             my ($var_name, $suffix) = ($1, $2 // '');
