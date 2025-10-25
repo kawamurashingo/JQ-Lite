@@ -5,93 +5,277 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>JQ::Lite - 古いサーバでもJSONを自在に扱う</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
-  <!-- Header -->
-  <header class="flex justify-between items-center p-6 bg-white shadow">
-    <h1 class="text-2xl font-bold text-blue-700">JQ::Lite</h1>
-    <nav class="space-x-6">
-      <a href="#features" class="hover:text-blue-600">特徴</a>
-      <a href="#usecases" class="hover:text-blue-600">利用例</a>
-      <a href="#install" class="hover:text-blue-600">導入</a>
-      <a href="#contact" class="hover:text-blue-600">問い合わせ</a>
-    </nav>
+<body class="bg-slate-950 text-slate-100 font-[Inter]">
+  <header class="sticky top-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+      <a href="#top" class="text-2xl font-bold tracking-tight text-white">JQ::Lite</a>
+      <nav class="hidden items-center space-x-8 text-sm font-medium text-slate-300 md:flex">
+        <a href="#features" class="transition hover:text-white">特徴</a>
+        <a href="#workflow" class="transition hover:text-white">動作イメージ</a>
+        <a href="#usecases" class="transition hover:text-white">利用シーン</a>
+        <a href="#install" class="transition hover:text-white">導入</a>
+        <a href="#contact" class="rounded-full border border-white/20 px-4 py-2 transition hover:border-white hover:text-white">問い合わせ</a>
+      </nav>
+    </div>
   </header>
 
-  <!-- Hero Section -->
-  <section class="text-center py-20 bg-gradient-to-b from-blue-50 to-white">
-    <h2 class="text-4xl font-bold mb-4 text-gray-900">リプレース不要。古いサーバでも、JSONを自在に。</h2>
-    <p class="text-lg mb-8">JQ::Lite は純Perlで動作する軽量JSONクエリ＆編集ツール。<br>jqが入らない環境でも、データをスマートに扱えます。</p>
-    <div class="space-x-4">
-      <a href="https://github.com/kawamurashingo/JQ-Lite" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">GitHubで見る</a>
-      <a href="#usecases" class="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300">導入事例を見る</a>
+  <main id="top" class="relative">
+    <div class="absolute inset-0 -z-10 overflow-hidden">
+      <div class="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[800px] -translate-x-1/2 rounded-full bg-cyan-500/30 blur-[120px]"></div>
+      <div class="pointer-events-none absolute bottom-0 right-0 h-[300px] w-[400px] translate-x-1/3 translate-y-1/4 rounded-full bg-blue-700/20 blur-[120px]"></div>
     </div>
-  </section>
 
-  <!-- Features -->
-  <section id="features" class="py-16 max-w-5xl mx-auto px-4">
-    <h3 class="text-3xl font-bold mb-10 text-center">特徴</h3>
-    <div class="grid md:grid-cols-2 gap-8">
-      <div class="p-6 bg-white rounded-2xl shadow">
-        <h4 class="text-xl font-semibold mb-2">純Perl実装</h4>
-        <p>外部ライブラリ不要。Perl 5.10以降でそのまま動作します。</p>
+    <!-- Hero -->
+    <section class="mx-auto flex max-w-6xl flex-col gap-12 px-6 pb-24 pt-20 md:flex-row md:items-center">
+      <div class="md:w-3/5">
+        <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200/90">LEGACY FRIENDLY</span>
+        <h1 class="mt-6 text-4xl font-bold leading-tight text-white md:text-5xl">
+          リプレース不要。レガシーサーバでも<br class="hidden md:block" />JSONを自在に操る。
+        </h1>
+        <p class="mt-6 text-lg text-slate-300 md:text-xl">
+          JQ::Lite は純Perlで動く軽量JSONクエリ＆編集ツール。<br class="hidden md:block" />制約の多い企業環境でも、jq と同等の体験をそのまま実現します。
+        </p>
+        <div class="mt-10 flex flex-col gap-3 sm:flex-row">
+          <a href="https://github.com/kawamurashingo/JQ-Lite" class="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-500 px-7 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:-translate-y-0.5 hover:bg-cyan-400">
+            GitHubで見る
+            <span aria-hidden="true">→</span>
+          </a>
+          <a href="#install" class="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-3 text-sm font-semibold text-white transition hover:border-white hover:-translate-y-0.5">
+            すぐ導入する
+          </a>
+        </div>
+        <dl class="mt-12 grid gap-6 text-sm text-slate-300 sm:grid-cols-3">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <dt class="text-xs uppercase tracking-wider text-slate-400">対応Perlバージョン</dt>
+            <dd class="mt-1 text-2xl font-semibold text-white">5.10+</dd>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <dt class="text-xs uppercase tracking-wider text-slate-400">追加依存</dt>
+            <dd class="mt-1 text-2xl font-semibold text-white">なし</dd>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <dt class="text-xs uppercase tracking-wider text-slate-400">CLI &amp; モジュール</dt>
+            <dd class="mt-1 text-2xl font-semibold text-white">両対応</dd>
+          </div>
+        </dl>
       </div>
-      <div class="p-6 bg-white rounded-2xl shadow">
-        <h4 class="text-xl font-semibold mb-2">軽量＆高速</h4>
-        <p>ワンファイル構成で、サーバの負担を最小限に。</p>
-      </div>
-      <div class="p-6 bg-white rounded-2xl shadow">
-        <h4 class="text-xl font-semibold mb-2">安全・安定</h4>
-        <p>コンパイル不要・依存なし。制限環境でも安心して導入できます。</p>
-      </div>
-      <div class="p-6 bg-white rounded-2xl shadow">
-        <h4 class="text-xl font-semibold mb-2">CLI / モジュール両対応</h4>
-        <p>Perlスクリプトにもシェルスクリプトにも自然に統合できます。</p>
-      </div>
-    </div>
-  </section>
+      <div class="md:w-2/5">
+        <div class="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-black/30">
+          <div class="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-cyan-500/20 to-transparent"></div>
+          <div class="relative text-xs">
+            <div class="flex items-center gap-2 pb-4 text-[0.7rem] uppercase tracking-[0.2em] text-slate-400">JSON Playground</div>
+            <pre class="overflow-x-auto whitespace-pre-wrap rounded-2xl bg-black/60 p-4 text-[13px] leading-relaxed text-green-200">
+$ perl -MJQ::Lite -E 'say jq(q|.users[]| =&gt; { users =&gt; [ { name =&gt; "Alice" }, { name =&gt; "Bob" } ] })'
+{"name":"Alice"}
+{"name":"Bob"}
 
-  <!-- Use Cases -->
-  <section id="usecases" class="py-16 bg-gray-100">
-    <div class="max-w-5xl mx-auto px-4">
-      <h3 class="text-3xl font-bold mb-10 text-center">利用シーン</h3>
-      <ul class="space-y-6 text-lg">
-        <li>🧩 jqが使えない閉鎖環境でJSONデータを整形・抽出</li>
-        <li>⚙️ 既存Perlスクリプトで設定ファイル(JSON)を自動更新</li>
-        <li>📊 レガシーシステムのログをJSONに変換し可視化</li>
-        <li>🚀 CI/CD環境でのJSONレポート出力・検証</li>
-      </ul>
-    </div>
-  </section>
+$ jq-lite users.json '.stats | {active, lastSync}'
+{
+  "active": true,
+  "lastSync": "2025-03-12T09:44:00"
+}
+            </pre>
+          </div>
+          <p class="mt-6 text-sm text-slate-300">
+            jq の書き心地のまま、制限付きサーバに導入可能。日常的な運用保守にフィットするツールです。
+          </p>
+        </div>
+      </div>
+    </section>
 
-  <!-- Installation -->
-  <section id="install" class="py-16 max-w-5xl mx-auto px-4">
-    <h3 class="text-3xl font-bold mb-10 text-center">導入方法</h3>
-    <div class="bg-white p-8 rounded-2xl shadow">
-      <pre class="bg-gray-900 text-green-300 p-4 rounded overflow-x-auto text-sm">
+    <!-- Features -->
+    <section id="features" class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="flex flex-col gap-6 text-center">
+        <span class="mx-auto inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200/90">Why JQ::Lite?</span>
+        <h2 class="text-3xl font-bold text-white md:text-4xl">制約のある現場でこそ真価を発揮</h2>
+        <p class="text-lg text-slate-300">
+          レガシーサーバ、閉域網、厳格な社内ルール。JQ::Lite は、そんな「入れ替えできない」現場のために設計されています。
+        </p>
+      </div>
+      <div class="mt-14 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+        <article class="group h-full rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:-translate-y-1 hover:border-cyan-400/50 hover:bg-cyan-500/10">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 text-2xl">🧬</div>
+          <h3 class="mt-6 text-xl font-semibold text-white">純Perlワンファイル構成</h3>
+          <p class="mt-3 text-sm leading-relaxed text-slate-300">CPAN モジュールの追加も、ビルドも不要。環境にそのままドロップインできます。</p>
+        </article>
+        <article class="group h-full rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:-translate-y-1 hover:border-cyan-400/50 hover:bg-cyan-500/10">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 text-2xl">⚡</div>
+          <h3 class="mt-6 text-xl font-semibold text-white">軽量＆高速</h3>
+          <p class="mt-3 text-sm leading-relaxed text-slate-300">ミニマルな実装で、制約された CPU / メモリ環境でも快適に動作します。</p>
+        </article>
+        <article class="group h-full rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:-translate-y-1 hover:border-cyan-400/50 hover:bg-cyan-500/10">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 text-2xl">🛡️</div>
+          <h3 class="mt-6 text-xl font-semibold text-white">依存ゼロで安全</h3>
+          <p class="mt-3 text-sm leading-relaxed text-slate-300">コンパイル不要・追加バイナリ不要。セキュリティポリシーが厳しい現場でも安心です。</p>
+        </article>
+        <article class="group h-full rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:-translate-y-1 hover:border-cyan-400/50 hover:bg-cyan-500/10">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 text-2xl">🧰</div>
+          <h3 class="mt-6 text-xl font-semibold text-white">CLI / モジュール両対応</h3>
+          <p class="mt-3 text-sm leading-relaxed text-slate-300">既存の Perl スクリプトやシェルスクリプトに自然に組み込める柔軟性。</p>
+        </article>
+        <article class="group h-full rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:-translate-y-1 hover:border-cyan-400/50 hover:bg-cyan-500/10">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 text-2xl">🔍</div>
+          <h3 class="mt-6 text-xl font-semibold text-white">jq互換の直感操作</h3>
+          <p class="mt-3 text-sm leading-relaxed text-slate-300">シンタックスは jq を踏襲。学習コストゼロで導入できます。</p>
+        </article>
+        <article class="group h-full rounded-3xl border border-white/10 bg-white/5 p-6 transition hover:-translate-y-1 hover:border-cyan-400/50 hover:bg-cyan-500/10">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/20 text-2xl">📦</div>
+          <h3 class="mt-6 text-xl font-semibold text-white">テキスト処理にも最適</h3>
+          <p class="mt-3 text-sm leading-relaxed text-slate-300">ログ整形、APIレスポンス解析、CI/CD レポート作成など幅広いワークフローで活躍します。</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Workflow -->
+    <section id="workflow" class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="grid gap-12 rounded-3xl border border-white/10 bg-white/5 p-10 md:grid-cols-2">
+        <div>
+          <h2 class="text-3xl font-semibold text-white">導入から活用までの流れ</h2>
+          <p class="mt-4 text-sm leading-relaxed text-slate-300">JQ::Lite は環境構築に時間をかけたくない運用チームの味方です。たった3ステップですぐに JSON 処理を自動化できます。</p>
+          <ul class="mt-8 space-y-6 text-sm text-slate-200">
+            <li class="flex items-start gap-4">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-base font-semibold text-cyan-200">1</span>
+              <div>
+                <h3 class="text-lg font-semibold text-white">ファイルを設置</h3>
+                <p class="mt-2 text-slate-300">CPAN から cpanm で入れるか、単一ファイルを環境に配置するだけ。</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-4">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-base font-semibold text-cyan-200">2</span>
+              <div>
+                <h3 class="text-lg font-semibold text-white">フィルタを書く</h3>
+                <p class="mt-2 text-slate-300">jq と同じ書き方で JSON を抽出・変換。既存のナレッジをそのまま活かせます。</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-4">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-base font-semibold text-cyan-200">3</span>
+              <div>
+                <h3 class="text-lg font-semibold text-white">スクリプトへ組み込む</h3>
+                <p class="mt-2 text-slate-300">Perl モジュールとして require しても、CLI としてパイプに流し込んでも OK。</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="rounded-3xl border border-white/10 bg-slate-950/60 p-6">
+          <h3 class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Config Snapshot</h3>
+          <pre class="mt-4 overflow-x-auto rounded-2xl bg-black/60 p-4 text-[13px] leading-relaxed text-slate-100">
+# JSON内の特定ユーザを抽出
+$ jq-lite users.json '.users[] | select(.role == "admin") | {name, last_login}'
+
+# Perl スクリプトから利用
+use JQ::Lite qw/jq/;
+my $json = decode_json($raw);
+my $admins = jq('.users[] | select(.role == "admin")', $json);
+          </pre>
+          <p class="mt-6 text-sm text-slate-300">ツールの導入障壁を極限まで下げたことで、セキュアな閉域網でも運用フローがシンプルになります。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Use Cases -->
+    <section id="usecases" class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="rounded-3xl border border-white/10 bg-white/5 p-10">
+        <div class="text-center">
+          <h2 class="text-3xl font-semibold text-white">現場の運用に溶け込むユースケース</h2>
+          <p class="mt-3 text-lg text-slate-300">痒いところに手が届く JSON 処理で、日々の保守作業をスマートに。</p>
+        </div>
+        <div class="mt-10 grid gap-8 md:grid-cols-2">
+          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-6">
+            <h3 class="text-lg font-semibold text-white">閉鎖ネットワークのシステム運用</h3>
+            <p class="mt-3 text-sm text-slate-300">外部バイナリを導入できない環境でも JSON 設定ファイルの整形・検証を自動化。</p>
+            <ul class="mt-4 space-y-2 text-sm text-slate-300">
+              <li>・CI サーバなしでも差分を検証</li>
+              <li>・バックアップ前に JSON の整合性をチェック</li>
+            </ul>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-6">
+            <h3 class="text-lg font-semibold text-white">レガシー移行プロジェクト</h3>
+            <p class="mt-3 text-sm text-slate-300">既存 Perl スクリプトを活かしながら段階的に JSON ベースの運用へ移行。</p>
+            <ul class="mt-4 space-y-2 text-sm text-slate-300">
+              <li>・API 応答を整形して旧システムへ受け渡し</li>
+              <li>・ログを JSON へ変換して可視化基盤へ送信</li>
+            </ul>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-6">
+            <h3 class="text-lg font-semibold text-white">CI/CD レポートの集約</h3>
+            <p class="mt-3 text-sm text-slate-300">ビルドログやテスト結果の JSON を一括処理して、Slack やメールに要約を投稿。</p>
+            <ul class="mt-4 space-y-2 text-sm text-slate-300">
+              <li>・バッチ処理に jq-lite を組み込み</li>
+              <li>・GitHub Actions から直接 Perl スクリプトを実行</li>
+            </ul>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-6">
+            <h3 class="text-lg font-semibold text-white">監視・アラートの自動化</h3>
+            <p class="mt-3 text-sm text-slate-300">監視ツールが出す JSON を整形して、閾値超過時のみ通知するなど柔軟なワークフローを構築。</p>
+            <ul class="mt-4 space-y-2 text-sm text-slate-300">
+              <li>・サーバリソースの JSON レポートを要約</li>
+              <li>・既存の shell スクリプトと相互運用</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Installation -->
+    <section id="install" class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-500/20 via-slate-950 to-slate-950 p-10">
+        <div class="flex flex-col gap-10 lg:flex-row lg:items-center">
+          <div class="lg:w-2/5">
+            <span class="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Install</span>
+            <h2 class="mt-4 text-3xl font-semibold text-white">最小手順で導入</h2>
+            <p class="mt-3 text-sm text-slate-200">環境制限の厳しいオンプレミスサーバでも、3 分で導入完了。CI/CD や cron バッチにもそのまま活用できます。</p>
+            <div class="mt-6 flex flex-wrap gap-3 text-xs text-slate-200">
+              <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1"><span class="text-lg">✅</span> Perl 5.10+</span>
+              <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1"><span class="text-lg">✅</span> 外部依存ゼロ</span>
+              <span class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1"><span class="text-lg">✅</span> 単一バイナリ</span>
+            </div>
+          </div>
+          <div class="lg:w-3/5">
+            <pre class="h-full min-h-[280px] overflow-x-auto rounded-3xl border border-white/10 bg-black/70 p-6 text-[13px] leading-relaxed text-green-200">
 # CPAN からインストール
 cpanm JQ::Lite
 
-# または手動で実行
-perl jq-lite -f data.json '.users[].name'
-      </pre>
-      <div class="text-center mt-6">
-        <a href="https://github.com/kawamurashingo/JQ-Lite" class="text-blue-600 font-semibold hover:underline">GitHubでソースを見る →</a>
+# 単一ファイルで運用
+curl -O https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/bin/jq-lite
+chmod +x jq-lite
+
+# JSONの加工例
+jq-lite users.json '.users | map(select(.active)) | length'
+            </pre>
+            <div class="mt-6 text-right text-sm">
+              <a href="https://github.com/kawamurashingo/JQ-Lite" class="text-cyan-300 underline-offset-4 transition hover:text-cyan-200 hover:underline">GitHubでソースを見る →</a>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- CTA -->
+    <section class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="flex flex-col gap-10 rounded-3xl border border-white/10 bg-white/5 p-10 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 class="text-3xl font-semibold text-white">チームのJSON整備を、もっと手軽に。</h2>
+          <p class="mt-3 text-sm text-slate-300">既存資産を活かしたまま、JSON データの加工や検証を自動化。プロジェクトの稼働停止なしにアップグレードできます。</p>
+        </div>
+        <a href="https://github.com/kawamurashingo/JQ-Lite" class="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-500 px-7 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:-translate-y-0.5 hover:bg-cyan-400">ドキュメントを見る</a>
+      </div>
+    </section>
+  </main>
 
   <!-- Contact -->
-  <section id="contact" class="py-16 bg-blue-50">
-    <div class="max-w-3xl mx-auto text-center px-4">
-      <h3 class="text-3xl font-bold mb-6">お問い合わせ</h3>
-      <p class="mb-8">レガシー環境への導入や企業向けサポートのご相談はこちら。</p>
-      <a href="mailto:info@example.com" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700">メールで問い合わせる</a>
+  <section id="contact" class="border-t border-white/10 bg-slate-950/90">
+    <div class="mx-auto flex max-w-6xl flex-col items-center gap-8 px-6 py-16 text-center">
+      <h2 class="text-3xl font-semibold text-white">導入相談・フィードバックはこちら</h2>
+      <p class="max-w-2xl text-sm leading-relaxed text-slate-300">レガシー環境特有の制約や PoC の相談など、お気軽にご連絡ください。企業向けサポートやカスタマイズにも対応します。</p>
+      <a href="mailto:info@example.com" class="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-8 py-3 text-sm font-semibold text-white transition hover:border-white hover:-translate-y-0.5">メールで問い合わせる</a>
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer class="text-center py-8 text-sm text-gray-500 border-t">
+  <footer class="border-t border-white/10 bg-slate-950/95 py-8 text-center text-xs text-slate-500">
     © 2025 JQ::Lite Project — Built with ❤️ in Perl
   </footer>
 </body>
