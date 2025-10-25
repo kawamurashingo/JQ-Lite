@@ -334,9 +334,8 @@ my $admins = jq('.users[] | select(.role == "admin")', $json);
 # CPAN からインストール
 cpanm JQ::Lite
 
-# 単一ファイルで運用
-curl -O https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/bin/jq-lite
-chmod +x jq-lite
+# 一般ユーザ用インストール
+curl -fsSL https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/install.sh | bash
 
 # JSONの加工例
 jq-lite users.json '.users | map(select(.active)) | length'
