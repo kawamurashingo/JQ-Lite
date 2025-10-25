@@ -47,6 +47,9 @@
           <a href="#install" class="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-3 text-sm font-semibold text-white transition hover:border-white hover:-translate-y-0.5">
             すぐ導入する
           </a>
+          <a href="#quickstart" class="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-3 text-sm font-semibold text-white transition hover:border-white hover:-translate-y-0.5">
+            はじめてガイド
+          </a>
         </div>
         <dl class="mt-12 grid gap-6 text-sm text-slate-300 sm:grid-cols-3">
           <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -87,6 +90,51 @@ $ jq-lite users.json '.stats | {active, lastSync}'
           <p class="mt-6 text-sm text-slate-300">
             jq の書き心地のまま、制限付きサーバに導入可能。監査証跡や権限管理と組み合わせやすく、日常運用にフィットします。
           </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quickstart for newcomers -->
+    <section id="quickstart" class="mx-auto max-w-6xl px-6 pb-24">
+      <div class="grid gap-10 rounded-3xl border border-white/10 bg-white/5 p-10 lg:grid-cols-2">
+        <div class="space-y-6">
+          <span class="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/70">For Beginners</span>
+          <h2 class="text-3xl font-semibold text-white">コマンドラインが初めてでも大丈夫</h2>
+          <p class="text-sm leading-relaxed text-slate-300">
+            「GitHub や CPAN は難しそう…」という方のために、必要なファイルと手順をまとめたスターターキットをご用意しました。ダウンロードしてコピペするだけで、最短 3 分で JSON 処理を体験できます。
+          </p>
+          <ul class="space-y-3 text-sm text-slate-200">
+            <li class="flex items-start gap-3"><span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-100">A</span><div><span class="font-semibold text-white">アカウント登録不要</span><p class="mt-1 text-slate-300">GitHub にログインしなくても、ページから直接インストーラを取得できます。</p></div></li>
+            <li class="flex items-start gap-3"><span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-100">B</span><div><span class="font-semibold text-white">管理者権限なしで設置</span><p class="mt-1 text-slate-300">ホームディレクトリに配置できるので、権限申請の手間を抑えられます。</p></div></li>
+            <li class="flex items-start gap-3"><span class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-100">C</span><div><span class="font-semibold text-white">サンプルデータ付き</span><p class="mt-1 text-slate-300">users.json でフィルタの書き方をそのまま試せます。</p></div></li>
+          </ul>
+        </div>
+        <div class="space-y-6">
+          <div class="rounded-3xl border border-white/10 bg-slate-950/70 p-6 shadow-lg shadow-cyan-500/10">
+            <h3 class="text-lg font-semibold text-white">スターターキット 3 ステップ</h3>
+            <ol class="mt-4 space-y-4 text-sm text-slate-200">
+              <li class="flex items-start gap-4"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-semibold text-cyan-100">STEP 1</span><div><p class="font-semibold text-white">インストーラをダウンロード</p><p class="mt-1 text-slate-300">下のボタンから <code>install.sh</code> を保存します。右クリックして「リンク先を保存」を選ぶだけで OK。</p><div class="mt-3"><a href="install.sh" download class="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-5 py-2 text-xs font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-400">インストーラを保存 (.sh)</a></div></div></li>
+              <li class="flex items-start gap-4"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-semibold text-cyan-100">STEP 2</span><div><p class="font-semibold text-white">コマンドをそのまま実行</p><p class="mt-1 text-slate-300">ターミナルで <code>bash install.sh</code> と打つだけ。保存先のディレクトリを選ぶ案内が表示されます。</p></div></li>
+              <li class="flex items-start gap-4"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-semibold text-cyan-100">STEP 3</span><div><p class="font-semibold text-white">セットアップを確認</p><p class="mt-1 text-slate-300"><code>./jq-lite users.json '.users[0]'</code> を試すと、すぐに JSON 抽出結果が確認できます。</p></div></li>
+            </ol>
+          </div>
+          <div class="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <h3 class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">環境別ヒント</h3>
+            <div class="mt-4 grid gap-4 text-sm text-slate-200 sm:grid-cols-2">
+              <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <h4 class="text-base font-semibold text-white">macOS / Linux</h4>
+                <p class="mt-1 text-slate-300">ターミナルで保存先フォルダに移動し、<code>bash install.sh</code> を実行。<code>~/bin</code> を PATH に追加するガイドを表示します。</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <h4 class="text-base font-semibold text-white">Windows + WSL</h4>
+                <p class="mt-1 text-slate-300">WSL のホームディレクトリにコピーして実行。PowerShell しかない場合は zip 版のご案内をメールでお送りします。</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4 sm:col-span-2">
+                <h4 class="text-base font-semibold text-white">オフライン環境</h4>
+                <p class="mt-1 text-slate-300">USB メモリなどで install.sh と bin/jq-lite を持ち込めば OK。社内回覧用の PDF ガイドも提供していますので、お問い合わせください。</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -340,6 +388,16 @@ curl -fsSL https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/install
 # JSONの加工例
 jq-lite users.json '.users | map(select(.active)) | length'
             </pre>
+            <div class="mt-6 grid gap-4 text-sm text-slate-200 lg:grid-cols-2">
+              <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <h3 class="text-base font-semibold text-white">クリックだけで試したい方へ</h3>
+                <p class="mt-2 text-slate-300">インストーラの実行に不安がある場合は、<a href="install.sh" class="text-cyan-300 underline-offset-4 transition hover:text-cyan-200 hover:underline">install.sh</a> をメールで共有し、詳しい手順書（PDF）を同梱して展開できます。</p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <h3 class="text-base font-semibold text-white">チーム展開も簡単</h3>
+                <p class="mt-2 text-slate-300">install.sh は環境に合わせた配置先を案内します。配布用フォルダに jq-lite をコピーしておけば、<span class="font-semibold text-white">zip を解凍 → ダブルクリック</span>の手順でも導入できます。</p>
+              </div>
+            </div>
             <div class="mt-6 text-right text-sm">
               <a href="https://github.com/kawamurashingo/JQ-Lite" class="text-cyan-300 underline-offset-4 transition hover:text-cyan-200 hover:underline">GitHubでソースを見る →</a>
             </div>
