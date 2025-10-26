@@ -304,11 +304,15 @@ sub _build_yaml_loader {
     }
     else {
         require CPAN::Meta::YAML;
+        no warnings 'once';
         return (
             sub {
                 my $string = shift // '';
                 my $docs   = CPAN::Meta::YAML->read_string($string);
-                die($CPAN::Meta::YAML::errstr || 'Unknown YAML parsing error') unless defined $docs;
+                if (!defined $docs) {
+                    my $err = $CPAN::Meta::YAML::errstr || 'Unknown YAML parsing error';
+                    die $err;
+                }
                 return @{$docs};
             },
             'CPAN::Meta::YAML'
