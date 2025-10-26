@@ -52,6 +52,11 @@ if ! command -v curl >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v perl >/dev/null 2>&1; then
+  echo "[ERROR] perl is required to parse the MetaCPAN response." >&2
+  exit 1
+fi
+
 if [[ ! -d "$OUT_DIR" ]]; then
   echo "[INFO] Creating output directory $OUT_DIR"
   mkdir -p "$OUT_DIR"
@@ -61,11 +66,41 @@ META_URL="https://fastapi.metacpan.org/v1/release/${DIST_NAME}?fields=download_u
 
 echo "[INFO] Fetching latest version of $DIST_NAME from MetaCPAN..."
 RELEASE_JSON=$(curl -sSfL "$META_URL")
-DOWNLOAD_URL=$(printf '%s' "$RELEASE_JSON" | grep '"download_url"' | cut -d'"' -f4)
-VERSION=$(printf '%s' "$RELEASE_JSON" | grep '"version"' | head -n1 | cut -d'"' -f4)
+
+mapfile -t META_FIELDS < <(
+  printf '%s' "$RELEASE_JSON" | perl -MJSON::PP -E '
+    my $data = decode_json(join q{}, <STDIN>);
+    my $url = $data->{download_url} // q{};
+    my $version = $data->{version};
+    if (ref $version eq q{HASH}) {
+      my $resolved;
+      for my $key (qw(version original normal string value numified)) {
+        next unless exists $version->{$key};
+        my $candidate = $version->{$key};
+        next unless defined $candidate && length $candidate;
+        $version  = $candidate;
+        $resolved = 1;
+        last;
+      }
+      $version = q{} unless $resolved;
+    }
+    $version = q{} if !defined $version;
+    $version = "$version" if length $version;
+    say $url;
+    say $version;
+  '
+)
+
+DOWNLOAD_URL=${META_FIELDS[0]:-}
+VERSION=${META_FIELDS[1]:-}
 
 if [[ -z "$DOWNLOAD_URL" ]]; then
   echo "[ERROR] Failed to resolve the download URL from MetaCPAN." >&2
+  exit 1
+fi
+
+if [[ -z "$VERSION" ]]; then
+  echo "[ERROR] Failed to determine the release version from MetaCPAN." >&2
   exit 1
 fi
 
