@@ -104,7 +104,12 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 
 cd "$WORK_DIR"
 
-DIST_DIR=$(tar tzf "$TARBALL_ABS" | head -n1 | cut -d'/' -f1)
+TAR_WARN_FLAGS=()
+if tar --version 2>/dev/null | grep -qi 'gnu tar'; then
+  TAR_WARN_FLAGS+=(--warning=no-unknown-keyword)
+fi
+
+DIST_DIR=$(tar "${TAR_WARN_FLAGS[@]}" tzf "$TARBALL_ABS" | head -n1 | cut -d'/' -f1)
 if [[ -z "$DIST_DIR" ]]; then
   echo "[ERROR] Unable to determine distribution directory from $TARBALL." >&2
   exit 1
@@ -115,7 +120,7 @@ if [[ -d "$DIST_DIR" ]]; then
 fi
 
 echo "[INFO] Extracting $TARBALL..."
-tar xzf "$TARBALL_ABS"
+tar "${TAR_WARN_FLAGS[@]}" xzf "$TARBALL_ABS"
 
 cd "$DIST_DIR"
 
