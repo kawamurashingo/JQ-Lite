@@ -68,6 +68,7 @@ fi
 
 TARBALL="${POSITIONAL[0]:-}"
 
+# Automatically find the latest tarball if not specified
 if [[ -z "$TARBALL" ]]; then
   TARBALL=$(ls -t JQ-Lite-*.tar.gz 2>/dev/null | head -n1 || true)
 fi
@@ -82,6 +83,7 @@ if [[ ! -f "$TARBALL" ]]; then
   exit 1
 fi
 
+# Check required tools
 for tool in tar perl make; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "[ERROR] Required tool '$tool' is not available." >&2
@@ -89,51 +91,60 @@ for tool in tar perl make; do
   fi
 done
 
+# If tests are enabled, check for `prove`
 if [[ $RUN_TESTS -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
   echo "[WARN] 'prove' not found; tests will be skipped."
   RUN_TESTS=0
 fi
 
-if command -v realpath >/dev/null 2>&1; then
-  TARBALL_ABS=$(realpath "$TARBALL")
-else
-  TARBALL_ABS=$(perl -MCwd=abs_path -e 'print abs_path(shift)' "$TARBALL")
-fi
-WORK_DIR=$(mktemp -d)
-trap 'rm -rf "$WORK_DIR"' EXIT
-
-cd "$WORK_DIR"
-
+# Handle GNU tar vs. BSD tar (macOS)
 TAR_WARN_FLAGS=()
 if tar --version 2>/dev/null | grep -qi 'gnu tar'; then
   TAR_WARN_FLAGS+=(--warning=no-unknown-keyword)
 fi
 
-DIST_DIR=$(tar "${TAR_WARN_FLAGS[@]}" tzf "$TARBALL_ABS" | head -n1 | cut -d'/' -f1)
+echo "[INFO] Checking tarball contents..."
+# Ignore warnings from macOS tar (extended attributes)
+DIST_DIR=$(tar "${TAR_WARN_FLAGS[@]}" -tzf "$TARBALL" 2>/dev/null | head -n1 | cut -d'/' -f1 || true)
 if [[ -z "$DIST_DIR" ]]; then
   echo "[ERROR] Unable to determine distribution directory from $TARBALL." >&2
   exit 1
 fi
 
+# Remove existing extracted directory if it exists
 if [[ -d "$DIST_DIR" ]]; then
+  echo "[INFO] Removing existing directory: $DIST_DIR"
   rm -rf "$DIST_DIR"
 fi
 
 echo "[INFO] Extracting $TARBALL..."
-tar "${TAR_WARN_FLAGS[@]}" xzf "$TARBALL_ABS"
+tar "${TAR_WARN_FLAGS[@]}" -xzf "$TARBALL" 2>/dev/null || true
 
 cd "$DIST_DIR"
+echo "[DEBUG] Now inside: $(pwd)"
+
+# Check for Makefile.PL
+if [[ ! -f Makefile.PL ]]; then
+  echo "[ERROR] Makefile.PL not found in extracted directory!" >&2
+  echo "[DEBUG] Directory contents:"
+  ls -la
+  exit 1
+fi
 
 echo "[INFO] Installing to $PREFIX..."
-perl Makefile.PL PREFIX="$PREFIX" >/dev/null
+perl Makefile.PL PREFIX="$PREFIX"
+
+echo "[INFO] Running make..."
 make
 
 if [[ $RUN_TESTS -eq 1 ]]; then
+  echo "[INFO] Running make test..."
   make test
 else
   echo "[INFO] Skipping tests."
 fi
 
+echo "[INFO] Running make install..."
 make install
 
 echo
