@@ -487,7 +487,7 @@ L<Cpanel::JSON::XS>, L<JSON::MaybeXS>
 
 =head1 AUTHOR
 
-Kawamura Shingo E<lt>pannakoota1\@gmail.comE<gt>
+Kawamura Shingo E<lt>perl.jq.lite\@gmail.comE<gt>
 
 =head1 LICENSE
 
