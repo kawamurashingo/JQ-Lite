@@ -26,6 +26,10 @@
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
       font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -76,6 +80,36 @@
       color: var(--text-muted);
       max-width: 820px;
       margin: 0 auto clamp(2rem, 4vw, 3rem);
+    }
+
+    .tab-nav {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.8rem;
+      margin-bottom: clamp(2rem, 4vw, 3rem);
+    }
+
+    .tab-nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.3rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      transition: border 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .tab-nav a:hover,
+    .tab-nav a:focus-visible {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+      transform: translateY(-2px);
+      outline: none;
     }
 
     .cta {
@@ -369,11 +403,18 @@
       <span class="badge">💻 CLI & モジュール</span>
       <span class="badge">🌐 オフライン対応</span>
     </div>
+    <nav class="tab-nav" aria-label="セクションタブ">
+      <a href="#features">🧭 主な特徴</a>
+      <a href="#install">⬇️ インストール</a>
+      <a href="#usage">🛠️ 使い方</a>
+      <a href="#scenes">🎯 活用シーン</a>
+      <a href="#contact">✉️ お問い合わせ</a>
+    </nav>
     <a class="cta" href="https://metacpan.org/release/JQ-Lite" target="_blank" rel="noopener">MetaCPANで見る →</a>
   </header>
 
   <main>
-    <section>
+    <section id="features">
       <h2>主な特徴</h2>
       <div class="grid grid-3">
         <div class="card">
@@ -391,7 +432,7 @@
       </div>
     </section>
 
-    <section>
+    <section id="install">
       <h2>インストール</h2>
       <div class="grid" style="gap: 2.2rem;">
         <div class="card">
@@ -418,7 +459,7 @@ brew install --HEAD jq-lite</code></pre>
       </div>
     </section>
 
-    <section>
+    <section id="usage">
       <h2>使い方</h2>
       <div class="grid" style="gap: 2.2rem;">
         <div class="card">
@@ -446,7 +487,7 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
       </div>
     </section>
 
-    <section>
+    <section id="scenes">
       <h2>どんなときに便利？</h2>
       <div class="grid grid-3">
         <div class="card">
@@ -464,7 +505,7 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
       </div>
     </section>
 
-    <section>
+    <section id="contact">
       <h2>お問い合わせ</h2>
       <p>JQ::Lite に関するご質問やご相談は以下のフォームからお送りください。開発チームが確認し、折り返しご連絡いたします。</p>
       <form class="contact-form" action="mailto:perl.jq.lite@gmail.com" method="POST" enctype="text/plain">
