@@ -138,6 +138,32 @@
       transition: border 0.3s ease, transform 0.3s ease;
     }
 
+    .download-links {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 1.2rem;
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 1rem;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .download-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      transform: translateY(-2px);
+    }
+
     .card:hover {
       border-color: rgba(56, 189, 248, 0.55);
       transform: translateY(-4px);
@@ -312,6 +338,10 @@ brew install --HEAD jq-lite</code></pre>
           <pre><code>./download.sh [-v &lt;version&gt;] [-o /path/to/usb]
 ./install.sh [-p &lt;prefix&gt;] [--skip-tests] path/to/JQ-Lite.tar.gz</code></pre>
           <p>オンラインで取得してオフラインで展開。閉域環境でもセットアップできます。</p>
+          <div class="download-links">
+            <a class="download-btn" href="download.sh" download>download.sh をダウンロード</a>
+            <a class="download-btn" href="install.sh" download>install.sh をダウンロード</a>
+          </div>
         </div>
       </div>
     </section>
