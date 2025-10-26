@@ -508,7 +508,7 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
     <section id="contact">
       <h2>お問い合わせ</h2>
       <p>JQ::Lite に関するご質問やご相談は以下のフォームからお送りください。開発チームが確認し、折り返しご連絡いたします。</p>
-      <form class="contact-form" action="mailto:perl.jq.lite@gmail.com" method="POST" enctype="text/plain">
+      <form class="contact-form" action="mailto:perl.jq.lite@gmail.com">
         <div class="contact-group">
           <label for="contact-name">お名前</label>
           <input type="text" id="contact-name" name="name" placeholder="例：山田 太郎" required>
@@ -531,5 +531,33 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
     <p>© 2024 JQ::Lite. Built with ❤️ in Perl.</p>
     <p><a href="https://github.com/kawamurashingo/JQ-Lite" target="_blank" rel="noopener">GitHub</a> · <a href="https://metacpan.org/release/JQ-Lite" target="_blank" rel="noopener">MetaCPAN</a></p>
   </footer>
+  <script>
+    (function () {
+      const contactForm = document.querySelector('.contact-form');
+      if (!contactForm) return;
+
+      contactForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const nameField = document.getElementById('contact-name');
+        const emailField = document.getElementById('contact-email');
+        const messageField = document.getElementById('contact-message');
+
+        if (!nameField || !emailField || !messageField) {
+          contactForm.submit();
+          return;
+        }
+
+        const name = nameField.value.trim();
+        const email = emailField.value.trim();
+        const message = messageField.value.trim();
+
+        const subject = encodeURIComponent('JQ::Lite サイトからのお問い合わせ');
+        const body = encodeURIComponent(`お名前：${name}\nメールアドレス：${email}\n\n${message}`);
+
+        window.location.href = `${contactForm.action}?subject=${subject}&body=${body}`;
+      });
+    })();
+  </script>
 </body>
 </html>
