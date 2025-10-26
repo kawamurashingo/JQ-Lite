@@ -124,6 +124,33 @@
       background: rgba(56, 189, 248, 0.18);
     }
 
+    .vision-link {
+      margin-bottom: clamp(1.5rem, 3vw, 2rem);
+    }
+
+    .vision-link a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.4rem;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      transition: border 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .vision-link a:hover,
+    .vision-link a:focus-visible {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: rgba(56, 189, 248, 0.7);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
     .tab-nav a {
       display: inline-flex;
       align-items: center;
@@ -433,6 +460,9 @@
       <a href="index.html" lang="ja" class="active">日本語</a>
       <span aria-hidden="true">/</span>
       <a href="index-en.html" lang="en">English</a>
+    </div>
+    <div class="vision-link">
+      <a href="vision.html">🌟 プロジェクトビジョンを見る</a>
     </div>
     <h1>JQ::Lite</h1>
     <p class="lead">Pure Perlで実装された軽量な jq 互換エンジン。制約の多い環境でも JSON や YAML を自在にクエリし、変換できます。</p>
