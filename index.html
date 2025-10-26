@@ -164,6 +164,74 @@
       transform: translateY(-2px);
     }
 
+    .contact-form {
+      display: grid;
+      gap: 1.2rem;
+      margin-top: 1.8rem;
+    }
+
+    .contact-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .contact-group label {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .contact-group input,
+    .contact-group textarea {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font: inherit;
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+      resize: vertical;
+      min-height: 48px;
+    }
+
+    .contact-group textarea {
+      min-height: 160px;
+    }
+
+    .contact-group input:focus,
+    .contact-group textarea:focus {
+      outline: none;
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+    }
+
+    .contact-submit {
+      justify-self: start;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.6rem;
+      border-radius: 999px;
+      background: linear-gradient(120deg, var(--accent), var(--accent-strong));
+      color: #0f172a;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 12px 28px rgba(56, 189, 248, 0.3);
+    }
+
+    .contact-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 36px rgba(56, 189, 248, 0.4);
+    }
+
+    .contact-hint {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+    }
+
     .card:hover {
       border-color: rgba(56, 189, 248, 0.55);
       transform: translateY(-4px);
@@ -283,6 +351,10 @@
         word-break: break-word;
         overflow-wrap: anywhere;
       }
+
+      .contact-form {
+        gap: 1rem;
+      }
     }
   </style>
 </head>
@@ -390,6 +462,27 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
           <p>jq に慣れたエンジニアにも違和感のない操作感。組み込みの 100+ 関数で複雑な処理もお手のもの。</p>
         </div>
       </div>
+    </section>
+
+    <section>
+      <h2>お問い合わせ</h2>
+      <p>JQ::Lite に関するご質問やご相談は以下のフォームからお送りください。開発チームが確認し、折り返しご連絡いたします。</p>
+      <form class="contact-form" action="mailto:perl.jq.lite@gmail.com" method="POST" enctype="text/plain">
+        <div class="contact-group">
+          <label for="contact-name">お名前</label>
+          <input type="text" id="contact-name" name="name" placeholder="例：山田 太郎" required>
+        </div>
+        <div class="contact-group">
+          <label for="contact-email">メールアドレス</label>
+          <input type="email" id="contact-email" name="email" placeholder="your.name@example.com" required>
+        </div>
+        <div class="contact-group">
+          <label for="contact-message">お問い合わせ内容</label>
+          <textarea id="contact-message" name="message" placeholder="ご質問やご要望をご記入ください" required></textarea>
+          <p class="contact-hint">送信すると、お使いのメールアプリが起動し、<strong>perl.jq.lite@gmail.com</strong>宛のメールが作成されます。</p>
+        </div>
+        <button type="submit" class="contact-submit">✉️ メールを作成する</button>
+      </form>
     </section>
   </main>
 
