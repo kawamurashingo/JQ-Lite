@@ -71,26 +71,32 @@ brew tap kawamurashingo/jq-lite
 brew install --HEAD jq-lite
 ```
 
-### 🐧 Portable installer (online → offline)
 
-1. **On an internet-connected machine**
+### 🐧 Portable Installer (Online → Offline)
+
+**For air-gapped or offline systems**
+
+1. **Download on a connected machine**
    ```bash
-   ./download.sh
+   ./download.sh [-v <version>] [-o /path/to/usb]
    ```
-   *Use `-o /path/to/usb` to place the tarball somewhere else.*
 
-2. **Transfer** `JQ-Lite-<version>.tar.gz` to the offline/target machine (USB, SCP, etc.).
+→ Produces `JQ-Lite-<version>.tar.gz`.
 
-3. **On the target machine**
+2. **Transfer** the tarball to the target (offline) machine.
+
+3. **Install**
+
    ```bash
-   ./install.sh /path/to/JQ-Lite-<version>.tar.gz
+   ./install.sh [-p <prefix>] [--skip-tests] /path/to/JQ-Lite-<version>.tar.gz
    ```
-   *Use `-p /custom/prefix` to change the install location or `--skip-tests` to avoid running `make test`.*
 
-> The installer defaults to `$HOME/.local`. Add it to your PATH if needed:
-> ```bash
-> export PATH="$HOME/.local/bin:$PATH"
-> ```
+   *Default install path:* `$HOME/.local`
+
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   export PERL5LIB="$HOME/.local/lib/perl5/site_perl:$PERL5LIB"
+   ```
 
 ---
 
@@ -162,6 +168,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
