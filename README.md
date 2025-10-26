@@ -71,21 +71,23 @@ brew tap kawamurashingo/jq-lite
 brew install --HEAD jq-lite
 ```
 
+---
 
-### 🐧 Portable Installer (Online → Offline)
+## 🐧 Portable Installer (Online → Offline)
 
 **For air-gapped or offline systems**
 
 1. **Download on a connected machine**
+
    ```bash
    ./download.sh [-v <version>] [-o /path/to/usb]
    ```
 
-→ Produces `JQ-Lite-<version>.tar.gz`.
+   → Produces `JQ-Lite-<version>.tar.gz`.
 
 2. **Transfer** the tarball to the target (offline) machine.
 
-3. **Install**
+3. **Install (Linux/macOS)**
 
    ```bash
    ./install.sh [-p <prefix>] [--skip-tests] /path/to/JQ-Lite-<version>.tar.gz
@@ -96,6 +98,29 @@ brew install --HEAD jq-lite
    ```bash
    export PATH="$HOME/.local/bin:$PATH"
    export PERL5LIB="$HOME/.local/lib/perl5/site_perl:$PERL5LIB"
+   ```
+
+---
+
+## 🪟 Windows (PowerShell)
+
+1. Open PowerShell and run:
+
+   ```powershell
+   .\install-jq-lite.ps1 [-Prefix <path>] [--SkipTests] C:\path\to\JQ-Lite-<version>.tar.gz
+   ```
+
+2. Add to your PowerShell profile (optional):
+
+   ```powershell
+   $env:PATH = "$env:USERPROFILE\.local\bin;" + $env:PATH
+   $env:PERL5LIB = "$env:USERPROFILE\.local\lib\perl5\site_perl;" + $env:PERL5LIB
+   ```
+
+3. Verify:
+
+   ```powershell
+   jq-lite -v
    ```
 
 ---
@@ -168,6 +193,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
