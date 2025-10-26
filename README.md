@@ -3,7 +3,6 @@
 
 [![GitHub](https://img.shields.io/github/stars/kawamurashingo/JQ-Lite?style=social)](https://github.com/kawamurashingo/JQ-Lite)
 [![MetaCPAN](https://img.shields.io/cpan/v/JQ-Lite.svg)](https://metacpan.org/release/JQ-Lite)
-![CPAN Favorites](https://img.shields.io/badge/dynamic/json?color=orange&label=CPAN%20favorites&query=$.favorites&url=https://fastapi.metacpan.org/v1/release/JQ-Lite)
 
 **JQ::Lite** is a pure-Perl JSON query engine inspired by [`jq`](https://stedolan.github.io/jq/).
 It allows you to query and transform JSON using jq-like syntax — without external binaries.
@@ -195,6 +194,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
