@@ -187,13 +187,13 @@ See the complete list in
 
 **Shingo Kawamura**
 📧 [perl.jq.lite@gmail.com](mailto:perl.jq.lite@gmail.com)
-🔗 [GitHub @kawamurashingo](https://github.com/kawamurashingo/JQ-Lite)
 
 ---
 
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
