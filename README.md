@@ -71,15 +71,23 @@ brew tap kawamurashingo/jq-lite
 brew install --HEAD jq-lite
 ```
 
-### 🐧 Portable (Linux/macOS)
+### 🐧 Portable installer (online → offline)
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/kawamurashingo/JQ-Lite/main/install.sh | bash
-```
+1. **On an internet-connected machine**
+   ```bash
+   ./download.sh
+   ```
+   *Use `-o /path/to/usb` to place the tarball somewhere else.*
 
-> Installs to `$HOME/.local/bin`.
-> Add to PATH if needed:
->
+2. **Transfer** `JQ-Lite-<version>.tar.gz` to the offline/target machine (USB, SCP, etc.).
+
+3. **On the target machine**
+   ```bash
+   ./install.sh /path/to/JQ-Lite-<version>.tar.gz
+   ```
+   *Use `-p /custom/prefix` to change the install location or `--skip-tests` to avoid running `make test`.*
+
+> The installer defaults to `$HOME/.local`. Add it to your PATH if needed:
 > ```bash
 > export PATH="$HOME/.local/bin:$PATH"
 > ```
