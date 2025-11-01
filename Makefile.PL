@@ -28,6 +28,7 @@ WriteMakefile(
         'Getopt::Long'    => 0,
         'IO::File'        => 0,
         'List::Util'      => 0,
+        'MIME::Base64'    => 0,
         'Scalar::Util'    => 0,
         'Term::ANSIColor' => 0,
     },

@@ -1,3 +1,6 @@
+1.35  2025-11-03
+    - Release base64 formatter support and dependency metadata updates.
+
 1.34  2025-11-02
     - Publish homepage metadata updates for CPAN distribution listings.
 

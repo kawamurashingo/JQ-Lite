@@ -3,9 +3,10 @@ package JQ::Lite::Util;
 use strict;
 use warnings;
 
-use JSON::PP (); 
+use JSON::PP ();
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
+use MIME::Base64 qw(encode_base64);
 use B ();
 use JQ::Lite::Expression ();
 
@@ -2903,6 +2904,30 @@ sub _apply_tsv {
     }
 
     return _format_tsv_field($value);
+}
+
+sub _apply_base64 {
+    my ($value) = @_;
+
+    my $text;
+
+    if (!defined $value) {
+        $text = 'null';
+    }
+    elsif (ref($value) eq 'JSON::PP::Boolean') {
+        $text = $value ? 'true' : 'false';
+    }
+    elsif (!ref $value) {
+        $text = "$value";
+    }
+    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
+        $text = _encode_json($value);
+    }
+    else {
+        $text = "$value";
+    }
+
+    return encode_base64($text, '');
 }
 
 sub _format_csv_field {

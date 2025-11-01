@@ -22,6 +22,7 @@ t/array_constructor.t
 t/arrays.t
 t/assignment.t
 t/avg_by.t
+t/base64_format.t
 t/basic.t
 t/case_transform.t
 t/ceil_floor.t
