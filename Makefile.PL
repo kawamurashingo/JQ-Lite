@@ -2,6 +2,18 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
+my $resources = {
+    homepage => 'https://kawamurashingo.github.io/JQ-Lite/index-en.html',
+    repository => {
+        type => 'git',
+        url  => 'https://github.com/kawamurashingo/JQ-Lite.git',
+        web  => 'https://github.com/kawamurashingo/JQ-Lite',
+    },
+    bugtracker => {
+        web => 'https://github.com/kawamurashingo/JQ-Lite/issues',
+    },
+};
+
 WriteMakefile(
     NAME             => 'JQ::Lite',
     VERSION_FROM     => 'lib/JQ/Lite.pm',
@@ -22,20 +34,13 @@ WriteMakefile(
     EXE_FILES        => ['bin/jq-lite'],
     META_MERGE       => {
         'meta-spec' => { version => 2 },
-        resources   => {
-            homepage => 'https://kawamurashingo.github.io/JQ-Lite/index-en.html',
-            repository => {
-                type => 'git',
-                url  => 'https://github.com/kawamurashingo/JQ-Lite.git',
-                web  => 'https://github.com/kawamurashingo/JQ-Lite',
-            },
-            bugtracker => {
-                web => 'https://github.com/kawamurashingo/JQ-Lite/issues',
-            },
-        },
-        no_index => {
+        resources   => $resources,
+        no_index    => {
             directory => [ 't', 'inc' ],
         },
+    },
+    META_ADD => {
+        resources => $resources,
     },
 );
 
