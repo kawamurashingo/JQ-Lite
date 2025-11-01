@@ -80,33 +80,59 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =head1 FEATURES
 
+=head2 Core capabilities
+
 =over 4
 
-=item * Pure Perl (no XS, no external binaries required)
+=item * Pure Perl implementation - no XS or external binaries required.
 
-=item * Dot notation traversal (e.g. .users[].name)
+=item * Familiar dot-notation traversal (for example C<.users[].name>).
 
-=item * Optional key access using '?' (e.g. .nickname?)
+=item * Optional key access with C<?> so absent keys can be skipped gracefully.
 
-=item * Array indexing and flattening (.users[0], .users[])
+=item * Array indexing and flattening helpers such as C<.users[0]> and C<.users[]>.
 
-=item * Boolean filters via select(...) with ==, !=, <, >, and, or
+=item * Boolean filters via C<select(...)> supporting comparison operators and logical C<and> / C<or>.
 
-=item * Pipe-style query chaining using | operator
+=item * Pipe-style query chaining using the C<|> operator.
 
-=item * Built-in functions: length, keys, keys_unsorted, values, first, last, reverse, sort, sort_desc, sort_by, min_by, max_by, unique, unique_by, has, contains, test, any, all, not, group_by, group_count, join, split, explode, implode, count, empty, type, nth, del, delpaths, compact, upper, lower, titlecase, abs, ceil, floor, trim, ltrimstr, rtrimstr, substr, slice, startswith, endswith, add, sum, sum_by, avg_by, median_by, product, min, max, avg, median, mode, percentile, variance, stddev, drop, tail, chunks, range, enumerate, transpose, flatten_all, flatten_depth, clamp, tostring, tojson, fromjson, to_number, pick, merge_objects, to_entries, from_entries, with_entries, map_values, walk, paths, leaf_paths, getpath, setpath, index, rindex, indices, arrays, objects, scalars
+=item * Iterator helpers including C<map(...)>, C<map_values(...)>, C<walk(...)>, C<limit(n)>, C<drop(n)>, C<tail(n)>, C<chunks(n)>, C<range(...)>, and C<enumerate()>.
 
-=item * Supports map(...), map_values(...), walk(...), limit(n), drop(n), tail(n), chunks(n), range(...), and enumerate() style transformations
+=item * Interactive REPL mode for experimenting with filters line-by-line.
 
-=item * Interactive mode for exploring queries line-by-line
+=item * Command-line interface (C<jq-lite>) that reads from STDIN or files.
 
-=item * Command-line interface: C<jq-lite> (compatible with stdin or file)
+=item * Decoder selection via C<--use> (JSON::PP, JSON::XS, and compatible modules).
 
-=item * Decoder selection via C<--use> (JSON::PP, JSON::XS, etc.)
+=item * Debug logging with C<--debug> and a catalog of helpers available through C<--help-functions>.
 
-=item * Debug output via C<--debug>
+=back
 
-=item * List all functions with C<--help-functions>
+=head2 Built-in functions
+
+JQ::Lite mirrors a substantial portion of the L<jq|https://stedolan.github.io/jq/> function library. Functions are grouped below for easier scanning; every name can be used directly in filters.
+
+=over 4
+
+=item * Structure introspection
+
+C<length>, C<type>, C<keys>, C<keys_unsorted>, C<values>, C<paths>, C<leaf_paths>, C<to_entries>, C<from_entries>, C<with_entries>, C<map_values>, C<walk>, C<arrays>, C<objects>, C<scalars>, C<index>, C<indices>, C<rindex>.
+
+=item * Selection and set operations
+
+C<select>, C<has>, C<contains>, C<any>, C<all>, C<unique>, C<unique_by>, C<group_by>, C<group_count>, C<pick>, C<merge_objects>, C<setpath>, C<getpath>, C<del>, C<delpaths>, C<compact>, C<drop>, C<tail>.
+
+=item * Transformation helpers
+
+C<map>, C<map_values>, C<walk>, C<enumerate>, C<transpose>, C<flatten_all>, C<flatten_depth>, C<chunks>, C<range>, C<implode>, C<explode>, C<join>, C<split>, C<slice>, C<substr>, C<trim>, C<ltrimstr>, C<rtrimstr>, C<startswith>, C<endswith>, C<upper>, C<lower>, C<titlecase>, C<tostring>, C<tojson>, C<fromjson>, C<to_number>, C<compact>.
+
+=item * Aggregation and math
+
+C<count>, C<sum>, C<sum_by>, C<add>, C<product>, C<min>, C<max>, C<min_by>, C<max_by>, C<avg>, C<avg_by>, C<median>, C<median_by>, C<mode>, C<percentile>, C<variance>, C<stddev>, C<nth>, C<first>, C<last>, C<reverse>, C<sort>, C<sort_desc>, C<sort_by>.
+
+=item * Flow control and predicates
+
+C<select>, C<empty>, C<not>, C<test>, C<reduce>, C<foreach>, C<if> / C<then> / C<else> constructs.
 
 =back
 
@@ -130,32 +156,45 @@ Returns a list of matched results. Each result is a Perl scalar
 
 =head1 SUPPORTED SYNTAX
 
+=head2 Navigation
+
 =over 4
 
-=item * .key.subkey
+=item * C<.key.subkey> to traverse nested hashes.
 
-=item * .array[0] (index access)
+=item * C<.array[0]> for positional access and C<.array[]> to flatten arrays.
 
-=item * .array[] (flattening arrays)
+=item * C<.key?> for optional key access that yields no output when the key is missing.
 
-=item * .key? (optional key access)
+=back
 
-=item * select(.key > 1 and .key2 == "foo") (boolean filters)
+=head2 Filtering and projection
 
-=item * group_by(.field) (group array items by key)
+=over 4
 
-=item * reduce expr as $var (init; update) (accumulate values with lexical bindings)
+=item * C<select(.key > 1 and .key2 == "foo")> for boolean filtering.
 
-=item * foreach expr as $var (init; update [; extract]) (stream results while folding values)
+=item * C<group_by(.field)>, C<group_count(.field)>, C<sum_by(.field)>, C<avg_by(.field)>, and C<median_by(.field)> for grouped reductions.
 
-=item * if CONDITION then FILTER [elif CONDITION then FILTER ...] [else FILTER] end (conditional branching)
+=item * C<reduce expr as $var (init; update)> for accumulators with lexical bindings.
 
-Evaluates jq-style conditional expressions. Conditions are treated as filters
-executed against the current input; the first branch whose condition produces a
-truthy result has its filter evaluated and emitted. Optional C<elif> clauses
-cascade additional tests, and the optional C<else> filter runs only when no
-prior branch matched. When no C<else> clause is supplied and every condition is
-falsey the expression yields no output.
+=item * C<foreach expr as $var (init; update [; extract])> to stream intermediate results while folding values.
+
+=item * C<unique_by(.key)> and C<sort_by(.key)> for deduplicating and ordering complex structures.
+
+=item * C<.key | count> or C<.[] | select(...) | count> to count items after applying filters.
+
+=item * C<.array | map(.field) | join(", ")> to transform and format array values.
+
+=back
+
+=head2 Conditionals
+
+=over 4
+
+=item * C<if CONDITION then FILTER [elif CONDITION then FILTER ...] [else FILTER] end> for jq-style branching.
+
+Evaluates conditions as filters against the current input. The first truthy branch emits its result; optional C<elif> clauses cascade additional tests, and the optional C<else> filter only runs when no prior branch matches. Without an C<else> clause a fully falsey chain produces no output.
 
 Example:
 
@@ -164,243 +203,45 @@ Example:
   else "C"
   end
 
-=item * group_count(.field) (tally items by key)
+=back
 
-=item * sum_by(.field) (sum numeric values projected from each array item)
+=head2 Sorting and ranking
 
-=item * avg_by(.field) (average numeric values projected from each array item)
+=over 4
 
-=item * median_by(.field) (median of numeric values projected from each array item)
+=item * C<sort_desc()> to order scalars in descending order.
 
-=item * percentile(p) (return the requested percentile for numeric array values)
+=item * C<sort_by(.key)> for ordering arrays of objects by computed keys.
 
-=item * min_by(.field) / max_by(.field) (select array element with smallest/largest projected value)
+=item * C<min_by(.field)> / C<max_by(.field)> to select items with the smallest or largest projected values.
 
-=item * sort_desc()
+=item * C<percentile(p)>, C<mode>, and C<nth(n)> for statistical lookups within numeric arrays.
 
-Sort array elements in descending order using smart numeric/string comparison.
+=back
 
-Example:
+=head2 String and collection utilities
 
-  .scores | sort_desc
+=over 4
 
-Returns:
+=item * C<join(", ")>, C<split(separator)>, C<explode()>, and C<implode()> for converting between text and arrays.
 
-  [100, 75, 42, 12]
+=item * C<keys_unsorted()> and C<values()> for working with object metadata.
 
-=item * sort_by(.key) (sort array of objects by key)
+=item * C<paths()> and C<leaf_paths()> to enumerate structure paths.
 
-=item * unique_by(.key) (remove duplicates based on a projected key)
+=item * C<getpath(path)> and C<setpath(path; value)> to read and write by path arrays without mutating the original input.
 
-=item * .key | count (count items or fields)
+=item * C<pick(...)> and C<merge_objects()> to reshape objects.
 
-=item * .[] | select(...) | count (combine flattening + filter + count)
+=item * C<to_entries()>, C<from_entries()>, and C<with_entries(filter)> for entry-wise transformations.
 
-=item * .array | map(.field) | join(", ")
+=item * C<map_values(filter)> to apply filters across every value in an object or array of objects.
 
-Concatenates array elements with a custom separator string.
-Example:
+=back
 
-  .users | map(.name) | join(", ")
+=head2 Detailed helper reference
 
-Results in:
-
-  "Alice, Bob, Carol"
-
-=item * split(separator)
-
-Split string values (and arrays of strings) using a literal separator.
-Example:
-
-  .users[0].name | split("")
-
-Results in:
-
-  ["A", "l", "i", "c", "e"]
-
-=item * explode()
-
-Convert strings into arrays of Unicode code points. When applied to arrays the
-conversion happens element-wise, while non-string values (including hashes) are
-passed through untouched. This mirrors jq's C<explode> helper and pairs with
-C<implode> for round-trip transformations.
-
-Example:
-
-  .title | explode
-
-Returns:
-
-  [67, 79, 68, 69]
-
-=item * implode()
-
-Perform the inverse of C<explode> by turning arrays of Unicode code points back
-into strings. Nested arrays are processed recursively so pipelines like
-C<explode | implode> work over heterogeneous structures. Non-array inputs pass
-through unchanged.
-
-Example:
-
-  .codes | implode
-
-Returns:
-
-  "CODE"
-
-
-=item * keys_unsorted()
-
-Returns the keys of an object without sorting them, mirroring jq's
-C<keys_unsorted> helper. Arrays yield their zero-based indices, while
-non-object/array inputs return C<undef> to match the behaviour of C<keys>.
-
-Example:
-
-  .profile | keys_unsorted
-
-=item * values()
-
-Returns all values of a hash as an array.
-Example:
-
-  .profile | values
-
-=item * paths()
-
-Enumerates every path within the current value, mirroring jq's C<paths>
-helper. Each path is emitted as an array of keys and/or indices leading to
-objects, arrays, and their nested scalars. Scalars (including booleans and
-null) yield a single empty path, while empty arrays and objects contribute only
-their immediate location.
-
-Example:
-
-  .user | paths
-
-Returns:
-
-  [ ["name"], ["tags"], ["tags",0], ["tags",1], ["active"] ]
-
-=item * leaf_paths()
-
-Enumerates only the paths that terminate in non-container values, mirroring
-jq's C<leaf_paths> helper. This is equivalent to C<paths(scalars)> in jq.
-
-Example:
-
-  .user | leaf_paths
-
-Returns:
-
-  [ ["name"], ["tags",0], ["tags",1], ["active"] ]
-
-=item * getpath(path)
-
-Retrieves the value referenced by the supplied path array (or filter producing
-path arrays), mirroring jq's C<getpath/1>. Literal JSON arrays can be passed
-directly while expressions such as C<paths()> are evaluated against the current
-input to collect candidate paths. When multiple paths are returned the helper
-yields an array of values in the same order.
-
-Examples:
-
-  .profile | getpath(["name"])          # => "Alice"
-  .profile | getpath(["emails", 1])     # => "alice.work\@example.com"
-  .profile | getpath(paths())
-
-=item * setpath(path; value)
-
-Sets or creates a value at the supplied path, following jq's C<setpath/2>
-semantics. The first argument may be a literal JSON array or any filter that
-emits path arrays. The second argument can be a literal (including JSON
-objects/arrays) or another filter evaluated against the current input. Nested
-hashes/arrays are automatically created as needed, and the original input is
-never mutated.
-
-Examples:
-
-  .settings | setpath(["flags", "beta"]; true)
-  .user     | setpath(["profile", "full_name"]; .name)
-
-=item * pick(key1, key2, ...)
-
-Builds a new object containing only the supplied keys. When applied to arrays
-of objects, each element is reduced to the requested subset while non-object
-values pass through unchanged.
-
-Example:
-
-  .users | pick("name", "email")
-
-Returns:
-
-  [ { "name": "Alice", "email": "alice\@example.com" },
-    { "name": "Bob" } ]
-
-=item * merge_objects()
-
-Merges arrays of objects into a single hash reference using last-write-wins
-semantics. Non-object values within the array are ignored. When no objects are
-found, an empty hash reference is returned. Applying the helper directly to an
-object returns a shallow copy of that object.
-
-Example:
-
-  .items | merge_objects()
-
-Returns:
-
-  { "name": "Widget", "value": 2, "active": true }
-
-=item * to_entries()
-
-Converts objects (and arrays) into an array of entry hashes, each consisting of
-C<key> and C<value> fields in the jq style. Array entries use zero-based index
-values for the key so they can be transformed uniformly.
-
-Example:
-
-  .profile | to_entries
-  .tags    | to_entries
-
-=item * from_entries()
-
-Performs the inverse of C<to_entries>. Accepts arrays containing
-C<{ key => ..., value => ... }> hashes or C<[key, value]> tuples and rebuilds a
-hash from them. Later entries overwrite earlier ones when duplicate keys are
-encountered.
-
-Example:
-
-  .pairs | from_entries
-
-=item * with_entries(filter)
-
-Transforms objects by mapping over their entries with the supplied filter,
-mirroring jq's C<with_entries>. Each entry is exposed as a C<{ key, value }>
-hash to the filter, and any entries filtered out are dropped prior to
-reconstruction.
-
-Example:
-
-  .profile | with_entries(select(.key != "password"))
-
-=item * map_values(filter)
-
-Applies the supplied filter to every value within an object, mirroring jq's
-C<map_values>. When the filter returns no results for a key the entry is
-removed, allowing constructs such as C<map_values(select(. > 0))> to prune
-falsy values. Arrays are processed element-wise, so arrays of objects can be
-transformed in a single step.
-
-Example:
-
-  .profile | map_values(tostring)
-
-Returns:
-
-  { "name": "Alice", "age": "42" }
+=over 4
 
 =item * walk(filter)
 
