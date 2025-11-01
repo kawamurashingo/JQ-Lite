@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '1.33';
+our $VERSION = '1.34';
 
 sub new {
     my ($class, %opts) = @_;
@@ -57,7 +57,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 1.33
+Version 1.34
 
 =head1 SYNOPSIS
 
@@ -891,6 +891,11 @@ Optional: JSON::XS, Cpanel::JSON::XS, JSON::MaybeXS
 =head1 SEE ALSO
 
 L<JSON::PP>, L<jq|https://stedolan.github.io/jq/>
+
+=head1 HOMEPAGE
+
+The project homepage provides documentation, examples, and release notes:
+L<https://kawamurashingo.github.io/JQ-Lite/index-en.html>.
 
 =head1 AUTHOR
 
