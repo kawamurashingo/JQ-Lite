@@ -7,7 +7,7 @@ use JSON::PP ();
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 use MIME::Base64 qw(encode_base64);
-use Encode qw(encode);
+use Encode qw(encode is_utf8);
 use B ();
 use JQ::Lite::Expression ();
 
@@ -22,6 +22,11 @@ sub _encode_json {
 
 sub _decode_json {
     my ($text) = @_;
+
+    if (defined $text && is_utf8($text, 1)) {
+        $text = encode('UTF-8', $text);
+    }
+
     return $JSON_DECODER->decode($text);
 }
 
