@@ -838,6 +838,15 @@ sub _evaluate_value_expression {
         }
     }
 
+    my @pipeline_parts = _split_top_level_pipes($copy);
+    if (@pipeline_parts > 1) {
+        if (defined $self && $self->can('run_query')) {
+            my $json = _encode_json($context);
+            my @outputs = $self->run_query($json, $copy);
+            return ([ @outputs ], 1);
+        }
+    }
+
     if ($copy =~ /^\$(\w+)(.*)$/s) {
         my ($var, $suffix) = ($1, $2 // '');
         my @values = _evaluate_variable_reference($self, $var, $suffix);
