@@ -1,3 +1,6 @@
+1.37  2025-11-03
+    - Release parenthesized pipeline evaluation improvements in expressions.
+
 1.36  2025-11-02
     - Release jq-compatible @uri formatter and percent-encoding helper.
     - Declare Encode dependency and document formatter usage.
