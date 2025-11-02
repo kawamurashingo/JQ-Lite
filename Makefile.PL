@@ -23,6 +23,7 @@ WriteMakefile(
     MIN_PERL_VERSION => '5.014',
     PREREQ_PM        => {
         'JSON::PP'        => 0,
+        'Encode'          => 0,
         'Test::More'      => 0,
         'FindBin'         => 0,
         'Getopt::Long'    => 0,

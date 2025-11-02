@@ -114,6 +114,7 @@ t/transpose.t
 t/trim.t
 t/trimstr.t
 t/tsv_format.t
+t/uri_format.t
 t/type.t
 t/unique_by.t
 t/values.t

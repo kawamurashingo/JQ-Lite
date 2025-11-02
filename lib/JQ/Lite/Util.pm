@@ -7,6 +7,7 @@ use JSON::PP ();
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 use MIME::Base64 qw(encode_base64);
+use Encode qw(encode);
 use B ();
 use JQ::Lite::Expression ();
 
@@ -2928,6 +2929,32 @@ sub _apply_base64 {
     }
 
     return encode_base64($text, '');
+}
+
+sub _apply_uri {
+    my ($value) = @_;
+
+    my $text;
+
+    if (!defined $value) {
+        $text = 'null';
+    }
+    elsif (ref($value) eq 'JSON::PP::Boolean') {
+        $text = $value ? 'true' : 'false';
+    }
+    elsif (!ref $value) {
+        $text = "$value";
+    }
+    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
+        $text = _encode_json($value);
+    }
+    else {
+        $text = "$value";
+    }
+
+    my $encoded = encode('UTF-8', $text);
+    $encoded =~ s/([^A-Za-z0-9\-._~])/sprintf('%%%02X', ord($1))/ge;
+    return $encoded;
 }
 
 sub _format_csv_field {
