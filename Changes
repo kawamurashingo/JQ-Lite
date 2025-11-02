@@ -1,3 +1,7 @@
+1.36  2025-11-02
+    - Release jq-compatible @uri formatter and percent-encoding helper.
+    - Declare Encode dependency and document formatter usage.
+
 1.35  2025-11-01
     - Release base64 formatter support and dependency metadata updates.
 
