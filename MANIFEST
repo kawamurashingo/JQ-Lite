@@ -36,6 +36,7 @@ t/contains.t
 t/contains_function.t
 t/count.t
 t/csv_format.t
+t/decode_utf8_input.t
 t/default.t
 t/del.t
 t/delpaths.t
