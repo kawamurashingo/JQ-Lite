@@ -838,6 +838,10 @@ sub _evaluate_value_expression {
         }
     }
 
+    if (defined(my $interpolated = _evaluate_interpolated_string($self, $context, $copy))) {
+        return ([ $interpolated ], 1);
+    }
+
     my @pipeline_parts = _split_top_level_pipes($copy);
     if (@pipeline_parts > 1) {
         if (defined $self && $self->can('run_query')) {
@@ -927,6 +931,151 @@ sub _evaluate_value_expression {
     }
 
     return ([], 0);
+}
+
+sub _evaluate_interpolated_string {
+    my ($self, $context, $expr) = @_;
+
+    return undef unless defined $expr;
+    return undef unless $expr =~ /^"(.*)"$/s;
+
+    my $raw = $1;
+    return undef if index($raw, '\\(') == -1;
+
+    my $result  = '';
+    my $literal = '';
+    my $len     = length $raw;
+    my $i       = 0;
+
+    while ($i < $len) {
+        my $char = substr($raw, $i, 1);
+
+        if ($char eq '\\') {
+            my $next = ($i + 1 < $len) ? substr($raw, $i + 1, 1) : '';
+
+            if ($next eq '(') {
+                my $start = $i + 2;
+                my ($inner, $after) = _extract_interpolation_expression($raw, $start);
+
+                if (!defined $inner) {
+                    $literal .= '\\(';
+                    $i += 2;
+                    next;
+                }
+
+                $result .= _decode_interpolation_literal($literal);
+                $literal = '';
+
+                my $evaluated = _evaluate_interpolation_expression($self, $context, $inner);
+                $result .= _stringify_interpolated_value($evaluated);
+
+                $i = $after;
+                next;
+            }
+
+            if ($i + 1 < $len) {
+                $literal .= substr($raw, $i, 2);
+                $i += 2;
+                next;
+            }
+        }
+
+        $literal .= $char;
+        $i++;
+    }
+
+    $result .= _decode_interpolation_literal($literal);
+
+    return $result;
+}
+
+sub _extract_interpolation_expression {
+    my ($raw, $start) = @_;
+
+    my $len   = length $raw;
+    my $depth = 1;
+    my $expr  = '';
+    my $i     = $start;
+    my $escape = 0;
+
+    while ($i < $len) {
+        my $char = substr($raw, $i, 1);
+
+        if ($escape) {
+            $expr .= $char;
+            $escape = 0;
+            $i++;
+            next;
+        }
+
+        if ($char eq '\\') {
+            $expr .= $char;
+            $escape = 1;
+            $i++;
+            next;
+        }
+
+        if ($char eq '(') {
+            $depth++;
+            $expr .= $char;
+            $i++;
+            next;
+        }
+
+        if ($char eq ')') {
+            $depth--;
+            if ($depth == 0) {
+                return ($expr, $i + 1);
+            }
+            $expr .= $char;
+            $i++;
+            next;
+        }
+
+        $expr .= $char;
+        $i++;
+    }
+
+    return (undef, undef);
+}
+
+sub _decode_interpolation_literal {
+    my ($text) = @_;
+
+    return '' unless defined $text && length $text;
+
+    my $decoded = eval { _decode_json('"' . $text . '"') };
+    return $decoded unless $@;
+
+    $text =~ s/\\"/"/g;
+    $text =~ s/\\\\/\\/g;
+    return $text;
+}
+
+sub _evaluate_interpolation_expression {
+    my ($self, $context, $expr) = @_;
+
+    my ($values, $ok) = _evaluate_value_expression($self, $context, $expr);
+    if ($ok) {
+        return @$values ? $values->[0] : undef;
+    }
+
+    return undef unless defined $self && $self->can('run_query');
+
+    my $json = _encode_json($context);
+    my @outputs = $self->run_query($json, $expr);
+    return @outputs ? $outputs[0] : undef;
+}
+
+sub _stringify_interpolated_value {
+    my ($value) = @_;
+
+    return 'null'  if !defined $value;
+    return 'true'  if ref($value) eq 'JSON::PP::Boolean' && $value;
+    return 'false' if ref($value) eq 'JSON::PP::Boolean' && !$value;
+    return "$value" if !ref $value;
+
+    return _encode_json($value);
 }
 
 sub _apply_addition {
