@@ -1,3 +1,8 @@
+1.39  2025-11-09
+    - Add jq-compatible --arg option to the CLI and wire variables into the engine.
+    - Allow passing initial variables when constructing JQ::Lite instances.
+    - Document the new option and add regression tests for variable access.
+
 1.38  2025-11-08
     - Release jq-compatible @json formatter support with documentation and tests.
 

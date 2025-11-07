@@ -18,6 +18,7 @@ t/aggregate.t
 t/all.t
 t/any.t
 t/arithmetic.t
+t/arg_option.t
 t/array_constructor.t
 t/arrays.t
 t/assignment.t
