@@ -1,3 +1,6 @@
+1.38  2025-11-02
+    - Release jq-compatible @json formatter support with documentation and tests.
+
 1.37  2025-11-02
     - Release parenthesized pipeline evaluation improvements in expressions.
 
