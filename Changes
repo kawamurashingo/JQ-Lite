@@ -1,3 +1,6 @@
+1.42  2025-11-09
+    - Release jq-compatible ascii_upcase filter along with docs and tests.
+
 1.41  2025-11-08
     - Allow jq-lite --from-file/-f to load filters from STDIN while keeping
       JSON input separate from the shared handle.
@@ -928,6 +931,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 

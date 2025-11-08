@@ -38,7 +38,7 @@ Functions are grouped by purpose for easier lookup.
 | Function                             | Description                          |
 | ------------------------------------ | ------------------------------------ |
 | `upper()`, `lower()`, `titlecase()`  | Case conversion                      |
-| `ascii_downcase()`                   | ASCII-only lowercase conversion      |
+| `ascii_upcase()`, `ascii_downcase()` | ASCII-only case conversion           |
 | `trim()`, `ltrimstr()`, `rtrimstr()` | Trim whitespace or prefixes/suffixes |
 | `startswith()`, `endswith()`         | Prefix/suffix test                   |
 | `contains(value)`                    | Substring or array inclusion         |

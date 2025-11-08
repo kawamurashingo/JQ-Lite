@@ -1608,6 +1608,13 @@ sub apply {
             return 1;
         }
 
+        # support for ascii_upcase
+        if ($part eq 'ascii_upcase()' || $part eq 'ascii_upcase') {
+            @next_results = map { JQ::Lite::Util::_apply_ascii_case_transform($_, 'upper') } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for ascii_downcase
         if ($part eq 'ascii_downcase()' || $part eq 'ascii_downcase') {
             @next_results = map { JQ::Lite::Util::_apply_ascii_case_transform($_, 'lower') } @results;
