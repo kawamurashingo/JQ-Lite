@@ -53,6 +53,7 @@ t/flatten_depth.t
 t/foreach.t
 t/friends.t
 t/from_file_cli.t
+t/from_file_stdin.t
 t/fromjson.t
 t/getpath.t
 t/group_by.t
