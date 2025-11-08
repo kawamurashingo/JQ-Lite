@@ -1,3 +1,9 @@
+1.41  2025-11-18
+    - Allow jq-lite --from-file/-f to load filters from STDIN while keeping
+      JSON input separate from the shared handle.
+    - Document the new STDIN support in the CLI usage text and add regression
+      tests for the feature.
+
 1.40  2025-11-18
     - Release jq-compatible ascii_downcase filter along with docs and tests.
 
