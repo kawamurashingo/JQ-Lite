@@ -1,3 +1,6 @@
+1.40  2025-11-10
+    - Release jq-compatible ascii_downcase filter along with docs and tests.
+
 1.39  2025-11-09
     - Add jq-compatible --arg option to the CLI and wire variables into the engine.
     - Allow passing initial variables when constructing JQ::Lite instances.

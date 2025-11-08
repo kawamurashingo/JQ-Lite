@@ -1412,6 +1412,31 @@ sub _apply_case_transform {
     return $value;
 }
 
+sub _apply_ascii_case_transform {
+    my ($value, $mode) = @_;
+
+    if (!defined $value) {
+        return undef;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _apply_ascii_case_transform($_, $mode) } @$value ];
+    }
+
+    if (!ref $value) {
+        my $copy = $value;
+        if ($mode eq 'upper') {
+            $copy =~ tr/a-z/A-Z/;
+        }
+        elsif ($mode eq 'lower') {
+            $copy =~ tr/A-Z/a-z/;
+        }
+        return $copy;
+    }
+
+    return $value;
+}
+
 sub _to_titlecase {
     my ($value) = @_;
 
