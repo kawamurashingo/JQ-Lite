@@ -1750,6 +1750,13 @@ sub apply {
             return 1;
         }
 
+        # support for @base64d (decode base64-encoded string)
+        if ($part eq '@base64d' || $part eq '@base64d()') {
+            @next_results = map { JQ::Lite::Util::_apply_base64d($_) } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for @uri (percent-encode value)
         if ($part eq '@uri' || $part eq '@uri()') {
             @next_results = map { JQ::Lite::Util::_apply_uri($_) } @results;

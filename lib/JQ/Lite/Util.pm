@@ -6,7 +6,7 @@ use warnings;
 use JSON::PP ();
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
-use MIME::Base64 qw(encode_base64);
+use MIME::Base64 qw(encode_base64 decode_base64);
 use Encode qw(encode is_utf8);
 use B ();
 use JQ::Lite::Expression ();
@@ -2968,6 +2968,47 @@ sub _apply_base64 {
     }
 
     return encode_base64($text, '');
+}
+
+sub _apply_base64d {
+    my ($value) = @_;
+
+    my $text;
+
+    if (!defined $value) {
+        $text = '';
+    }
+    elsif (ref($value) eq 'JSON::PP::Boolean') {
+        $text = $value ? 'true' : 'false';
+    }
+    elsif (!ref $value) {
+        $text = "$value";
+    }
+    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
+        $text = _encode_json($value);
+    }
+    else {
+        $text = "$value";
+    }
+
+    $text =~ s/\s+//g;
+
+    die '@base64d(): input must be base64 text'
+        if length($text) % 4 != 0;
+
+    die '@base64d(): input must be base64 text'
+        if $text !~ /^[A-Za-z0-9+\/]*={0,2}$/;
+
+    die '@base64d(): input must be base64 text'
+        if $text =~ /=/ && $text !~ /=+$/;
+
+    my $decoded = decode_base64($text);
+    my $reencoded = encode_base64($decoded, '');
+
+    die '@base64d(): input must be base64 text'
+        if $reencoded ne $text;
+
+    return $decoded;
 }
 
 sub _apply_uri {
