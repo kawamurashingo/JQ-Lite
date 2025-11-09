@@ -1,3 +1,6 @@
+1.43  2025-11-09
+    - Release jq-compatible @base64d formatter with documentation and tests.
+
 1.42  2025-11-09
     - Release jq-compatible ascii_upcase filter along with docs and tests.
 
