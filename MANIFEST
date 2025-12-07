@@ -93,6 +93,7 @@ t/pluck.t
 t/range.t
 t/recurse.t
 t/reduce.t
+t/rest.t
 t/replace.t
 t/reverse.t
 t/rindex.t
