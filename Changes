@@ -1,5 +1,6 @@
 1.45  2025-11-11
     - Release jq-compatible try/catch flow control with docs and tests.
+    - Raise errors for addition type mismatches so try/catch can intercept them.
 
 1.44  2025-11-10
     - Promote release to version 1.44 including the jq-compatible rest filter.

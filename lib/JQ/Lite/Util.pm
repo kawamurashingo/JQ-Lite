@@ -1029,34 +1029,54 @@ sub _apply_addition {
     }
 
     if (!ref $left && !ref $right) {
-        if (looks_like_number($left) && looks_like_number($right)) {
+        my $left_is_num  = looks_like_number($left);
+        my $right_is_num = looks_like_number($right);
+
+        if ($left_is_num && $right_is_num) {
             return 0 + $left + $right;
         }
-        $left  = '' unless defined $left;
-        $right = '' unless defined $right;
-        return "$left$right";
+
+        if (!$left_is_num && !$right_is_num) {
+            $left  = '' unless defined $left;
+            $right = '' unless defined $right;
+            return "$left$right";
+        }
+
+        die "Type mismatch for addition: "
+          . _describe_value($left)
+          . " + "
+          . _describe_value($right)
+          . "\n";
     }
 
     if (ref $left eq 'ARRAY' && ref $right eq 'ARRAY') {
         return [ @$left, @$right ];
     }
 
-    if (ref $left eq 'ARRAY') {
-        return [ @$left, $right ];
-    }
-
-    if (ref $right eq 'ARRAY') {
-        return [ $left, @$right ];
-    }
-
     if (ref $left eq 'HASH' && ref $right eq 'HASH') {
         return { %$left, %$right };
     }
 
-    return $right if !ref $left && ref $right eq 'HASH';
-    return $left  if ref $left eq 'HASH' && !ref $right;
+    die "Type mismatch for addition: "
+      . _describe_value($left)
+      . " + "
+      . _describe_value($right)
+      . "\n";
+}
 
-    return undef;
+sub _describe_value {
+    my ($value) = @_;
+
+    return 'null' unless defined $value;
+
+    my $ref = ref $value;
+    return 'array'   if $ref eq 'ARRAY';
+    return 'object'  if $ref eq 'HASH';
+    return 'boolean' if $ref eq 'JSON::PP::Boolean';
+    return $ref      if length $ref;
+
+    return 'number' if looks_like_number($value);
+    return 'string';
 }
 
 sub _coerce_number_strict {

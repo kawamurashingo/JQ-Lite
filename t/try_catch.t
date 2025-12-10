@@ -20,4 +20,18 @@ is($literal_fallback[0]{result}, 'fallback', 'literal handler is emitted when tr
 my @string_literal = $jq->run_query('null', '"hello"');
 is($string_literal[0], 'hello', 'bare string literal emits its value');
 
+my $mixed = q([
+  {"id":1,"value":10},
+  {"id":2,"value":"oops"}
+]);
+my @type_errors = $jq->run_query($mixed, '.[] | {id, result: (try (.value + 1) catch "fallback")}');
+is_deeply(
+    \@type_errors,
+    [
+        { id => 1, result => 11 },
+        { id => 2, result => 'fallback' },
+    ],
+    'type mismatch inside addition triggers catch handlers'
+);
+
 done_testing;
