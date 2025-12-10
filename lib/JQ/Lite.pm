@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '1.44';
+our $VERSION = '1.45';
 
 sub new {
     my ($class, %opts) = @_;
@@ -60,7 +60,7 @@ JQ::Lite - A lightweight jq-like JSON query engine in Perl
 
 =head1 VERSION
 
-Version 1.44
+Version 1.45
 
 =head1 SYNOPSIS
 
@@ -135,7 +135,7 @@ C<count>, C<sum>, C<sum_by>, C<add>, C<product>, C<min>, C<max>, C<min_by>, C<ma
 
 =item * Flow control and predicates
 
-C<select>, C<empty>, C<not>, C<test>, C<reduce>, C<foreach>, C<if> / C<then> / C<else> constructs.
+C<select>, C<empty>, C<not>, C<test>, C<reduce>, C<foreach>, C<try ... catch>, C<if> / C<then> / C<else> constructs.
 
 =back
 
@@ -184,6 +184,8 @@ Returns a list of matched results. Each result is a Perl scalar
 =item * C<reduce expr as $var (init; update)> for accumulators with lexical bindings.
 
 =item * C<foreach expr as $var (init; update [; extract])> to stream intermediate results while folding values.
+
+=item * C<try FILTER [catch HANDLER]> to handle errors without aborting the query.
 
 =item * C<unique_by(.key)> and C<sort_by(.key)> for deduplicating and ordering complex structures.
 

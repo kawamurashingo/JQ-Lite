@@ -729,6 +729,91 @@ sub _parse_reduce_expression {
     };
 }
 
+sub _parse_try_catch_expression {
+    my ($expr) = @_;
+
+    return undef unless defined $expr;
+
+    my $copy = _strip_wrapping_parens($expr);
+    return undef unless $copy =~ /^try\b/;
+
+    $copy =~ s/^try\s+//;
+
+    my %pairs = (
+        '(' => ')',
+        '[' => ']',
+        '{' => '}',
+    );
+    my %closing = reverse %pairs;
+
+    my @stack;
+    my $string;
+    my $escape = 0;
+    my $catch_index;
+
+    for (my $i = 0; $i < length $copy; $i++) {
+        my $char = substr($copy, $i, 1);
+
+        if (defined $string) {
+            if ($escape) {
+                $escape = 0;
+                next;
+            }
+            if ($char eq '\\') {
+                $escape = 1;
+                next;
+            }
+            if ($char eq $string) {
+                undef $string;
+            }
+            next;
+        }
+
+        if ($char eq '"' || $char eq "\'") {
+            $string = $char;
+            next;
+        }
+
+        if (exists $pairs{$char}) {
+            push @stack, $char;
+            next;
+        }
+
+        if (exists $closing{$char}) {
+            pop @stack if @stack && $stack[-1] eq $closing{$char};
+            next;
+        }
+
+        next if @stack;
+
+        if ($char =~ /[cC]/ && substr($copy, $i) =~ /^(catch)\b/) {
+            $catch_index = $i;
+            last;
+        }
+    }
+
+    my ($main_expr, $catch_expr);
+    if (defined $catch_index) {
+        $main_expr  = substr($copy, 0, $catch_index);
+        $catch_expr = substr($copy, $catch_index + length('catch'));
+    }
+    else {
+        $main_expr = $copy;
+    }
+
+    for ($main_expr, $catch_expr) {
+        next unless defined $_;
+        s/^\s+|\s+$//g;
+    }
+
+    return undef unless defined $main_expr && length $main_expr;
+
+    return {
+        try_expr   => $main_expr,
+        catch_expr => $catch_expr,
+    };
+}
+
 sub _parse_foreach_expression {
     my ($expr) = @_;
 

@@ -351,6 +351,34 @@ sub apply {
             return 1;
         }
 
+        if (my $try_expr = JQ::Lite::Util::_parse_try_catch_expression($normalized)) {
+            @next_results = ();
+
+            for my $value (@results) {
+                my $json = JQ::Lite::Util::_encode_json($value);
+                my @outputs;
+
+                local $@;
+                my $ok = eval {
+                    @outputs = $self->run_query($json, $try_expr->{try_expr});
+                    1;
+                };
+
+                if ($ok) {
+                    push @next_results, @outputs;
+                    next;
+                }
+
+                if (defined $try_expr->{catch_expr}) {
+                    my @caught = $self->run_query($json, $try_expr->{catch_expr});
+                    push @next_results, @caught;
+                }
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for flatten (alias for .[])
         if ($part eq 'flatten') {
             @next_results = map {
