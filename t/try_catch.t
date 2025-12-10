@@ -14,4 +14,10 @@ is($caught[0], 'recovered', 'catch expression runs when try branch throws and pr
 my @empty = $jq->run_query('null', 'try (1/0)');
 is(scalar @empty, 0, 'try without catch swallows errors and yields no output');
 
+my @literal_fallback = $jq->run_query('[{"id":1}]', '.[] | {id, result: (try (10 / 0) catch "fallback")}');
+is($literal_fallback[0]{result}, 'fallback', 'literal handler is emitted when try branch fails');
+
+my @string_literal = $jq->run_query('null', '"hello"');
+is($string_literal[0], 'hello', 'bare string literal emits its value');
+
 done_testing;

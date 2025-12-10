@@ -65,6 +65,22 @@ sub apply {
             return 1;
         }
 
+        my $literal;
+        my $literal_ok = eval { $literal = JQ::Lite::Util::_decode_json($normalized); 1 };
+        if ($literal_ok) {
+            @next_results = map { $literal } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
+        if ($normalized =~ /^'(.*)'$/s) {
+            my $text = $1;
+            $text =~ s/\\'/'/g;
+            @next_results = map { $text } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         if (JQ::Lite::Util::_looks_like_expression($normalized)) {
             my @evaluated;
             my $all_ok = 1;
