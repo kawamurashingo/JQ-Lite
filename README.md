@@ -201,13 +201,14 @@ See the complete list in
 ## 👤 Author
 
 **Shingo Kawamura (川村慎吾)**
-📧 [perl.jq.lite@gmail.com](mailto:perl.jq.lite@gmail.com)
+📧 [pannakoota1@gmail.com](mailto:pannakoota1@gmail.com)
 
 ---
 
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
