@@ -10,6 +10,11 @@
 **JQ::Lite** is a pure-Perl JSON query engine inspired by [`jq`](https://stedolan.github.io/jq/).
 It allows you to query and transform JSON using jq-like syntax — without external binaries.
 
+**Official Alpine Linux package**  
+→ `apk add jq-lite`
+
+jq-lite is designed for minimal environments such as Alpine Linux, containers, and CI pipelines where simplicity, readability, and low dependency footprint matter.
+
 ---
 
 ## ✨ Highlights
@@ -156,24 +161,13 @@ jq-lite users.json
 
 ---
 
-## 🏔 Alpine Linux (Official Package)
-
-JQ::Lite is available as an **official package** in Alpine Linux.
-
-You can install it directly from the Alpine **community** repository:
-
-```sh
-apk add jq-lite
-```
-
----
 
 ## 🧱 Environment Support
 
 | Environment          | jq | jq-lite |
 | -------------------- | -- | ------- |
 | Legacy CentOS / RHEL | ❌  | ✅       |
-| Alpine Linux         | ⚠️ | ✅ *(official package)* |
+| Alpine Linux         | ⚠️ | ✅       |
 | Air-gapped / Proxy   | ❌  | ✅       |
 | No root privilege    | ⚠️ | ✅       |
 
@@ -208,6 +202,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
