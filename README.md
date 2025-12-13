@@ -1,7 +1,6 @@
 ![JQ::Lite](./images/JQ_Lite_sm.png)
 # 🧩 JQ::Lite — Lightweight jq in Pure Perl
 
-[![GitHub](https://img.shields.io/github/stars/kawamurashingo/JQ-Lite?style=social)](https://github.com/kawamurashingo/JQ-Lite)
 [![MetaCPAN](https://img.shields.io/cpan/v/JQ-Lite.svg)](https://metacpan.org/release/JQ-Lite)
 [![Alpine Linux](https://img.shields.io/badge/Alpine-Linux%20community-0D597F?logo=alpinelinux&logoColor=white)](https://pkgs.alpinelinux.org/packages?name=jq-lite)
 [![apk](https://img.shields.io/badge/apk-add%20jq--lite-blue)](https://pkgs.alpinelinux.org/packages?name=jq-lite)
@@ -210,6 +209,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
