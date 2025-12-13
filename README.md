@@ -155,6 +155,17 @@ jq-lite users.json
 
 ---
 
+## 🏔 Alpine Linux (Official Package)
+
+JQ::Lite is available as an **official package** in Alpine Linux.
+
+You can install it directly from the Alpine **community** repository:
+
+```sh
+apk add jq-lite
+
+---
+
 ## 🧱 Environment Support
 
 | Environment          | jq | jq-lite |
@@ -195,6 +206,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
