@@ -187,7 +187,7 @@ See the complete list in
 
 ## 👤 Author
 
-**Shingo Kawamura**
+**Shingo Kawamura (川村慎吾)**
 📧 [perl.jq.lite@gmail.com](mailto:perl.jq.lite@gmail.com)
 
 ---
@@ -195,6 +195,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
