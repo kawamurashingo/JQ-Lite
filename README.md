@@ -172,7 +172,7 @@ apk add jq-lite
 | Environment          | jq | jq-lite |
 | -------------------- | -- | ------- |
 | Legacy CentOS / RHEL | ❌  | ✅       |
-| Alpine Linux         | ⚠️ | ✅       |
+| Alpine Linux         | ⚠️ | ✅ *(official package)* |
 | Air-gapped / Proxy   | ❌  | ✅       |
 | No root privilege    | ⚠️ | ✅       |
 
@@ -200,6 +200,7 @@ See the complete list in
 ## 👤 Author
 
 **Shingo Kawamura (川村慎吾)**
+Independent developer; JQ::Lite is distributed as an official Alpine Linux package.
 📧 [perl.jq.lite@gmail.com](mailto:perl.jq.lite@gmail.com)
 
 ---
@@ -207,6 +208,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
