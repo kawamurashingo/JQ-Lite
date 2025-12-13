@@ -163,6 +163,7 @@ You can install it directly from the Alpine **community** repository:
 
 ```sh
 apk add jq-lite
+```
 
 ---
 
@@ -206,6 +207,7 @@ See the complete list in
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
