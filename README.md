@@ -200,7 +200,6 @@ See the complete list in
 ## 👤 Author
 
 **Shingo Kawamura (川村慎吾)**
-Independent developer; JQ::Lite is distributed as an official Alpine Linux package.
 📧 [perl.jq.lite@gmail.com](mailto:perl.jq.lite@gmail.com)
 
 ---
@@ -208,6 +207,7 @@ Independent developer; JQ::Lite is distributed as an official Alpine Linux packa
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
