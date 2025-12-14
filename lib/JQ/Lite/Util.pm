@@ -963,6 +963,14 @@ sub _apply_addition {
         if (looks_like_number($left) && looks_like_number($right)) {
             return 0 + $left + $right;
         }
+
+        my $left_is_num  = looks_like_number($left);
+        my $right_is_num = looks_like_number($right);
+
+        if ($left_is_num != $right_is_num) {
+            die 'addition operands must both be numbers or both be non-numeric';
+        }
+
         $left  = '' unless defined $left;
         $right = '' unless defined $right;
         return "$left$right";

@@ -38,6 +38,14 @@ is_deeply(
     'try spans a downstream pipeline segment before catch'
 );
 
+my $type_error = run('{"a": {"b": "x"}}', 'try .a.b | . + 1 catch 0');
+
+is_deeply(
+    $type_error,
+    [0],
+    'try catches type errors raised by downstream filters'
+);
+
 my $with_catch = run($fail_json, 'try (.num / .den) catch $error');
 
 like(
