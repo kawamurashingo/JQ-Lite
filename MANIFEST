@@ -20,6 +20,7 @@ t/any.t
 t/arithmetic.t
 t/arg_option.t
 t/argjson_cli.t
+t/ascii_output_cli.t
 t/array_constructor.t
 t/arrays.t
 t/assignment.t
