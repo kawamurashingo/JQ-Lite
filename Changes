@@ -1,3 +1,7 @@
+1.51  2025-12-18
+    - Ignore SIGPIPE in the from_file_stdin test helper so closed pipes
+      from the CLI under test do not terminate the harness.
+
 1.50  2025-12-18
     - Promote release to version 1.50.
     - Allow CLI JSON encoding to accept scalar values when processing
