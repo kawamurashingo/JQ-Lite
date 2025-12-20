@@ -133,7 +133,3 @@ it helps ensure that data remains usable — regardless of environment or scale.
 ---
 
 © 2025 Shingo Kawamura
-
-
-Example data flow:
-
