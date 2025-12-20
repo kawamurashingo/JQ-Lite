@@ -1,4 +1,4 @@
-1.52  2025-12-21
+1.52  2025-12-20
     - Add jq-compatible --rawfile CLI option that loads file contents into
       variables for downstream filters, along with regression tests and
       documentation updates.
@@ -972,6 +972,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
