@@ -694,39 +694,112 @@ EOF
 print_results(@results);
 
 __END__
-
-=encoding utf-8
-
 =head1 NAME
 
-jq-lite - Minimal jq-style JSON filter (pure Perl)
+jq-lite - minimal jq-style JSON filter (pure Perl)
 
 =head1 SYNOPSIS
 
-  cat users.json | jq-lite ".users[].name"
-  jq-lite ".items | sort | first" data.json
-  jq-lite -R -c '. | split("\\n") | map(select(length > 0))' logfile.txt
+  jq-lite [options] filter [file ...]
+
+  cat users.json | jq-lite '.users[].name'
+  jq-lite '.items | sort | first' data.json
+  jq-lite -R -c '. | split("\n") | map(select(length > 0))' logfile.txt
 
 =head1 DESCRIPTION
 
-jq-lite is a lean jq-like filter meant to be as handy as awk/sed/jq on systems where only Perl is guaranteed.
+B<jq-lite> is a lightweight, jq-compatible JSON filter implemented
+entirely in pure Perl.
+
+It is intended for use on systems where B<jq> is unavailable but Perl
+is present, providing awk/sed-like convenience for processing JSON
+and YAML data.
+
+Features include:
 
 =over 4
 
-=item * jq-style filters: dot traversal, pipes, selectors, and built-ins (see L<JQ::Lite> for the catalog).
+=item *
 
-=item * CLI flags: -R/-r/-c/-a, --slurp, --null-input, --from-file, --arg/--argjson/--rawfile, --yaml, --help-functions.
+jq-style filters: dot traversal, pipes, selectors, and built-in functions
 
-=item * Pure Perl: no XS or external binaries; drop it anywhere Perl runs.
+=item *
+
+Command-line options such as C<-R>, C<-r>, C<-c>, C<-a>, C<--slurp>,
+C<--null-input>, C<--from-file>, C<--arg>, C<--argjson>,
+C<--rawfile>, and C<--yaml>
+
+=item *
+
+Pure Perl implementation with no XS, no external binaries,
+and no runtime dependencies beyond core modules
+
+=back
+
+B<jq-lite> aims to be compatible with B<jq> where practical,
+but does not implement all jq features.
+
+It is not a drop-in replacement for jq, but a pragmatic alternative
+for constrained or minimal environments.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-r>, B<--raw-output>
+
+Output strings without JSON quoting.
+
+=item B<-R>, B<--raw-input>
+
+Read input as raw text, treating each line as a separate value.
+
+=item B<-s>, B<--slurp>
+
+Read the entire input into a single value.
+
+=item B<-a>, B<--ascii-output>
+
+Escape non-ASCII characters in output.
+
+=item B<--arg> I<name> I<value>
+
+Define a string variable.
+
+=item B<--argjson> I<name> I<value>
+
+Define a JSON variable.
+
+=item B<--yaml>
+
+Force YAML input parsing.
+
+=item B<-h>, B<--help>
+
+Display help and exit.
 
 =back
 
 =head1 SEE ALSO
 
-L<JQ::Lite> (full reference and function list)
+L<JQ::Lite>,
+B<jq>(1),
+B<awk>(1),
+B<sed>(1),
+B<perl>(1)
 
 =head1 HOMEPAGE
 
-L<https://kawamurashingo.github.io/JQ-Lite/index-en.html>
+https://kawamurashingo.github.io/JQ-Lite/
 
-=cut
+=head1 AUTHOR
+
+川村慎吾 (Shingo Kawamura)
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is released under the same terms as Perl itself.
+
+=head1 DISCLAIMER
+
+jq-lite is provided "as is", without warranty of any kind.
