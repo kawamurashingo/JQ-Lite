@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JQ::Lite — Design Goals</title>
+  <link rel="icon" href="images/JQ_Lite_sm.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --bg-alt: #111827;
+      --bg-card: rgba(15, 23, 42, 0.7);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-strong: #0ea5e9;
+      --code-bg: rgba(15, 23, 42, 0.9);
+      font-size: clamp(15px, 1.2vw, 18px);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 40%),
+                  radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.2), transparent 35%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: clamp(2rem, 5vw, 5rem) clamp(1.5rem, 6vw, 6rem);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .global-nav {
+      position: absolute;
+      top: clamp(1rem, 3vw, 2rem);
+      right: clamp(1.5rem, 5vw, 4rem);
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .global-nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 1.15rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .global-nav a:hover,
+    .global-nav a:focus-visible {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(14, 165, 233, 0.35), rgba(59, 130, 246, 0.25));
+      opacity: 0.65;
+      filter: blur(120px);
+      z-index: -1;
+    }
+
+    .logo {
+      width: clamp(190px, 30vw, 260px);
+      height: auto;
+      display: block;
+      margin: 0 auto clamp(1.5rem, 4vw, 3rem);
+      filter: drop-shadow(0 12px 24px rgba(8, 47, 73, 0.6));
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 5vw, 3.8rem);
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+      font-weight: 700;
+    }
+
+    p.lead {
+      font-size: clamp(1.1rem, 2.5vw, 1.45rem);
+      color: var(--text-muted);
+      max-width: 860px;
+      margin: 0 auto clamp(2rem, 4vw, 3rem);
+    }
+
+    .tab-nav {
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.8rem;
+      margin-bottom: clamp(2rem, 4vw, 3rem);
+    }
+
+    .tab-nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.3rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      transition: border 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .tab-nav a:hover,
+    .tab-nav a:focus-visible {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    @media (max-width: 720px) {
+      .global-nav { position: static; margin-bottom: 1.5rem; gap: 0.6rem; }
+    }
+
+    main {
+      width: min(1100px, 92vw);
+      margin: 0 auto clamp(4rem, 8vw, 6rem);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(3rem, 6vw, 4.5rem);
+    }
+
+    section {
+      background: var(--bg-card);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 22px;
+      padding: clamp(2rem, 4vw, 3rem);
+      box-shadow: 0 24px 42px rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(12px);
+    }
+
+    section h2 {
+      margin-top: 0;
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      margin-bottom: 1.2rem;
+    }
+
+    ul {
+      padding-left: 1.2rem;
+      margin: 1rem 0;
+      color: var(--text-muted);
+    }
+
+    li + li { margin-top: 0.35rem; }
+
+    p {
+      color: var(--text-muted);
+      margin: 0 0 1rem 0;
+    }
+
+    strong { color: var(--text); }
+
+    code, pre {
+      font-family: 'Fira Code', monospace;
+      background: var(--code-bg);
+      color: #bae6fd;
+    }
+
+    pre {
+      margin: 1.2rem 0;
+      padding: 1rem 1.2rem;
+      border-radius: 14px;
+      overflow-x: auto;
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    pre code { display: block; white-space: pre; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.2rem;
+      color: var(--text-muted);
+    }
+
+    th, td {
+      padding: 0.75rem 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.65);
+      color: var(--text);
+      text-align: left;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2.5rem 1rem 3.5rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    a { color: var(--accent); }
+
+    @media (max-width: 720px) { header { padding-top: 3.5rem; } }
+
+    @media (max-width: 640px) {
+      :root { font-size: 14px; }
+      header { padding: 3rem 1.75rem 2.5rem; }
+      main { width: min(1100px, 96vw); margin: 0 auto 3.5rem; gap: 2.5rem; }
+      section { padding: 1.6rem 1.4rem; }
+      pre { font-size: 0.92rem; padding: 0.9rem 1rem; }
+      pre code { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="global-nav" aria-label="Global navigation">
+      <a href="index-en.html"><span aria-hidden="true">🏠</span><span>Home</span></a>
+      <a href="vision.html"><span aria-hidden="true">🇯🇵</span><span>日本語版</span></a>
+    </nav>
+
+    <img src="images/JQ_Lite_sm.png" alt="JQ::Lite logo" class="logo">
+    <h1>JQ::Lite — Design Goals</h1>
+    <p class="lead">
+      JQ::Lite is a lightweight JSON query engine (CLI + Perl module) focused on portability,
+      clarity, and long-term stability — so JSON processing remains reliable across environments.
+    </p>
+
+    <nav class="tab-nav" aria-label="Design sections">
+      <a href="index-en.html">🏠 Home</a>
+      <a href="#purpose">🎯 Purpose</a>
+      <a href="#lightweight">🪶 Lightweight</a>
+      <a href="#interface">🔁 Common interface</a>
+      <a href="#principles">🧭 Principles</a>
+      <a href="#open">🌐 Open workflows</a>
+      <a href="#text">📝 Data as text</a>
+      <a href="#compat">🔗 Compatibility</a>
+      <a href="#summary">✨ Summary</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="purpose">
+      <h2>🎯 Purpose</h2>
+      <p><strong>JQ::Lite</strong> is a <strong>lightweight JSON query engine</strong> designed to make structured data easy to filter, transform, and reuse across diverse environments.</p>
+      <p>Its goal is simple:</p>
+      <p><strong>Make JSON processing reliable, portable, and human-readable — everywhere.</strong></p>
+    </section>
+
+    <section id="lightweight">
+      <h2>🪶 1. Why lightweight matters</h2>
+      <p>JSON is a universal format for APIs, observability, configuration, and automation. However, many environments still have practical constraints that make “install whatever you want” unrealistic.</p>
+      <ul>
+        <li>Restricted runtime environments</li>
+        <li>Legacy or long-lived systems</li>
+        <li>Minimal base images and offline deployments</li>
+      </ul>
+      <p>JQ::Lite is designed to operate reliably under these constraints, providing a <strong>small, dependency-minimal JSON processor</strong> that remains usable when heavier tools are unavailable or impractical.</p>
+    </section>
+
+    <section id="interface">
+      <h2>🔁 2. A common interface for structured data</h2>
+      <p>JQ::Lite treats JSON as a first-class interface between systems.</p>
+      <ul>
+        <li><strong>JSON-in / JSON-out</strong> processing</li>
+        <li>Compatibility with UNIX pipelines</li>
+        <li>Consistent behavior as both a <strong>CLI</strong> and a <strong>library</strong></li>
+      </ul>
+      <p>This makes it suitable for workflows where structured data flows between scripts, services, automation tools, and humans.</p>
+    </section>
+
+    <section id="principles">
+      <h2>🧭 3. Design principles</h2>
+      <p>JQ::Lite follows a conservative, long-term design approach:</p>
+      <ul>
+        <li>Prefer <strong>clarity</strong> over cleverness</li>
+        <li>Favor <strong>portability</strong> over performance tricks</li>
+        <li>Avoid unnecessary dependencies</li>
+        <li>Maintain predictable behavior across versions</li>
+      </ul>
+      <p>The goal is not to chase trends, but to provide a <strong>stable, dependable utility</strong> that continues to work across time and platforms.</p>
+    </section>
+
+    <section id="open">
+      <h2>🌐 4. Open and reproducible workflows</h2>
+      <p>Modern data pipelines often depend on proprietary platforms or tightly coupled ecosystems. JQ::Lite intentionally avoids this:</p>
+      <ul>
+        <li>Fully open source</li>
+        <li>No vendor lock-in</li>
+        <li>No cloud dependency</li>
+        <li>Usable in restricted or offline environments</li>
+      </ul>
+      <p>This allows users to build <strong>reproducible, inspectable transformations</strong> that can be versioned, audited, and shared.</p>
+    </section>
+
+    <section id="text">
+      <h2>📝 5. Structured data as text</h2>
+      <p>As infrastructure, observability, and automation increasingly rely on structured data, text-based workflows remain essential.</p>
+      <ul>
+        <li>Text-based JSON transformations</li>
+        <li>Git-friendly processing logic</li>
+        <li>Simple integration with scripts and automation</li>
+      </ul>
+      <p>This keeps data processing transparent, reviewable, and automatable.</p>
+    </section>
+
+    <section id="compat">
+      <h2>🔗 6. Ecosystem compatibility</h2>
+      <p>JQ::Lite is designed to integrate naturally with existing tools and workflows.</p>
+      <p>Example data flow:</p>
+      <pre><code>JSON producer
+    ↓
+jq-lite        (filter / transform)
+    ↓
+script / CLI / automation</code></pre>
+      <p>The tool does not prescribe how data should be used — it simply ensures that <strong>extracting and shaping JSON remains easy and reliable</strong>.</p>
+    </section>
+
+    <section id="summary">
+      <h2>✨ Summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Aspect</th>
+            <th>Focus</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Scope</td>
+            <td>Lightweight JSON querying and transformation</td>
+          </tr>
+          <tr>
+            <td>Philosophy</td>
+            <td>Portability, clarity, long-term stability</td>
+          </tr>
+          <tr>
+            <td>Usage</td>
+            <td>CLI and library</td>
+          </tr>
+          <tr>
+            <td>Environment</td>
+            <td>Offline, restricted, legacy, and modern systems</td>
+          </tr>
+          <tr>
+            <td>Longevity</td>
+            <td>Designed to remain usable across platforms and years</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    © 2025 Shingo Kawamura
+  </footer>
+</body>
+</html>
