@@ -1,127 +1,138 @@
 # 🌍 JQ::Lite — Vision
 
-## Overview
+## Purpose
 
-`JQ::Lite` is a **lightweight JSON processor and Perl module** inspired by `jq`.
-Its purpose is not only to make JSON handling simple and fast, but to **liberate structured data for everyone**, empowering developers, operators, and AI systems alike.
+`JQ::Lite` is a **lightweight JSON query engine** designed to make structured data
+easy to filter, transform, and reuse across diverse environments.
 
-This project aims to deliver **lightweight, open, and human- and machine-readable data processing** to every environment around the globe.
+Its goal is simple:
 
----
-
-## 🌍 1. Meeting the Global Demand for Lightweight JSON Processing
-
-JSON is now the backbone of modern IT — from APIs to observability, configuration, and AI input.
-Yet, many tools for handling JSON are heavy, language-specific, or dependent on complex runtimes.
-
-There are countless environments that need something simpler:
-
-* Servers, IoT nodes, and edge devices
-* Air-gapped data centers or monitoring agents
-* Developers who just want to parse, filter, and transform JSON easily
-
-`JQ::Lite` is designed to meet these needs by providing a **single-file, dependency-minimal, Perl-native JSON processor** that can run anywhere — even where `jq` cannot.
+> **Make JSON processing reliable, portable, and human-readable — everywhere.**
 
 ---
 
-## 💾 2. Building a Common Language for Machines and Humans
+## 1. Why Lightweight Matters
 
-The modern data world runs on **JSON**.
-APIs, observability tools, AI agents — all speak it.
+JSON has become the universal format for:
 
-`JQ::Lite` embraces this by being:
+- APIs and service integration
+- Observability and telemetry
+- Configuration and automation
+- Machine-to-machine communication
 
-* **JSON-in / JSON-out** by default
-* Compatible with UNIX pipelines
-* Usable both as a **CLI** and a **Perl module**
+However, many environments still face practical constraints:
 
-This makes it ideal for environments where data flows between systems, languages, or even humans —
-from shell scripts to ChatGPT-driven AIOps pipelines.
+- Limited or restricted runtime environments
+- Legacy or long-lived systems
+- Minimal base images and offline deployments
 
----
-
-## 🐪 3. Reviving Perl as the Universal Data Utility Language
-
-Perl was born for text processing.
-Now, it evolves — from text to **structured data**.
-
-`JQ::Lite` represents a **modern Perl renaissance**, where:
-
-* Simplicity meets expressiveness
-* Portability meets power
-* “Just works anywhere” becomes a design philosophy
-
-By combining classic Perl strengths with JSON-native design, `JQ::Lite` shows that **Perl still belongs at the heart of the command line**, serving as a universal, open data filter for the modern era.
+`JQ::Lite` is built to operate reliably under these constraints,
+providing a **small, dependency-minimal JSON processor** that can be used
+where heavier tools are unavailable or impractical.
 
 ---
 
-## 🌐 4. Promoting Open Data Workflows
+## 2. A Common Interface for Structured Data
 
-Today, data processing often depends on **proprietary ecosystems or cloud-specific APIs**.
-`JQ::Lite` breaks those boundaries.
+`JQ::Lite` treats JSON as a **first-class interface** between systems.
 
-* 100% open source, vendor-neutral
-* Works offline or in restricted networks
-* No cloud dependency, no installation complexity
+Key design principles:
 
-Whether you’re processing observability data, API responses, or AI telemetry — `JQ::Lite` lets you build **open, portable, and reproducible pipelines** in text form.
+- JSON-in / JSON-out processing
+- Compatibility with UNIX pipelines
+- Identical behavior as a **CLI tool** and as a **library**
 
----
-
-## ⚡ 5. Preparing for the Text-Driven Automation Era
-
-We are entering the age of **Infrastructure as Text** and **Telemetry as JSON**,
-where both humans and machines analyze structured data directly.
-
-`JQ::Lite` is built for this new era:
-
-* Enables Git-tracked data transformations
-* Works perfectly with automation bots and LLMs
-* Simplifies “extract → transform → decide” workflows
-
-With `JQ::Lite`, your JSON data becomes **readable, versionable, and automatable** — a foundation for the AI-augmented operations of tomorrow.
+This makes it suitable for workflows where structured data flows between
+scripts, services, automation tools, and humans.
 
 ---
 
-## 🚀 6. Evolving with the Perl Ecosystem
+## 3. Design Philosophy
 
-`JQ::Lite` doesn’t stand alone — it’s the cornerstone of a growing ecosystem.
+`JQ::Lite` follows a conservative and long-term design approach:
 
-Together with modules like `Sys::Monitor::Lite`, it creates a seamless flow:
+- Prefer **clarity over cleverness**
+- Favor **portability over performance tricks**
+- Avoid unnecessary dependencies
+- Maintain predictable behavior across versions
 
-```bash
-Sys::Monitor::Lite  →  JSON metrics
-      ↓
-jq-lite              →  Filter / aggregate / transform
-      ↓
-Bot / Script / CLI   →  Notify / act / visualize
-```
-
-This enables **entire monitoring and automation stacks** to run purely in Perl,
-with full transparency and zero external dependencies.
+The goal is not to chase trends, but to provide a **stable, dependable utility**
+that continues to work across time and platforms.
 
 ---
 
-## ✨ Summary of Global Impact
+## 4. Open and Reproducible Workflows
 
-| Perspective    | Impact                                                       |
-| -------------- | ------------------------------------------------------------ |
-| 🌍 Social      | Makes structured data accessible and processable everywhere  |
-| 💾 Technical   | Bridges Perl and modern JSON ecosystems                      |
-| 🐪 Perl        | Revives Perl as the universal command-line utility language  |
-| ⚙️ Operational | Enables open, offline, and vendor-free data processing       |
-| 🤖 Future      | Forms the basis of AI/LLM-integrated, text-driven automation |
+Modern data pipelines often depend on proprietary platforms or tightly coupled
+ecosystems.
+
+`JQ::Lite` intentionally avoids this:
+
+- Fully open source
+- No vendor lock-in
+- No cloud dependency
+- Usable in restricted or offline environments
+
+This allows users to build **reproducible, inspectable data transformations**
+that can be versioned, audited, and shared.
 
 ---
 
-## 📝 Conclusion
+## 5. Structured Data as Text
 
-`JQ::Lite` is not just a command-line JSON tool.
-It’s a **philosophy of openness, simplicity, and universality** —
-a small but powerful step toward freeing data from silos and making it usable by both humans and machines.
+As infrastructure, observability, and automation increasingly rely on structured data,
+text-based workflows remain essential.
 
-We hope this project inspires a **lightweight, open, Perl-powered data culture** around the world.
+`JQ::Lite` supports this by enabling:
+
+- Text-based JSON transformations
+- Git-friendly configuration and processing logic
+- Simple integration with automation systems and scripts
+
+This keeps data processing transparent, reviewable, and automatable.
+
+---
+
+## 6. Ecosystem Compatibility
+
+`JQ::Lite` is designed to integrate naturally with other tools and workflows.
+
+JSON producer
+↓
+jq-lite (filter / transform)
+↓
+script / CLI / automation
+
+
+The tool does not prescribe how data should be used —
+it simply ensures that **extracting and shaping JSON remains easy and reliable**.
+
+---
+
+## Summary
+
+| Aspect        | Focus                                             |
+|---------------|---------------------------------------------------|
+| Scope         | Lightweight JSON querying and transformation      |
+| Philosophy    | Portability, clarity, long-term stability         |
+| Usage         | CLI and library                                   |
+| Environment  | Offline, restricted, legacy, and modern systems   |
+| Longevity    | Designed to remain usable across platforms/years  |
+
+---
+
+## Conclusion
+
+`JQ::Lite` aims to be a **small, dependable building block**
+in the broader ecosystem of structured data processing.
+
+By keeping JSON handling simple, portable, and transparent,
+it helps ensure that data remains usable — regardless of environment or scale.
 
 ---
 
 © 2025 Shingo Kawamura
+
+
+Example data flow:
+
