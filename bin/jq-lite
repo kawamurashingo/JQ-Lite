@@ -155,7 +155,7 @@ if ($want_help) {
 }
 
 if ($want_version) {
-    print "jq-lite version $JQ::Lite::VERSION\n";
+    print "jq-lite $JQ::Lite::VERSION (c) Shingo Kawamura\n";
     exit 0;
 }
 
