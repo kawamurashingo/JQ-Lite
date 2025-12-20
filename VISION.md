@@ -103,6 +103,7 @@ JSON producer
 jq-lite (filter / transform)
     ↓
 script / CLI / automation
+```
 
 The tool does not prescribe how data should be used —
 it simply ensures that **extracting and shaping JSON remains easy and reliable**.
