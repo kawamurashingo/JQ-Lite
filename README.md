@@ -48,7 +48,7 @@ where **simplicity, readability, and low dependency footprint** matter.
 * 🧰 **JSON & YAML input**
 * 🌐 **Runs almost anywhere Perl runs**
   → even legacy or air-gapped systems
-  → see [`VISION.md`](VISION.md)
+  → see [`DESIGN.md`](DESIGN.md)
 
 ---
 
@@ -243,7 +243,7 @@ jq-lite '.users[].nickname? // .name' users.json
 ## 📚 Documentation
 
 * 📘 **Functions**: [`FUNCTIONS.md`](FUNCTIONS.md)
-* 🧭 **Vision & portability**: [`VISION.md`](VISION.md)
+* 🧭 **Vision & portability**: [`DESIGN.md`](DESIGN.md)
 * 📦 **MetaCPAN**: [https://metacpan.org/pod/JQ::Lite](https://metacpan.org/pod/JQ::Lite)
 
 ---
@@ -258,5 +258,6 @@ jq-lite '.users[].nickname? // .name' users.json
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
