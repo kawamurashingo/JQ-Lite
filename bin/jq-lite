@@ -694,6 +694,9 @@ EOF
 print_results(@results);
 
 __END__
+
+=encoding UTF-8
+
 =head1 NAME
 
 jq-lite - minimal jq-style JSON filter (pure Perl)
