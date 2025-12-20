@@ -45,6 +45,7 @@ Options:
   --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
   --debug              Show which JSON module is being used
   --arg NAME VALUE     Set jq-style variable $NAME to the string VALUE
+  --rawfile NAME FILE  Set jq-style variable $NAME to the raw contents of FILE
   --argjson NAME JSON  Set jq-style variable $NAME to a JSON-decoded value
   -f, --from-file FILE Read jq filter from FILE instead of the command line
                           (use '-' to read the filter from STDIN)
@@ -113,6 +114,33 @@ GetOptions(
         }
 
         $arg_vars{$var_name} = $decoded;
+    },
+    'rawfile=s'        => sub {
+        my ($opt_name, $var_name) = @_;
+        die "[ERROR] --rawfile requires a variable name\n" if !defined $var_name || $var_name eq '';
+        if ($var_name !~ /^[A-Za-z_]\w*$/) {
+            die "[ERROR] Invalid variable name '$var_name' for --rawfile\n";
+        }
+        die "[ERROR] --rawfile requires a file path\n" if !@ARGV;
+        my $file_path = shift @ARGV;
+        $file_path = '' unless defined $file_path;
+
+        if (!-f $file_path) {
+            warn "[ERROR] Cannot open file '$file_path' for --rawfile $var_name: $!\n";
+            exit 2;
+        }
+
+        open my $fh, '<', $file_path
+          or do {
+            warn "[ERROR] Cannot open file '$file_path' for --rawfile $var_name: $!\n";
+            exit 2;
+          };
+        local $/;
+        my $content = <$fh>;
+        close $fh;
+        $content = '' unless defined $content;
+
+        $arg_vars{$var_name} = $content;
     },
 ) or die "[ERROR] Unknown option(s)\n";
 
