@@ -250,7 +250,7 @@ jq-lite '.users[].nickname? // .name' users.json
 
 ## 👤 Author
 
-**Shingo Kawamura (川村慎吾)**
+**川村慎吾 (Shingo Kawamura)**
 📧 [pannakoota1@gmail.com](mailto:pannakoota1@gmail.com)
 
 ---
@@ -258,6 +258,7 @@ jq-lite '.users[].nickname? // .name' users.json
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
