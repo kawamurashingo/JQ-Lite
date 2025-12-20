@@ -692,3 +692,23 @@ EOF
 }
 
 print_results(@results);
+
+__END__
+
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+jq-lite - lightweight jq-like JSON query tool
+
+=head1 DESCRIPTION
+
+This script is the command-line front-end for L<JQ::Lite>. Consult the C<JQ::Lite> module documentation for complete usage instructions, built-in functions, examples, and other reference material.
+
+=head1 SEE ALSO
+
+L<JQ::Lite>
+
+=cut
