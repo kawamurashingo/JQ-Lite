@@ -247,10 +247,10 @@
       <a href="design-en.html"><span aria-hidden="true">🇺🇸</span><span>English</span></a>
     </nav>
 
-    <img src="images/JQ_Lite_sm.png" alt="JQ::Lite logo" class="logo">
-    <h1>JQ::Lite — 設計方針</h1>
+    <img src="images/JQ_Lite_sm.png" alt="jq-lite logo" class="logo">
+    <h1>jq-lite — 設計方針</h1>
     <p class="lead">
-      JQ::Lite は軽量な JSON クエリエンジン（CLI + Perl モジュール）です。
+      jq-lite は軽量な JSON クエリエンジン（CLI + Perl モジュール）です。
       可搬性・明瞭さ・長期安定性を重視し、さまざまな環境で JSON 処理を確実に行えることを目指します。
     </p>
 
@@ -270,7 +270,7 @@
   <main>
     <section id="purpose">
       <h2>🎯 目的</h2>
-      <p><strong>JQ::Lite</strong> は、構造化データを<strong>抽出・変換・再利用</strong>しやすくするための <strong>軽量 JSON クエリエンジン</strong>です。</p>
+      <p><strong>jq-lite</strong> は、構造化データを<strong>抽出・変換・再利用</strong>しやすくするための <strong>軽量 JSON クエリエンジン</strong>です。</p>
       <p>目標はシンプルです。</p>
       <p><strong>JSON 処理を「確実に」「移植性高く」「人間にも読みやすく」— どこでも。</strong></p>
     </section>
@@ -283,12 +283,12 @@
         <li>長期運用・レガシーなシステム</li>
         <li>最小構成イメージ、オフライン／閉域環境</li>
       </ul>
-      <p>JQ::Lite はこうした制約下でも動作するように設計されており、重いツールが使えない場面でも <strong>小さく依存の少ない JSON 処理</strong>を提供します。</p>
+      <p>jq-lite はこうした制約下でも動作するように設計されており、重いツールが使えない場面でも <strong>小さく依存の少ない JSON 処理</strong>を提供します。</p>
     </section>
 
     <section id="interface">
       <h2>🔁 2. 構造化データの共通インターフェース</h2>
-      <p>JQ::Lite は JSON をシステム間の<strong>共通インターフェース</strong>として扱います。</p>
+      <p>jq-lite は JSON をシステム間の<strong>共通インターフェース</strong>として扱います。</p>
       <ul>
         <li><strong>JSON-in / JSON-out</strong> を基本とする</li>
         <li>UNIX パイプラインとの親和性</li>
@@ -299,7 +299,7 @@
 
     <section id="principles">
       <h2>🧭 3. 設計原則</h2>
-      <p>JQ::Lite は長期運用を前提に、保守的な設計方針をとります。</p>
+      <p>jq-lite は長期運用を前提に、保守的な設計方針をとります。</p>
       <ul>
         <li>「賢さ」より <strong>明瞭さ</strong></li>
         <li>最適化より <strong>可搬性</strong></li>
@@ -311,7 +311,7 @@
 
     <section id="open">
       <h2>🌐 4. オープンで再現可能なワークフロー</h2>
-      <p>現代のデータ処理は、プロプライエタリな環境や特定エコシステムに寄りがちです。JQ::Lite はそれを前提にしません。</p>
+      <p>現代のデータ処理は、プロプライエタリな環境や特定エコシステムに寄りがちです。jq-lite はそれを前提にしません。</p>
       <ul>
         <li>完全なオープンソース</li>
         <li>ベンダーロックインなし</li>
@@ -334,14 +334,14 @@
 
     <section id="compat">
       <h2>🔗 6. 既存ツールとの自然な統合</h2>
-      <p>JQ::Lite は既存のツール／ワークフローに自然に組み込めることを意識しています。</p>
+      <p>jq-lite は既存のツール／ワークフローに自然に組み込めることを意識しています。</p>
       <p>例：データフロー</p>
       <pre><code>JSON producer
     ↓
 jq-lite        (filter / transform)
     ↓
 script / CLI / automation</code></pre>
-      <p>JQ::Lite は「どう使うべきか」を押し付けません。<strong>JSON を抽出・整形する作業が簡単で確実</strong>になることだけに集中します。</p>
+      <p>jq-lite は「どう使うべきか」を押し付けません。<strong>JSON を抽出・整形する作業が簡単で確実</strong>になることだけに集中します。</p>
     </section>
 
     <section id="summary">
