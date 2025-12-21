@@ -1,3 +1,9 @@
+1.55  2025-12-21
+
+    - Fix CLI smoke tests to reliably locate and execute jq-lite during
+      build and test phases, including AUR and other isolated build
+      environments.
+
 1.54  2025-12-21
 
     - Add CLI smoke tests covering common jq-lite usage patterns.
@@ -984,6 +990,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
