@@ -243,7 +243,7 @@ jq-lite '.users[].nickname? // .name' users.json
 ## 📚 Documentation
 
 * 📘 **Functions**: [`FUNCTIONS.md`](FUNCTIONS.md)
-* 🧭 **Vision & portability**: [`DESIGN.md`](DESIGN.md)
+* 🧭 **Design**: [`DESIGN.md`](DESIGN.md)
 * 📦 **MetaCPAN**: [https://metacpan.org/pod/JQ::Lite](https://metacpan.org/pod/JQ::Lite)
 
 ---
@@ -258,6 +258,7 @@ jq-lite '.users[].nickname? // .name' users.json
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
