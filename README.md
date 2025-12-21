@@ -1,4 +1,4 @@
-# 🧩 JQ::Lite — Lightweight jq in Pure Perl
+# 🧩 jq-lite — Lightweight jq in Pure Perl
 
 ![JQ::Lite](./images/JQ_Lite_sm_2.png)
 
@@ -258,6 +258,7 @@ jq-lite '.users[].nickname? // .name' users.json
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
