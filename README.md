@@ -10,9 +10,9 @@
 
 ---
 
-## ✨ What is JQ::Lite?
+## ✨ What is jq-lite?
 
-**JQ::Lite** is a **pure-Perl JSON query engine** inspired by [`jq`](https://stedolan.github.io/jq/).
+**jq-lite** is a **pure-Perl JSON query engine** inspired by [`jq`](https://stedolan.github.io/jq/).
 
 It lets you **query and transform JSON using jq-like syntax**
 — **without external binaries, native libraries, or compilation**.
@@ -258,6 +258,7 @@ jq-lite '.users[].nickname? // .name' users.json
 ## 📜 License
 
 Same terms as Perl itself.
+
 
 
 
