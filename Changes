@@ -1,3 +1,11 @@
+1.54  2025-12-21
+
+    - Add CLI smoke tests covering common jq-lite usage patterns.
+    - Validate and fix SYNOPSIS examples to match tested behavior.
+    - Confirm correct operation of core filters such as map, sort,
+      sort_by, first, keys, and length on arrays and objects.
+    - Standardize raw-input examples using '-R -s' for split processing.
+
 1.53  2025-12-21
     - Rewrite the jq-lite man page with a concise, task-focused summary
       geared for quick CLI usage.
