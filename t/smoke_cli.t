@@ -5,14 +5,48 @@ use IPC::Open3 qw(open3);
 use Symbol qw(gensym);
 use File::Temp qw(tempdir);
 use File::Spec;
+use FindBin;
 
 # ----------------------------
-# Config
+# Locate jq-lite executable reliably (AUR / make test friendly)
 # ----------------------------
-# Prefer env override; otherwise use "jq-lite" in PATH;
-# if you're running from the repo, you can set:
-#   JQ_LITE=./bin/jq-lite prove -lv t/smoke_cli.t
-my $JQ = $ENV{JQ_LITE} // 'jq-lite';
+sub _is_file {
+    my ($p) = @_;
+    return defined($p) && -f $p;
+}
+
+sub _find_jq_lite {
+    # 1) explicit override
+    return $ENV{JQ_LITE} if _is_file($ENV{JQ_LITE});
+
+    # 2) Prefer build output (ExtUtils::MakeMaker / Module::Build)
+    my @candidates = (
+        File::Spec->catfile($FindBin::Bin, '..', 'blib', 'script', 'jq-lite'),
+        File::Spec->catfile($FindBin::Bin, '..', 'blib', 'bin',    'jq-lite'),
+        File::Spec->catfile($FindBin::Bin, '..', 'script',         'jq-lite'),
+        File::Spec->catfile($FindBin::Bin, '..', 'bin',            'jq-lite'),
+    );
+
+    for my $p (@candidates) {
+        return $p if _is_file($p);
+    }
+
+    # 3) Fall back to PATH
+    return 'jq-lite';
+}
+
+my $JQ = _find_jq_lite();
+
+# Execute via perl to avoid shebang/exec-bit issues in build/chroot envs
+my @JQ_CMD = ($^X, $JQ);
+
+# If jq-lite still isn't found, provide a helpful skip (optional but nice for builders)
+# Comment this out if you prefer hard failures when PATH is missing.
+if ($JQ eq 'jq-lite') {
+    # If PATH does not contain jq-lite during 'make test', this would fail anyway.
+    # We keep tests running to surface a clear error message from open3.
+    # plan skip_all => "jq-lite executable not found (set JQ_LITE=... or ensure blib/script/jq-lite exists)";
+}
 
 # ----------------------------
 # Helpers
@@ -49,19 +83,19 @@ sub run_ok {
     my $opt    = $args{opt} // [];  # arrayref like ['-c']
     my $expect = $args{expect};     # exact expected stdout
 
-    my @cmd = ($JQ, @$opt, $filter);
+    my @cmd = (@JQ_CMD, @$opt, $filter);
     push @cmd, $file if defined $file;
 
     my ($exit, $stdout, $stderr) = run_cmd(@cmd);
 
     is($exit, 0, "$name: exit=0")
-      or diag("STDERR:\n$stderr\nSTDOUT:\n$stdout");
+      or diag("CMD: @cmd\nSTDERR:\n$stderr\nSTDOUT:\n$stdout");
 
     is($stderr, '', "$name: no stderr")
-      or diag("STDERR:\n$stderr");
+      or diag("CMD: @cmd\nSTDERR:\n$stderr");
 
     is($stdout, $expect, "$name: stdout matches")
-      or diag("GOT:\n$stdout\nEXP:\n$expect");
+      or diag("CMD: @cmd\nGOT:\n$stdout\nEXP:\n$expect");
 }
 
 # ----------------------------
@@ -85,8 +119,9 @@ my $t4 = write_file('t4.json', qq|[{"k":2},{"k":1},{"k":3}]\n|);
 my $logfile = write_file('logfile.txt', "line1\n\nline2\nline3\n\n");
 
 # ----------------------------
-# Tests (same 11 as bash smoke)
+# Tests (CLI smoke)
 # ----------------------------
+
 # 1) identity compact
 run_ok(
     name   => 'identity compact',
