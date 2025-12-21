@@ -711,7 +711,7 @@ jq-lite - minimal jq-style JSON filter (pure Perl)
 
 =head1 DESCRIPTION
 
-B<jq-lite> is a lightweight, jq-compatible JSON filter implemented
+B<jq-lite> is a lightweight, jq-style JSON filter implemented
 entirely in pure Perl.
 
 It is intended for use on systems where B<jq> is unavailable but Perl
@@ -724,7 +724,8 @@ Features include:
 
 =item *
 
-jq-style filters: dot traversal, pipes, selectors, and built-in functions
+jq-style filters: dot traversal, pipes, basic selectors,
+and commonly used built-in functions
 
 =item *
 
@@ -745,6 +746,9 @@ but does not implement all jq features.
 It is not a drop-in replacement for jq, but a pragmatic alternative
 for constrained or minimal environments.
 
+In particular, some advanced expressions and comparisons may behave
+differently from jq.
+
 =head1 OPTIONS
 
 =over 4
@@ -756,6 +760,7 @@ Output strings without JSON quoting.
 =item B<-R>, B<--raw-input>
 
 Read input as raw text, treating each line as a separate value.
+Use B<-s> together with B<-R> to process the entire input as a single string.
 
 =item B<-s>, B<--slurp>
 
@@ -806,3 +811,4 @@ This software is released under the same terms as Perl itself.
 =head1 DISCLAIMER
 
 jq-lite is provided "as is", without warranty of any kind.
+
