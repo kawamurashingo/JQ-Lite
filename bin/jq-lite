@@ -707,7 +707,7 @@ jq-lite - minimal jq-style JSON filter (pure Perl)
 
   cat users.json | jq-lite '.users[].name'
   jq-lite '.items | sort | first' data.json
-  jq-lite -R -c '. | split("\n") | map(select(length > 0))' logfile.txt
+  jq-lite -R -s -c 'split("\n")' logfile.txt
 
 =head1 DESCRIPTION
 
