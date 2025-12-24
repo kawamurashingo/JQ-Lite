@@ -180,7 +180,7 @@ if (@query_files) {
     }
     else {
         my $fh = IO::File->new($file, 'r')
-          or die "Cannot open query file '$file': $!\n";
+          or die "[ERROR] Cannot open query file '$file': $!\n";
         local $/;
         $query = <$fh> // '';
         $fh->close;
@@ -216,7 +216,7 @@ elsif (@ARGV == 1) {
         if (-f $f) {
             $filename = $f;
         } else {
-            die "Cannot open file '$f': $!\n";
+            die "[ERROR] Cannot open file '$f': $!\n";
         }
     }
 }
@@ -234,7 +234,7 @@ elsif (@ARGV == 2) {
     if (-f $f) {
         $filename = $f;
     } else {
-        die "Cannot open file '$f': $!\n";
+        die "[ERROR] Cannot open file '$f': $!\n";
     }
 }
 else {
@@ -297,7 +297,7 @@ if ($null_input) {
     $json_text = $slurp_input ? '[]' : 'null';
 }
 elsif (defined $filename) {
-    open my $fh, '<', $filename or die "Cannot open file '$filename': $!\n";
+    open my $fh, '<', $filename or die "[ERROR] Cannot open file '$filename': $!\n";
     local $/;
     $json_text = <$fh>;
     close $fh;
