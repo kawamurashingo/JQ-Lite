@@ -1765,6 +1765,14 @@ sub apply {
             return 1;
         }
 
+        # support for contains_subset(value)
+        if ($part =~ /^contains_subset\((.+)\)$/) {
+            my $needle = JQ::Lite::Util::_parse_literal_argument($1);
+            @next_results = map { JQ::Lite::Util::_apply_contains_subset($_, $needle) } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # support for inside(container)
         if ($part =~ /^inside\((.+)\)$/) {
             my $container = JQ::Lite::Util::_parse_literal_argument($1);
