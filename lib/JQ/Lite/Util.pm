@@ -3557,36 +3557,13 @@ sub _coerce_range_number {
 sub _apply_contains {
     my ($value, $needle) = @_;
 
-    return JSON::PP::true if !defined $value && !defined $needle;
+    return _deep_contains($value, $needle, 'legacy') ? JSON::PP::true : JSON::PP::false;
+}
 
-    if (ref $value eq 'ARRAY') {
-        for my $item (@$value) {
-            return JSON::PP::true if _values_equal($item, $needle);
-        }
-        return JSON::PP::false;
-    }
+sub _apply_contains_subset {
+    my ($value, $needle) = @_;
 
-    if (ref $value eq 'HASH') {
-        if (ref $needle eq 'HASH') {
-            for my $key (keys %$needle) {
-                return JSON::PP::false unless exists $value->{$key};
-                return JSON::PP::false unless _values_equal($value->{$key}, $needle->{$key});
-            }
-            return JSON::PP::true;
-        }
-
-        return exists $value->{$needle} ? JSON::PP::true : JSON::PP::false;
-    }
-
-    return JSON::PP::false if !defined $value;
-
-    if (!ref $value || ref($value) eq 'JSON::PP::Boolean') {
-        my $haystack = "$value";
-        my $fragment = defined $needle ? "$needle" : '';
-        return index($haystack, $fragment) >= 0 ? JSON::PP::true : JSON::PP::false;
-    }
-
-    return JSON::PP::false;
+    return _deep_contains($value, $needle, 'subset') ? JSON::PP::true : JSON::PP::false;
 }
 
 sub _apply_inside {
@@ -3685,6 +3662,84 @@ sub _values_equal {
             return 0 unless exists $right->{$key} && _values_equal($left->{$key}, $right->{$key});
         }
         return 1;
+    }
+
+    return 0;
+}
+
+sub _deep_contains {
+    my ($value, $needle, $mode) = @_;
+
+    $mode ||= 'legacy';
+
+    return 1 if !defined $value && !defined $needle;
+    return 0 if !defined $value;
+
+    if (ref $value eq 'ARRAY') {
+        return _array_contains($value, $needle, $mode);
+    }
+
+    if (ref $value eq 'HASH') {
+        return _hash_contains($value, $needle, $mode);
+    }
+
+    return _scalar_contains($value, $needle);
+}
+
+sub _array_contains {
+    my ($haystack, $needle, $mode) = @_;
+
+    if ($mode eq 'subset' && ref $needle eq 'ARRAY') {
+        my @used;
+        NEEDLE: for my $expected (@$needle) {
+            for my $i (0 .. $#$haystack) {
+                next if $used[$i];
+                if (_deep_contains($haystack->[$i], $expected, $mode)) {
+                    $used[$i] = 1;
+                    next NEEDLE;
+                }
+            }
+            return 0;
+        }
+        return 1;
+    }
+
+    for my $item (@$haystack) {
+        return 1 if _values_equal($item, $needle);
+    }
+
+    return 0;
+}
+
+sub _hash_contains {
+    my ($value, $needle, $mode) = @_;
+
+    if (ref $needle eq 'HASH') {
+        for my $key (keys %$needle) {
+            return 0 unless exists $value->{$key};
+
+            if ($mode eq 'legacy') {
+                return 0 unless _values_equal($value->{$key}, $needle->{$key});
+            }
+            else {
+                return 0 unless _deep_contains($value->{$key}, $needle->{$key}, $mode);
+            }
+        }
+        return 1;
+    }
+
+    return exists $value->{$needle} ? 1 : 0;
+}
+
+sub _scalar_contains {
+    my ($value, $needle) = @_;
+
+    return 0 if !defined $value;
+
+    if (!ref $value || ref($value) eq 'JSON::PP::Boolean') {
+        my $haystack = "$value";
+        my $fragment = defined $needle ? "$needle" : '';
+        return index($haystack, $fragment) >= 0 ? 1 : 0;
     }
 
     return 0;
