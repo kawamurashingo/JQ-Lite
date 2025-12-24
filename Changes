@@ -1,3 +1,10 @@
+1.56  2025-12-22
+
+    - Parse contains/inside arguments as literal JSON values so null
+      survives argument parsing and matches null inputs.
+    - Extend contains/inside containment checks to treat null inputs as
+      matching null containers and add coverage for the behavior.
+
 1.55  2025-12-21
 
     - Fix CLI smoke tests to reliably locate and execute jq-lite during
