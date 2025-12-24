@@ -2948,6 +2948,20 @@ sub _parse_string_argument {
     return $raw;
 }
 
+sub _parse_literal_argument {
+    my ($raw) = @_;
+
+    return undef if !defined $raw;
+
+    my $parsed = eval { _decode_json($raw) };
+    return $parsed if !$@;
+
+    $raw =~ s/^\s+|\s+$//g;
+    $raw =~ s/^['"]//;
+    $raw =~ s/['"]$//;
+    return $raw;
+}
+
 sub _apply_csv {
     my ($value) = @_;
 
@@ -3543,6 +3557,8 @@ sub _coerce_range_number {
 sub _apply_contains {
     my ($value, $needle) = @_;
 
+    return JSON::PP::true if !defined $value && !defined $needle;
+
     if (ref $value eq 'ARRAY') {
         for my $item (@$value) {
             return JSON::PP::true if _values_equal($item, $needle);
@@ -3551,6 +3567,14 @@ sub _apply_contains {
     }
 
     if (ref $value eq 'HASH') {
+        if (ref $needle eq 'HASH') {
+            for my $key (keys %$needle) {
+                return JSON::PP::false unless exists $value->{$key};
+                return JSON::PP::false unless _values_equal($value->{$key}, $needle->{$key});
+            }
+            return JSON::PP::true;
+        }
+
         return exists $value->{$needle} ? JSON::PP::true : JSON::PP::false;
     }
 
@@ -3563,6 +3587,12 @@ sub _apply_contains {
     }
 
     return JSON::PP::false;
+}
+
+sub _apply_inside {
+    my ($value, $container) = @_;
+
+    return _apply_contains($container, $value);
 }
 
 sub _apply_indices {

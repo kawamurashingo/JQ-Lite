@@ -43,6 +43,7 @@ Functions are grouped by purpose for easier lookup.
 | `trim()`, `ltrimstr()`, `rtrimstr()` | Trim whitespace or prefixes/suffixes |
 | `startswith()`, `endswith()`         | Prefix/suffix test                   |
 | `contains(value)`                    | Substring or array inclusion         |
+| `inside(container)`                  | Whether input is inside container    |
 | `split(sep)`, `join(sep)`            | Split and join                       |
 | `substr(start, len)`                 | Substring extraction                 |
 | `replace(old, new)`                  | Replace substring (literal)          |
