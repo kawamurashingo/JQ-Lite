@@ -1,3 +1,8 @@
+1.59  2025-12-26
+
+    - Split utility helpers into dedicated parsing, path, and transform
+      modules while keeping the main Util loader lightweight.
+
 1.58  2025-12-25
 
     - Parse assignment right-hand sides using the expression evaluator
