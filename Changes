@@ -1,4 +1,4 @@
-1.60  2025-12-27
+1.60  2025-12-26
 
     - Align jq-lite CLI error handling with documented prefixes and
       exit codes, validating JSON input before execution and treating
@@ -1027,6 +1027,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
