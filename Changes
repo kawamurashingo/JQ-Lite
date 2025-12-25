@@ -1,3 +1,9 @@
+1.60  2025-12-27
+
+    - Align jq-lite CLI error handling with documented prefixes and
+      exit codes, validating JSON input before execution and treating
+      empty query results as success.
+
 1.59  2025-12-26
 
     - Split utility helpers into dedicated parsing, path, and transform
