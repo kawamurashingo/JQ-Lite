@@ -36,9 +36,9 @@ subtest 'query from STDIN with --null-input succeeds' => sub {
 subtest 'query from STDIN without input file errors' => sub {
     my ($stdout, $stderr, $exit) = run_cli(".users\n", '--from-file', '-');
     is($stdout, '', 'no stdout when query fails');
-    like($stderr, qr/\Q[ERROR] Cannot use --from-file - when reading JSON from STDIN.\E/,
+    like($stderr, qr/^\[USAGE\] Cannot use --from-file - when reading JSON from STDIN\. Provide input file or use --null-input\./,
         'prints helpful error when both query and JSON use STDIN');
-    is($exit, 255, 'non-zero exit code returned');
+    is($exit, 5, 'usage exit code returned');
 };
 
 DONE_TESTING:
