@@ -1,4 +1,4 @@
-1.58  2025-12-24
+1.58  2025-12-25
 
     - Parse assignment right-hand sides using the expression evaluator
       so jq variables and expressions resolve correctly when assigning
@@ -1016,6 +1016,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
