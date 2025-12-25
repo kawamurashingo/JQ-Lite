@@ -50,10 +50,10 @@ backward-compatible or require a major version bump.
 
 #### Example
 
-- `[COMPILE] unexpected token at ...`
-- `[RUNTIME] cannot add number and string at ...`
-- `[INPUT] failed to parse JSON input: ...`
-- `[USAGE] invalid JSON for --argjson foo`
+- `[COMPILE]unexpected token at ...`
+- `[RUNTIME]cannot add number and string at ...`
+- `[INPUT]failed to parse JSON input: ...`
+- `[USAGE]invalid JSON for --argjson foo`
 
 ## `-e / --exit-status` Semantics
 
@@ -106,7 +106,7 @@ Rationale: this commonly occurs in pipelines and should not break scripts/CI.
 
 ```sh
 jq-lite '.['
-# stderr: [COMPILE] ...
+# stderr: [COMPILE]...
 # exit: 2
 ````
 
@@ -114,7 +114,7 @@ jq-lite '.['
 
 ```sh
 printf '{"x":"a"}\n' | jq-lite '.x + 1'
-# stderr: [RUNTIME] ...
+# stderr: [RUNTIME]...
 # exit: 3
 ```
 
@@ -122,7 +122,7 @@ printf '{"x":"a"}\n' | jq-lite '.x + 1'
 
 ```sh
 printf '{broken}\n' | jq-lite '.'
-# stderr: [INPUT] ...
+# stderr: [INPUT]...
 # exit: 4
 ```
 
@@ -138,6 +138,6 @@ printf 'false\n' | jq-lite -e '.'
 
 ```sh
 jq-lite --argjson x '{broken}' '.'
-# stderr: [USAGE] invalid JSON for --argjson x
+# stderr: [USAGE]invalid JSON for --argjson x
 # exit: 5
 ```
