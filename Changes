@@ -1,3 +1,12 @@
+1.58  2025-12-24
+
+    - Parse assignment right-hand sides using the expression evaluator
+      so jq variables and expressions resolve correctly when assigning
+      new values.
+    - Pass the jq instance into assignment resolution to allow
+      variable-aware evaluation and nested query execution.
+    - Add a regression test covering assignment from a jq variable.
+
 1.57  2025-12-24
 
     - Add opt-in contains_subset() providing jq-style array subset
