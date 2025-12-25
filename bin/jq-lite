@@ -27,6 +27,69 @@ my $force_yaml      = 0;
 my $yaml_module;
 my $yaml_loader;
 my %arg_vars;
+my $exit_status_mode = 0;
+
+$SIG{PIPE} = 'IGNORE';
+
+sub _usage_error {
+    my ($message) = @_;
+    $message ||= 'invalid usage';
+    $message =~ s/\s+\z//;
+    warn "[USAGE] $message\n";
+    exit 5;
+}
+
+sub _input_error {
+    my ($message) = @_;
+    $message ||= 'input error';
+    $message =~ s/\s+\z//;
+    warn "[INPUT] $message\n";
+    exit 4;
+}
+
+sub _compile_error {
+    my ($message) = @_;
+    $message ||= 'compile error';
+    $message =~ s/\s+\z//;
+    warn "[COMPILE] $message\n";
+    exit 2;
+}
+
+sub _runtime_error {
+    my ($message) = @_;
+    $message ||= 'runtime error';
+    $message =~ s/\s+\z//;
+    warn "[RUNTIME] $message\n";
+    exit 3;
+}
+
+sub _handle_query_error {
+    my ($err) = @_;
+    $err ||= 'Unknown error';
+
+    if ($err =~ /__JQ_LITE_EXPR_PARSE_ERROR__/) {
+        _compile_error('Invalid query');
+    }
+
+    _runtime_error($err);
+}
+
+sub _is_truthy_value {
+    my ($value) = @_;
+
+    return 0 unless defined $value;
+
+    my $ref = ref $value;
+    if ($ref) {
+        if ($ref eq 'JSON::PP::Boolean' || $ref eq 'Cpanel::JSON::XS::Boolean' || $ref eq 'JSON::XS::Boolean' || $ref eq 'JSON::Tiny::Boolean') {
+            return $value ? 1 : 0;
+        }
+
+        return 1;
+    }
+
+    return 1;
+}
 
 # ---------- Help text ----------
 my $USAGE = <<'USAGE';
@@ -50,6 +113,7 @@ Options:
   -f, --from-file FILE Read jq filter from FILE instead of the command line
                           (use '-' to read the filter from STDIN)
   -n, --null-input     Use null as input instead of reading JSON data
+  -e, --exit-status    Set exit code to 1 when the final result is false/null/empty
   -s, --slurp          Read entire input stream as an array of JSON values
   --yaml               Parse input as YAML (auto-detected for .yml/.yaml files)
   -h, --help           Show this help message
@@ -81,59 +145,57 @@ GetOptions(
     'null-input|n'    => \$null_input,
     'slurp|s'         => \$slurp_input,
     'yaml'            => \$force_yaml,
+    'exit-status|e'   => \$exit_status_mode,
     'help|h'          => \$want_help,
     'help-functions'  => \$help_functions,
     'version|v'       => \$want_version,
     'from-file|f=s'   => \@query_files,
     'arg=s'           => sub {
         my ($opt_name, $var_name) = @_;
-        die "[ERROR] --arg requires a variable name\n" if !defined $var_name || $var_name eq '';
+        _usage_error('--arg requires a variable name') if !defined $var_name || $var_name eq '';
         if ($var_name !~ /^[A-Za-z_]\w*$/) {
-            die "[ERROR] Invalid variable name '$var_name' for --arg\n";
+            _usage_error("Invalid variable name '$var_name' for --arg");
         }
-        die "[ERROR] --arg requires a value\n" if !@ARGV;
+        _usage_error('--arg requires a value') if !@ARGV;
         my $value = shift @ARGV;
         $value = '' unless defined $value;
         $arg_vars{$var_name} = "$value";
     },
     'argjson=s'       => sub {
         my ($opt_name, $var_name) = @_;
-        die "[ERROR] --argjson requires a variable name\n" if !defined $var_name || $var_name eq '';
+        _usage_error('--argjson requires a variable name') if !defined $var_name || $var_name eq '';
         if ($var_name !~ /^[A-Za-z_]\w*$/) {
-            die "[ERROR] Invalid variable name '$var_name' for --argjson\n";
+            _usage_error("Invalid variable name '$var_name' for --argjson");
         }
-        die "[ERROR] --argjson requires a value\n" if !@ARGV;
+        _usage_error('--argjson requires a value') if !@ARGV;
         my $value_text = shift @ARGV;
         $value_text = '' unless defined $value_text;
 
         my $decoded = eval { JQ::Lite::Util::_decode_json($value_text) };
         if (my $err = $@) {
             $err =~ s/\s+\z//;
-            warn "[ERROR] Failed to parse JSON for --argjson $var_name: $err\n";
-            exit 2;
+            _usage_error("invalid JSON for --argjson $var_name: $err");
         }
 
         $arg_vars{$var_name} = $decoded;
     },
     'rawfile=s'        => sub {
         my ($opt_name, $var_name) = @_;
-        die "[ERROR] --rawfile requires a variable name\n" if !defined $var_name || $var_name eq '';
+        _usage_error('--rawfile requires a variable name') if !defined $var_name || $var_name eq '';
         if ($var_name !~ /^[A-Za-z_]\w*$/) {
-            die "[ERROR] Invalid variable name '$var_name' for --rawfile\n";
+            _usage_error("Invalid variable name '$var_name' for --rawfile");
         }
-        die "[ERROR] --rawfile requires a file path\n" if !@ARGV;
+        _usage_error('--rawfile requires a file path') if !@ARGV;
         my $file_path = shift @ARGV;
         $file_path = '' unless defined $file_path;
 
         if (!-f $file_path) {
-            warn "[ERROR] Cannot open file '$file_path' for --rawfile $var_name: $!\n";
-            exit 2;
+            _input_error("Cannot open file '$file_path' for --rawfile $var_name: $!");
         }
 
         open my $fh, '<', $file_path
           or do {
-            warn "[ERROR] Cannot open file '$file_path' for --rawfile $var_name: $!\n";
-            exit 2;
+            _input_error("Cannot open file '$file_path' for --rawfile $var_name: $!");
           };
         local $/;
         my $content = <$fh>;
@@ -142,7 +204,7 @@ GetOptions(
 
         $arg_vars{$var_name} = $content;
     },
-) or die "[ERROR] Unknown option(s)\n";
+) or _usage_error('invalid option(s)');
 
 if ($help_functions) {
     print_supported_functions();
@@ -164,12 +226,12 @@ if ($want_version) {
 my ($query, $filename);
 
 if (@query_files) {
-    die "[ERROR] --from-file may only be specified once\n" if @query_files > 1;
+    _usage_error('--from-file may only be specified once') if @query_files > 1;
 
     my $file = $query_files[0];
     if (defined $file && $file eq '-') {
         if (!$null_input && !@ARGV) {
-            die "[ERROR] Cannot use --from-file - when reading JSON from STDIN. Provide input file or use --null-input.\n";
+            _usage_error('Cannot use --from-file - when reading JSON from STDIN. Provide input file or use --null-input.');
         }
     }
 
@@ -180,7 +242,7 @@ if (@query_files) {
     }
     else {
         my $fh = IO::File->new($file, 'r')
-          or die "[ERROR] Cannot open query file '$file': $!\n";
+          or _input_error("Cannot open query file '$file': $!");
         local $/;
         $query = <$fh> // '';
         $fh->close;
@@ -211,35 +273,35 @@ elsif (@ARGV == 1) {
         # Query already provided via -f; treat arg as filename if it exists
         my $f = $ARGV[0];
         if ($null_input) {
-            die "[ERROR] --null-input cannot be combined with file input\n";
+            _usage_error('--null-input cannot be combined with file input');
         }
         if (-f $f) {
             $filename = $f;
         } else {
-            die "[ERROR] Cannot open file '$f': $!\n";
+            _input_error("Cannot open file '$f': $!");
         }
     }
 }
 elsif (@ARGV == 2) {
     # Two args: query + file (in this order)
-    die "[ERROR] --null-input cannot be combined with file input\n" if $null_input;
+    _usage_error('--null-input cannot be combined with file input') if $null_input;
 
     if (!defined $query) {
         $query = $ARGV[0];
     } else {
-        die "[ERROR] Cannot provide both --from-file and a query argument\n";
+        _usage_error('Cannot provide both --from-file and a query argument');
     }
 
     my $f = $ARGV[1];
     if (-f $f) {
         $filename = $f;
     } else {
-        die "[ERROR] Cannot open file '$f': $!\n";
+        _input_error("Cannot open file '$f': $!");
     }
 }
 else {
-    die "Usage: jq-lite [options] '.query' [file.json]\n"
-      . "       jq-lite [options] -f query.jq [file.json]\n";
+    _usage_error("Usage: jq-lite [options] '.query' [file.json]\n" .
+                 "       jq-lite [options] -f query.jq [file.json]");
 }
 
 # ---------- JSON decoder selection ----------
@@ -265,7 +327,7 @@ if ($decoder_choice) {
         $decoder_module = 'JSON::PP';
     }
     else {
-        die "[ERROR] Unknown JSON module: $decoder_choice\n";
+        _usage_error("Unknown JSON module: $decoder_choice");
     }
 }
 else {
@@ -297,7 +359,7 @@ if ($null_input) {
     $json_text = $slurp_input ? '[]' : 'null';
 }
 elsif (defined $filename) {
-    open my $fh, '<', $filename or die "[ERROR] Cannot open file '$filename': $!\n";
+    open my $fh, '<', $filename or _input_error("Cannot open file '$filename': $!");
     local $/;
     $json_text = <$fh>;
     close $fh;
@@ -306,10 +368,14 @@ elsif (defined $filename) {
 else {
     # When no file is given, if STDIN is a TTY, error out to avoid blocking
     if (-t STDIN) {
-        die "[ERROR] No input provided. Pass a file or pipe JSON via STDIN.\n";
+        _input_error('No input provided. Pass a file or pipe JSON via STDIN.');
     }
     local $/;
     $json_text = <STDIN>;
+}
+
+if (defined $query && !JQ::Lite::Util::_are_brackets_balanced($query)) {
+    _compile_error('Unbalanced brackets or parentheses in query');
 }
 
 $use_yaml = 0 if $raw_input;
@@ -359,7 +425,7 @@ if (!$raw_input && $slurp_input && !$null_input) {
         my ($value, $consumed);
         my $ok = eval { ($value, $consumed) = $decoder->decode_prefix(substr($text, $offset)); 1 };
         if (!$ok) {
-            die "[ERROR] Failed to decode JSON stream for --slurp: $@\n";
+            _input_error("Failed to decode JSON stream for --slurp: $@");
         }
 
         push @values, $value;
@@ -367,6 +433,11 @@ if (!$raw_input && $slurp_input && !$null_input) {
     }
 
     $json_text = JSON::PP->new->encode(\@values);
+}
+
+if (!$raw_input) {
+    eval { JQ::Lite::Util::_decode_json($json_text); 1 }
+      or _input_error("Failed to parse JSON input: $@");
 }
 
 sub convert_yaml_to_json {
@@ -378,7 +449,7 @@ sub convert_yaml_to_json {
     my @docs = eval { $yaml_loader->($text) };
     if (my $err = $@) {
         $err =~ s/\s+\z//;
-        die "[ERROR] Failed to parse YAML input: $err\n";
+        _input_error("Failed to parse YAML input: $err");
     }
 
     my $data;
@@ -463,7 +534,7 @@ sub print_results {
 
 # ---------- Interactive mode ----------
 if ($raw_input && !$slurp_input && !defined $query) {
-    die "[ERROR] --raw-input requires a query when not using --slurp.\n";
+    _usage_error('--raw-input requires a query when not using --slurp.');
 }
 
 if (!defined $query) {
@@ -536,7 +607,7 @@ if (!defined $query) {
                 1;
             } or do {
                 my $e = $@ || 'Unknown error';
-                print "[ERROR] Failed to print: $e\n";
+                print "[RUNTIME] Failed to print: $e\n";
             };
         } else {
             print "[INFO] No previous valid results.\n";
@@ -557,23 +628,29 @@ if ($raw_input && !$slurp_input) {
     my $encoder = JSON::PP->new->utf8->allow_nonref;
     for my $line (@raw_lines) {
         my $encoded_line = $encoder->encode($line);
-        my @line_results = eval { $jq->run_query($encoded_line, $query) };
-        if ($@) {
-            die "[ERROR] Invalid query: $@\n";
+        my @line_results;
+        my $ok = eval {
+            @line_results = $jq->run_query($encoded_line, $query);
+            1;
+        };
+        if (!$ok) {
+            _handle_query_error($@);
         }
         push @results, @line_results;
     }
 }
 else {
-    @results = eval { $jq->run_query($json_text, $query) };
-    if ($@) {
-        die "[ERROR] Invalid query: $@\n";
+    my $ok = eval {
+        @results = $jq->run_query($json_text, $query);
+        1;
+    };
+    if (!$ok) {
+        _handle_query_error($@);
     }
 }
 
 if (!@results) {
-    warn "[INFO] No results returned for query.\n";
-    exit 1;
+    exit($exit_status_mode ? 1 : 0);
 }
 
 sub print_supported_functions {
@@ -692,6 +769,13 @@ EOF
 }
 
 print_results(@results);
+
+my $exit_code = 0;
+if ($exit_status_mode && !_is_truthy_value($results[-1])) {
+    $exit_code = 1;
+}
+
+exit $exit_code;
 
 __END__
 
