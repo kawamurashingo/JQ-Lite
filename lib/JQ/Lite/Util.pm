@@ -240,9 +240,9 @@ sub _split_top_level_pipes {
         }
 
         if (exists $closing{$char}) {
-            return unless @stack;
+            die "Parse error: unexpected closing '$char'" unless @stack;
             my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
+            die "Parse error: expected '$pairs{$open}' before '$char'" unless $pairs{$open} eq $char;
             next;
         }
 
@@ -259,6 +259,9 @@ sub _split_top_level_pipes {
             $start = $i + 1;
         }
     }
+
+    die "Parse error: unclosed quote" if defined $string;
+    die "Parse error: unclosed '$stack[-1]'" if @stack;
 
     push @parts, substr($text, $start) if $start <= $length;
 
@@ -315,9 +318,9 @@ sub _split_top_level_commas {
         }
 
         if (exists $closing{$char}) {
-            return unless @stack;
+            die "Parse error: unexpected closing '$char'" unless @stack;
             my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
+            die "Parse error: expected '$pairs{$open}' before '$char'" unless $pairs{$open} eq $char;
             next;
         }
 
@@ -329,6 +332,9 @@ sub _split_top_level_commas {
             $start = $i + 1;
         }
     }
+
+    die "Parse error: unclosed quote" if defined $string;
+    die "Parse error: unclosed '$stack[-1]'" if @stack;
 
     push @parts, substr($text, $start) if $start <= length $text;
 

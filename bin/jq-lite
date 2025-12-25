@@ -50,7 +50,7 @@ sub _classify_query_error {
     $err ||= 'Unknown error';
     $err =~ s/\s+\z//;
 
-    if ($err =~ /decode_json|Failed to decode JSON|YAML/i) {
+    if ($err =~ /decode_json|Failed to decode JSON|YAML|parsing JSON/i) {
         _input_error($err);
     }
     elsif ($err =~ /parse|syntax|Invalid query|unexpected token/i) {
