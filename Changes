@@ -1,3 +1,9 @@
+1.59  2025-12-26
+
+    - Promote release to version 1.59 aligning the CLI behavior with the
+      stable contract for error prefixes, exit codes, and --exit-status
+      handling.
+
 1.58  2025-12-25
 
     - Parse assignment right-hand sides using the expression evaluator
