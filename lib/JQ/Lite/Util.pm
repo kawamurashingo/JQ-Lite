@@ -1096,18 +1096,18 @@ sub _parse_assignment_value {
         return { type => 'literal', value => $1 };
     }
 
-    return { type => 'literal', value => $raw };
+    return { type => 'expression', value => $raw };
 }
 
 sub _apply_assignment {
-    my ($item, $path, $value_spec, $operator) = @_;
+    my ($self, $item, $path, $value_spec, $operator) = @_;
 
     return $item unless defined $item;
     return $item unless defined $path && length $path;
 
     $operator //= '=';
 
-    my $value = _resolve_assignment_value($item, $value_spec);
+    my $value = _resolve_assignment_value($self, $item, $value_spec);
 
     if ($operator ne '=') {
         my $current = _clone_for_assignment(_get_path_value($item, $path));
@@ -1203,7 +1203,7 @@ sub _coerce_number {
 }
 
 sub _resolve_assignment_value {
-    my ($item, $value_spec) = @_;
+    my ($self, $item, $value_spec) = @_;
 
     return undef unless defined $value_spec;
 
@@ -1213,6 +1213,22 @@ sub _resolve_assignment_value {
 
         my @values = _traverse($item, $path);
         return _clone_for_assignment($values[0]);
+    }
+
+    if ($value_spec->{type} && $value_spec->{type} eq 'expression') {
+        my $expr = $value_spec->{value} // '';
+
+        my ($values, $ok) = _evaluate_value_expression($self, $item, $expr);
+        if ($ok) {
+            return _clone_for_assignment(@$values ? $values->[0] : undef);
+        }
+
+        if (defined $self && $self->can('run_query')) {
+            my @outputs = $self->run_query(_encode_json($item), $expr);
+            return _clone_for_assignment($outputs[0]) if @outputs;
+        }
+
+        return _clone_for_assignment($expr);
     }
 
     return _clone_for_assignment($value_spec->{value});
