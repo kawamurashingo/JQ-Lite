@@ -1,4 +1,4 @@
-# jq-lite — Lightweight jq in Pure Perl
+# jq-lite — Lightweight jq
 
 ![JQ::Lite](./images/jq-lite_sm.png)
 
@@ -217,6 +217,7 @@ jq-lite '.users[].nickname? // .name'
 ## 許 License
 
 Same terms as Perl itself.
+
 
 
 
