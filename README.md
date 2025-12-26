@@ -219,6 +219,3 @@ jq-lite '.users[].nickname? // .name'
 
 Same terms as Perl itself.
 
-どこまで“日本の道具”を極めます？
-```
-
