@@ -205,7 +205,7 @@ jq-lite '.users[].nickname? // .name'
 
 * [`FUNCTIONS.md`](FUNCTIONS.md)
 * [`DESIGN.md`](DESIGN.md)
-* [CPAN](https://metacpan.org/pod/JQ::Lite)
+* [`CPAN`](https://metacpan.org/pod/JQ::Lite)
 
 ---
 
@@ -219,6 +219,7 @@ jq-lite '.users[].nickname? // .name'
 ## 許 License
 
 Same terms as Perl itself.
+
 
 
 
