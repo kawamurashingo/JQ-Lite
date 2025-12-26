@@ -12,7 +12,7 @@
 
 ## 概 What is jq-lite?
 
-**jq-lite** is a **pure-Perl JSON query engine** inspired by `jq`.
+**jq-lite** is a **Pure Perl JSON query engine** inspired by `jq`.
 
 It lets you **query and transform JSON using jq-like syntax**
 — **without external binaries, native libraries, or compilation**.
@@ -219,6 +219,7 @@ jq-lite '.users[].nickname? // .name'
 ## 許 License
 
 Same terms as Perl itself.
+
 
 
 
