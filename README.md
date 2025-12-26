@@ -43,11 +43,9 @@ where **simplicity, readability, and low dependency footprint** matter.
   * `--null-input`, `--slurp`, `--from-file`
   * `--yaml`, `--arg`, `--rawfile`, `--argjson`, `--ascii-output`
 * 術 **100+ built-in jq functions**
-  → [`FUNCTIONS.md`](FUNCTIONS.md)
 * 対 **Interactive mode**
 * 材 **JSON & YAML input**
 * 域 **Runs almost anywhere Perl runs**
-  → [`DESIGN.md`](DESIGN.md)
 
 ---
 
@@ -219,6 +217,7 @@ jq-lite '.users[].nickname? // .name'
 ## 許 License
 
 Same terms as Perl itself.
+
 
 
 
