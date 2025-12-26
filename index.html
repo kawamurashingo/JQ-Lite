@@ -33,7 +33,6 @@ body{
   line-height:1.7;
 }
 
-/* washi texture */
 body::before{
   content:"";
   position:fixed;
@@ -72,6 +71,22 @@ h1{
   font-weight:700;
   color:var(--kin);
   letter-spacing:.08em;
+}
+
+.design-link{
+  margin-top:1.2rem;
+  font-size:.95rem;
+}
+
+.design-link a{
+  color:var(--paper-muted);
+  text-decoration:none;
+  border-bottom:1px solid rgba(201,162,39,.4);
+  padding-bottom:2px;
+}
+
+.design-link a:hover{
+  color:var(--paper);
 }
 
 main{
@@ -162,6 +177,9 @@ a{color:var(--shuiro)}
     制約の多い環境でも、JSON / YAML を確実に扱うための道具です。
   </p>
   <span class="jp-tag">日本の道具のように</span>
+  <div class="design-link">
+    <a href="design.html">設計方針を見る</a>
+  </div>
 </header>
 
 <main>
