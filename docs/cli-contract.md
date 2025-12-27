@@ -106,7 +106,7 @@ When `-e/--exit-status` is specified, `jq-lite` returns:
 
 ---
 
-## `--arg` and `--argjson`
+## `--arg`, `--argjson`, and `--argfile`
 
 ### `--arg name value`
 
@@ -116,9 +116,19 @@ When `-e/--exit-status` is specified, `jq-lite` returns:
 ### `--argjson name json`
 
 - Decodes `json` as JSON and binds to `$name`
-- Scalar JSON values are allowed  
+- Scalar JSON values are allowed
   (`1`, `"x"`, `true`, `null`)
 - Invalid JSON for `--argjson` MUST be treated as a **usage error**:
+  - stderr prefix: `[USAGE]`
+  - exit code: `5`
+
+### `--argfile name file`
+
+- Reads `file` contents, decodes as JSON, and binds to `$name`
+- Missing or unreadable `file` MUST be treated as a **usage error**:
+  - stderr prefix: `[USAGE]`
+  - exit code: `5`
+- Invalid JSON for `--argfile` MUST be treated as a **usage error**:
   - stderr prefix: `[USAGE]`
   - exit code: `5`
 

@@ -156,6 +156,7 @@ Options:
   --rawfile NAME FILE  Set jq-style variable $NAME to the raw contents of FILE
   --slurpfile NAME FILE Set jq-style variable $NAME to an array of JSON values from FILE
   --argjson NAME JSON  Set jq-style variable $NAME to a JSON-decoded value
+  --argfile NAME FILE  Set jq-style variable $NAME to a JSON-decoded value from FILE
   -f, --from-file FILE Read jq filter from FILE instead of the command line
                           (use '-' to read the filter from STDIN)
   -n, --null-input     Use null as input instead of reading JSON data
@@ -257,6 +258,31 @@ my $getopt_ok;
 
         $arg_vars{$var_name} = $decoded;
     },
+    'argfile=s'       => sub {
+        my ($opt_name, $var_name) = @_;
+        _usage_error('--argfile requires a variable name') if !defined $var_name || $var_name eq '';
+        if ($var_name !~ /^[A-Za-z_]\w*$/) {
+            _usage_error("Invalid variable name '$var_name' for --argfile");
+        }
+        _usage_error('--argfile requires a file path') if !@ARGV;
+        my $file_path = shift @ARGV;
+        $file_path = '' unless defined $file_path;
+
+        my $fh = IO::File->new($file_path, 'r')
+          or _usage_error("Cannot open file '$file_path' for --argfile $var_name: $!");
+        local $/;
+        my $json_text = <$fh>;
+        $json_text = '' unless defined $json_text;
+        $fh->close;
+
+        my $decoded = eval { JQ::Lite::Util::_decode_json($json_text) };
+        if (my $err = $@) {
+            $err =~ s/\s+\z//;
+            _usage_error("invalid JSON in --argfile $var_name: $err");
+        }
+
+        $arg_vars{$var_name} = $decoded;
+    },
     'rawfile=s'        => sub {
         my ($opt_name, $var_name) = @_;
         _usage_error('--rawfile requires a variable name') if !defined $var_name || $var_name eq '';
@@ -267,13 +293,9 @@ my $getopt_ok;
         my $file_path = shift @ARGV;
         $file_path = '' unless defined $file_path;
 
-        if (!-f $file_path) {
-            _input_error("Cannot open file '$file_path' for --rawfile $var_name: $!");
-        }
-
         open my $fh, '<', $file_path
           or do {
-            _input_error("Cannot open file '$file_path' for --rawfile $var_name: $!");
+            _usage_error("Cannot open file '$file_path' for --rawfile $var_name: $!");
           };
         local $/;
         my $content = <$fh>;
@@ -943,7 +965,7 @@ and commonly used built-in functions
 =item *
 
 Command-line options such as C<-R>, C<-r>, C<-c>, C<-a>, C<--slurp>,
-C<--null-input>, C<--from-file>, C<--arg>, C<--argjson>,
+C<--null-input>, C<--from-file>, C<--arg>, C<--argfile>, C<--argjson>,
 C<--rawfile>, and C<--yaml>
 
 =item *
@@ -986,6 +1008,10 @@ Escape non-ASCII characters in output.
 =item B<--arg> I<name> I<value>
 
 Define a string variable.
+
+=item B<--argfile> I<name> I<file>
+
+Read I<file> as JSON and bind it to the variable.
 
 =item B<--argjson> I<name> I<value>
 
