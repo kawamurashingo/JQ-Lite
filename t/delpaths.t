@@ -66,5 +66,13 @@ like(
     'delpaths error message indicates array-of-array requirement'
 );
 
+$error = eval { $jq->run_query($json_object, '.profile | delpaths(["password"])'); 1 };
+ok(!$error, 'delpaths throws when paths list is not an array of arrays');
+like(
+    $@,
+    qr/^delpaths\(\): paths must be an array of path arrays/,
+    'delpaths rejects paths arrays containing non-array entries'
+);
+
 done_testing;
 
