@@ -176,7 +176,26 @@ USAGE
 # ---------- Option parsing (Getopt::Long) ----------
 my ($want_help, $want_version, $help_functions) = (0, 0, 0);
 
-GetOptions(
+my @getopt_errors;
+my $getopt_ok;
+{
+    my $orig_warn = $SIG{__WARN__};
+    local $SIG{__WARN__} = sub {
+        my ($msg) = @_;
+        if ($msg =~ /^\[(?:COMPILE|RUNTIME|INPUT|USAGE)\]/) {
+            if ($orig_warn) {
+                $orig_warn->($msg);
+            }
+            else {
+                CORE::warn($msg);
+            }
+            return;
+        }
+
+        push @getopt_errors, $msg;
+    };
+
+    $getopt_ok = GetOptions(
     'raw-input|R'    => \$raw_input,
     'raw-output|r'    => \$raw_output,
     'compact-output|c'=> \$compact_output,
@@ -246,7 +265,14 @@ GetOptions(
 
         $arg_vars{$var_name} = $content;
     },
-) or _usage_error('invalid option(s)');
+    );
+}
+
+if (!$getopt_ok) {
+    my $message = @getopt_errors ? $getopt_errors[0] : 'invalid option(s)';
+    $message =~ s/\s+\z//;
+    _usage_error($message);
+}
 
 if ($help_functions) {
     print_supported_functions();
