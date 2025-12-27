@@ -814,7 +814,7 @@ sub print_supported_functions {
 
 Supported Functions:
   length           - Count array elements, hash keys, or characters in scalars
-  keys             - Extract sorted keys from a hash
+  keys             - Extract sorted keys from a hash or indexes from an array
   keys_unsorted    - Extract object keys without sorting (jq-compatible)
   values           - Extract values from a hash (v0.34)
   sort             - Sort array items
