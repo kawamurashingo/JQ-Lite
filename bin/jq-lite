@@ -29,6 +29,7 @@ my $yaml_module;
 my $yaml_loader;
 my %arg_vars;
 my @slurpfiles;
+my $slurpfile_probably_missing_file = 0;
 
 sub _usage_error {
     my ($message) = @_;
@@ -223,6 +224,8 @@ my $getopt_ok;
         my $file_path = shift @ARGV;
         $file_path = '' unless defined $file_path;
 
+        $slurpfile_probably_missing_file = 1 if @ARGV == 0 && $file_path =~ /^\./;
+
         push @slurpfiles, $var_name, $file_path;
     },
     'arg=s'           => sub {
@@ -354,6 +357,9 @@ if (@ARGV == 0) {
             $query = '.';
         } else {
             if ($non_help_option_used) {
+                if ($slurpfile_probably_missing_file) {
+                    _usage_error('--slurpfile requires a file path');
+                }
                 _usage_error('filter expression is required');
             }
 

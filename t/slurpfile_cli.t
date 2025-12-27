@@ -36,7 +36,7 @@ waitpid($missing_query_pid, 0);
 my $missing_query_exit = $? >> 8;
 
 is($missing_query_exit, 5, '--slurpfile without a file path produces a usage error instead of help');
-like($missing_query_stderr, qr/^\[USAGE\]filter expression is required/i, 'missing filter emits a usage error message');
+like($missing_query_stderr, qr/^\[USAGE\]--slurpfile requires a file path/i, 'missing slurpfile file path is reported');
 is($missing_query_stdout, '', 'no stdout is produced when filter is missing');
 
 my $missing_err = gensym;
