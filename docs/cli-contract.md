@@ -100,10 +100,6 @@ When `-e/--exit-status` is specified, `jq-lite` returns:
 - empty (no output) → falsey
 - everything else (`0`, `""`, `{}`, `[]`, etc.) → truthy
 
-> NOTE:  
-> Current jq-lite behavior treats `0` as falsey.  
-> This is a **known deviation** and will be fixed in a future release.
-
 ---
 
 ## `--arg` and `--argjson`
@@ -202,7 +198,6 @@ Any change that violates this contract will fail CI.
 The following items are **explicitly tracked** and will be improved:
 
 * Compile should occur before input parsing
-* `-e` truthiness should fully match jq (`0` should be truthy)
 * `-n / --null-input` support
 
 These do **not** invalidate the stability of the contract itself.
