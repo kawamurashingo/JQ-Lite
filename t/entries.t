@@ -62,4 +62,13 @@ is_deeply(
     'with_entries filters entries before reconstruction'
 );
 
+my $missing_value = q([{"key": "a"}]);
+my $error;
+eval { $jq->run_query($missing_value, 'from_entries'); 1 } or $error = $@;
+like(
+    $error,
+    qr/^from_entries\(\): entry missing value/,
+    'from_entries throws when an entry is missing its value'
+);
+
 done_testing;
