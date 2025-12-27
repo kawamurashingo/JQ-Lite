@@ -41,7 +41,7 @@ where **simplicity, readability, and low dependency footprint** matter.
 * 具 **CLI tool**: `jq-lite`
 
   * `--null-input`, `--slurp`, `--from-file`
-  * `--yaml`, `--arg`, `--rawfile`, `--argjson`, `--ascii-output`
+  * `--yaml`, `--arg`, `--rawfile`, `--argfile`, `--argjson`, `--ascii-output`
 * 術 **100+ built-in jq functions**
 * 対 **Interactive mode**
 * 材 **JSON & YAML input**
