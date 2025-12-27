@@ -376,14 +376,17 @@ sub _apply_delpaths {
     if (!$@ && defined $decoded_paths) {
         if (ref $decoded_paths eq 'ARRAY') {
             if (@$decoded_paths && ref $decoded_paths->[0] eq 'ARRAY') {
-                push @paths, map { [ @$_ ] } @$decoded_paths;
+                push @paths, map { _validate_path_array($_, 'delpaths') } @$decoded_paths;
             }
             elsif (!@$decoded_paths) {
                 # no paths supplied
             }
             else {
-                push @paths, [ @$decoded_paths ];
+                push @paths, _validate_path_array($decoded_paths, 'delpaths');
             }
+        }
+        else {
+            die 'delpaths(): paths must be an array of path arrays';
         }
     }
 
@@ -394,10 +397,13 @@ sub _apply_delpaths {
 
             if (ref $output eq 'ARRAY') {
                 if (@$output && ref $output->[0] eq 'ARRAY') {
-                    push @paths, grep { ref $_ eq 'ARRAY' } @$output;
+                    push @paths, map { _validate_path_array($_, 'delpaths') } @$output;
                 } elsif (!@$output || !ref $output->[0]) {
-                    push @paths, $output;
+                    push @paths, _validate_path_array($output, 'delpaths');
                 }
+            }
+            else {
+                die 'delpaths(): paths must be an array of path arrays';
             }
         }
     }
