@@ -28,6 +28,7 @@ my $exit_status     = 0;
 my $yaml_module;
 my $yaml_loader;
 my %arg_vars;
+my @slurpfiles;
 
 sub _usage_error {
     my ($message) = @_;
@@ -152,6 +153,7 @@ Options:
   --debug              Show which JSON module is being used
   --arg NAME VALUE     Set jq-style variable $NAME to the string VALUE
   --rawfile NAME FILE  Set jq-style variable $NAME to the raw contents of FILE
+  --slurpfile NAME FILE Set jq-style variable $NAME to an array of JSON values from FILE
   --argjson NAME JSON  Set jq-style variable $NAME to a JSON-decoded value
   -f, --from-file FILE Read jq filter from FILE instead of the command line
                           (use '-' to read the filter from STDIN)
@@ -211,6 +213,18 @@ my $getopt_ok;
     'help-functions'  => \$help_functions,
     'version|v'       => \$want_version,
     'from-file|f=s'   => \@query_files,
+    'slurpfile=s'     => sub {
+        my ($opt_name, $var_name) = @_;
+        _usage_error('--slurpfile requires a variable name') if !defined $var_name || $var_name eq '';
+        if ($var_name !~ /^[A-Za-z_]\w*$/) {
+            _usage_error("Invalid variable name '$var_name' for --slurpfile");
+        }
+        _usage_error('--slurpfile requires a file path') if !@ARGV;
+        my $file_path = shift @ARGV;
+        $file_path = '' unless defined $file_path;
+
+        push @slurpfiles, $var_name, $file_path;
+    },
     'arg=s'           => sub {
         my ($opt_name, $var_name) = @_;
         _usage_error('--arg requires a variable name') if !defined $var_name || $var_name eq '';
@@ -421,6 +435,34 @@ else {
 }
 
 warn "[DEBUG] Using $decoder_module\n" if $decoder_debug;
+
+# ---------- --slurpfile handling ----------
+if (@slurpfiles) {
+    for (my $i = 0; $i < @slurpfiles; $i += 2) {
+        my ($var_name, $file_path) = @slurpfiles[$i, $i + 1];
+
+        _usage_error('--slurpfile requires a variable name') if !defined $var_name || $var_name eq '';
+        if ($var_name !~ /^[A-Za-z_]\w*$/) {
+            _usage_error("Invalid variable name '$var_name' for --slurpfile");
+        }
+
+        _usage_error('--slurpfile requires a file path') if !defined $file_path || $file_path eq '';
+
+        my $fh = IO::File->new($file_path, 'r')
+          or _usage_error("cannot read file: $file_path");
+        local $/;
+        my $json_text = <$fh>;
+        $json_text = '' unless defined $json_text;
+        $fh->close;
+
+        my $decoded = eval { JQ::Lite::Util::_decode_json($json_text) };
+        if ($@) {
+            _usage_error("invalid JSON in slurpfile $var_name");
+        }
+
+        $arg_vars{$var_name} = [$decoded];
+    }
+}
 
 # ---------- Read JSON input ----------
 my $json_text;

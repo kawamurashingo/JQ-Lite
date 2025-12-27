@@ -1,3 +1,9 @@
+1.63  2025-12-28
+
+    - Promote release to version 1.63 adding jq-compatible --slurpfile
+      support that decodes JSON files into array-wrapped variables with
+      consistent usage error handling for missing files and invalid JSON.
+
 1.62  2025-12-27
 
     - Improved CLI error handling:
