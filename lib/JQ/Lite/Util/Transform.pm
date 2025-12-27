@@ -223,18 +223,43 @@ sub _to_entries {
     return $value;
 }
 
+sub _is_string_scalar {
+    my ($value) = @_;
+
+    return 0 if !defined $value;
+    return 0 if ref $value;
+
+    my $sv    = B::svref_2object(\$value);
+    my $flags = $sv->FLAGS;
+
+    return $flags & B::SVp_POK() ? 1 : 0;
+}
+
 sub _from_entries {
     my ($value) = @_;
 
-    return $value unless ref $value eq 'ARRAY';
+    die 'from_entries(): argument must be an array' unless ref $value eq 'ARRAY';
 
     my %result;
     for my $entry (@$value) {
-        my $normalized = _normalize_entry($entry);
-        next unless $normalized;
+        my ($key, $val);
 
-        my $key = $normalized->{key};
-        $result{$key} = $normalized->{value};
+        if (ref $entry eq 'HASH') {
+            die 'from_entries(): entry is missing key'    if !exists $entry->{key};
+            die 'from_entries(): entry is missing value'  if !exists $entry->{value};
+            ($key, $val) = ($entry->{key}, $entry->{value});
+        }
+        elsif (ref $entry eq 'ARRAY') {
+            die 'from_entries(): entry must have a key and value' if @$entry < 2;
+            ($key, $val) = @{$entry}[0, 1];
+        }
+        else {
+            die 'from_entries(): entry must be an object or [key, value] tuple';
+        }
+
+        die 'from_entries(): key must be a string' if !_is_string_scalar($key);
+
+        $result{$key} = $val;
     }
 
     return \%result;
