@@ -223,6 +223,18 @@ sub _to_entries {
     return $value;
 }
 
+sub _is_string_scalar {
+    my ($value) = @_;
+
+    return 0 if !defined $value;
+    return 0 if ref $value;
+
+    my $sv    = B::svref_2object(\$value);
+    my $flags = $sv->FLAGS;
+
+    return $flags & B::SVp_POK() ? 1 : 0;
+}
+
 sub _from_entries {
     my ($value) = @_;
 
@@ -245,7 +257,7 @@ sub _from_entries {
             die 'from_entries(): entry must be an object or [key, value] tuple';
         }
 
-        die 'from_entries(): key must be a string' if !defined $key || ref $key;
+        die 'from_entries(): key must be a string' if !_is_string_scalar($key);
 
         $result{$key} = $val;
     }

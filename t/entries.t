@@ -98,6 +98,18 @@ like(
     'runtime error message mentions string key'
 );
 
+my $numeric_key_ok = eval {
+    $jq->run_query('[ {"key": 1, "value": "x"} ]', 'from_entries');
+    1;
+};
+my $numeric_key_err = $@;
+ok(!$numeric_key_ok, 'from_entries throws runtime error when key is numeric');
+like(
+    $numeric_key_err,
+    qr/^from_entries\(\): key must be a string/,
+    'runtime error message rejects non-string numeric key'
+);
+
 my $missing_value_ok = eval {
     $jq->run_query('[ {"key": "name"} ]', 'from_entries');
     1;
