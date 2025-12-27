@@ -1,3 +1,9 @@
+1.63  2025-12-27
+
+    - Promote release to version 1.63 adding jq-compatible --slurpfile
+      support that decodes JSON files into array-wrapped variables with
+      consistent usage error handling for missing files and invalid JSON.
+
 1.62  2025-12-27
 
     - Improved CLI error handling:
@@ -1039,6 +1045,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
