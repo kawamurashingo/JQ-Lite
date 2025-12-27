@@ -1,4 +1,4 @@
-1.64  2025-12-28
+1.64  2025-12-27
 
     - Add jq-compatible --argfile CLI support, decoding JSON files into
       variables with usage errors for invalid JSON and input errors for
@@ -1051,6 +1051,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
