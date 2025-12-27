@@ -157,13 +157,13 @@ sub assert_err_contract {
     like($res->{err}, qr/^\s*\z/s, '-e empty => stderr empty');
 }
 
-# -e truthy values (CURRENT behavior: 0 is falsey)
+# -e truthy values (0 is truthy like jq)
 {
     my $res = run_cmd(
         cmd   => [$BIN, '-e', '.'],
         stdin => "0\n",
     );
-    is($res->{rc}, 1, '-e 0 => exit 1 (CURRENT BEHAVIOR; TODO fix truthiness)');
+    is($res->{rc}, 0, '-e 0 => exit 0 (jq-compatible truthiness)');
     like($res->{out}, qr/^0\b/m, '-e 0 => stdout contains 0');
     like($res->{err}, qr/^\s*\z/s, '-e 0 => stderr empty');
 }

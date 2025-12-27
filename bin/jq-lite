@@ -125,8 +125,7 @@ sub _is_truthy {
         return $value ? 1 : 0;
     }
 
-    return 1 if ref $value;
-    return $value ? 1 : 0;
+    return 1;
 }
 
 # ---------- Help text ----------
