@@ -79,6 +79,17 @@ sub assert_err_contract {
     );
 }
 
+# Compile error: empty filter segment
+{
+    my $res = run_cmd(cmd => [$BIN, '.foo |'], stdin => "{}\n");
+    assert_err_contract(
+        res    => $res,
+        rc     => 2,
+        prefix => '[COMPILE]',
+        name   => 'compile error: empty filter segment',
+    );
+}
+
 # Runtime error
 {
     my $res = run_cmd(

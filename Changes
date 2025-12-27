@@ -1,3 +1,8 @@
+1.61  2025-12-27
+
+    - Bump version to document the compile-error handling improvements
+      for empty pipeline segments in jq-lite CLI queries.
+
 1.60  2025-12-26
 
     - Align jq-lite CLI error handling with documented prefixes and

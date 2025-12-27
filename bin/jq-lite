@@ -114,6 +114,11 @@ sub _validate_query_syntax {
     if (defined $string || @stack) {
         _compile_error('Invalid query syntax: unmatched brackets');
     }
+
+    my @pipeline_parts = JQ::Lite::Util::_split_top_level_pipes($query);
+    if (grep { !defined $_ || $_ !~ /\S/ } @pipeline_parts) {
+        _compile_error('Invalid query syntax: empty filter segment');
+    }
 }
 
 sub _is_truthy {
