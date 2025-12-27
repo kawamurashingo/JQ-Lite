@@ -118,6 +118,20 @@ sub assert_err_contract {
     );
 }
 
+# Runtime error: from_entries missing value
+{
+    my $res = run_cmd(
+        cmd   => [$BIN, 'from_entries'],
+        stdin => qq|[{"key":"a"}]\n|,
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 3,
+        prefix => '[RUNTIME]',
+        name   => 'runtime error: from_entries missing value',
+    );
+}
+
 # Input error
 {
     my $res = run_cmd(

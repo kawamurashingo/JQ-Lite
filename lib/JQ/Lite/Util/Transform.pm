@@ -472,11 +472,12 @@ sub _normalize_entry {
 
     if (ref $entry eq 'HASH') {
         return unless exists $entry->{key};
+        die 'from_entries(): entry missing value' unless exists $entry->{value};
         return { key => $entry->{key}, value => $entry->{value} };
     }
 
     if (ref $entry eq 'ARRAY') {
-        return unless @$entry >= 2;
+        die 'from_entries(): entry missing value' if @$entry < 2;
         return { key => $entry->[0], value => $entry->[1] };
     }
 
