@@ -40,6 +40,19 @@ like($bad_stderr, qr/^\[USAGE\]\s*invalid JSON in --argfile cfg/i, 'error messag
 unlike($bad_stderr, qr/Unknown option\(s\)/i, 'no secondary unknown option errors are emitted');
 is($bad_stdout, '', 'no output is produced when --argfile fails');
 
+my $missing_err = gensym;
+my $missing_pid = open3(my $missing_in, my $missing_out, $missing_err, $^X, 'bin/jq-lite', '--argfile', 'cfg', 'no-such.json', '-n', '$cfg');
+close $missing_in;
+
+my $missing_stdout = do { local $/; <$missing_out> } // '';
+my $missing_stderr = do { local $/; <$missing_err> } // '';
+waitpid($missing_pid, 0);
+my $missing_exit = $? >> 8;
+
+is($missing_exit, 5, 'missing --argfile input exits with usage code');
+like($missing_stderr, qr/^\[USAGE\]\s*Cannot open file 'no-such\.json' for --argfile cfg:/, 'missing file uses usage prefix and message');
+is($missing_stdout, '', 'no output is produced when --argfile file is missing');
+
 unlink $json_path;
 unlink $bad_path;
 

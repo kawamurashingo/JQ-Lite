@@ -268,12 +268,8 @@ my $getopt_ok;
         my $file_path = shift @ARGV;
         $file_path = '' unless defined $file_path;
 
-        if (!-f $file_path) {
-            _input_error("Cannot open file '$file_path' for --argfile $var_name: $!");
-        }
-
         my $fh = IO::File->new($file_path, 'r')
-          or _input_error("Cannot open file '$file_path' for --argfile $var_name: $!");
+          or _usage_error("Cannot open file '$file_path' for --argfile $var_name: $!");
         local $/;
         my $json_text = <$fh>;
         $json_text = '' unless defined $json_text;
@@ -297,13 +293,9 @@ my $getopt_ok;
         my $file_path = shift @ARGV;
         $file_path = '' unless defined $file_path;
 
-        if (!-f $file_path) {
-            _input_error("Cannot open file '$file_path' for --rawfile $var_name: $!");
-        }
-
         open my $fh, '<', $file_path
           or do {
-            _input_error("Cannot open file '$file_path' for --rawfile $var_name: $!");
+            _usage_error("Cannot open file '$file_path' for --rawfile $var_name: $!");
           };
         local $/;
         my $content = <$fh>;

@@ -125,6 +125,9 @@ When `-e/--exit-status` is specified, `jq-lite` returns:
 ### `--argfile name file`
 
 - Reads `file` contents, decodes as JSON, and binds to `$name`
+- Missing or unreadable `file` MUST be treated as a **usage error**:
+  - stderr prefix: `[USAGE]`
+  - exit code: `5`
 - Invalid JSON for `--argfile` MUST be treated as a **usage error**:
   - stderr prefix: `[USAGE]`
   - exit code: `5`
