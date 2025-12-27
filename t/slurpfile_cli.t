@@ -26,6 +26,19 @@ my $decoded = JSON::PP->new->decode($stdout);
 is_deeply($decoded, { a => 1, b => 2 }, 'slurpfile makes decoded JSON available inside queries');
 like($stderr, qr/^\s*\z/, 'no warnings emitted for valid --slurpfile usage');
 
+my $missing_query_err = gensym;
+my $missing_query_pid = open3(my $missing_query_in, my $missing_query_out, $missing_query_err, $^X, 'bin/jq-lite', '--slurpfile', 'cfg', '.');
+close $missing_query_in;
+
+my $missing_query_stdout = do { local $/; <$missing_query_out> } // '';
+my $missing_query_stderr = do { local $/; <$missing_query_err> } // '';
+waitpid($missing_query_pid, 0);
+my $missing_query_exit = $? >> 8;
+
+is($missing_query_exit, 5, '--slurpfile without a file path produces a usage error instead of help');
+like($missing_query_stderr, qr/^\[USAGE\]filter expression is required/i, 'missing filter emits a usage error message');
+is($missing_query_stdout, '', 'no stdout is produced when filter is missing');
+
 my $missing_err = gensym;
 my $missing_pid = open3(my $missing_in, my $missing_out, $missing_err, $^X, 'bin/jq-lite', '--slurpfile', 'cfg', 'missing.json', '.');
 close $missing_in;

@@ -309,6 +309,21 @@ $SIG{PIPE} = 'IGNORE';
 # Unknown options are already rejected above; only query and file remain.
 my ($query, $filename);
 
+my $non_help_option_used = $raw_input
+  || $raw_output
+  || $compact_output
+  || $ascii_output
+  || $color_output
+  || defined $decoder_choice
+  || $decoder_debug
+  || $exit_status
+  || $null_input
+  || $slurp_input
+  || $force_yaml
+  || @query_files
+  || keys(%arg_vars)
+  || @slurpfiles;
+
 if (@query_files) {
     _usage_error('--from-file may only be specified once') if @query_files > 1;
 
@@ -338,7 +353,11 @@ if (@ARGV == 0) {
         if ($null_input) {
             $query = '.';
         } else {
-            # If no args and no query file, show help
+            if ($non_help_option_used) {
+                _usage_error('filter expression is required');
+            }
+
+            # If no args and no options, show help
             print $USAGE;
             exit 0;
         }
