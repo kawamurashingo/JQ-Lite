@@ -375,15 +375,14 @@ sub _apply_delpaths {
     my $decoded_paths = eval { _decode_json($filter) };
     if (!$@ && defined $decoded_paths) {
         if (ref $decoded_paths eq 'ARRAY') {
-            if (@$decoded_paths && ref $decoded_paths->[0] eq 'ARRAY') {
-                push @paths, map { [ @$_ ] } @$decoded_paths;
+            if (grep { ref($_) ne 'ARRAY' } @$decoded_paths) {
+                die 'delpaths(): paths must be an array of path arrays';
             }
-            elsif (!@$decoded_paths) {
-                # no paths supplied
-            }
-            else {
-                push @paths, [ @$decoded_paths ];
-            }
+
+            push @paths, map { _validate_path_array($_, 'delpaths') } @$decoded_paths;
+        }
+        else {
+            die 'delpaths(): paths must be an array of path arrays';
         }
     }
 
@@ -393,11 +392,14 @@ sub _apply_delpaths {
             next unless defined $output;
 
             if (ref $output eq 'ARRAY') {
-                if (@$output && ref $output->[0] eq 'ARRAY') {
-                    push @paths, grep { ref $_ eq 'ARRAY' } @$output;
-                } elsif (!@$output || !ref $output->[0]) {
-                    push @paths, $output;
+                if (grep { ref($_) ne 'ARRAY' } @$output) {
+                    die 'delpaths(): paths must be an array of path arrays';
                 }
+
+                push @paths, map { _validate_path_array($_, 'delpaths') } @$output;
+            }
+            else {
+                die 'delpaths(): paths must be an array of path arrays';
             }
         }
     }
