@@ -131,6 +131,22 @@ sub assert_err_contract {
     );
 }
 
+# Usage error: unknown option
+{
+    my $res = run_cmd(cmd => [$BIN, '--bogus-option']);
+    assert_err_contract(
+        res    => $res,
+        rc     => 5,
+        prefix => '[USAGE]',
+        name   => 'usage error: unknown option',
+    );
+    like(
+        $res->{err},
+        qr/\[USAGE\]Unknown option: bogus-option\b/,
+        'usage error: unknown option message is prefixed and concise'
+    );
+}
+
 # ============================================================
 # -e / --exit-status semantics
 # ============================================================
