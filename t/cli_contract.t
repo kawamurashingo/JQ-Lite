@@ -104,6 +104,20 @@ sub assert_err_contract {
     );
 }
 
+# Runtime error: keys on scalar
+{
+    my $res = run_cmd(
+        cmd   => [$BIN, 'keys'],
+        stdin => qq|null\n|,
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 3,
+        prefix => '[RUNTIME]',
+        name   => 'runtime error: keys on scalar',
+    );
+}
+
 # Input error
 {
     my $res = run_cmd(
