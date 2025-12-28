@@ -69,10 +69,10 @@ jq-lite users.json
 
 | Environment          | jq | jq-lite |
 | -------------------- | -- | ------- |
-| Legacy CentOS / RHEL | 不X  | 可O  |
-| Alpine Linux         | 条△  | 可O  |
-| Air-gapped systems   | 不X  | 可O  |
-| No root privilege    | 条△  | 可O  |
+| Legacy CentOS / RHEL | X  | O  |
+| Alpine Linux         | △  | O  |
+| Air-gapped systems   | X  | O  |
+| No root privilege    | △  | O  |
 
 可 **Runs on Perl ≥ 5.14**
 (e.g. CentOS 6, Debian 7 via perlbrew or local install)
@@ -217,6 +217,7 @@ jq-lite '.users[].nickname? // .name'
 ## 許 License
 
 Same terms as Perl itself.
+
 
 
 
