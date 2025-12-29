@@ -6,7 +6,7 @@
 [![Alpine Linux](https://img.shields.io/badge/Alpine-Linux%20community-0D597F?logo=alpinelinux\&logoColor=white)](https://pkgs.alpinelinux.org/package/edge/community/x86_64/jq-lite)
 [![Perl](https://img.shields.io/badge/Perl-5.14%2B-39457E?logo=perl\&logoColor=white)](https://www.perl.org/)
 
-頁 [Project homepage](https://kawamurashingo.github.io/JQ-Lite/index-en.html)
+頁 [Project homepage](https://kawamurashingo.github.io/JQ-Lite/)
 
 ---
 
