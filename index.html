@@ -1,235 +1,145 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>jq-lite — 日本の道具のように</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>jq-lite — 日本の道具のように</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;600;700&family=Shippori+Mincho:wght@500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="images/JQ_Lite_sm.png" />
 
-<style>
-:root{
-  --sumi:#111214;
-  --sumi-soft:#1a1c1f;
-  --paper:#f3efe6;
-  --paper-muted:rgba(243,239,230,.7);
-  --shuiro:#c7362f;
-  --kin:#c9a227;
-}
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;600;700&family=Shippori+Mincho:wght@500;700&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
 
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-body{
-  margin:0;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(243,239,230,.08), transparent 40%),
-    radial-gradient(circle at 80% 90%, rgba(243,239,230,.06), transparent 45%),
-    linear-gradient(180deg,var(--sumi),#0b0c0e);
-  color:var(--paper);
-  font-family:'Zen Kaku Gothic New',system-ui,sans-serif;
-  line-height:1.7;
-}
-
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  background:
-    repeating-linear-gradient(0deg, transparent 0 14px, rgba(243,239,230,.012) 14px 15px);
-  opacity:.6;
-}
-
-header{
-  text-align:center;
-  padding:5rem 1.5rem 4rem;
-}
-
-h1{
-  font-family:'Shippori Mincho',serif;
-  font-size:3.2rem;
-  letter-spacing:.06em;
-  margin:0 0 .8rem;
-}
-
-.lead{
-  max-width:720px;
-  margin:0 auto 2rem;
-  color:var(--paper-muted);
-  font-size:1.25rem;
-}
-
-.jp-tag{
-  display:inline-block;
-  margin-top:1.2rem;
-  padding:.4rem .9rem;
-  border:1px solid var(--kin);
-  border-radius:999px;
-  font-weight:700;
-  color:var(--kin);
-  letter-spacing:.08em;
-}
-
-.design-link{
-  margin-top:1.2rem;
-  font-size:.95rem;
-}
-
-.design-link a{
-  color:var(--paper-muted);
-  text-decoration:none;
-  border-bottom:1px solid rgba(201,162,39,.4);
-  padding-bottom:2px;
-}
-
-.design-link a:hover{
-  color:var(--paper);
-}
-
-main{
-  width:min(1100px,92vw);
-  margin:0 auto 5rem;
-  display:flex;
-  flex-direction:column;
-  gap:3.5rem;
-}
-
-section{
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.25)),
-    var(--sumi-soft);
-  border:1px solid rgba(201,162,39,.35);
-  border-radius:16px;
-  padding:2.5rem;
-  box-shadow:
-    inset 0 0 0 1px rgba(201,162,39,.18),
-    0 24px 42px rgba(0,0,0,.45);
-}
-
-section h2{
-  font-family:'Shippori Mincho',serif;
-  font-size:2.1rem;
-  margin:0 0 1.2rem;
-  letter-spacing:.04em;
-}
-
-section h2::after{
-  content:"";
-  display:block;
-  width:3rem;
-  height:1px;
-  margin-top:.6rem;
-  background:linear-gradient(to right,var(--kin),transparent);
-}
-
-.grid{
-  display:grid;
-  gap:2rem;
-}
-
-.grid-3{
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-}
-
-.card{
-  padding:1.5rem 1.5rem 1.5rem 2rem;
-  background:rgba(0,0,0,.25);
-  border-left:2px solid var(--kin);
-}
-
-.card h3{
-  margin:.2rem 0 .6rem;
-  font-size:1.2rem;
-}
-
-pre,code{
-  font-family:'Fira Code',monospace;
-  background:rgba(0,0,0,.6);
-  color:var(--paper);
-}
-
-pre{
-  padding:1rem 1.2rem;
-  border-radius:12px;
-  overflow:auto;
-  border:1px solid rgba(201,162,39,.25);
-}
-
-footer{
-  text-align:center;
-  color:var(--paper-muted);
-  padding:3rem 1rem;
-  font-size:.95rem;
-}
-
-a{color:var(--shuiro)}
-</style>
+  <style>
+    body {
+      font-family: "Zen Kaku Gothic New", system-ui, sans-serif;
+    }
+    .jp-serif {
+      font-family: "Shippori Mincho", serif;
+    }
+    .code {
+      font-family: "Fira Code", monospace;
+    }
+  </style>
 </head>
 
-<body>
-<header>
-  <h1>jq-lite</h1>
-  <p class="lead">
-    Pure Perlで実装された軽量な jq 互換エンジン。<br>
-    制約の多い環境でも、JSON を確実に扱うための道具です。
-  </p>
-  <span class="jp-tag">日本の道具のように</span>
-  <div class="design-link">
-    <a href="design.html">設計方針を見る</a>
-  </div>
-</header>
+<body class="bg-slate-950 text-slate-100">
 
-<main>
-<section>
-<h2>主な特徴</h2>
-<div class="grid grid-3">
-  <div class="card"><h3>Pure Perl</h3><p>Perlが動く環境ならどこでも。</p></div>
-  <div class="card"><h3>jq互換</h3><p>jqと同じ感覚で使える。</p></div>
-  <div class="card"><h3>安定したCLI</h3><p>互換性を壊さない設計。</p></div>
-</div>
-</section>
+  <!-- Header -->
+  <header class="max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
+    <div class="text-lg font-semibold tracking-wide">
+      jq-lite
+    </div>
+    <nav class="text-sm opacity-70 hover:opacity-100 transition">
+      <a href="./index-en.html" class="underline underline-offset-4">
+        EN
+      </a>
+    </nav>
+  </header>
 
-<section>
-<h2>Alpine / CI / Legacy</h2>
-<div class="grid grid-3">
-  <div class="card">
-    <h3>Alpine Linux</h3>
-    <pre><code>apk add jq-lite</code></pre>
-  </div>
-  <div class="card">
-    <h3>CI / Docker</h3>
-    <pre><code>jq-lite -e '.ok == true' result.json</code></pre>
-  </div>
-  <div class="card">
-    <h3>Legacy / Offline</h3>
-    <pre><code>cpanm JQ::Lite</code></pre>
-  </div>
-</div>
-</section>
+  <!-- Hero -->
+  <main class="max-w-5xl mx-auto px-6 py-16">
 
-<section>
-<h2>使い方（CLI）</h2>
-<pre><code># JSON から値を取り出す
-jq-lite '.users[].name' users.json
+    <h1 class="text-3xl md:text-4xl font-bold jp-serif tracking-wide">
+      jq-lite
+    </h1>
 
-# 条件に合う要素だけを抽出
-jq-lite '.users[] | select(.age > 25)' users.json
+    <p class="mt-6 text-lg leading-relaxed opacity-90">
+      日本の道具のように、静かに、確実に。
+    </p>
 
-# CI でのチェック（失敗時は非0終了）
-jq-lite -e '.ok == true' result.json</code></pre>
-</section>
-</main>
+    <p class="mt-4 leading-relaxed opacity-80">
+      jq-lite は、<span class="font-semibold">pure Perl</span> で実装された
+      軽量な jq 互換 JSON プロセッサです。<br />
+      新しいバイナリを入れられない環境でも、
+      すでにそこにある Perl を使って JSON を扱えます。
+    </p>
 
-<footer>
-  <p>© 2025 jq-lite · Built by 川村慎吾（Shingo Kawamura）</p>
-  <p>
-    <a href="https://github.com/kawamurashingo/JQ-Lite" target="_blank" rel="noopener">GitHub</a>
-    ·
-    <a href="https://metacpan.org/release/JQ-Lite" target="_blank" rel="noopener">CPAN (MetaCPAN)</a>
-  </p>
-</footer>
+    <!-- English link (重要) -->
+    <p class="mt-6 text-sm opacity-70">
+      For English readers:
+      <a
+        href="./index-en.html"
+        class="underline underline-offset-4 hover:no-underline"
+      >
+        English overview
+      </a>
+    </p>
+
+    <!-- Philosophy -->
+    <section class="mt-16">
+      <h2 class="text-xl font-semibold jp-serif">
+        なぜ jq-lite なのか
+      </h2>
+
+      <p class="mt-6 leading-relaxed opacity-85">
+        世の中には、どうしても環境を変えられない現場があります。<br />
+        古い UNIX、厳しいセキュリティ制約、最小構成のコンテナ。
+      </p>
+
+      <p class="mt-4 leading-relaxed opacity-85">
+        jq-lite は、そうした現場で
+        <span class="font-semibold">「それでも仕事を進める」</span>
+        ための道具です。
+      </p>
+    </section>
+
+    <!-- Use cases -->
+    <section class="mt-16">
+      <h2 class="text-xl font-semibold jp-serif">
+        想定される利用シーン
+      </h2>
+
+      <ul class="mt-6 space-y-3 opacity-85 list-disc list-inside">
+        <li>jq をインストールできないサーバ</li>
+        <li>Perl が標準で入っているレガシー環境</li>
+        <li>Alpine / BusyBox などの最小コンテナ</li>
+        <li>工場設備・IoT ゲートウェイ</li>
+      </ul>
+    </section>
+
+    <!-- Links -->
+    <section class="mt-16">
+      <h2 class="text-xl font-semibold jp-serif">
+        リンク
+      </h2>
+
+      <ul class="mt-6 space-y-2 text-sm opacity-80">
+        <li>
+          GitHub:
+          <a
+            href="https://github.com/kawamurashingo/JQ-Lite"
+            class="underline underline-offset-4"
+          >
+            kawamurashingo/JQ-Lite
+          </a>
+        </li>
+        <li>
+          MetaCPAN:
+          <a
+            href="https://metacpan.org/release/JQ-Lite"
+            class="underline underline-offset-4"
+          >
+            JQ-Lite
+          </a>
+        </li>
+      </ul>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-5xl mx-auto px-6 py-12 text-sm opacity-60">
+    © Shingo Kawamura
+  </footer>
+
 </body>
 </html>
