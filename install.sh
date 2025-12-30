@@ -74,6 +74,12 @@ for tool in tar perl make; do
   }
 done
 
+# --- Perl version check (require 5.14+) ---
+perl -e 'use 5.014; 1' >/dev/null 2>&1 || {
+  echo "[ERROR] Perl 5.14+ is required." >&2
+  exit 1
+}
+
 if [[ $RUN_TESTS -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
   echo "[WARN] 'prove' not found; skipping tests."
   RUN_TESTS=0
@@ -98,6 +104,7 @@ fi
 
 # --- Safely detect top-level distribution directory ---
 LISTING=""
+
 if [[ ${#TAR_FLAGS[@]} -gt 0 ]]; then
   LISTING=$(tar "${TAR_FLAGS[@]}" -tzf "$TARBALL_ABS" 2>/dev/null || true)
 else
@@ -131,13 +138,15 @@ cd "$DIST_DIR"
 
 echo "[INFO] Installing to $PREFIX..."
 
-# Avoid inherited installer options (local::lib etc.) to keep this script deterministic.
+# Avoid inherited MakeMaker/Module::Build options (local::lib etc.)
 MM_ENV=(env -u PERL_MM_OPT -u PERL_MB_OPT)
 
-# Prefer INSTALL_BASE because it correctly covers both:
-#   $PREFIX/lib/perl5
-#   $PREFIX/share/perl5/<perlver>
-"${MM_ENV[@]}" perl Makefile.PL INSTALL_BASE="$PREFIX" >/dev/null
+# Prefer INSTALL_BASE; fallback to PREFIX if unsupported
+if "${MM_ENV[@]}" perl Makefile.PL INSTALL_BASE="$PREFIX" >/dev/null 2>&1; then
+  :
+else
+  "${MM_ENV[@]}" perl Makefile.PL PREFIX="$PREFIX" >/dev/null
+fi
 
 make
 
@@ -150,7 +159,7 @@ fi
 make install
 
 # --- Post install message ---
-PERL_MM_VER="$(perl -MConfig -e 'my $v=$Config{version}; $v =~ s/^(\d+\.\d+).*/$1/; print $v')"
+PERL_MM_VER="$(perl -MConfig -e 'print $Config{version}' | awk -F. '{print $1"."$2}')"
 
 cat <<EOM
 
@@ -159,18 +168,18 @@ cat <<EOM
 To enable jq-lite, add the following to your ~/.bashrc:
 
   export PATH="$PREFIX/bin:\$PATH"
-  # Recommended (robust): enable local::lib for this prefix
-  eval "\$(perl -I$PREFIX/lib/perl5 -Mlocal::lib=$PREFIX)"
+
+  # Recommended (works for most Perl setups)
+  if perl -Mlocal::lib -e 1 >/dev/null 2>&1; then
+    eval "\$(perl -I$PREFIX/lib/perl5 -Mlocal::lib=$PREFIX)"
+  else
+    # Fallback (when local::lib is not installed)
+    export PERL5LIB="$PREFIX/lib/perl5:$PREFIX/share/perl5/$PERL_MM_VER:\$PERL5LIB"
+  fi
 
 Then reload:
   source ~/.bashrc
 
 Verify installation:
   jq-lite -v
-
-Notes:
-- Modules may be installed under both:
-    $PREFIX/lib/perl5
-    $PREFIX/share/perl5/$PERL_MM_VER
-  The local::lib line above adds both to @INC safely.
 EOM
