@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>jq-lite — Lightweight jq in Pure Perl</title>
-  <link rel="icon" href="https://github.com/kawamurashingo/JQ-Lite/blob/main/images%2Fjq-lite_sm.png">
+  <link rel="icon" href="images/JQ_Lite_sm.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -332,12 +332,6 @@
       transform: translateY(-4px);
     }
 
-    .card h3 {
-      margin-top: 0;
-      margin-bottom: 0.75rem;
-      font-size: 1.2rem;
-    }
-
     code, pre {
       font-family: 'Fira Code', monospace;
       background: var(--code-bg);
@@ -464,15 +458,22 @@
     <div class="vision-link">
       <a href="design-en.html">🌟 Read the project design</a>
     </div>
+
     <h1>jq-lite</h1>
-    <p class="lead">A lightweight jq-compatible engine written entirely in Pure Perl. Query and transform JSON or YAML even in restricted environments.</p>
+
+    <p class="lead">
+      jq-lite exists for environments where you <strong>cannot install jq</strong>.<br>
+      A lightweight jq-compatible engine written in pure Perl — for querying and transforming JSON (and YAML) on systems you’re not allowed to change.
+    </p>
+
     <div class="badges">
       <span class="badge">🪶 Pure Perl</span>
       <span class="badge">🔍 jq-style filters</span>
       <span class="badge">💻 CLI &amp; module</span>
       <span class="badge">✅ Supports Perl 5.14+</span>
-      <span class="badge">🌐 Works offline</span>
+      <span class="badge">🌐 Offline-friendly</span>
     </div>
+
     <nav class="tab-nav" aria-label="Section tabs">
       <a href="#features">🧭 Highlights</a>
       <a href="#install">⬇️ Installation</a>
@@ -488,15 +489,15 @@
       <div class="grid grid-3">
         <div class="card">
           <h3>🪶 Pure Perl implementation</h3>
-          <p>No XS or C compiler required. If Perl runs, JQ::Lite runs — even on legacy servers and air-gapped networks.</p>
+          <p>No XS. No compiler. If Perl runs, jq-lite runs — including legacy servers and air-gapped networks.</p>
         </div>
         <div class="card">
           <h3>🔍 jq-style queries</h3>
-          <p><code>.users[].name</code> and <code>select(.age &gt; 25)</code> work just like jq. Chain conditions, mapping, and complex filters with familiar syntax.</p>
+          <p><code>.users[].name</code> and <code>select(.age &gt; 25)</code> work just like jq. Keep your filters readable and script-friendly.</p>
         </div>
         <div class="card">
           <h3>🧰 CLI &amp; library</h3>
-          <p>Use it as the <code>jq-lite</code> command-line tool or embed it as a Perl module. Automate JSON transformations inside your scripts.</p>
+          <p>Use <code>jq-lite</code> as a command-line tool, or embed it as a Perl module to automate JSON transformations inside your scripts.</p>
         </div>
       </div>
     </section>
@@ -507,24 +508,24 @@
         <div class="card">
           <h3>From CPAN</h3>
           <pre><code>cpanm JQ::Lite</code></pre>
-          <p>Install from CPAN to get started fast. All dependencies are resolved for you.</p>
+          <p>Install from CPAN when you can. Dependencies are handled automatically.</p>
         </div>
         <div class="card">
           <h3>Alpine Linux (official package)</h3>
           <pre><code>apk add jq-lite</code></pre>
-          <p>Available as an official module in Alpine Linux. Install directly from the community repository.</p>
+          <p>Available in Alpine Linux as an official package. Great for minimal images.</p>
         </div>
         <div class="card">
           <h3>Homebrew (macOS)</h3>
           <pre><code>brew tap kawamurashingo/jq-lite
 brew install --HEAD jq-lite</code></pre>
-          <p>macOS users can install via Homebrew. The HEAD build lets you try the latest features.</p>
+          <p>macOS users can install via Homebrew. The HEAD build tracks the latest development.</p>
         </div>
         <div class="card">
           <h3>Portable installer</h3>
           <pre><code>./download.sh [-v &lt;version&gt;] [-o /path/to/usb]
 ./install.sh [-p &lt;prefix&gt;] [--skip-tests] path/to/JQ-Lite.tar.gz</code></pre>
-          <p>Fetch artifacts online and deploy offline. Perfect for air-gapped or locked-down environments.</p>
+          <p>Download online, deploy offline. Useful for air-gapped or locked-down environments.</p>
           <div class="download-links">
             <a class="download-btn" href="download.sh" download>Download download.sh</a>
             <a class="download-btn" href="install.sh" download>Download install.sh</a>
@@ -556,7 +557,7 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
         <div class="card">
           <h3>Interactive mode</h3>
           <pre><code>jq-lite users.json</code></pre>
-          <p>Pass an input file and explore JSON interactively while trying out filters.</p>
+          <p>Open a file and try filters quickly — handy for quick inspection on remote hosts.</p>
         </div>
       </div>
     </section>
@@ -566,22 +567,22 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
       <div class="grid grid-3">
         <div class="card">
           <h3>Locked-down servers</h3>
-          <p>Install without compilers or root access. As long as Perl is available, you're ready to go.</p>
+          <p>No “install this binary” requests. If Perl exists, you can process JSON immediately — even under strict change control.</p>
         </div>
         <div class="card">
           <h3>CI/CD pipelines</h3>
-          <p>Inspect and transform JSON without shipping extra binaries. Keep automation scripts self-contained.</p>
+          <p>Validate and transform JSON without adding heavy dependencies. Keep images small and pipelines reproducible.</p>
         </div>
         <div class="card">
-          <h3>Data exploration &amp; transformation</h3>
-          <p>Feels natural to engineers who already know jq. Built-in 100+ functions handle even complex workflows.</p>
+          <h3>Legacy &amp; offline environments</h3>
+          <p>Long-lived systems, air-gapped networks, and old UNIX boxes: jq-lite helps you modernize workflows without replacing the OS.</p>
         </div>
       </div>
     </section>
 
     <section id="contact">
       <h2>Contact</h2>
-      <p>Send us your questions or requests via the form below. The development team will get back to you shortly.</p>
+      <p>If you have questions, bug reports, or packaging requests, send a note below. This opens your email client addressed to <strong>perl.jq.lite@gmail.com</strong>.</p>
       <form class="contact-form" action="mailto:perl.jq.lite@gmail.com">
         <div class="contact-group">
           <label for="contact-name">Your name</label>
@@ -593,8 +594,8 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
         </div>
         <div class="contact-group">
           <label for="contact-message">Message</label>
-          <textarea id="contact-message" name="message" placeholder="Let us know how we can help." required></textarea>
-          <p class="contact-hint">Submitting opens your email client with a message addressed to <strong>perl.jq.lite@gmail.com</strong>.</p>
+          <textarea id="contact-message" name="message" placeholder="How can I help?" required></textarea>
+          <p class="contact-hint">Submitting opens your email client with a pre-filled message.</p>
         </div>
         <button type="submit" class="contact-submit">✉️ Compose email</button>
       </form>
@@ -602,9 +603,10 @@ jq-lite --yaml '.users[].name' users.yaml</code></pre>
   </main>
 
   <footer>
-    <p>© 2025 jq-lite Built with ❤️ in Perl.</p>
+    <p>© 2025 jq-lite · Built by 川村慎吾（Shingo Kawamura）</p>
     <p><a href="https://github.com/kawamurashingo/JQ-Lite" target="_blank" rel="noopener">GitHub</a> · <a href="https://metacpan.org/release/JQ-Lite" target="_blank" rel="noopener">MetaCPAN</a></p>
   </footer>
+
   <script>
     (function () {
       const contactForm = document.querySelector('.contact-form');
