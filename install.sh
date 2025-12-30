@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
+# Default install prefix (can be overridden by -p or PREFIX env)
 PREFIX="${PREFIX:-$HOME/.local}"
 RUN_TESTS=1
 
 usage() {
-  cat <<USAGE
-Usage: $0 [-p <prefix>] [--skip-tests] [<tarball>]
+  cat <<'USAGE'
+Usage: install.sh [-p <prefix>] [--skip-tests] [<tarball>]
 
 Installs JQ-Lite from a pre-downloaded tarball.
 If no tarball is specified, the latest JQ-Lite-*.tar.gz file is used.
 
 Options:
-  -p <prefix>    Installation prefix (default: \$HOME/.local)
+  -p <prefix>    Installation prefix (default: $HOME/.local)
   --skip-tests   Skip make test
   -h             Show this help message
 USAGE
@@ -68,7 +68,10 @@ fi
 
 # --- Tools check ---
 for tool in tar perl make; do
-  command -v "$tool" >/dev/null 2>&1 || { echo "[ERROR] '$tool' not found." >&2; exit 1; }
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "[ERROR] '$tool' not found." >&2
+    exit 1
+  }
 done
 
 if [[ $RUN_TESTS -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
@@ -76,7 +79,7 @@ if [[ $RUN_TESTS -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
   RUN_TESTS=0
 fi
 
-# --- Abs path ---
+# --- Absolute path ---
 if command -v realpath >/dev/null 2>&1; then
   TARBALL_ABS=$(realpath "$TARBALL")
 else
@@ -93,35 +96,49 @@ if tar --help 2>/dev/null | grep -q -- '--warning'; then
   TAR_FLAGS+=(--warning=no-unknown-keyword)
 fi
 
-# --- Safely extract top directory ---
+# --- Safely detect top-level distribution directory ---
+LISTING=""
 if [[ ${#TAR_FLAGS[@]} -gt 0 ]]; then
-  DIST_DIR=$(tar "${TAR_FLAGS[@]}" tzf "$TARBALL_ABS" 2>/dev/null | head -n1 | cut -d'/' -f1 || true)
+  LISTING=$(tar "${TAR_FLAGS[@]}" -tzf "$TARBALL_ABS" 2>/dev/null || true)
 else
-  DIST_DIR=$(tar tzf "$TARBALL_ABS" 2>/dev/null | head -n1 | cut -d'/' -f1 || true)
+  LISTING=$(tar -tzf "$TARBALL_ABS" 2>/dev/null || true)
 fi
 
-if [[ -z "$DIST_DIR" ]]; then
-  echo "[WARN] Failed to detect distribution directory — retrying without options..."
-  DIST_DIR=$(tar tzf "$TARBALL_ABS" | head -n1 | cut -d'/' -f1)
+# Fallback for busybox / non-gzip-aware tar
+if [[ -z "$LISTING" ]]; then
+  if command -v gzip >/dev/null 2>&1; then
+    LISTING=$(gzip -dc "$TARBALL_ABS" 2>/dev/null | tar -tf - 2>/dev/null || true)
+  fi
 fi
+
+DIST_DIR=$(printf '%s\n' "$LISTING" | head -n1 | cut -d'/' -f1 || true)
 
 if [[ -z "$DIST_DIR" ]]; then
   echo "[ERROR] Unable to determine distribution directory from $TARBALL." >&2
+  echo "[HINT] Try manually: tar tzf \"$TARBALL\" | head" >&2
   exit 1
 fi
 
-# --- Extract safely ---
+# --- Extract ---
 echo "[INFO] Extracting $TARBALL..."
 if [[ ${#TAR_FLAGS[@]} -gt 0 ]]; then
-  tar "${TAR_FLAGS[@]}" xzf "$TARBALL_ABS" || tar xzf "$TARBALL_ABS"
+  tar "${TAR_FLAGS[@]}" -xzf "$TARBALL_ABS" || tar -xzf "$TARBALL_ABS"
 else
-  tar xzf "$TARBALL_ABS"
+  tar -xzf "$TARBALL_ABS"
 fi
 
 cd "$DIST_DIR"
 
 echo "[INFO] Installing to $PREFIX..."
-perl Makefile.PL PREFIX="$PREFIX" >/dev/null
+
+# Avoid inherited installer options (local::lib etc.) to keep this script deterministic.
+MM_ENV=(env -u PERL_MM_OPT -u PERL_MB_OPT)
+
+# Prefer INSTALL_BASE because it correctly covers both:
+#   $PREFIX/lib/perl5
+#   $PREFIX/share/perl5/<perlver>
+"${MM_ENV[@]}" perl Makefile.PL INSTALL_BASE="$PREFIX" >/dev/null
+
 make
 
 if [[ $RUN_TESTS -eq 1 ]]; then
@@ -132,18 +149,28 @@ fi
 
 make install
 
-# --- Setup env ---
+# --- Post install message ---
+PERL_MM_VER="$(perl -MConfig -e 'my $v=$Config{version}; $v =~ s/^(\d+\.\d+).*/$1/; print $v')"
+
 cat <<EOM
 
 [INFO] Installation complete.
 
 To enable jq-lite, add the following to your ~/.bashrc:
+
   export PATH="$PREFIX/bin:\$PATH"
-  export PERL5LIB="$PREFIX/lib/perl5/site_perl:\$PERL5LIB"
+  # Recommended (robust): enable local::lib for this prefix
+  eval "\$(perl -I$PREFIX/lib/perl5 -Mlocal::lib=$PREFIX)"
 
 Then reload:
   source ~/.bashrc
 
 Verify installation:
   jq-lite -v
+
+Notes:
+- Modules may be installed under both:
+    $PREFIX/lib/perl5
+    $PREFIX/share/perl5/$PERL_MM_VER
+  The local::lib line above adds both to @INC safely.
 EOM
