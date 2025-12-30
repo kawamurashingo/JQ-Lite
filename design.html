@@ -1,9 +1,540 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>jq-lite — 設計方針</title> <link rel="preconnect" href="https://fonts.googleapis.com"> <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;600;700&family=Shippori+Mincho:wght@500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"> <style> :root{ --sumi:#111214; --sumi-soft:#1a1c1f; --paper:#f3efe6; --paper-muted:rgba(243,239,230,.72); --shuiro:#c7362f; --kin:#c9a227; font-size: clamp(15px, 1.2vw, 18px); } *{ box-sizing:border-box; } html{ scroll-behavior:smooth; } body{ margin:0; background: radial-gradient(circle at 20% 10%, rgba(243,239,230,.08), transparent 40%), radial-gradient(circle at 80% 90%, rgba(243,239,230,.06), transparent 45%), linear-gradient(180deg,var(--sumi),#0b0c0e); color:var(--paper); font-family:'Zen Kaku Gothic New',system-ui,sans-serif; line-height:1.75; min-height:100vh; } /* washi texture */ body::before{ content:""; position:fixed; inset:0; pointer-events:none; background: repeating-linear-gradient(0deg, transparent 0 14px, rgba(243,239,230,.012) 14px 15px); opacity:.6; } header{ padding:4.5rem 1.5rem 3rem; text-align:center; position:relative; } .topbar{ width:min(1100px,92vw); margin:0 auto 2.2rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; } .brand{ display:flex; align-items:center; gap:.8rem; text-decoration:none; color:var(--paper); } .brand img{ width:44px; height:44px; border-radius:12px; background:rgba(0,0,0,.25); border:1px solid rgba(201,162,39,.28); padding:.35rem; } .brand strong{ font-family:'Shippori Mincho',serif; letter-spacing:.04em; font-size:1.15rem; } .nav{ display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; } .nav a{ display:inline-flex; align-items:center; gap:.4rem; padding:.45rem .95rem; border-radius:999px; text-decoration:none; color:var(--paper-muted); border:1px solid rgba(201,162,39,.22); background:rgba(0,0,0,.18); transition:transform .15s ease, border-color .15s ease, color .15s ease; } .nav a:hover, .nav a:focus-visible{ outline:none; color:var(--paper); border-color:rgba(201,162,39,.45); transform:translateY(-1px); } h1{ font-family:'Shippori Mincho',serif; font-size:2.6rem; letter-spacing:.06em; margin:.8rem 0 .8rem; } .lead{ max-width:920px; margin:0 auto 0; color:var(--paper-muted); font-size:1.15rem; } .tag{ display:inline-block; margin-top:1.2rem; padding:.35rem .9rem; border:1px solid var(--kin); border-radius:999px; font-weight:700; color:var(--kin); letter-spacing:.08em; } main{ width:min(1100px,92vw); margin:0 auto 4.5rem; display:flex; flex-direction:column; gap:2.4rem; } section{ background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.25)), var(--sumi-soft); border:1px solid rgba(201,162,39,.35); border-radius:16px; padding:2.2rem; box-shadow: inset 0 0 0 1px rgba(201,162,39,.18), 0 24px 42px rgba(0,0,0,.45); } section h2{ font-family:'Shippori Mincho',serif; font-size:1.9rem; margin:0 0 1rem; letter-spacing:.04em; } section h2::after{ content:""; display:block; width:3rem; height:1px; margin-top:.6rem; background:linear-gradient(to right,var(--kin),transparent); } p{ margin:.8rem 0; color:var(--paper-muted); } strong{ color:var(--paper); } ul{ margin:.9rem 0 0; padding-left:1.25rem; color:var(--paper-muted); } li+li{ margin-top:.35rem; } pre, code{ font-family:'Fira Code',monospace; background:rgba(0,0,0,.6); color:var(--paper); } pre{ margin:1rem 0 0; padding:1rem 1.2rem; border-radius:12px; overflow:auto; border:1px solid rgba(201,162,39,.25); } table{ width:100%; border-collapse:collapse; margin-top:1.2rem; color:var(--paper-muted); } th, td{ padding:.8rem .9rem; border:1px solid rgba(201,162,39,.22); vertical-align:top; } th{ text-align:left; color:var(--paper); background:rgba(0,0,0,.22); } footer{ text-align:center; color:var(--paper-muted); padding:2.5rem 1rem 3.5rem; font-size:.95rem; } footer a{ color:var(--shuiro); } .toc{ display:flex; flex-wrap:wrap; justify-content:center; gap:.6rem; margin:1.6rem auto 0; max-width: 1100px; } .toc a{ display:inline-flex; align-items:center; gap:.35rem; padding:.45rem .9rem; border-radius:999px; text-decoration:none; color:var(--paper-muted); border:1px solid rgba(201,162,39,.22); background:rgba(0,0,0,.14); transition:transform .15s ease, border-color .15s ease, color .15s ease; } .toc a:hover,.toc a:focus-visible{ outline:none; color:var(--paper); border-color:rgba(201,162,39,.45); transform:translateY(-1px); } @media (max-width: 720px){ header{ padding:3.5rem 1.2rem 2.4rem; } .topbar{ justify-content:center; } h1{ font-size:2.2rem; } section{ padding:1.6rem 1.3rem; } } </style>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>jq-lite — 設計方針</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;600;700&family=Shippori+Mincho:wght@500;700&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet"
+  >
+
+  <style>
+    :root {
+      --sumi: #111214;
+      --sumi-soft: #1a1c1f;
+      --paper: #f3efe6;
+      --paper-muted: rgba(243,239,230,.72);
+      --shuiro: #c7362f;
+      --kin: #c9a227;
+      font-size: clamp(15px, 1.2vw, 18px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(243,239,230,.08), transparent 40%),
+        radial-gradient(circle at 80% 90%, rgba(243,239,230,.06), transparent 45%),
+        linear-gradient(180deg, var(--sumi), #0b0c0e);
+      color: var(--paper);
+      font-family: 'Zen Kaku Gothic New', system-ui, sans-serif;
+      line-height: 1.75;
+      min-height: 100vh;
+    }
+
+    /* washi texture */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent 0 14px,
+        rgba(243,239,230,.012) 14px 15px
+      );
+      opacity: .6;
+    }
+
+    header {
+      padding: 4.5rem 1.5rem 3rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .topbar {
+      width: min(1100px, 92vw);
+      margin: 0 auto 2.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      text-decoration: none;
+      color: var(--paper);
+    }
+
+    .brand img {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(0,0,0,.25);
+      border: 1px solid rgba(201,162,39,.28);
+      padding: .35rem;
+    }
+
+    .brand strong {
+      font-family: 'Shippori Mincho', serif;
+      letter-spacing: .04em;
+      font-size: 1.15rem;
+    }
+
+    .nav {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .45rem .95rem;
+      border-radius: 999px;
+      text-decoration: none;
+      color: var(--paper-muted);
+      border: 1px solid rgba(201,162,39,.22);
+      background: rgba(0,0,0,.18);
+      transition:
+        transform .15s ease,
+        border-color .15s ease,
+        color .15s ease;
+    }
+
+    .nav a:hover,
+    .nav a:focus-visible {
+      outline: none;
+      color: var(--paper);
+      border-color: rgba(201,162,39,.45);
+      transform: translateY(-1px);
+    }
+
+    h1 {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 2.6rem;
+      letter-spacing: .06em;
+      margin: .8rem 0;
+    }
+
+    .lead {
+      max-width: 920px;
+      margin: 0 auto;
+      color: var(--paper-muted);
+      font-size: 1.15rem;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-top: 1.2rem;
+      padding: .35rem .9rem;
+      border: 1px solid var(--kin);
+      border-radius: 999px;
+      font-weight: 700;
+      color: var(--kin);
+      letter-spacing: .08em;
+    }
+
+    main {
+      width: min(1100px, 92vw);
+      margin: 0 auto 4.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2.4rem;
+    }
+
+    section {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.25)),
+        var(--sumi-soft);
+      border: 1px solid rgba(201,162,39,.35);
+      border-radius: 16px;
+      padding: 2.2rem;
+      box-shadow:
+        inset 0 0 0 1px rgba(201,162,39,.18),
+        0 24px 42px rgba(0,0,0,.45);
+    }
+
+    section h2 {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 1.9rem;
+      margin: 0 0 1rem;
+      letter-spacing: .04em;
+    }
+
+    section h2::after {
+      content: "";
+      display: block;
+      width: 3rem;
+      height: 1px;
+      margin-top: .6rem;
+      background: linear-gradient(to right, var(--kin), transparent);
+    }
+
+    p {
+      margin: .8rem 0;
+      color: var(--paper-muted);
+    }
+
+    strong {
+      color: var(--paper);
+    }
+
+    ul {
+      margin: .9rem 0 0;
+      padding-left: 1.25rem;
+      color: var(--paper-muted);
+    }
+
+    li + li {
+      margin-top: .35rem;
+    }
+
+    pre,
+    code {
+      font-family: 'Fira Code', monospace;
+      background: rgba(0,0,0,.6);
+      color: var(--paper);
+    }
+
+    pre {
+      margin: 1rem 0 0;
+      padding: 1rem 1.2rem;
+      border-radius: 12px;
+      overflow: auto;
+      border: 1px solid rgba(201,162,39,.25);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.2rem;
+      color: var(--paper-muted);
+    }
+
+    th,
+    td {
+      padding: .8rem .9rem;
+      border: 1px solid rgba(201,162,39,.22);
+      vertical-align: top;
+    }
+
+    th {
+      text-align: left;
+      color: var(--paper);
+      background: rgba(0,0,0,.22);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--paper-muted);
+      padding: 2.5rem 1rem 3.5rem;
+      font-size: .95rem;
+    }
+
+    footer a {
+      color: var(--shuiro);
+    }
+
+    .toc {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: .6rem;
+      margin: 1.6rem auto 0;
+      max-width: 1100px;
+    }
+
+    .toc a {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .45rem .9rem;
+      border-radius: 999px;
+      text-decoration: none;
+      color: var(--paper-muted);
+      border: 1px solid rgba(201,162,39,.22);
+      background: rgba(0,0,0,.14);
+      transition:
+        transform .15s ease,
+        border-color .15s ease,
+        color .15s ease;
+    }
+
+    .toc a:hover,
+    .toc a:focus-visible {
+      outline: none;
+      color: var(--paper);
+      border-color: rgba(201,162,39,.45);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 720px) {
+      header {
+        padding: 3.5rem 1.2rem 2.4rem;
+      }
+
+      .topbar {
+        justify-content: center;
+      }
+
+      h1 {
+        font-size: 2.2rem;
+      }
+
+      section {
+        padding: 1.6rem 1.3rem;
+      }
+    }
+  </style>
 </head>
-<body> <header> <div class="topbar"> <nav class="nav" aria-label="グローバルナビゲーション"> <a href="index.html">表 紙</a> </nav> </div> <h1>設計方針</h1> <p class="lead"> jq-lite は軽量な JSON クエリエンジン（CLI + Perl モジュール）です。<br> 可搬性・明瞭さ・長期安定性を重視し、さまざまな環境で JSON 処理を確実に行えることを目指します。 </p> <span class="tag">日本の道具のように</span> <nav class="toc" aria-label="設計方針 目次"> <a href="#purpose">目 目的</a> <a href="#lightweight">軽 軽量性</a> <a href="#interface">通 共通インターフェース</a> <a href="#principles">則 原則</a> <a href="#open">開 オープン</a> <a href="#text">文 テキストとしてのデータ</a> <a href="#compat">連 統合</a> <a href="#summary">要 まとめ</a> </nav> </header> <main> <section id="purpose"> <h2>目 目的</h2> <p><strong>jq-lite</strong> は、構造化データを<strong>抽出・変換・再利用</strong>しやすくするための <strong>軽量 JSON クエリエンジン</strong>です。</p> <p>目標はシンプルです。</p> <p><strong>JSON 処理を「確実に」「移植性高く」「人間にも読みやすく」— どこでも。</strong></p> </section> <section id="lightweight"> <h2>軽 1. なぜ軽量性が重要か</h2> <p>JSON は API / 監視 / 設定 / 自動化など、現代のシステムで共通言語になっています。一方で「何でもインストールできる」環境ばかりではありません。</p> <ul> <li>ランタイムや外部依存を増やしにくい環境</li> <li>長期運用・レガシーなシステム</li> <li>最小構成イメージ、オフライン／閉域環境</li> </ul> <p>jq-lite はこうした制約下でも動作するように設計されており、重いツールが使えない場面でも <strong>小さく依存の少ない JSON 処理</strong>を提供します。</p> </section> <section id="interface"> <h2>通 2. 構造化データの共通インターフェース</h2> <p>jq-lite は JSON をシステム間の<strong>共通インターフェース</strong>として扱います。</p> <ul> <li><strong>JSON-in / JSON-out</strong> を基本とする</li> <li>UNIX パイプラインとの親和性</li> <li><strong>CLI</strong> と <strong>ライブラリ</strong> で一貫した挙動</li> </ul> <p>これにより、スクリプト／サービス／自動化／人間の作業など、さまざまな流れの中で JSON を扱いやすくします。</p> </section> <section id="principles"> <h2>則 3. 設計原則</h2> <p>jq-lite は長期運用を前提に、保守的な設計方針をとります。</p> <ul> <li>「賢さ」より <strong>明瞭さ</strong></li> <li>最適化より <strong>可搬性</strong></li> <li>不要な依存を増やさない</li> <li>バージョンを跨いでも予測可能な挙動</li> </ul> <p>流行を追うのではなく、時間と環境に耐える <strong>安定したユーティリティ</strong>であることを重視します。</p> </section> <section id="open"> <h2>開 4. オープンで再現可能なワークフロー</h2> <p>現代のデータ処理は、プロプライエタリな環境や特定エコシステムに寄りがちです。jq-lite はそれを前提にしません。</p> <ul> <li>完全なオープンソース</li> <li>ベンダーロックインなし</li> <li>クラウド依存なし</li> <li>閉域・オフライン環境でも利用可能</li> </ul> <p>この方針により、変換ロジックを <strong>バージョン管理・監査・共有</strong>できる形で残せます。</p> </section> <section id="text"> <h2>文 5. テキストとして扱える構造化データ</h2> <p>インフラ・監視・自動化が構造化データへ寄っていくほど、「テキストとして扱える」利点は増えていきます。</p> <ul> <li>テキストとしての JSON 変換</li> <li>Git と相性の良い処理ロジック</li> <li>スクリプト／自動化との簡単な統合</li> </ul> <p>結果として、処理が <strong>透明でレビュー可能</strong>になり、運用に組み込みやすくなります。</p> </section> <section id="compat"> <h2>連 6. 既存ツールとの自然な統合</h2> <p>jq-lite は既存のツール／ワークフローに自然に組み込めることを意識しています。</p> <p>例：データフロー</p> <pre><code>JSON producer ↓
-jq-lite (filter / transform) ↓
-script / CLI / automation</code></pre> <p>jq-lite は「どう使うべきか」を押し付けません。<strong>JSON を抽出・整形する作業が簡単で確実</strong>になることだけに集中します。</p> </section> <section id="summary"> <h2>要 まとめ</h2> <table> <thead> <tr> <th>観点</th> <th>方針</th> </tr> </thead> <tbody> <tr> <td>対象</td> <td>軽量な JSON 抽出／変換</td> </tr> <tr> <td>思想</td> <td>可搬性、明瞭さ、長期安定性</td> </tr> <tr> <td>利用形態</td> <td>CLI とライブラリ</td> </tr> <tr> <td>想定環境</td> <td>オフライン／制約環境／レガシー／モダン</td> </tr> <tr> <td>長期性</td> <td>プラットフォームと時間に耐える設計</td> </tr> </tbody> </table> </section> </main> <footer> <p>© 2025 jq-lite · Built by 川村慎吾（Shingo Kawamura）</p> <p> <a href="https://github.com/kawamurashingo/JQ-Lite" target="_blank" rel="noopener">GitHub</a> · <a href="https://metacpan.org/release/JQ-Lite" target="_blank" rel="noopener">CPAN (MetaCPAN)</a> </p> </footer>
+
+<body>
+  <header>
+    <div class="topbar">
+      <nav class="nav" aria-label="グローバルナビゲーション">
+        <a href="index.html">表 紙</a>
+      </nav>
+    </div>
+
+    <h1>設計方針</h1>
+
+    <p class="lead">
+      jq-lite は軽量な JSON クエリエンジン（CLI + Perl モジュール）です。<br>
+      可搬性・明瞭さ・長期安定性を重視し、さまざまな環境で JSON 処理を確実に行えることを目指します。
+    </p>
+
+    <span class="tag">日本の道具のように</span>
+
+    <nav class="toc" aria-label="設計方針 目次">
+      <a href="#purpose">目 目的</a>
+      <a href="#lightweight">軽 軽量性</a>
+      <a href="#interface">通 共通インターフェース</a>
+      <a href="#principles">則 原則</a>
+      <a href="#open">開 オープン</a>
+      <a href="#text">文 テキストとしてのデータ</a>
+      <a href="#compat">連 統合</a>
+      <a href="#summary">要 まとめ</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="purpose">
+      <h2>目 目的</h2>
+
+      <p>
+        <strong>jq-lite</strong> は、構造化データを
+        <strong>抽出・変換・再利用</strong>しやすくするための
+        <strong>軽量 JSON クエリエンジン</strong>です。
+      </p>
+
+      <p>目標はシンプルです。</p>
+
+      <p>
+        <strong>
+          JSON 処理を「確実に」「移植性高く」「人間にも読みやすく」
+          — どこでも。
+        </strong>
+      </p>
+    </section>
+
+    <section id="lightweight">
+      <h2>軽 1. なぜ軽量性が重要か</h2>
+
+      <p>
+        JSON は API / 監視 / 設定 / 自動化など、
+        現代のシステムで共通言語になっています。
+        一方で「何でもインストールできる」環境ばかりではありません。
+      </p>
+
+      <ul>
+        <li>ランタイムや外部依存を増やしにくい環境</li>
+        <li>長期運用・レガシーなシステム</li>
+        <li>最小構成イメージ、オフライン／閉域環境</li>
+      </ul>
+
+      <p>
+        jq-lite はこうした制約下でも動作するように設計されており、
+        重いツールが使えない場面でも
+        <strong>小さく依存の少ない JSON 処理</strong>を提供します。
+      </p>
+    </section>
+
+    <section id="interface">
+      <h2>通 2. 構造化データの共通インターフェース</h2>
+
+      <p>
+        jq-lite は JSON をシステム間の
+        <strong>共通インターフェース</strong>として扱います。
+      </p>
+
+      <ul>
+        <li><strong>JSON-in / JSON-out</strong> を基本とする</li>
+        <li>UNIX パイプラインとの親和性</li>
+        <li><strong>CLI</strong> と <strong>ライブラリ</strong> で一貫した挙動</li>
+      </ul>
+
+      <p>
+        これにより、スクリプト／サービス／自動化／人間の作業など、
+        さまざまな流れの中で JSON を扱いやすくします。
+      </p>
+    </section>
+
+    <section id="principles">
+      <h2>則 3. 設計原則</h2>
+
+      <p>
+        jq-lite は長期運用を前提に、
+        保守的な設計方針をとります。
+      </p>
+
+      <ul>
+        <li>「賢さ」より <strong>明瞭さ</strong></li>
+        <li>最適化より <strong>可搬性</strong></li>
+        <li>不要な依存を増やさない</li>
+        <li>バージョンを跨いでも予測可能な挙動</li>
+      </ul>
+
+      <p>
+        流行を追うのではなく、
+        時間と環境に耐える
+        <strong>安定したユーティリティ</strong>であることを重視します。
+      </p>
+    </section>
+
+    <section id="open">
+      <h2>開 4. オープンで再現可能なワークフロー</h2>
+
+      <p>
+        現代のデータ処理は、
+        プロプライエタリな環境や
+        特定エコシステムに寄りがちです。
+        jq-lite はそれを前提にしません。
+      </p>
+
+      <ul>
+        <li>完全なオープンソース</li>
+        <li>ベンダーロックインなし</li>
+        <li>クラウド依存なし</li>
+        <li>閉域・オフライン環境でも利用可能</li>
+      </ul>
+
+      <p>
+        この方針により、
+        変換ロジックを
+        <strong>バージョン管理・監査・共有</strong>
+        できる形で残せます。
+      </p>
+    </section>
+
+    <section id="text">
+      <h2>文 5. テキストとして扱える構造化データ</h2>
+
+      <p>
+        インフラ・監視・自動化が
+        構造化データへ寄っていくほど、
+        「テキストとして扱える」利点は増えていきます。
+      </p>
+
+      <ul>
+        <li>テキストとしての JSON 変換</li>
+        <li>Git と相性の良い処理ロジック</li>
+        <li>スクリプト／自動化との簡単な統合</li>
+      </ul>
+
+      <p>
+        結果として、
+        処理が <strong>透明でレビュー可能</strong>になり、
+        運用に組み込みやすくなります。
+      </p>
+    </section>
+
+    <section id="compat">
+      <h2>連 6. 既存ツールとの自然な統合</h2>
+
+      <p>
+        jq-lite は既存のツール／ワークフローに
+        自然に組み込めることを意識しています。
+      </p>
+
+      <p>例：データフロー</p>
+
+      <pre><code>JSON producer 
+        ↓
+jq-lite (filter / transform) 
+        ↓
+script / CLI / automation</code></pre>
+
+      <p>
+        jq-lite は「どう使うべきか」を押し付けません。
+        <strong>
+          JSON を抽出・整形する作業が簡単で確実
+        </strong>
+        になることだけに集中します。
+      </p>
+    </section>
+
+    <section id="summary">
+      <h2>要 まとめ</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>観点</th>
+            <th>方針</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>対象</td>
+            <td>軽量な JSON 抽出／変換</td>
+          </tr>
+          <tr>
+            <td>思想</td>
+            <td>可搬性、明瞭さ、長期安定性</td>
+          </tr>
+          <tr>
+            <td>利用形態</td>
+            <td>CLI とライブラリ</td>
+          </tr>
+          <tr>
+            <td>想定環境</td>
+            <td>オフライン／制約環境／レガシー／モダン</td>
+          </tr>
+          <tr>
+            <td>長期性</td>
+            <td>プラットフォームと時間に耐える設計</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 jq-lite · Built by 川村慎吾（Shingo Kawamura）</p>
+    <p>
+      <a href="https://github.com/kawamurashingo/JQ-Lite" target="_blank" rel="noopener">GitHub</a>
+      ·
+      <a href="https://metacpan.org/release/JQ-Lite" target="_blank" rel="noopener">CPAN (MetaCPAN)</a>
+    </p>
+  </footer>
 </body>
 </html>
