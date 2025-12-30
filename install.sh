@@ -6,14 +6,14 @@ PREFIX="${PREFIX:-$HOME/.local}"
 RUN_TESTS=1
 
 usage() {
-  cat <<USAGE
-Usage: $0 [-p <prefix>] [--skip-tests] [<tarball>]
+  cat <<'USAGE'
+Usage: install.sh [-p <prefix>] [--skip-tests] [<tarball>]
 
 Installs JQ-Lite from a pre-downloaded tarball.
 If no tarball is specified, the latest JQ-Lite-*.tar.gz file is used.
 
 Options:
-  -p <prefix>    Installation prefix (default: \$HOME/.local)
+  -p <prefix>    Installation prefix (default: $HOME/.local)
   --skip-tests   Skip make test
   -h             Show this help message
 USAGE
@@ -98,7 +98,6 @@ fi
 
 # --- Safely detect top-level distribution directory ---
 LISTING=""
-
 if [[ ${#TAR_FLAGS[@]} -gt 0 ]]; then
   LISTING=$(tar "${TAR_FLAGS[@]}" -tzf "$TARBALL_ABS" 2>/dev/null || true)
 else
@@ -132,15 +131,13 @@ cd "$DIST_DIR"
 
 echo "[INFO] Installing to $PREFIX..."
 
-# Avoid inherited MakeMaker options (local::lib etc.)
+# Avoid inherited installer options (local::lib etc.) to keep this script deterministic.
 MM_ENV=(env -u PERL_MM_OPT -u PERL_MB_OPT)
 
-# Decide PREFIX vs INSTALL_BASE safely
-if [[ "${PERL_MM_OPT:-}" == *"INSTALL_BASE"* ]] || [[ "${PERL_MB_OPT:-}" == *"INSTALL_BASE"* ]]; then
-  "${MM_ENV[@]}" perl Makefile.PL INSTALL_BASE="$PREFIX" >/dev/null
-else
-  "${MM_ENV[@]}" perl Makefile.PL PREFIX="$PREFIX" >/dev/null
-fi
+# Prefer INSTALL_BASE because it correctly covers both:
+#   $PREFIX/lib/perl5
+#   $PREFIX/share/perl5/<perlver>
+"${MM_ENV[@]}" perl Makefile.PL INSTALL_BASE="$PREFIX" >/dev/null
 
 make
 
@@ -153,6 +150,8 @@ fi
 make install
 
 # --- Post install message ---
+PERL_MM_VER="$(perl -MConfig -e 'my $v=$Config{version}; $v =~ s/^(\d+\.\d+).*/$1/; print $v')"
+
 cat <<EOM
 
 [INFO] Installation complete.
@@ -160,11 +159,18 @@ cat <<EOM
 To enable jq-lite, add the following to your ~/.bashrc:
 
   export PATH="$PREFIX/bin:\$PATH"
-  export PERL5LIB="$PREFIX/lib/perl5:\$PERL5LIB"
+  # Recommended (robust): enable local::lib for this prefix
+  eval "\$(perl -I$PREFIX/lib/perl5 -Mlocal::lib=$PREFIX)"
 
 Then reload:
   source ~/.bashrc
 
 Verify installation:
   jq-lite -v
+
+Notes:
+- Modules may be installed under both:
+    $PREFIX/lib/perl5
+    $PREFIX/share/perl5/$PERL_MM_VER
+  The local::lib line above adds both to @INC safely.
 EOM
