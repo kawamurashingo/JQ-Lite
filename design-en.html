@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>jq-lite — Design Goals</title>
-  <link rel="icon" href="https://github.com/kawamurashingo/JQ-Lite/blob/main/images%2Fjq-lite_sm.png">
+  <link rel="icon" href="images/JQ_Lite_sm.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -249,9 +249,10 @@
 
     <img src="images/JQ_Lite_sm.png" alt="jq-lite logo" class="logo">
     <h1>jq-lite — Design Goals</h1>
+
     <p class="lead">
-      jq-lite is a lightweight JSON query engine (CLI + Perl module) focused on portability,
-      clarity, and long-term stability — so JSON processing remains reliable across environments.
+      jq-lite exists for environments where you <strong>cannot install jq</strong>.<br>
+      These design goals explain how jq-lite stays predictable and portable on systems you’re not allowed to change.
     </p>
 
     <nav class="tab-nav" aria-label="Design sections">
@@ -270,28 +271,29 @@
   <main>
     <section id="purpose">
       <h2>🎯 Purpose</h2>
-      <p><strong>jq-lite</strong> is a <strong>lightweight JSON query engine</strong> designed to make structured data easy to filter, transform, and reuse across diverse environments.</p>
-      <p>Its goal is simple:</p>
-      <p><strong>Make JSON processing reliable, portable, and human-readable — everywhere.</strong></p>
+      <p><strong>jq-lite</strong> is a lightweight jq-compatible engine (CLI + Perl module) for filtering and transforming structured data.</p>
+      <p>Its purpose is simple:</p>
+      <p><strong>Make JSON processing possible on systems where installing jq is not.</strong></p>
+      <p>That constraint shapes everything below: portability, small dependencies, predictable behavior, and long-term stability.</p>
     </section>
 
     <section id="lightweight">
       <h2>🪶 1. Why lightweight matters</h2>
-      <p>JSON is a universal format for APIs, observability, configuration, and automation. However, many environments still have practical constraints that make “install whatever you want” unrealistic.</p>
+      <p>JSON is everywhere: APIs, observability, configuration, and automation. But many real environments still have hard constraints:</p>
       <ul>
-        <li>Restricted runtime environments</li>
+        <li>Strict change control (no new binaries)</li>
         <li>Legacy or long-lived systems</li>
         <li>Minimal base images and offline deployments</li>
       </ul>
-      <p>jq-lite is designed to operate reliably under these constraints, providing a <strong>small, dependency-minimal JSON processor</strong> that remains usable when heavier tools are unavailable or impractical.</p>
+      <p>jq-lite aims to be the tool you can bring into those places: <strong>small</strong>, <strong>portable</strong>, and <strong>easy to audit</strong>.</p>
     </section>
 
     <section id="interface">
       <h2>🔁 2. A common interface for structured data</h2>
-      <p>jq-lite treats JSON as a first-class interface between systems.</p>
+      <p>jq-lite treats JSON as a stable interface between systems and people.</p>
       <ul>
         <li><strong>JSON-in / JSON-out</strong> processing</li>
-        <li>Compatibility with UNIX pipelines</li>
+        <li>Works naturally in UNIX pipelines</li>
         <li>Consistent behavior as both a <strong>CLI</strong> and a <strong>library</strong></li>
       </ul>
       <p>This makes it suitable for workflows where structured data flows between scripts, services, automation tools, and humans.</p>
@@ -306,30 +308,30 @@
         <li>Avoid unnecessary dependencies</li>
         <li>Maintain predictable behavior across versions</li>
       </ul>
-      <p>The goal is not to chase trends, but to provide a <strong>stable, dependable utility</strong> that continues to work across time and platforms.</p>
+      <p>The goal is not to chase trends, but to provide a <strong>stable, dependable utility</strong> that keeps working across time and platforms.</p>
     </section>
 
     <section id="open">
       <h2>🌐 4. Open and reproducible workflows</h2>
-      <p>Modern data pipelines often depend on proprietary platforms or tightly coupled ecosystems. jq-lite intentionally avoids this:</p>
+      <p>jq-lite is built for workflows that can be inspected, reviewed, and reproduced.</p>
       <ul>
         <li>Fully open source</li>
         <li>No vendor lock-in</li>
         <li>No cloud dependency</li>
         <li>Usable in restricted or offline environments</li>
       </ul>
-      <p>This allows users to build <strong>reproducible, inspectable transformations</strong> that can be versioned, audited, and shared.</p>
+      <p>This enables <strong>reproducible transformations</strong> that can be versioned, audited, and shared.</p>
     </section>
 
     <section id="text">
       <h2>📝 5. Structured data as text</h2>
-      <p>As infrastructure, observability, and automation increasingly rely on structured data, text-based workflows remain essential.</p>
+      <p>Text-based workflows remain essential for infrastructure, observability, and automation.</p>
       <ul>
-        <li>Text-based JSON transformations</li>
-        <li>Git-friendly processing logic</li>
-        <li>Simple integration with scripts and automation</li>
+        <li>Git-friendly transformations</li>
+        <li>Reviewable filter logic</li>
+        <li>Simple integration with scripts and CI</li>
       </ul>
-      <p>This keeps data processing transparent, reviewable, and automatable.</p>
+      <p>jq-lite keeps data processing transparent, reviewable, and automatable.</p>
     </section>
 
     <section id="compat">
@@ -341,7 +343,7 @@
 jq-lite        (filter / transform)
     ↓
 script / CLI / automation</code></pre>
-      <p>The tool does not prescribe how data should be used — it simply ensures that <strong>extracting and shaping JSON remains easy and reliable</strong>.</p>
+      <p>It does not prescribe how data should be used — it simply keeps <strong>extracting and shaping JSON</strong> easy and reliable.</p>
     </section>
 
     <section id="summary">
