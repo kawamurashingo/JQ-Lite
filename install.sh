@@ -68,7 +68,10 @@ fi
 
 # --- Tools check ---
 for tool in tar perl make; do
-  command -v "$tool" >/dev/null 2>&1 || { echo "[ERROR] '$tool' not found." >&2; exit 1; }
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "[ERROR] '$tool' not found." >&2
+    exit 1
+  }
 done
 
 if [[ $RUN_TESTS -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
@@ -76,7 +79,7 @@ if [[ $RUN_TESTS -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
   RUN_TESTS=0
 fi
 
-# --- Abs path ---
+# --- Absolute path ---
 if command -v realpath >/dev/null 2>&1; then
   TARBALL_ABS=$(realpath "$TARBALL")
 else
@@ -93,40 +96,46 @@ if tar --help 2>/dev/null | grep -q -- '--warning'; then
   TAR_FLAGS+=(--warning=no-unknown-keyword)
 fi
 
-# --- Safely extract top directory ---
+# --- Safely detect top-level distribution directory ---
+LISTING=""
+
 if [[ ${#TAR_FLAGS[@]} -gt 0 ]]; then
-  DIST_DIR=$(tar "${TAR_FLAGS[@]}" tzf "$TARBALL_ABS" 2>/dev/null | head -n1 | cut -d'/' -f1 || true)
+  LISTING=$(tar "${TAR_FLAGS[@]}" -tzf "$TARBALL_ABS" 2>/dev/null || true)
 else
-  DIST_DIR=$(tar tzf "$TARBALL_ABS" 2>/dev/null | head -n1 | cut -d'/' -f1 || true)
+  LISTING=$(tar -tzf "$TARBALL_ABS" 2>/dev/null || true)
 fi
 
-if [[ -z "$DIST_DIR" ]]; then
-  echo "[WARN] Failed to detect distribution directory — retrying without options..."
-  DIST_DIR=$(tar tzf "$TARBALL_ABS" | head -n1 | cut -d'/' -f1)
+# Fallback for busybox / non-gzip-aware tar
+if [[ -z "$LISTING" ]]; then
+  if command -v gzip >/dev/null 2>&1; then
+    LISTING=$(gzip -dc "$TARBALL_ABS" 2>/dev/null | tar -tf - 2>/dev/null || true)
+  fi
 fi
+
+DIST_DIR=$(printf '%s\n' "$LISTING" | head -n1 | cut -d'/' -f1 || true)
 
 if [[ -z "$DIST_DIR" ]]; then
   echo "[ERROR] Unable to determine distribution directory from $TARBALL." >&2
+  echo "[HINT] Try manually: tar tzf \"$TARBALL\" | head" >&2
   exit 1
 fi
 
-# --- Extract safely ---
+# --- Extract ---
 echo "[INFO] Extracting $TARBALL..."
 if [[ ${#TAR_FLAGS[@]} -gt 0 ]]; then
-  tar "${TAR_FLAGS[@]}" xzf "$TARBALL_ABS" || tar xzf "$TARBALL_ABS"
+  tar "${TAR_FLAGS[@]}" -xzf "$TARBALL_ABS" || tar -xzf "$TARBALL_ABS"
 else
-  tar xzf "$TARBALL_ABS"
+  tar -xzf "$TARBALL_ABS"
 fi
 
 cd "$DIST_DIR"
 
 echo "[INFO] Installing to $PREFIX..."
 
-# Avoid inherited MakeMaker options conflicting with our explicit install args.
-# Many environments (e.g., local::lib) set PERL_MM_OPT/PERL_MB_OPT with INSTALL_BASE.
+# Avoid inherited MakeMaker options (local::lib etc.)
 MM_ENV=(env -u PERL_MM_OPT -u PERL_MB_OPT)
 
-# If the user's environment is already configured for INSTALL_BASE, do not pass PREFIX too.
+# Decide PREFIX vs INSTALL_BASE safely
 if [[ "${PERL_MM_OPT:-}" == *"INSTALL_BASE"* ]] || [[ "${PERL_MB_OPT:-}" == *"INSTALL_BASE"* ]]; then
   "${MM_ENV[@]}" perl Makefile.PL INSTALL_BASE="$PREFIX" >/dev/null
 else
@@ -143,12 +152,13 @@ fi
 
 make install
 
-# --- Setup env ---
+# --- Post install message ---
 cat <<EOM
 
 [INFO] Installation complete.
 
 To enable jq-lite, add the following to your ~/.bashrc:
+
   export PATH="$PREFIX/bin:\$PATH"
   export PERL5LIB="$PREFIX/lib/perl5:\$PERL5LIB"
 
