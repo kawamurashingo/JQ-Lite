@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
+# Default install prefix (can be overridden by -p or PREFIX env)
 PREFIX="${PREFIX:-$HOME/.local}"
 RUN_TESTS=1
 
@@ -121,7 +121,18 @@ fi
 cd "$DIST_DIR"
 
 echo "[INFO] Installing to $PREFIX..."
-perl Makefile.PL PREFIX="$PREFIX" >/dev/null
+
+# Avoid inherited MakeMaker options conflicting with our explicit install args.
+# Many environments (e.g., local::lib) set PERL_MM_OPT/PERL_MB_OPT with INSTALL_BASE.
+MM_ENV=(env -u PERL_MM_OPT -u PERL_MB_OPT)
+
+# If the user's environment is already configured for INSTALL_BASE, do not pass PREFIX too.
+if [[ "${PERL_MM_OPT:-}" == *"INSTALL_BASE"* ]] || [[ "${PERL_MB_OPT:-}" == *"INSTALL_BASE"* ]]; then
+  "${MM_ENV[@]}" perl Makefile.PL INSTALL_BASE="$PREFIX" >/dev/null
+else
+  "${MM_ENV[@]}" perl Makefile.PL PREFIX="$PREFIX" >/dev/null
+fi
+
 make
 
 if [[ $RUN_TESTS -eq 1 ]]; then
@@ -139,7 +150,7 @@ cat <<EOM
 
 To enable jq-lite, add the following to your ~/.bashrc:
   export PATH="$PREFIX/bin:\$PATH"
-  export PERL5LIB="$PREFIX/lib/perl5/site_perl:\$PERL5LIB"
+  export PERL5LIB="$PREFIX/lib/perl5:\$PERL5LIB"
 
 Then reload:
   source ~/.bashrc
