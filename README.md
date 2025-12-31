@@ -115,38 +115,31 @@ cpanm JQ::Lite
 
 ---
 
-## From Source (Manual Install)
+## From Source (Latest, Simple)
 
-jq-lite can be built and installed manually using the standard Perl toolchain.
-This method is suitable for restricted or offline environments.
+This method installs the **latest released version** directly from CPAN
+without requiring `jq`.
+
+### Download (latest)
 
 ```bash
-perl Makefile.PL
-make
-make test
-make install
+ver=$(curl -s https://fastapi.metacpan.org/v1/release/JQ-Lite | perl -MJSON::PP -ne 'print decode_json($_)->{version}')
+curl -sSfL https://cpan.metacpan.org/authors/id/K/KA/KAWAMURASHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
 ```
 
----
-
-## Installing into a user directory (no root)
-
-When installing into a user-writable directory (for example `$HOME/.local`),
-**both PATH and Perl module search paths must be configured**.
-
-### Recommended: INSTALL_BASE
-
-This is the **recommended method**, as it keeps binaries and Perl modules
-under a consistent directory layout.
+### Install (user-local, no root)
 
 ```bash
+tar xzf JQ-Lite-$ver.tar.gz
+cd JQ-Lite-$ver
+
 perl Makefile.PL INSTALL_BASE=$HOME/.local
 make
 make test
 make install
 ```
 
-Then enable jq-lite:
+Enable jq-lite:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
@@ -161,36 +154,59 @@ jq-lite -v
 
 ---
 
+### Install (system-wide / root)
+
+```bash
+tar xzf JQ-Lite-$ver.tar.gz
+cd JQ-Lite-$ver
+
+perl Makefile.PL
+make
+make test
+sudo make install
+```
+
+---
+
+## Installing into a user directory (details)
+
+When installing outside system directories:
+
+* `PATH` must include the installation `bin` directory
+* `PERL5LIB` must include the directory containing `JQ/Lite.pm`
+
+### Recommended: INSTALL_BASE
+
+```bash
+perl Makefile.PL INSTALL_BASE=$HOME/.local
+make install
+```
+
+This keeps binaries and modules under a consistent layout and is preferred.
+
+---
+
 ### Using PREFIX (advanced / legacy)
-
-Using `PREFIX` installs Perl modules under:
-
-```
-$PREFIX/share/perl/<perl-version>/
-```
-
-This directory is **not automatically included** in Perl’s `@INC`.
 
 ```bash
 perl Makefile.PL PREFIX=$HOME/.local
 make install
 ```
 
-In this case, you must also set `PERL5LIB` manually:
+In this case, you must configure `PERL5LIB` manually:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 export PERL5LIB="$HOME/.local/share/perl/$(perl -e 'print $]'):$PERL5LIB"
 ```
 
-This method is supported, but **INSTALL_BASE is preferred**.
-
 ---
 
 ## Offline / Restricted Installation
 
 jq-lite can be installed without network access or system package managers.
-This is useful for:
+
+Typical use cases:
 
 * air-gapped environments
 * restricted corporate networks
@@ -200,8 +216,8 @@ This is useful for:
 ### Portable Installer (Unix)
 
 ```bash
-./download.sh [-v <version>] [-o <path>]
-./install.sh [-p <prefix>] [--skip-tests] JQ-Lite-<version>.tar.gz
+./download.sh
+./install.sh JQ-Lite-<version>.tar.gz
 ```
 
 The default installation prefix is:
@@ -210,31 +226,15 @@ The default installation prefix is:
 $HOME/.local
 ```
 
-The installer prints any required environment variables
-if manual configuration is needed.
-
 ---
 
 ### Windows (PowerShell)
 
 ```powershell
-.\install-jq-lite.ps1 [-Prefix <path>] [--SkipTests] JQ-Lite-<version>.tar.gz
+.\install-jq-lite.ps1 JQ-Lite-<version>.tar.gz
 ```
 
-This installs jq-lite into a user-writable directory
-without requiring administrator privileges.
-
----
-
-## Notes on Environment Variables
-
-jq-lite itself has **no external runtime dependencies**, but when installed
-outside system directories:
-
-* `PATH` must include the installation `bin` directory
-* `PERL5LIB` must include the directory containing `JQ/Lite.pm`
-
-This is standard Perl behavior and applies to all non-system Perl modules.
+Administrator privileges are not required.
 
 ---
 
@@ -252,7 +252,7 @@ without adding native dependencies.
 
 ## Perl Integration
 
-jq-lite can be used directly from Perl code:
+jq-lite can also be used directly from Perl code:
 
 ```perl
 use JQ::Lite;
@@ -275,4 +275,3 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
-
