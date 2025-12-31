@@ -266,7 +266,7 @@
 
     <div class="card">
       <h3>Manual install (CPAN tarball)</h3>
-      <pre><code>ver=$(curl -s https://fastapi.metacpan.org/v1/release/JQ-Lite \
+      <pre><code>ver=$(curl -s http://fastapi.metacpan.org/v1/release/JQ-Lite \
   | perl -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
 
 curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
