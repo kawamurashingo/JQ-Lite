@@ -198,8 +198,8 @@ say for $jq->run_query($json, '.users[].name');
 ## Documentation
 
 * [`docs/cli-contract.md`](docs/cli-contract.md) — **stable CLI contract**
-* [`FUNCTIONS.md`](FUNCTIONS.md) — supported jq functions
-* [`DESIGN.md`](DESIGN.md) — design principles and scope
+* [`docs/FUNCTIONS.md`](FUNCTIONS.md) — supported jq functions
+* [`docs/DESIGN.md`](DESIGN.md) — design principles and scope
 * [CPAN documentation](https://metacpan.org/pod/JQ::Lite)
 
 ---
@@ -208,4 +208,5 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
 
