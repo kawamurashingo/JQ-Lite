@@ -196,27 +196,6 @@
       white-space: pre;
     }
 
-    .contact-form {
-      display: grid;
-      gap: 1.2rem;
-      margin-top: 1.8rem;
-    }
-
-    .contact-group {
-      display: flex;
-      flex-direction: column;
-      gap: .45rem;
-    }
-
-    .contact-group input,
-    .contact-group textarea {
-      background: rgba(15,23,42,.6);
-      border: 1px solid rgba(148,163,184,.25);
-      border-radius: 12px;
-      padding: .75rem 1rem;
-      color: var(--text);
-    }
-
     footer {
       text-align: center;
       padding: 3rem 1rem;
@@ -259,7 +238,6 @@
     <a href="#install">Installation</a>
     <a href="#usage">Usage</a>
     <a href="#scenes">Use cases</a>
-    <a href="#contact">Contact</a>
   </nav>
 </header>
 
@@ -320,29 +298,14 @@ export PERL5LIB="$HOME/.local/lib/perl5:$PERL5LIB"</code></pre>
     <div class="card"><h3>Legacy &amp; offline</h3><p>Old systems, air-gapped networks.</p></div>
   </div>
 </section>
-
-<section id="contact">
-  <h2>Contact</h2>
-  <form class="contact-form" action="mailto:perl.jq.lite@gmail.com">
-    <div class="contact-group">
-      <label>Your name</label>
-      <input type="text" required>
-    </div>
-    <div class="contact-group">
-      <label>Email</label>
-      <input type="email" required>
-    </div>
-    <div class="contact-group">
-      <label>Message</label>
-      <textarea rows="5" required></textarea>
-    </div>
-    <button type="submit">Compose email</button>
-  </form>
-</section>
 </main>
 
 <footer>
   <p>© 2025 jq-lite · Built by 川村慎吾（Shingo Kawamura）</p>
+  <p>
+    <a href="https://github.com/kawamurashingo/JQ-Lite">GitHub</a> ·
+    <a href="https://metacpan.org/release/JQ-Lite">MetaCPAN</a>
+  </p>
 </footer>
 </body>
 </html>
