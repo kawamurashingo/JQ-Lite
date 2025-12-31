@@ -137,6 +137,16 @@ Functions are grouped by purpose for easier lookup.
 
 ---
 
+### 🔄 Interactive Mode
+
+If you omit the query, `jq-lite` enters **interactive mode**, allowing you to type queries line-by-line against a fixed JSON input.
+
+```bash
+jq-lite users.json
+```
+
+---
+
 ## 🧾 Notes
 
 * jq-style **pipe syntax** and **expressions** are fully supported:
