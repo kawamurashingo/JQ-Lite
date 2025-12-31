@@ -128,7 +128,16 @@ ver=$(curl -s https://fastapi.metacpan.org/v1/release/JQ-Lite \
 curl -sSfL https://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
 ```
 
-### Install (user-local, no root)
+### Install (user-local, no root, offline, restricted Installation)
+
+jq-lite can be installed without network access or system package managers.
+
+Typical use cases:
+
+* air-gapped environments
+* restricted corporate networks
+* systems without root privileges
+* legacy hosts
 
 ```bash
 tar xzf JQ-Lite-$ver.tar.gz
@@ -165,66 +174,6 @@ perl Makefile.PL
 make
 make test
 sudo make install
-```
-
----
-
-## Installing into a user directory (details)
-
-When installing outside system directories:
-
-* `PATH` must include the installation `bin` directory
-* `PERL5LIB` must include the directory containing `JQ/Lite.pm`
-
-### Recommended: INSTALL_BASE
-
-```bash
-perl Makefile.PL INSTALL_BASE=$HOME/.local
-make install
-```
-
-This keeps binaries and modules under a consistent layout and is preferred.
-
----
-
-### Using PREFIX (advanced / legacy)
-
-```bash
-perl Makefile.PL PREFIX=$HOME/.local
-make install
-```
-
-In this case, you must configure `PERL5LIB` manually:
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-export PERL5LIB="$HOME/.local/share/perl/$(perl -e 'print $]'):$PERL5LIB"
-```
-
----
-
-## Offline / Restricted Installation
-
-jq-lite can be installed without network access or system package managers.
-
-Typical use cases:
-
-* air-gapped environments
-* restricted corporate networks
-* systems without root privileges
-* legacy hosts
-
-### Portable Installer (Unix)
-
-```bash
-./download.sh
-./install.sh JQ-Lite-<version>.tar.gz
-```
-
-The default installation prefix is:
-
-```text
-$HOME/.local
 ```
 
 ---
@@ -276,5 +225,6 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
 
 
