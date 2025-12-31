@@ -66,22 +66,6 @@ Changes that would violate this contract are intentionally avoided.
 
 ---
 
-## Quick Start
-
-```bash
-jq-lite '.users[].name' users.json
-jq-lite '.users[] | select(.age > 25)' users.json
-jq-lite --yaml '.users[].name' users.yaml
-```
-
-Interactive mode:
-
-```bash
-jq-lite users.json
-```
-
----
-
 ## Environment Support
 
 | Environment          | jq | jq-lite |
@@ -225,6 +209,7 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
 
 
 
