@@ -19,15 +19,14 @@
     }
 
     * { box-sizing: border-box; }
-
     html { scroll-behavior: smooth; }
 
     body {
       margin: 0;
       font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), transparent 40%),
-        radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.2), transparent 35%),
+        radial-gradient(circle at top left, rgba(56,189,248,.2), transparent 40%),
+        radial-gradient(circle at bottom right, rgba(14,165,233,.2), transparent 35%),
         var(--bg);
       color: var(--text);
       line-height: 1.6;
@@ -38,7 +37,7 @@
     }
 
     header {
-      padding: clamp(2rem, 5vw, 5rem) clamp(1.5rem, 6vw, 6rem);
+      padding: clamp(2rem,5vw,5rem) clamp(1.5rem,6vw,6rem);
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -48,28 +47,26 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(120deg, rgba(14, 165, 233, 0.35), rgba(59, 130, 246, 0.25));
-      opacity: 0.65;
+      background: linear-gradient(120deg, rgba(14,165,233,.35), rgba(59,130,246,.25));
       filter: blur(120px);
       z-index: -1;
     }
 
     .logo {
-      width: clamp(190px, 30vw, 260px);
-      margin: 0 auto clamp(1.5rem, 4vw, 3rem);
+      width: clamp(190px,30vw,260px);
+      margin: 0 auto clamp(1.5rem,4vw,3rem);
       display: block;
-      filter: drop-shadow(0 12px 24px rgba(8, 47, 73, 0.6));
+      filter: drop-shadow(0 12px 24px rgba(8,47,73,.6));
     }
 
     h1 {
-      font-size: clamp(2.5rem, 5vw, 3.8rem);
+      font-size: clamp(2.5rem,5vw,3.8rem);
       margin-bottom: 1rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
     }
 
     p.lead {
-      font-size: clamp(1.1rem, 2.5vw, 1.45rem);
+      font-size: clamp(1.1rem,2.5vw,1.45rem);
       color: var(--text-muted);
       max-width: 820px;
       margin: 0 auto 3rem;
@@ -84,13 +81,13 @@
     .language-switch a {
       color: inherit;
       text-decoration: none;
-      padding: 0.25rem 0.75rem;
+      padding: .25rem .75rem;
       border-radius: 999px;
     }
 
     .language-switch a.active {
-      border: 1px solid rgba(56, 189, 248, 0.55);
-      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56,189,248,.55);
+      background: rgba(56,189,248,.18);
       color: var(--text);
     }
 
@@ -101,11 +98,11 @@
     .vision-link a {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1.4rem;
+      gap: .5rem;
+      padding: .65rem 1.4rem;
       border-radius: 999px;
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.45);
+      background: rgba(56,189,248,.15);
+      border: 1px solid rgba(56,189,248,.45);
       color: var(--text);
       text-decoration: none;
       font-weight: 600;
@@ -115,38 +112,38 @@
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 0.8rem;
+      gap: .8rem;
       margin-bottom: 2.5rem;
     }
 
     .badge {
-      padding: 0.5rem 0.9rem;
+      padding: .5rem .9rem;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15,23,42,.7);
+      border: 1px solid rgba(148,163,184,.2);
       color: var(--text-muted);
-      font-size: 0.95rem;
+      font-size: .95rem;
     }
 
     nav.tab-nav {
       display: flex;
       justify-content: center;
-      gap: 0.8rem;
+      gap: .8rem;
       flex-wrap: wrap;
     }
 
     nav.tab-nav a {
-      padding: 0.65rem 1.3rem;
+      padding: .65rem 1.3rem;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.65);
-      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(15,23,42,.65);
+      border: 1px solid rgba(148,163,184,.25);
       color: var(--text);
       text-decoration: none;
       font-weight: 600;
     }
 
     main {
-      width: min(1100px, 92vw);
+      width: min(1100px,92vw);
       margin: 0 auto 6rem;
       flex: 1;
       display: flex;
@@ -157,9 +154,9 @@
     section {
       background: var(--bg-card);
       border-radius: 22px;
-      padding: clamp(2rem, 4vw, 3rem);
-      border: 1px solid rgba(148, 163, 184, 0.12);
-      box-shadow: 0 24px 42px rgba(15, 23, 42, 0.45);
+      padding: clamp(2rem,4vw,3rem);
+      border: 1px solid rgba(148,163,184,.12);
+      box-shadow: 0 24px 42px rgba(15,23,42,.45);
       backdrop-filter: blur(12px);
     }
 
@@ -175,14 +172,14 @@
     }
 
     .grid-3 {
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
     }
 
     .card {
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15,23,42,.6);
       border-radius: 18px;
       padding: 1.5rem;
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      border: 1px solid rgba(148,163,184,.16);
     }
 
     pre {
@@ -190,7 +187,7 @@
       padding: 1rem 1.2rem;
       border-radius: 14px;
       overflow-x: auto;
-      border: 1px solid rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56,189,248,.18);
     }
 
     pre code {
@@ -199,11 +196,32 @@
       white-space: pre;
     }
 
+    .contact-form {
+      display: grid;
+      gap: 1.2rem;
+      margin-top: 1.8rem;
+    }
+
+    .contact-group {
+      display: flex;
+      flex-direction: column;
+      gap: .45rem;
+    }
+
+    .contact-group input,
+    .contact-group textarea {
+      background: rgba(15,23,42,.6);
+      border: 1px solid rgba(148,163,184,.25);
+      border-radius: 12px;
+      padding: .75rem 1rem;
+      color: var(--text);
+    }
+
     footer {
       text-align: center;
       padding: 3rem 1rem;
       color: var(--text-muted);
-      font-size: 0.95rem;
+      font-size: .95rem;
     }
   </style>
 </head>
@@ -241,6 +259,7 @@
     <a href="#install">Installation</a>
     <a href="#usage">Usage</a>
     <a href="#scenes">Use cases</a>
+    <a href="#contact">Contact</a>
   </nav>
 </header>
 
@@ -248,32 +267,22 @@
 <section id="features">
   <h2>Highlights</h2>
   <div class="grid grid-3">
-    <div class="card">
-      <h3>Pure Perl</h3>
-      <p>No compiler, no native libraries. If Perl runs, jq-lite runs.</p>
-    </div>
-    <div class="card">
-      <h3>jq-compatible syntax</h3>
-      <p>Use familiar filters like <code>.foo[] | select(.bar)</code>.</p>
-    </div>
-    <div class="card">
-      <h3>CLI &amp; library</h3>
-      <p>Works both as a command-line tool and a Perl module.</p>
-    </div>
+    <div class="card"><h3>Pure Perl</h3><p>No compiler. No native libraries.</p></div>
+    <div class="card"><h3>jq-compatible</h3><p>Readable filters for scripts.</p></div>
+    <div class="card"><h3>CLI &amp; library</h3><p>Use it everywhere.</p></div>
   </div>
 </section>
 
 <section id="install">
   <h2>Installation</h2>
   <div class="grid">
-
     <div class="card">
-      <h3>From CPAN (recommended)</h3>
+      <h3>From CPAN</h3>
       <pre><code>cpanm JQ::Lite</code></pre>
     </div>
 
     <div class="card">
-      <h3>Alpine Linux (official package)</h3>
+      <h3>Alpine Linux</h3>
       <pre><code>apk add jq-lite</code></pre>
     </div>
 
@@ -282,8 +291,7 @@
       <pre><code>ver=$(curl -s https://fastapi.metacpan.org/v1/release/JQ-Lite \
   | perl -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
 
-curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz \
-  -o JQ-Lite-$ver.tar.gz
+curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
 
 tar xzf JQ-Lite-$ver.tar.gz
 cd JQ-Lite-$ver
@@ -296,7 +304,6 @@ make install
 export PATH="$HOME/.local/bin:$PATH"
 export PERL5LIB="$HOME/.local/lib/perl5:$PERL5LIB"</code></pre>
     </div>
-
   </div>
 </section>
 
@@ -308,19 +315,34 @@ export PERL5LIB="$HOME/.local/lib/perl5:$PERL5LIB"</code></pre>
 <section id="scenes">
   <h2>Use cases</h2>
   <div class="grid grid-3">
-    <div class="card">Locked-down servers</div>
-    <div class="card">CI/CD pipelines</div>
-    <div class="card">Legacy &amp; offline systems</div>
+    <div class="card"><h3>Locked-down servers</h3><p>No package installs allowed.</p></div>
+    <div class="card"><h3>CI/CD pipelines</h3><p>Minimal dependencies.</p></div>
+    <div class="card"><h3>Legacy &amp; offline</h3><p>Old systems, air-gapped networks.</p></div>
   </div>
+</section>
+
+<section id="contact">
+  <h2>Contact</h2>
+  <form class="contact-form" action="mailto:perl.jq.lite@gmail.com">
+    <div class="contact-group">
+      <label>Your name</label>
+      <input type="text" required>
+    </div>
+    <div class="contact-group">
+      <label>Email</label>
+      <input type="email" required>
+    </div>
+    <div class="contact-group">
+      <label>Message</label>
+      <textarea rows="5" required></textarea>
+    </div>
+    <button type="submit">Compose email</button>
+  </form>
 </section>
 </main>
 
 <footer>
   <p>© 2025 jq-lite · Built by 川村慎吾（Shingo Kawamura）</p>
-  <p>
-    <a href="https://github.com/kawamurashingo/JQ-Lite">GitHub</a> ·
-    <a href="https://metacpan.org/release/JQ-Lite">MetaCPAN</a>
-  </p>
 </footer>
 </body>
 </html>
