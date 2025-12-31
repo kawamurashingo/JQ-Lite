@@ -204,18 +204,8 @@ say for $jq->run_query($json, '.users[].name');
 
 ---
 
-## Project Status
-
-jq-lite is in a **maintenance-focused phase**.
-
-* Backward compatibility is prioritized
-* Breaking changes are avoided
-* New features are accepted only when required for correctness
-
-Downstream patches for distribution integration are welcome.
-
----
 
 ## License
 
 Same terms as Perl itself.
+
