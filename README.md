@@ -125,7 +125,7 @@ without requiring `jq`.
 ```bash
 ver=$(curl -s https://fastapi.metacpan.org/v1/release/JQ-Lite \
   | perl -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
-curl -sSfL https://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
+curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
 ```
 
 ### Install (user-local, no root, offline, restricted Installation)
@@ -225,6 +225,7 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
 
 
 
