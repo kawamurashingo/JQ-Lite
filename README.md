@@ -107,7 +107,7 @@ without requiring `jq`.
 ### Download (latest)
 
 ```bash
-ver=$(curl -s https://fastapi.metacpan.org/v1/release/JQ-Lite \
+ver=$(curl -s http://fastapi.metacpan.org/v1/release/JQ-Lite \
   | perl -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
 curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
 ```
@@ -209,6 +209,7 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
 
 
 
