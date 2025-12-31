@@ -46,6 +46,24 @@ jq-lite prioritizes **reliability over feature growth**.
 
 ---
 
+## CLI Contract (Stable)
+
+jq-lite defines a **stable CLI contract** that is treated as a
+backward-compatibility guarantee.
+
+* Exit codes
+* Error categories and stderr prefixes
+* stdout behavior on success and failure
+* jq-compatible truthiness rules
+
+These guarantees are formally documented here:
+
+👉 **[`docs/cli-contract.md`](docs/cli-contract.md)**
+
+Changes that would violate this contract are avoided.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -179,6 +197,7 @@ say for $jq->run_query($json, '.users[].name');
 
 ## Documentation
 
+* [`docs/cli-contract.md`](docs/cli-contract.md) — **stable CLI contract**
 * [`FUNCTIONS.md`](FUNCTIONS.md) — supported jq functions
 * [`DESIGN.md`](DESIGN.md) — design principles and scope
 * [CPAN documentation](https://metacpan.org/pod/JQ::Lite)
