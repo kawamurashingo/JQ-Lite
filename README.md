@@ -125,19 +125,12 @@ Typical use cases:
 
 ```bash
 tar xzf JQ-Lite-$ver.tar.gz
-cd JQ-Lite-$ver
-
-perl Makefile.PL INSTALL_BASE=$HOME/.local
-make
-make test
-make install
 ```
 
 Enable jq-lite:
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
-export PERL5LIB="$HOME/.local/lib/perl5:$PERL5LIB"
+export PATH="$PWD/JQ-Lite-$ver/bin:$PATH"
 ```
 
 Verify:
@@ -209,6 +202,7 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
 
 
 
