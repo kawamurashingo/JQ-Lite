@@ -272,15 +272,8 @@
 curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
 
 tar xzf JQ-Lite-$ver.tar.gz
-cd JQ-Lite-$ver
 
-perl Makefile.PL INSTALL_BASE=$HOME/.local
-make
-make test
-make install
-
-export PATH="$HOME/.local/bin:$PATH"
-export PERL5LIB="$HOME/.local/lib/perl5:$PERL5LIB"</code></pre>
+export PATH="$PWD/JQ-Lite-$ver/bin:$PATH"</code></pre>
     </div>
   </div>
 </section>
