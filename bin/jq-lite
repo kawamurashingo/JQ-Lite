@@ -132,8 +132,7 @@ sub _is_truthy {
         return $value ? 1 : 0;
     }
 
-    return 1 if ref $value;
-    return $value ? 1 : 0;
+    return 1;
 }
 
 # ---------- Help text ----------
@@ -328,7 +327,16 @@ if ($want_version) {
     exit 0;
 }
 
-$SIG{PIPE} = 'IGNORE';
+$SIG{PIPE} = sub { exit 0 };
+
+END {
+    return unless defined fileno(STDOUT);
+
+    if (!close STDOUT) {
+        return if $!{EPIPE};
+        warn "Unable to flush stdout: $!";
+    }
+}
 
 # ---------- Positional args: '.query' and [file.json] ----------
 # Unknown options are already rejected above; only query and file remain.
@@ -509,6 +517,11 @@ if (@slurpfiles) {
 
         $arg_vars{$var_name} = [$decoded];
     }
+}
+
+# ---------- Validate query before reading input ----------
+if (defined $query) {
+    _validate_query_syntax($query);
 }
 
 # ---------- Read JSON input ----------
@@ -775,8 +788,6 @@ if (!defined $query) {
     print "\nGoodbye.\n";
     exit 0;
 }
-
-_validate_query_syntax($query);
 
 # ---------- One-shot mode ----------
 my @results;

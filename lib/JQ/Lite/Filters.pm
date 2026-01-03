@@ -2103,6 +2103,33 @@ sub apply {
             return 1;
         }
 
+        # Fallback: value expressions (including literals like null/0/"text")
+        {
+            my $all_ok = 1;
+            @next_results = ();
+
+            for my $item (@results) {
+                my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $part);
+                if ($ok) {
+                    if (@$values) {
+                        push @next_results, @$values;
+                    }
+                    else {
+                        push @next_results, undef;
+                    }
+                }
+                else {
+                    $all_ok = 0;
+                    last;
+                }
+            }
+
+            if ($all_ok) {
+                @$out_ref = @next_results;
+                return 1;
+            }
+        }
+
     return 0;
 }
 
