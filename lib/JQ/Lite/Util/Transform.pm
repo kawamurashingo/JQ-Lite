@@ -152,6 +152,9 @@ sub _normalize_percentile {
 
     my $fraction = 0 + $value;
 
+    return undef if $fraction != $fraction;             # NaN
+    return undef if ($fraction * 0) != ($fraction * 0); # infinity
+
     if ($fraction > 1) {
         $fraction /= 100 if $fraction <= 100;
     }

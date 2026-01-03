@@ -33,6 +33,15 @@ my ($p_invalid_arg) = $jq->run_query($json_invalid, 'percentile("oops")');
 
 ok(!defined $p_invalid_arg, 'percentile returns undef when the argument is not numeric');
 
+my ($p_nan_arg) = $jq->run_query($json_ordered, 'percentile("NaN")');
+ok(!defined $p_nan_arg, 'percentile returns undef when the argument is NaN');
+
+my ($p_inf_arg) = $jq->run_query($json_ordered, 'percentile("Infinity")');
+ok(!defined $p_inf_arg, 'percentile returns undef when the argument is infinite');
+
+my ($p_inf_negative) = $jq->run_query($json_ordered, 'percentile("-Infinity")');
+ok(!defined $p_inf_negative, 'percentile returns undef when the argument is negative infinity');
+
 my ($p_no_numeric) = $jq->run_query($json_invalid, 'percentile(10)');
 ok(!defined $p_no_numeric, 'percentile returns undef when no numeric values are present');
 
