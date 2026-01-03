@@ -453,11 +453,21 @@ sub _apply_paths {
     my ($value) = @_;
 
     if (!ref $value || ref($value) eq 'JSON::PP::Boolean') {
-        return [ [] ];
+        return [];
     }
 
     my @paths;
     _collect_paths($value, [], \@paths);
+    return \@paths;
+}
+
+sub _apply_scalar_paths {
+    my ($value) = @_;
+
+    return [] if _is_scalar_value($value);
+
+    my @paths;
+    _collect_scalar_paths($value, [], \@paths);
     return \@paths;
 }
 
@@ -780,6 +790,40 @@ sub _collect_paths {
     push @$paths, [@$current_path];
 }
 
+sub _collect_scalar_paths {
+    my ($value, $current_path, $paths) = @_;
+
+    if (ref $value eq 'HASH') {
+        for my $key (sort keys %$value) {
+            my $child = $value->{$key};
+            my @next  = (@$current_path, $key);
+
+            if (_is_scalar_value($child)) {
+                push @$paths, [@next];
+            }
+            elsif (ref $child eq 'HASH' || ref $child eq 'ARRAY') {
+                _collect_scalar_paths($child, \@next, $paths);
+            }
+        }
+        return;
+    }
+
+    if (ref $value eq 'ARRAY') {
+        for my $index (0 .. $#$value) {
+            my $child = $value->[$index];
+            my @next  = (@$current_path, $index);
+
+            if (_is_scalar_value($child)) {
+                push @$paths, [@next];
+            }
+            elsif (ref $child eq 'HASH' || ref $child eq 'ARRAY') {
+                _collect_scalar_paths($child, \@next, $paths);
+            }
+        }
+        return;
+    }
+}
+
 sub _traverse_path_array {
     my ($value, $path) = @_;
 
@@ -863,6 +907,10 @@ sub _is_leaf_value {
     return 0 if ref($value) eq 'ARRAY';
     return 0 if ref($value) eq 'HASH';
     return 1;
+}
+
+sub _is_scalar_value {
+    return _is_leaf_value(@_);
 }
 
 1;

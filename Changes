@@ -1,3 +1,8 @@
+1.70  2026-01-10
+
+    - Release jq-compatible `paths` and `paths(scalars)` filters and
+      document scalar input behavior.
+
 1.69  2026-01-03
 
     - Promote release to 1.69 documenting jq-compatible wildcard
