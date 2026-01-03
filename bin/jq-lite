@@ -327,7 +327,16 @@ if ($want_version) {
     exit 0;
 }
 
-$SIG{PIPE} = 'IGNORE';
+$SIG{PIPE} = sub { exit 0 };
+
+END {
+    return unless defined fileno(STDOUT);
+
+    if (!close STDOUT) {
+        return if $!{EPIPE};
+        warn "Unable to flush stdout: $!";
+    }
+}
 
 # ---------- Positional args: '.query' and [file.json] ----------
 # Unknown options are already rejected above; only query and file remain.

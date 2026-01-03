@@ -286,11 +286,7 @@ sub assert_err_contract {
     my $rc = ($? >> 8);
 
     ok($rc == 0 || $rc == 1, "broken pipe is not fatal (exit=$rc)");
-    like(
-        $stderr,
-        qr/^\s*(?:Unable to flush stdout: Broken pipe\s*)?\z/s,
-        'broken pipe stderr is empty or a benign pipe warning'
-    );
+    is($stderr, '', 'broken pipe stderr is suppressed');
     ok($first =~ /\S/, 'pipeline produced at least one line before pipe closed');
 }
 
