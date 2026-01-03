@@ -3,11 +3,12 @@
 jq-lite is a **jq-compatible JSON processor written in pure Perl**.
 
 It is designed for **long-term CLI stability** and **minimal dependencies**,
-making it suitable for use as an OS-level utility in constrained environments.
+making it suitable as an **OS-level JSON utility** in constrained or long-lived environments.
 
 - No external binaries
 - No native libraries
 - No compilation step
+- Stable, test-backed CLI contract
 
 ---
 
@@ -22,6 +23,7 @@ It is particularly suited for:
 - containers and CI environments
 - legacy or restricted systems
 - offline / air-gapped deployments
+- environments where jq cannot be installed
 
 jq-lite is available as an **official Alpine Linux package**:
 
@@ -33,36 +35,38 @@ apk add jq-lite
 
 ## Design Goals
 
-* **CLI contract stability**
-  Behavior, exit codes, and error handling are treated as compatibility promises.
+* **Stable CLI contract**
+  Exit codes, stderr prefixes, and error behavior are treated as
+  long-term compatibility promises.
 
 * **Minimal dependency footprint**
   Implemented in pure Perl without XS, C extensions, or external libraries.
 
 * **Predictable behavior**
-  Intended for use in shell scripts and infrastructure automation.
+  Intended for use in shell scripts, CI pipelines, and infrastructure automation.
 
-jq-lite prioritizes **reliability over feature growth**.
+jq-lite intentionally prioritizes **reliability over feature growth**.
 
 ---
 
-## CLI Contract (Stable)
+## Stable CLI Contract
 
-jq-lite defines a **stable CLI contract** that is treated as a
-backward-compatibility guarantee.
+jq-lite defines a **fully implemented, test-backed CLI contract**
+that serves as a strict backward-compatibility guarantee.
 
-The contract covers:
+The contract specifies:
 
-* Exit codes
+* Exit codes and their meanings
 * Error categories and stderr prefixes
 * stdout behavior on success and failure
-* jq-compatible truthiness rules
+* jq-compatible truthiness semantics (`-e/--exit-status`)
+* Broken pipe (SIGPIPE/EPIPE) behavior suitable for pipelines and CI
 
-These guarantees are formally documented here:
+📄 **Contract specification**:
+👉 [`docs/cli-contract.md`](docs/cli-contract.md)
 
-👉 **[`docs/cli-contract.md`](docs/cli-contract.md)**
-
-Changes that would violate this contract are intentionally avoided.
+Any change that would violate this contract **requires a major version bump**
+and is intentionally avoided.
 
 ---
 
@@ -102,7 +106,7 @@ cpanm JQ::Lite
 ## From Source (Latest, Simple)
 
 This method installs the **latest released version** directly from CPAN
-without requiring `jq`.
+without requiring jq.
 
 ### Download (latest)
 
@@ -112,7 +116,7 @@ ver=$(curl -s http://fastapi.metacpan.org/v1/release/JQ-Lite \
 curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
 ```
 
-### Install (user-local, no root, offline, restricted Installation)
+### Install (user-local, no root, offline-friendly)
 
 jq-lite can be installed without network access or system package managers.
 
@@ -125,11 +129,6 @@ Typical use cases:
 
 ```bash
 tar xzf JQ-Lite-$ver.tar.gz
-```
-
-Enable jq-lite:
-
-```bash
 export PATH="$PWD/JQ-Lite-$ver/bin:$PATH"
 ```
 
@@ -173,7 +172,7 @@ RUN apk add --no-cache jq-lite
 ```
 
 jq-lite can be used as a **container-standard JSON processing tool**
-without adding native dependencies.
+without introducing native dependencies.
 
 ---
 
@@ -192,7 +191,7 @@ say for $jq->run_query($json, '.users[].name');
 
 ## Documentation
 
-* [`docs/cli-contract.md`](docs/cli-contract.md) — **stable CLI contract**
+* [`docs/cli-contract.md`](docs/cli-contract.md) — **stable, test-backed CLI contract**
 * [`docs/FUNCTIONS.md`](docs/FUNCTIONS.md) — supported jq functions
 * [`docs/DESIGN.md`](docs/DESIGN.md) — design principles and scope
 * [CPAN documentation](https://metacpan.org/pod/JQ::Lite)
@@ -202,10 +201,3 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
-
-
-
-
-
-
-
