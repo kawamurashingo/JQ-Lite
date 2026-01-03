@@ -233,4 +233,3 @@ prove -lv t/cli_contract.t
 * `jq-lite` provides a **stable, predictable CLI**
 * Compatibility is **documented, intentional, and test-backed**
 * Scripts, CI, and downstream tools can rely on this behavior
-```
