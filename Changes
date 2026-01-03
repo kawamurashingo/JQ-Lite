@@ -1,4 +1,4 @@
-1.70  2026-01-10
+1.70  2026-01-03
 
     - Release jq-compatible `paths` and `paths(scalars)` filters and
       document scalar input behavior.
@@ -1082,6 +1082,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
