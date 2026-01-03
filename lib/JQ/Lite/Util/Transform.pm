@@ -593,6 +593,9 @@ sub _traverse {
                 if (ref $item eq 'ARRAY') {
                     push @next_stack, @$item;
                 }
+                elsif (ref $item eq 'HASH') {
+                    push @next_stack, values %$item;
+                }
             }
             # index access: key[index]
             elsif ($step =~ /^(.*?)\[(\d+)\]$/) {
@@ -611,12 +614,20 @@ sub _traverse {
                     if (ref $val eq 'ARRAY') {
                         push @next_stack, @$val;
                     }
+                    elsif (ref $val eq 'HASH') {
+                        push @next_stack, values %$val;
+                    }
                 }
                 elsif (ref $item eq 'ARRAY') {
                     for my $sub (@$item) {
                         if (ref $sub eq 'HASH' && exists $sub->{$key}) {
                             my $val = $sub->{$key};
-                            push @next_stack, @$val if ref $val eq 'ARRAY';
+                            if (ref $val eq 'ARRAY') {
+                                push @next_stack, @$val;
+                            }
+                            elsif (ref $val eq 'HASH') {
+                                push @next_stack, values %$val;
+                            }
                         }
                     }
                 }

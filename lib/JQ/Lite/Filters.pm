@@ -438,7 +438,9 @@ sub apply {
         # support for flatten (alias for .[])
         if ($part eq 'flatten') {
             @next_results = map {
-                ref $_ eq 'ARRAY' ? @$_ : ()
+                ref $_ eq 'ARRAY' ? @$_
+              : ref $_ eq 'HASH'  ? values %$_
+              : ()
             } @results;
             @$out_ref = @next_results;
             return 1;
@@ -1568,7 +1570,9 @@ sub apply {
         # support for flatten()
         if ($part eq 'flatten()' || $part eq 'flatten') {
             @next_results = map {
-                (ref $_ eq 'ARRAY') ? @$_ : ()
+                ref $_ eq 'ARRAY' ? @$_
+              : ref $_ eq 'HASH'  ? values %$_
+              : ()
             } @results;
             @$out_ref = @next_results;
             return 1;
