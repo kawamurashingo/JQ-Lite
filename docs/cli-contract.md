@@ -55,12 +55,12 @@ All behaviors documented here are guaranteed and enforced by automated tests. Br
 * On errors (exit `2–5`), a diagnostic message is written to **stderr**
 * The **first line MUST start with a stable prefix**:
 
-| Category | Prefix      |
-| -------- | ----------- |
-| Compile  | `[COMPILE]` |
-| Runtime  | `[RUNTIME]` |
-| Input    | `[INPUT]`   |
-| Usage    | `[USAGE]`   |
+| Category | Prefix      | Exit Code |
+| -------- | ----------- | --------- |
+| Compile  | `[COMPILE]` | 2 |
+| Runtime  | `[RUNTIME]` | 3 |
+| Input    | `[INPUT]`   | 4 |
+| Usage    | `[USAGE]`   | 5 |
 
 Example:
 
