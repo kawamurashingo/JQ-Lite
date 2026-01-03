@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use IPC::Open3;
 use Symbol qw(gensym);
+use File::Temp qw(tempfile);
 
 # Allow overriding the binary path:
 #   JQ_LITE_BIN=jq-lite prove -lv t/cli_contract.t
@@ -59,7 +60,10 @@ sub assert_err_contract {
     my $name   = $a{name};
 
     is($res->{rc}, $rc, "$name: exit=$rc");
-    like($res->{err}, qr/^\Q$prefix\E/m, "$name: stderr prefix $prefix");
+
+    # Contract: "first line MUST start with prefix"
+    like($res->{err}, qr/\A\Q$prefix\E/, "$name: stderr first line prefix $prefix");
+
     is($res->{out}, '', "$name: stdout empty on error");
 }
 
@@ -67,8 +71,7 @@ sub assert_err_contract {
 # Exit codes + stderr prefixes
 # ============================================================
 
-# Compile error
-# NOTE(TODO): Current jq-lite reads input before compile; provide stdin
+# Compile error (basic)
 {
     my $res = run_cmd(cmd => [$BIN, '.['], stdin => "{}\n");
     assert_err_contract(
@@ -87,6 +90,18 @@ sub assert_err_contract {
         rc     => 2,
         prefix => '[COMPILE]',
         name   => 'compile error: empty filter segment',
+    );
+}
+
+# ✅ NEW: compile MUST occur before input parsing
+# If both filter and input are broken, COMPILE wins (exit=2), not INPUT.
+{
+    my $res = run_cmd(cmd => [$BIN, '.['], stdin => "{broken}\n");
+    assert_err_contract(
+        res    => $res,
+        rc     => 2,
+        prefix => '[COMPILE]',
+        name   => 'compile precedes input parse (broken input still compile error)',
     );
 }
 
@@ -177,7 +192,7 @@ sub assert_err_contract {
     );
     like(
         $res->{err},
-        qr/\[USAGE\]Unknown option: bogus-option\b/,
+        qr/\A\[USAGE\]Unknown option: bogus-option\b/,
         'usage error: unknown option message is prefixed and concise'
     );
 }
@@ -219,19 +234,45 @@ sub assert_err_contract {
     like($res->{err}, qr/^\s*\z/s, '-e empty => stderr empty');
 }
 
-# -e truthy values (CURRENT behavior: 0 is falsey)
+# ✅ UPDATED: -e truthiness fully matches jq: 0 is truthy => exit 0
 {
     my $res = run_cmd(
         cmd   => [$BIN, '-e', '.'],
         stdin => "0\n",
     );
-    is($res->{rc}, 1, '-e 0 => exit 1 (CURRENT BEHAVIOR; TODO fix truthiness)');
+    is($res->{rc}, 0, '-e 0 => exit 0 (jq-compatible truthiness)');
     like($res->{out}, qr/^0\b/m, '-e 0 => stdout contains 0');
     like($res->{err}, qr/^\s*\z/s, '-e 0 => stderr empty');
 }
 
+# ✅ NEW: -e affects only exit code, not stdout formatting/content
+{
+    my $a = run_cmd(cmd => [$BIN, '.'],   stdin => qq|{"x":1}\n|);
+    my $b = run_cmd(cmd => [$BIN, '-e', '.'], stdin => qq|{"x":1}\n|);
+
+    is($a->{rc}, 0, 'no -e => exit 0');
+    is($b->{rc}, 0, '-e truthy => exit 0');
+    is($a->{out}, $b->{out}, '-e does not change stdout content/format');
+    like($b->{err}, qr/^\s*\z/s, '-e stderr empty');
+}
+
 # ============================================================
-# --arg / --argjson semantics
+# -n / --null-input
+# ============================================================
+
+# ✅ NEW: -n runs without reading stdin and succeeds
+{
+    my $res = run_cmd(
+        cmd   => [$BIN, '-n', 'null'],
+        stdin => "{broken}\n",  # should be ignored under -n
+    );
+    is($res->{rc}, 0, '-n null => exit 0');
+    like($res->{out}, qr/^null\b/m, '-n null => outputs null');
+    like($res->{err}, qr/^\s*\z/s, '-n null => stderr empty');
+}
+
+# ============================================================
+# --arg / --argjson / --argfile semantics
 # ============================================================
 
 # --arg binds string
@@ -245,8 +286,20 @@ sub assert_err_contract {
     like($res->{err}, qr/^\s*\z/s, '--arg string => stderr empty');
 }
 
+# ✅ NEW: --arg missing value => usage error
+{
+    my $res = run_cmd(
+        cmd => [$BIN, '--arg', 'x', '.'], # missing value
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 5,
+        prefix => '[USAGE]',
+        name   => 'usage error: --arg missing value',
+    );
+}
+
 # --argjson allows scalar JSON
-# NOTE(TODO): stdin is provided to avoid premature INPUT error
 {
     my $res = run_cmd(
         cmd   => [$BIN, '--argjson', 'x', '1', '$x'],
@@ -257,20 +310,89 @@ sub assert_err_contract {
     like($res->{err}, qr/^\s*\z/s, '--argjson scalar => stderr empty');
 }
 
+# ✅ NEW: --argjson scalar variations (string/true/null)
+{
+    my $res_s = run_cmd(cmd => [$BIN, '--argjson', 'x', '"hi"', '$x'], stdin => "null\n");
+    is($res_s->{rc}, 0, '--argjson string scalar => exit 0');
+    like($res_s->{out}, qr/^"hi"\b/m, '--argjson string scalar => output "hi"');
+
+    my $res_t = run_cmd(cmd => [$BIN, '--argjson', 'x', 'true', '$x'], stdin => "null\n");
+    is($res_t->{rc}, 0, '--argjson true scalar => exit 0');
+    like($res_t->{out}, qr/^true\b/m, '--argjson true scalar => output true');
+
+    my $res_n = run_cmd(cmd => [$BIN, '--argjson', 'x', 'null', '$x'], stdin => "null\n");
+    is($res_n->{rc}, 0, '--argjson null scalar => exit 0');
+    like($res_n->{out}, qr/^null\b/m, '--argjson null scalar => output null');
+}
+
+# ✅ NEW: --argfile missing/unreadable => usage error
+{
+    my $res = run_cmd(
+        cmd   => [$BIN, '--argfile', 'x', '/no/such/file.json', '$x'],
+        stdin => "{}\n",
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 5,
+        prefix => '[USAGE]',
+        name   => 'usage error: --argfile missing',
+    );
+}
+
+# ✅ NEW: --argfile invalid JSON => usage error
+{
+    my ($fh, $path) = tempfile();
+    print {$fh} "{broken}\n";
+    close $fh;
+
+    my $res = run_cmd(
+        cmd   => [$BIN, '--argfile', 'x', $path, '$x'],
+        stdin => "{}\n",
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 5,
+        prefix => '[USAGE]',
+        name   => 'usage error: --argfile invalid JSON',
+    );
+}
+
+# ✅ NEW: --argfile valid JSON binds => success
+{
+    my ($fh, $path) = tempfile();
+    print {$fh} "{\"a\":1}\n";
+    close $fh;
+
+    my $res = run_cmd(
+        cmd   => [$BIN, '--argfile', 'x', $path, '$x.a'],
+        stdin => "{}\n",
+    );
+    is($res->{rc}, 0, '--argfile valid => exit 0');
+    like($res->{out}, qr/^1\b/m, '--argfile binds JSON');
+    like($res->{err}, qr/^\s*\z/s, '--argfile stderr empty');
+}
+
 # ============================================================
 # Broken pipe (SIGPIPE / EPIPE)
 # ============================================================
 
-{ 
+{
+    # Capture stderr to verify "no error message"
+    my ($fh, $errfile) = tempfile();
+    close $fh;
+
     # Finite input to avoid hanging, but still trigger early pipe close
-    my $cmd = "yes '{}' | head -n 2000 | $BIN '.' 2>/dev/null | head -n 1 >/dev/null";
+    my $cmd = "yes '{}' | head -n 2000 | $BIN '.' 1>/dev/null 2>'$errfile' | head -n 1 >/dev/null";
     my $rc = system('sh', '-c', $cmd);
     $rc = ($rc >> 8);
 
-    ok(
-        $rc == 0 || $rc == 1,
-        "broken pipe is not fatal (exit=$rc)",
-    );
+    ok($rc == 0 || $rc == 1, "broken pipe is not fatal (exit=$rc)");
+
+    my $esize = -s $errfile;
+    $esize = 0 unless defined $esize;
+    is($esize, 0, 'broken pipe prints nothing to stderr');
+
+    unlink $errfile;
 }
 
 # paths() and paths(scalars) on scalar input should be no-ops with success
@@ -295,3 +417,4 @@ sub assert_err_contract {
 }
 
 done_testing();
+

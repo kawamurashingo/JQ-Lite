@@ -1,3 +1,11 @@
+1.71  2026-01-03
+
+    - Completed and enforced the full Stable CLI Contract: compile precedes input parsing, -e truthiness is jq-compatible (0 is truthy), and -n/--null-input is supported.
+
+    - Strengthened CLI contract tests to require first-line stderr prefixes and to guarantee clean stdout/stderr behavior across all error classes.
+
+    - Expanded argument and pipeline coverage (--argfile, scalar --argjson, broken pipe handling) to prevent regressions.
+
 1.70  2026-01-03
 
     - Release jq-compatible `paths` and `paths(scalars)` filters and
