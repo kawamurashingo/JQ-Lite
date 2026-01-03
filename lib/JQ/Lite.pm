@@ -957,7 +957,7 @@ L<https://kawamurashingo.github.io/JQ-Lite/index-en.html>.
 
 =head1 AUTHOR
 
-Kawamura Shingo E<lt>pannakoota1@gmail.comE<gt>
+Shingo Kawamura E<lt>pannakoota1@gmail.comE<gt>
 
 =head1 LICENSE
 
