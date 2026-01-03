@@ -1,3 +1,8 @@
+1.72  2026-01-03
+
+    - Suppress EINVAL warnings when flushing STDOUT on broken pipes in
+      older Perl versions.
+
 1.71  2026-01-03
 
     - Preserve comparison filters during parsing so conditional branches
@@ -1089,6 +1094,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
