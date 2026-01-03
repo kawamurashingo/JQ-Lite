@@ -1,3 +1,8 @@
+1.73  2026-01-03
+
+    - Guard the CLI broken pipe contract test against SIGPIPE so runs on
+      Perl 5.16 no longer abort with missing TAP output.
+
 1.72  2026-01-03
 
     - Suppress EINVAL warnings when flushing STDOUT on broken pipes in

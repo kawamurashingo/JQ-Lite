@@ -275,6 +275,7 @@ sub assert_err_contract {
     my $err = gensym;
     my $pid = open3(my $in, my $out, $err, $BIN, '-R', '.');
 
+    local $SIG{PIPE} = 'IGNORE';
     print {$in} "hello\n" for 1 .. 5000;
     close $in;
 
