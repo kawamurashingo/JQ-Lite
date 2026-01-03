@@ -132,8 +132,7 @@ sub _is_truthy {
         return $value ? 1 : 0;
     }
 
-    return 1 if ref $value;
-    return $value ? 1 : 0;
+    return 1;
 }
 
 # ---------- Help text ----------
@@ -511,6 +510,11 @@ if (@slurpfiles) {
     }
 }
 
+# ---------- Validate query before reading input ----------
+if (defined $query) {
+    _validate_query_syntax($query);
+}
+
 # ---------- Read JSON input ----------
 my $json_text;
 my $use_yaml = 0;
@@ -775,8 +779,6 @@ if (!defined $query) {
     print "\nGoodbye.\n";
     exit 0;
 }
-
-_validate_query_syntax($query);
 
 # ---------- One-shot mode ----------
 my @results;

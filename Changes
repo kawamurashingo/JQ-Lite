@@ -1,3 +1,10 @@
+1.71  2026-01-03
+
+    - Preserve comparison filters during parsing so conditional branches
+      evaluate paths like `.score >= 70` correctly.
+    - Avoid treating map/object filters with comparisons as arithmetic
+      expressions while still recognizing standalone comparison queries.
+
 1.70  2026-01-03
 
     - Release jq-compatible `paths` and `paths(scalars)` filters and

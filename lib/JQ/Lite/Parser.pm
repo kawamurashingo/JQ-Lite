@@ -24,7 +24,11 @@ sub parse_query {
         }
         elsif ($_ =~ /^\.(.+)$/) {
             my $rest = $1;
-            if ($rest =~ /^\s*[+\-*\/%]/ || $rest =~ /[+\-*\/%]/ || $rest =~ /\b(?:floor|ceil|round|tonumber)\b/) {
+            if ($rest =~ /^\s*[+\-*\/%]/
+                || $rest =~ /[+\-*\/%]/
+                || $rest =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b)/i
+                || $rest =~ /\b(?:floor|ceil|round|tonumber)\b/)
+            {
                 $_;
             }
             else {
