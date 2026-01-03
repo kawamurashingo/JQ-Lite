@@ -151,6 +151,7 @@ Options:
   --color              Colorize JSON output (keys, strings, numbers, booleans)
   --use <Module>       Force JSON decoder module (e.g. JSON::PP, JSON::XS, Cpanel::JSON::XS)
   --debug              Show which JSON module is being used
+  -e, --exit-status    Set exit code to 1 when the final result is false, null, or empty
   --arg NAME VALUE     Set jq-style variable $NAME to the string VALUE
   --rawfile NAME FILE  Set jq-style variable $NAME to the raw contents of FILE
   --slurpfile NAME FILE Set jq-style variable $NAME to an array of JSON values from FILE
@@ -831,6 +832,7 @@ Supported Functions:
   keys             - Extract sorted keys from a hash or indexes from an array
   keys_unsorted    - Extract object keys without sorting (jq-compatible)
   values           - Extract values from a hash (v0.34)
+  leaf_paths()     - Emit only terminal paths to leaf values
   sort             - Sort array items
   sort_desc        - Sort array items in descending order
   sort_by(KEY)     - Sort array of objects by key
@@ -850,6 +852,8 @@ Supported Functions:
                    - Emit numbers from START (default 0) up to but not including END using STEP (default 1)
   enumerate()      - Pair each array element with its zero-based index
   transpose()      - Rotate arrays-of-arrays from rows into columns
+  scalars          - Pass through only scalar inputs (string/number/bool/null)
+  objects          - Pass through only object inputs
   count            - Count total number of matching items
   map(EXPR)        - Map/filter array items with a subquery
   map_values(FILTER)
@@ -881,9 +885,16 @@ Supported Functions:
   round()          - Round numbers to the nearest integer (half-up semantics)
   clamp(MIN, MAX)  - Clamp numeric values within an inclusive range
   tostring()       - Convert values into their JSON string representation
+  @json            - Format the input as JSON text (jq-style formatter)
+  @csv             - Format arrays/scalars as a single CSV row
+  @tsv             - Format arrays/scalars as a single TSV row
+  @base64          - Encode input as a Base64 string
+  @base64d         - Decode Base64-encoded text into strings/arrays
+  @uri             - Percent-encode text (URL-safe)
   tojson()         - Encode values as JSON text regardless of type
   fromjson()       - Decode JSON text into native values (arrays handled element-wise)
-  to_number()      - Coerce numeric-looking strings/booleans into numbers
+  tonumber() / to_number()
+                   - Coerce numeric-looking strings/booleans into numbers
   nth(N)           - Get the Nth element of an array (zero-based index)
   index(VALUE)     - Return the zero-based index of VALUE within arrays or strings
   rindex(VALUE)    - Return the zero-based index of the last VALUE within arrays or strings
@@ -902,8 +913,12 @@ Supported Functions:
   from_entries     - Convert entry arrays back into an object
   with_entries(FILTER)
                    - Transform entries using FILTER and rebuild an object
+  delpaths(PATHS)  - Delete keys at the supplied PATHS array (jq-compatible)
   has              - Check if objects contain a key or arrays expose an index
   contains         - Check if strings include a fragment, arrays contain an element, or hashes have a key
+  contains_subset(VALUE)
+                   - jq-style subset containment for arrays (order-insensitive)
+  inside(CONTAINER) - Check if the input value is contained within CONTAINER
   any([FILTER])    - Return true if any input (optionally filtered) is truthy
   all([FILTER])    - Return true if every input (optionally filtered) is truthy
   not              - Logical negation following jq truthiness rules
@@ -924,6 +939,8 @@ Supported Functions:
   is_empty         - Check if an array or object is empty
   upper()          - Convert scalars and array elements to uppercase
   lower()          - Convert scalars and array elements to lowercase
+  ascii_upcase()   - ASCII-only uppercase conversion (leaves non-ASCII untouched)
+  ascii_downcase() - ASCII-only lowercase conversion (leaves non-ASCII untouched)
   titlecase()      - Convert scalars and array elements to title case
   trim()           - Strip leading/trailing whitespace from strings (recurses into arrays)
   ltrimstr(PFX)    - Remove PFX when it appears at the start of strings (arrays handled element-wise)
