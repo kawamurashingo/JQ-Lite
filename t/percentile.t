@@ -36,4 +36,18 @@ ok(!defined $p_invalid_arg, 'percentile returns undef when the argument is not n
 my ($p_no_numeric) = $jq->run_query($json_invalid, 'percentile(10)');
 ok(!defined $p_no_numeric, 'percentile returns undef when no numeric values are present');
 
+my $json_unsorted = q([40, 10, 50, 20, 30]);
+my ($p_unsorted) = $jq->run_query($json_unsorted, 'percentile(60)');
+is($p_unsorted, 34, 'percentile sorts the array before computing the percentile');
+
+my ($p_underflow) = $jq->run_query($json_ordered, 'percentile(-25)');
+is($p_underflow, 1, 'percentile clamps percentiles below 0 to the minimum value');
+
+my ($p_overflow) = $jq->run_query($json_ordered, 'percentile(175)');
+is($p_overflow, 5, 'percentile clamps percentiles above 100 to the maximum value');
+
+my $json_single = q([99]);
+my ($p_single) = $jq->run_query($json_single, 'percentile(25)');
+is($p_single, 99, 'percentile returns the only element when the array has one value');
+
 done_testing;
