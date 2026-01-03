@@ -1,3 +1,8 @@
+1.72  2026-01-04
+
+    - Suppress EINVAL warnings when flushing STDOUT on broken pipes in
+      older Perl versions.
+
 1.71  2026-01-03
 
     - Preserve comparison filters during parsing so conditional branches
