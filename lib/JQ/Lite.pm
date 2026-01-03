@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '1.73';
+our $VERSION = '1.74';
 
 sub new {
     my ($class, %opts) = @_;
@@ -56,30 +56,55 @@ __END__
 
 =head1 NAME
 
-JQ::Lite - A lightweight jq-like JSON query engine in Perl
+JQ::Lite - jq-compatible JSON query engine in pure Perl (no external binaries)
 
 =head1 VERSION
 
-Version 1.73
+Version 1.74
 
 =head1 SYNOPSIS
 
   use JQ::Lite;
-  
+
   my $jq = JQ::Lite->new;
   my @results = $jq->run_query($json_text, '.users[].name');
-  
+
   for my $r (@results) {
       print encode_json($r), "\n";
   }
 
 =head1 DESCRIPTION
 
-JQ::Lite is a lightweight, pure-Perl JSON query engine inspired by the
-L<jq|https://stedolan.github.io/jq/> command-line tool.
+B<JQ::Lite> is a lightweight, jq-compatible JSON query engine written entirely
+in pure Perl.
 
-It allows you to extract, traverse, and filter JSON data using a simplified
-jq-like syntax — entirely within Perl, with no external binaries or XS modules.
+It is designed for environments where the L<jq|https://stedolan.github.io/jq/>
+binary I<cannot be installed>, such as minimal Linux distributions, restricted
+servers, legacy systems, containers, CI pipelines, or air-gapped environments.
+
+JQ::Lite provides a familiar jq-like query syntax for extracting, traversing,
+and filtering JSON data, while requiring B<no external binaries>, B<no XS
+modules>, and B<no compilation step>.
+
+The module can be used both as a Perl library and via the bundled
+command-line tool C<jq-lite>, offering long-term CLI stability suitable for
+OS-level packaging.
+
+=head1 USE CASES
+
+=over 4
+
+=item * jq is not available or cannot be installed
+
+=item * Minimal or embedded Linux environments (e.g. Alpine Linux)
+
+=item * Containers and CI systems without package managers
+
+=item * Legacy systems with old or restricted toolchains
+
+=item * Offline or security-sensitive (air-gapped) deployments
+
+=back
 
 =head1 FEATURES
 
@@ -87,27 +112,30 @@ jq-like syntax — entirely within Perl, with no external binaries or XS modules
 
 =over 4
 
-=item * Pure Perl implementation - no XS or external binaries required.
+=item * Pure Perl implementation — no XS, no native libraries, no external binaries.
 
-=item * Familiar dot-notation traversal (for example C<.users[].name>).
+=item * jq-compatible dot-notation traversal (for example C<.users[].name>).
 
-=item * Optional key access with C<?> so absent keys can be skipped gracefully.
+=item * Optional key access using C<?> to safely skip missing fields.
 
 =item * Array indexing and flattening helpers such as C<.users[0]> and C<.users[]>.
 
-=item * Boolean filters via C<select(...)> supporting comparison operators and logical C<and> / C<or>.
+=item * Boolean filtering with C<select(...)>, supporting comparison operators
+and logical C<and> / C<or> expressions.
 
-=item * Pipe-style query chaining using the C<|> operator.
+=item * Pipe-style query chaining using the C<|> operator, similar to jq.
 
-=item * Iterator helpers including C<map(...)>, C<map_values(...)>, C<walk(...)>, C<limit(n)>, C<drop(n)>, C<tail(n)>, C<chunks(n)>, C<range(...)>, and C<enumerate()>.
+=item * Iterator and transformation helpers including
+C<map(...)>, C<map_values(...)>, C<walk(...)>, C<limit(n)>, C<drop(n)>,
+C<tail(n)>, C<chunks(n)>, C<range(...)>, and C<enumerate()>.
 
-=item * Interactive REPL mode for experimenting with filters line-by-line.
+=item * Interactive REPL mode for experimenting with jq-like filters line by line.
 
-=item * Command-line interface (C<jq-lite>) that reads from STDIN or files.
+=item * Command-line interface C<jq-lite> that reads JSON from STDIN or files.
 
 =item * Decoder selection via C<--use> (JSON::PP, JSON::XS, and compatible modules).
 
-=item * Debug logging with C<--debug> and a catalog of helpers available through C<--help-functions>.
+=item * Debug logging with C<--debug> and discoverable helpers via C<--help-functions>.
 
 =back
 
