@@ -137,7 +137,7 @@ sub _is_truthy {
 
 # ---------- Help text ----------
 my $USAGE = <<'USAGE';
-jq-lite - A lightweight jq-like JSON query tool written in pure Perl
+jq-lite - minimal jq-style JSON filter (pure Perl)
 
 Usage:
   jq-lite [options] '.query' [file.json]
