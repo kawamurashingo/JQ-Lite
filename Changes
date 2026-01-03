@@ -1,3 +1,8 @@
+1.75  2026-01-03
+
+    - Promote release to version 1.75 including the expanded
+      --help-functions output that lists all supported built-ins.
+
 1.74  2026-01-03
 
     - Improved POD documentation to clarify jq compatibility and intended use cases

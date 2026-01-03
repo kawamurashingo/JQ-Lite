@@ -1,6 +1,6 @@
 # jq-lite
 
-jq-lite is a **jq-compatible JSON processor written in pure Perl**.
+jq-lite is a jq-compatible JSON processor written in pure Perl.
 
 It is designed for **long-term CLI stability** and **minimal dependencies**,
 making it suitable as an **OS-level JSON utility** in constrained or long-lived environments.
