@@ -324,7 +324,7 @@ if ($want_help) {
 }
 
 if ($want_version) {
-    print "jq-lite $JQ::Lite::VERSION (c) Shingo Kawamura\n";
+    print "jq-lite $JQ::Lite::VERSION\n";
     exit 0;
 }
 
