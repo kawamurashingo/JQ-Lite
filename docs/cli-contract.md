@@ -1,7 +1,11 @@
 # CLI Contract (Stable)
 
-This document defines the **stable, backward-compatible CLI contract** for `jq-lite`.
-All behaviors documented here are guaranteed and enforced by automated tests. Breaking changes require a major version bump.
+This document defines the **stable, fully implemented, backward-compatible CLI contract**
+for `jq-lite`.
+
+All behaviors documented here are **guaranteed**, **test-backed**, and
+**actively enforced by automated tests**.
+Breaking changes require a major version bump.
 
 ---
 
@@ -19,7 +23,6 @@ All behaviors documented here are guaranteed and enforced by automated tests. Br
 * This CLI contract is **stable**
 * Any behavior described here is **backward-compatible**
 * Breaking changes require:
-
   * a **major version bump**, or
   * an explicit compatibility flag (discouraged)
 
@@ -65,11 +68,30 @@ All behaviors documented here are guaranteed and enforced by automated tests. Br
 Example:
 
 ```
+
 [COMPILE] unexpected token at …
 [RUNTIME] type mismatch at …
 [INPUT] failed to parse JSON input: …
 [USAGE] invalid JSON for --argjson x
-```
+
+````
+
+---
+
+## Compile Before Input Parsing
+
+Filter compilation MUST occur before input parsing.
+
+If both the filter and the input are invalid, `jq-lite` MUST report a
+**compile error**, not an input error:
+
+```sh
+printf '{broken}\n' | jq-lite '.[ '
+# stderr: [COMPILE] …
+# exit: 2
+````
+
+Input parsing errors MUST NOT mask compile errors.
 
 ---
 
@@ -107,8 +129,26 @@ Truthiness rules (jq-style):
 ### `--argfile name file`
 
 * Reads `file`, decodes as JSON, and binds to `$name`
-* Missing/unreadable file → **usage error** (`[USAGE]`, exit 5)
+* Missing or unreadable file → **usage error** (`[USAGE]`, exit 5)
 * Invalid JSON → **usage error** (`[USAGE]`, exit 5)
+
+---
+
+## `-n / --null-input`
+
+When `-n` is specified:
+
+* stdin is not read
+* the filter is evaluated once with `null` as input
+* normal exit code and output rules apply
+
+Example:
+
+```sh
+jq-lite -n 'null'
+# stdout: null
+# exit: 0
+```
 
 ---
 
@@ -117,14 +157,15 @@ Truthiness rules (jq-style):
 When downstream closes the pipe early:
 
 ```sh
-bin/jq-lite '.[]' | head
+jq-lite '.[]' | head
 ```
 
 * `SIGPIPE` / `EPIPE` MUST NOT be treated as a fatal error
-* `jq-lite` should exit `0` (or per `-e` rules)
-* **No error output** should be printed to stderr
+* `jq-lite` should exit `0` (or follow `-e` rules)
+* **No diagnostic output MUST be printed to stderr**
 
-Rationale: This frequently occurs in pipelines and must not break scripts or CI.
+Rationale:
+This frequently occurs in pipelines and must not break scripts or CI.
 
 ---
 
@@ -133,37 +174,42 @@ Rationale: This frequently occurs in pipelines and must not break scripts or CI.
 ### Compile Error
 
 ```sh
-jq-lite '.[ '  # stderr: [COMPILE] …, exit: 2
+jq-lite '.[ '
+# stderr: [COMPILE] …
+# exit: 2
 ```
 
 ### Runtime Error
 
 ```sh
 printf '{"x":"a"}\n' | jq-lite '.x + 1'
-# stderr: [RUNTIME] …, exit: 3
+# stderr: [RUNTIME] …
+# exit: 3
 ```
 
 ### Input Error
 
 ```sh
 printf '{broken}\n' | jq-lite '.'
-# stderr: [INPUT] …, exit: 4
+# stderr: [INPUT] …
+# exit: 4
 ```
 
 ### `-e` falsey Result
 
 ```sh
 printf 'false\n' | jq-lite -e '.'
-# stdout: false, exit: 1
+# stdout: false
+# exit: 1
 ```
 
 ---
 
-## Fully Supported Options
+## Resolved Contract Items
 
-The following behaviors are fully supported and covered by tests:
+The following contract items are fully implemented and covered by tests:
 
-* **Compile occurs before input parsing**
+* Compile occurs before input parsing
 * `-e` truthiness fully matches jq (`0` is truthy)
 * `-n / --null-input` is supported
 * `-e` affects only exit code, not stdout format
@@ -176,7 +222,7 @@ The following behaviors are fully supported and covered by tests:
 This contract is **enforced by automated tests**.
 Any violation will fail CI:
 
-```
+```sh
 prove -lv t/cli_contract.t
 ```
 
@@ -185,6 +231,6 @@ prove -lv t/cli_contract.t
 ## Summary
 
 * `jq-lite` provides a **stable, predictable CLI**
-* Compatibility is **documented, intentional, and tested**
+* Compatibility is **documented, intentional, and test-backed**
 * Scripts, CI, and downstream tools can rely on this behavior
-
+```
