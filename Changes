@@ -1,4 +1,4 @@
-1.69  2025-12-27
+1.69  2026-01-03
 
     - Promote release to 1.69 documenting jq-compatible wildcard
       iteration over object values.
@@ -1077,6 +1077,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
