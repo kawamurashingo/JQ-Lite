@@ -261,7 +261,7 @@ sub assert_err_contract {
 # Broken pipe (SIGPIPE / EPIPE)
 # ============================================================
 
-{
+{ 
     # Finite input to avoid hanging, but still trigger early pipe close
     my $cmd = "yes '{}' | head -n 2000 | $BIN '.' 2>/dev/null | head -n 1 >/dev/null";
     my $rc = system('sh', '-c', $cmd);
@@ -271,6 +271,27 @@ sub assert_err_contract {
         $rc == 0 || $rc == 1,
         "broken pipe is not fatal (exit=$rc)",
     );
+}
+
+# paths() and paths(scalars) on scalar input should be no-ops with success
+{
+    my $res_paths = run_cmd(
+        cmd   => [$BIN, 'paths'],
+        stdin => qq|"hi"\n|,
+    );
+
+    is($res_paths->{rc}, 0, 'paths on scalar exits 0');
+    is($res_paths->{out}, '', 'paths on scalar emits no output');
+    is($res_paths->{err}, '', 'paths on scalar emits no errors');
+
+    my $res_scalar_paths = run_cmd(
+        cmd   => [$BIN, 'paths(scalars)'],
+        stdin => qq|true\n|,
+    );
+
+    is($res_scalar_paths->{rc}, 0, 'paths(scalars) on scalar exits 0');
+    is($res_scalar_paths->{out}, '', 'paths(scalars) on scalar emits no output');
+    is($res_scalar_paths->{err}, '', 'paths(scalars) on scalar emits no errors');
 }
 
 done_testing();

@@ -1980,7 +1980,26 @@ sub apply {
 
         # support for paths()
         if ($part eq 'paths()' || $part eq 'paths') {
-            @next_results = map { JQ::Lite::Util::_apply_paths($_) } @results;
+            @next_results = ();
+
+            for my $value (@results) {
+                my $paths = JQ::Lite::Util::_apply_paths($value);
+                push @next_results, @$paths;
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
+        # support for paths(scalars)
+        if ($part =~ /^paths\(\s*scalars\s*\)$/) {
+            @next_results = ();
+
+            for my $value (@results) {
+                my $paths = JQ::Lite::Util::_apply_scalar_paths($value);
+                push @next_results, @$paths;
+            }
+
             @$out_ref = @next_results;
             return 1;
         }
