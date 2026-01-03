@@ -977,8 +977,8 @@ jq-lite - minimal jq-style JSON filter (pure Perl)
 
 =head1 DESCRIPTION
 
-B<jq-lite> is a lightweight, jq-style JSON filter implemented
-entirely in pure Perl.
+B<jq-lite> is a jq-compatible JSON processor written entirely in
+pure Perl.
 
 It is intended for use on systems where B<jq> is unavailable but Perl
 is present, providing awk/sed-like convenience for processing JSON
@@ -995,9 +995,10 @@ and commonly used built-in functions
 
 =item *
 
-Command-line options such as C<-R>, C<-r>, C<-c>, C<-a>, C<--slurp>,
-C<--null-input>, C<--from-file>, C<--arg>, C<--argfile>, C<--argjson>,
-C<--rawfile>, and C<--yaml>
+Command-line options such as C<-R>, C<-r>, C<-c>, C<-a>, C<--color>,
+C<--use>, C<--debug>, C<-e>, C<--slurp>, C<--null-input>, C<-s>,
+C<--from-file>, C<--arg>, C<--argfile>, C<--argjson>, C<--rawfile>,
+C<--slurpfile>, C<--help-functions>, C<-h>, and C<-v>
 
 =item *
 
@@ -1019,42 +1020,88 @@ differently from jq.
 
 =over 4
 
-=item B<-r>, B<--raw-output>
-
-Output strings without JSON quoting.
-
 =item B<-R>, B<--raw-input>
 
-Read input as raw text, treating each line as a separate value.
-Use B<-s> together with B<-R> to process the entire input as a single string.
+Read input as raw text instead of JSON, running the filter once per line. Use
+B<-s> with B<-R> to process the entire input as a single string.
 
-=item B<-s>, B<--slurp>
+=item B<-r>, B<--raw-output>
 
-Read the entire input into a single value.
+Print raw strings instead of JSON-encoded values.
+
+=item B<-c>, B<--compact-output>
+
+Emit JSON on a single line without pretty-printing whitespace.
 
 =item B<-a>, B<--ascii-output>
 
-Escape non-ASCII characters in output.
+Escape all non-ASCII characters in JSON output.
+
+=item B<--color>
+
+Colorize JSON output (keys, strings, numbers, booleans).
+
+=item B<--use> I<Module>
+
+Force the JSON decoder module (for example C<JSON::PP>, C<JSON::XS>,
+or C<Cpanel::JSON::XS>).
+
+=item B<--debug>
+
+Show which JSON module is being used.
+
+=item B<-e>, B<--exit-status>
+
+Set exit code to 1 when the final result is false, null, or empty.
 
 =item B<--arg> I<name> I<value>
 
 Define a string variable.
 
-=item B<--argfile> I<name> I<file>
+=item B<--rawfile> I<name> I<file>
 
-Read I<file> as JSON and bind it to the variable.
+Read I<file> as raw text and bind it to the variable.
+
+=item B<--slurpfile> I<name> I<file>
+
+Read I<file> as JSON and bind it to the variable as an array of values.
 
 =item B<--argjson> I<name> I<value>
 
 Define a JSON variable.
 
+=item B<--argfile> I<name> I<file>
+
+Read I<file> as JSON and bind it to the variable.
+
+=item B<-f>, B<--from-file> I<file>
+
+Read the jq filter from I<file> instead of the command line (use C<-> for
+STDIN).
+
+=item B<-n>, B<--null-input>
+
+Use C<null> as input instead of reading JSON data.
+
+=item B<-s>, B<--slurp>
+
+Read the entire input stream as an array of JSON values.
+
 =item B<--yaml>
 
-Force YAML input parsing.
+Parse input as YAML (auto-detected for C<.yml> / C<.yaml> files).
 
 =item B<-h>, B<--help>
 
 Display help and exit.
+
+=item B<--help-functions>
+
+Show the list of supported built-in functions.
+
+=item B<-v>, B<--version>
+
+Display version information.
 
 =back
 
