@@ -1,7 +1,11 @@
 1.86  2026-01-05
 
-    - Promote release to version 1.86 capturing the count filter updates
-      for per-input counting across streamed values and nested arrays.
+    - Refined the count filter to operate per input value, correctly handling
+      streamed inputs and nested arrays without implicit aggregation.
+
+    - Expanded count test coverage to validate stream semantics, including
+      objects, scalars, null values, and composed pipelines.
+
 
 1.85  2026-01-05
 
@@ -1169,55 +1173,6 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
