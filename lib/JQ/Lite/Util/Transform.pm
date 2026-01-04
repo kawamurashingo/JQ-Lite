@@ -1618,14 +1618,14 @@ sub _apply_range {
     my ($value, $args_ref) = @_;
 
     my $sequence = _build_range_sequence($args_ref);
-    return defined $sequence ? @$sequence : ($value);
+    return @$sequence;
 }
 
 sub _build_range_sequence {
     my ($args_ref) = @_;
 
     my @args = @$args_ref;
-    return undef unless @args;
+    die 'range(): bounds must be numeric' unless @args;
 
     @args = @args[0 .. 2] if @args > 3;
 
@@ -1647,8 +1647,8 @@ sub _build_range_sequence {
         $step  = _coerce_range_number($args[2]);
     }
 
-    return undef unless defined $start && defined $end;
-    return undef if !defined $step;
+    die 'range(): bounds must be numeric' unless defined $start && defined $end;
+    die 'range(): step must be numeric'    if !defined $step;
     return []    if $step == 0;
 
     if ($step > 0) {
@@ -1675,10 +1675,8 @@ sub _coerce_range_number {
     my ($value) = @_;
 
     return undef if !defined $value;
-
-    if (ref($value) eq 'JSON::PP::Boolean') {
-        return $value ? 1 : 0;
-    }
+    return undef if ref $value;
+    return undef if _is_string_scalar($value);
 
     return looks_like_number($value) ? 0 + $value : undef;
 }
