@@ -490,6 +490,13 @@ sub _validate_path_array {
 
     die "$caller(): path must be an array" if ref($path) ne 'ARRAY';
 
+    for my $segment (@$path) {
+        my $is_boolean = ref($segment) && ref($segment) eq 'JSON::PP::Boolean';
+
+        die "$caller(): path elements must be defined" if !defined $segment;
+        die "$caller(): path elements must be scalars" if ref($segment) && !$is_boolean;
+    }
+
     return [ @$path ];
 }
 
