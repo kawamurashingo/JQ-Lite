@@ -50,4 +50,11 @@ is($chained[0], 'HELLO PERL', 'replace result can be chained with other function
 my @double = $jq->run_query($json, '.title | replace("l", "L")');
 is($double[0], 'HeLLo WorLd', 'replace substitutes all occurrences of the search term');
 
+my $vars_jq = JQ::Lite->new(vars => { needle => 'World', patch => 'perl,world' });
+my @var_search = $vars_jq->run_query($json, '.title | replace($needle, ",")');
+is($var_search[0], 'Hello ,', 'replace handles string arguments containing commas when search term is a variable');
+
+my @var_replace = $vars_jq->run_query($json, '.title | replace("Hello", $patch)');
+is($var_replace[0], 'perl,world World', 'replace handles string arguments containing commas when replacement is a variable');
+
 done_testing;

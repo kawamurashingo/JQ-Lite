@@ -1836,11 +1836,22 @@ sub apply {
 
         # support for replace(old, new)
         if ($part =~ /^replace\((.+)\)$/) {
-            my ($search, $replacement) = JQ::Lite::Util::_parse_arguments($1);
-            $search      = defined $search      ? $search      : '';
-            $replacement = defined $replacement ? $replacement : '';
+            my ($search_expr, $replacement_expr) = JQ::Lite::Util::_parse_arguments($1);
 
-            @next_results = map { JQ::Lite::Util::_apply_replace($_, $search, $replacement) } @results;
+            my $resolve_arg = sub {
+                my ($value, $expr) = @_;
+
+                return '' unless defined $expr;
+
+                my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $expr);
+                return $ok ? (@$values ? $values->[0] : undef) : $expr;
+            };
+
+            @next_results = map {
+                my $resolved_search = $resolve_arg->($_, $search_expr);
+                my $resolved_repl   = $resolve_arg->($_, $replacement_expr);
+                JQ::Lite::Util::_apply_replace($_, $resolved_search, $resolved_repl);
+            } @results;
             @$out_ref = @next_results;
             return 1;
         }

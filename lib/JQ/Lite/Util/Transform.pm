@@ -1471,7 +1471,7 @@ sub _parse_arguments {
         return @$parsed;
     }
 
-    my @parts = split /,/, $raw;
+    my @parts = _split_top_level_commas($raw);
     return map {
         my $part = $_;
         $part =~ s/^\s+|\s+$//g;
