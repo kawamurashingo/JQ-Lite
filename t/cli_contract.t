@@ -8,6 +8,9 @@ use Symbol qw(gensym);
 #   JQ_LITE_BIN=jq-lite prove -lv t/cli_contract.t
 my $BIN = $ENV{JQ_LITE_BIN} || 'bin/jq-lite';
 
+# Prevent the test process from aborting if the child closes its pipe early.
+$SIG{PIPE} = 'IGNORE';
+
 sub run_cmd {
     my (%opt) = @_;
     my $stdin = defined $opt{stdin} ? $opt{stdin} : '';

@@ -1,3 +1,8 @@
+1.82  2026-01-04
+
+    - Ignore SIGPIPE in CLI to avoid premature termination when pipes are closed
+      early, stabilizing CLI behavior
+
 1.81  2026-01-04
 
     - Promote release to version 1.81 including the type() handling
@@ -1141,6 +1146,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
