@@ -1,3 +1,9 @@
+1.83  2026-01-05
+
+    - Promote release to version 1.83 capturing the compile-time validation
+      improvements for empty comma-separated filters and expanded CLI
+      contract coverage.
+
 1.82  2026-01-04
 
     - Ignore SIGPIPE in CLI to avoid premature termination when pipes are closed

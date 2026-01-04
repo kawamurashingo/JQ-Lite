@@ -121,6 +121,13 @@ sub _validate_query_syntax {
     if (grep { !defined $_ || $_ !~ /\S/ } @pipeline_parts) {
         _compile_error('Invalid query syntax: empty filter segment');
     }
+
+    for my $segment (@pipeline_parts) {
+        my @comma_parts = JQ::Lite::Util::_split_top_level_commas($segment);
+        if (grep { !defined $_ || $_ !~ /\S/ } @comma_parts) {
+            _compile_error('Invalid query syntax: empty filter segment');
+        }
+    }
 }
 
 sub _is_truthy {
