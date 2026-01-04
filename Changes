@@ -1,3 +1,8 @@
+1.81  2026-01-04
+
+    - Promote release to version 1.81 including the type() handling
+      updates for scientific notation and numeric-looking strings.
+
 1.80  2026-01-04
 
     - Promote release to version 1.80 reflecting normalized boolean path
