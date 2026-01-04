@@ -1,3 +1,8 @@
+1.84  2026-01-05
+
+    - Promote release to version 1.84 incorporating stricter path element
+      validation and expanded coverage for setpath() and delpaths().
+
 1.83  2026-01-05
 
     - Promote release to version 1.83 capturing the compile-time validation
