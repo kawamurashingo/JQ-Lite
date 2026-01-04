@@ -1,3 +1,8 @@
+1.79  2026-01-04
+
+    - Promote release to version 1.79 including the boolean handling
+      improvements for numeric rounding helpers and expanded coverage.
+
 1.78  2026-01-04
 
     - Promote release to version 1.78 after tightening percentile
