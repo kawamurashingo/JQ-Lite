@@ -1443,15 +1443,18 @@ sub apply {
 
         # support for count
         if ($part eq 'count') {
-            my $n = 0;
-            for my $item (@results) {
-                if (ref $item eq 'ARRAY') {
-                    $n += scalar(@$item);
-                } else {
-                    $n += 1;  # count as 1 item
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    scalar(@$_);
                 }
-            }
-            @$out_ref = ($n);
+                elsif (!defined $_) {
+                    0;
+                }
+                else {
+                    1;    # count as 1 item for scalars and objects
+                }
+            } @results;
+            @$out_ref = @next_results;
             return 1;
         }
 

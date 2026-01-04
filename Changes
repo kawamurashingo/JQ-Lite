@@ -1,3 +1,8 @@
+1.86  2026-01-05
+
+    - Promote release to version 1.86 capturing the count filter updates
+      for per-input counting across streamed values and nested arrays.
+
 1.85  2026-01-05
 
     - Hardened range() argument validation to reject booleans, references,

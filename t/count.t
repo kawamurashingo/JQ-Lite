@@ -23,4 +23,17 @@ is_deeply(\@res1, [3], 'count users');
 my @res2 = $jq->run_query($json, '.users[] | select(.age > 25) | count');
 is_deeply(\@res2, [1], 'count users over 25');
 
+my @per_user = $jq->run_query($json, '.users[] | count');
+is_deeply(\@per_user, [1, 1, 1], 'count reports one item per streamed user');
+
+my $nested = <<'JSON';
+[
+  ["a", "b"],
+  ["c"]
+]
+JSON
+
+my @per_array = $jq->run_query($nested, '.[] | count');
+is_deeply(\@per_array, [2, 1], 'count measures each array independently');
+
 done_testing;
