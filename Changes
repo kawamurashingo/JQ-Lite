@@ -1,3 +1,8 @@
+1.85  2026-01-05
+
+    - Promote release to version 1.85 capturing the range argument
+      validation hardening and expanded coverage.
+
 1.84  2026-01-05
 
     - Promote release to version 1.84 incorporating stricter path element
