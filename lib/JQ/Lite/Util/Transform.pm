@@ -62,6 +62,11 @@ sub _apply_numeric_function {
 
     return undef if !defined $value;
 
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        my $numeric = $value ? 1 : 0;
+        return $callback->($numeric);
+    }
+
     if (!ref $value) {
         return looks_like_number($value) ? $callback->($value) : $value;
     }
