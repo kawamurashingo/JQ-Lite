@@ -1675,10 +1675,8 @@ sub _coerce_range_number {
     my ($value) = @_;
 
     return undef if !defined $value;
-
-    if (ref($value) eq 'JSON::PP::Boolean') {
-        return $value ? 1 : 0;
-    }
+    return undef if ref $value;
+    return undef if _is_string_scalar($value);
 
     return looks_like_number($value) ? 0 + $value : undef;
 }
