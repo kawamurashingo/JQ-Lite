@@ -394,13 +394,21 @@ if (@query_files) {
 
 if (@ARGV == 0) {
     if (!defined $query) {
+        if ($slurpfile_probably_missing_file) {
+            _usage_error('--slurpfile requires a file path');
+        }
+
+        if ($raw_input) {
+            my $reason = $slurp_input
+                ? '--raw-input requires a query when used with --slurp.'
+                : '--raw-input requires a query when not using --slurp.';
+            _usage_error($reason);
+        }
+
         if ($null_input) {
             $query = '.';
         } else {
             if ($non_help_option_used) {
-                if ($slurpfile_probably_missing_file) {
-                    _usage_error('--slurpfile requires a file path');
-                }
                 _usage_error('filter expression is required');
             }
 
@@ -712,8 +720,11 @@ sub print_results {
 }
 
 # ---------- Interactive mode ----------
-if ($raw_input && !$slurp_input && !defined $query) {
-    _usage_error('--raw-input requires a query when not using --slurp.');
+if ($raw_input && !defined $query) {
+    my $reason = $slurp_input
+        ? '--raw-input requires a query when used with --slurp.'
+        : '--raw-input requires a query when not using --slurp.';
+    _usage_error($reason);
 }
 
 if (!defined $query) {
