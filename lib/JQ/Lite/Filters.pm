@@ -66,6 +66,20 @@ sub apply {
             return 1;
         }
 
+        # support for binding the current value to a variable: . as $x | ...
+        if ($normalized =~ /^as\s+\$(\w+)$/) {
+            my $var_name = $1;
+            @next_results = ();
+
+            for my $item (@results) {
+                $self->{_vars}{$var_name} = $item;
+                push @next_results, $item;
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         if ($normalized =~ /^try\b/) {
             my $body = $normalized;
             $body =~ s/^try\s*//;
@@ -1443,15 +1457,18 @@ sub apply {
 
         # support for count
         if ($part eq 'count') {
-            my $n = 0;
-            for my $item (@results) {
-                if (ref $item eq 'ARRAY') {
-                    $n += scalar(@$item);
-                } else {
-                    $n += 1;  # count as 1 item
+            @next_results = map {
+                if (ref $_ eq 'ARRAY') {
+                    scalar(@$_);
                 }
-            }
-            @$out_ref = ($n);
+                elsif (!defined $_) {
+                    0;
+                }
+                else {
+                    1;    # count as 1 item for scalars and objects
+                }
+            } @results;
+            @$out_ref = @next_results;
             return 1;
         }
 

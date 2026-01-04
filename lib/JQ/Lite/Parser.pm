@@ -24,7 +24,10 @@ sub parse_query {
         }
         elsif ($_ =~ /^\.(.+)$/) {
             my $rest = $1;
-            if ($rest =~ /^\s*[+\-*\/%]/
+            if ($rest =~ /,/) {
+                $_;    # preserve leading dot when sequence filters are present
+            }
+            elsif ($rest =~ /^\s*[+\-*\/%]/
                 || $rest =~ /[+\-*\/%]/
                 || $rest =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b)/i
                 || $rest =~ /\b(?:floor|ceil|round|tonumber)\b/)
