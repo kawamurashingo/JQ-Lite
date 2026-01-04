@@ -66,6 +66,20 @@ sub apply {
             return 1;
         }
 
+        # support for binding the current value to a variable: . as $x | ...
+        if ($normalized =~ /^as\s+\$(\w+)$/) {
+            my $var_name = $1;
+            @next_results = ();
+
+            for my $item (@results) {
+                $self->{_vars}{$var_name} = $item;
+                push @next_results, $item;
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         if ($normalized =~ /^try\b/) {
             my $body = $normalized;
             $body =~ s/^try\s*//;
