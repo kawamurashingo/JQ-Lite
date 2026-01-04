@@ -748,6 +748,26 @@ sub _normalize_array_index_for_set {
     return $index;
 }
 
+sub _normalize_array_index_for_get {
+    my ($segment, $length) = @_;
+
+    return undef if !defined $segment;
+
+    if (ref($segment) eq 'JSON::PP::Boolean') {
+        $segment = $segment ? 1 : 0;
+    }
+
+    return undef if ref $segment;
+    return undef if $segment !~ /^-?\d+$/;
+
+    my $index = int($segment);
+    $index += $length if $index < 0;
+
+    return undef if $index < 0;
+
+    return $index;
+}
+
 sub _ensure_array_length {
     my ($array_ref, $index) = @_;
 
@@ -836,25 +856,21 @@ sub _traverse_path_array {
         return undef unless defined $cursor;
 
         if (ref $cursor eq 'HASH') {
-            my $key = defined $segment ? "$segment" : return undef;
+            my $key = _coerce_hash_key($segment);
+            return undef unless defined $key;
             return undef unless exists $cursor->{$key};
             $cursor = $cursor->{$key};
             next;
         }
 
         if (ref $cursor eq 'ARRAY') {
-            return undef unless defined $segment;
+            my $index = _normalize_array_index_for_get($segment, scalar @$cursor);
+            return undef unless defined $index;
 
-            my $index = "$segment";
-            if ($index =~ /^-?\d+$/) {
-                my $numeric = int($index);
-                $numeric += @$cursor if $numeric < 0;
-                return undef if $numeric < 0 || $numeric > $#$cursor;
-                $cursor = $cursor->[$numeric];
-                next;
-            }
+            return undef if $index > $#$cursor;
 
-            return undef;
+            $cursor = $cursor->[$index];
+            next;
         }
 
         return undef;
