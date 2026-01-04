@@ -5,6 +5,7 @@ use warnings;
 
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
+use B qw(SVp_IOK SVp_NOK);
 use JQ::Lite::Util ();
 
 sub apply {
@@ -1629,11 +1630,10 @@ sub apply {
                     'object';
                 }
                 elsif (ref($_) eq '') {
-                    if (/^-?\d+(?:\.\d+)?$/) {
-                        'number';
-                    } else {
-                        'string';
-                    }
+                    my $sv    = B::svref_2object(\$_);
+                    my $flags = $sv->FLAGS;
+
+                    ($flags & (SVp_IOK | SVp_NOK)) ? 'number' : 'string';
                 }
                 elsif (ref($_) eq 'JSON::PP::Boolean') {
                     'boolean';
