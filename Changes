@@ -1,3 +1,7 @@
+1.82  2026-01-05
+
+    - Bump version to 1.82.
+
 1.81  2026-01-04
 
     - Promote release to version 1.81 including the type() handling
