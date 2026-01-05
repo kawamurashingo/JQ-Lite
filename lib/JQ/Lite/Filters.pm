@@ -318,7 +318,14 @@ sub apply {
                 my @items = $self->run_query($json, $foreach->{generator});
 
                 my ($init_values, $init_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $foreach->{init_expr});
-                my $acc = ($init_ok && @$init_values) ? $init_values->[0] : undef;
+                my $acc;
+                if ($init_ok) {
+                    $acc = @$init_values ? $init_values->[0] : undef;
+                }
+                else {
+                    my @init_outputs = $self->run_query(JQ::Lite::Util::_encode_json($value), $foreach->{init_expr});
+                    $acc = @init_outputs ? $init_outputs[0] : undef;
+                }
 
                 for my $element (@items) {
                     my %existing = %{ $self->{_vars} || {} };
@@ -424,7 +431,14 @@ sub apply {
                 my @items = $self->run_query($json, $reduce->{generator});
 
                 my ($init_values, $init_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $reduce->{init_expr});
-                my $acc = ($init_ok && @$init_values) ? $init_values->[0] : undef;
+                my $acc;
+                if ($init_ok) {
+                    $acc = @$init_values ? $init_values->[0] : undef;
+                }
+                else {
+                    my @init_outputs = $self->run_query(JQ::Lite::Util::_encode_json($value), $reduce->{init_expr});
+                    $acc = @init_outputs ? $init_outputs[0] : undef;
+                }
 
                 for my $element (@items) {
                     my %existing = %{ $self->{_vars} || {} };
