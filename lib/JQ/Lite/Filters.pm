@@ -6,6 +6,7 @@ use warnings;
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 use B qw(SVp_IOK SVp_NOK);
+use JSON::PP (); 
 use JQ::Lite::Util ();
 
 sub apply {
@@ -1498,11 +1499,27 @@ sub apply {
             $sep =~ s/^['"](.*?)['"]$/$1/;  # remove quotes around separator
 
             @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    join($sep, map { defined $_ ? $_ : '' } @$_)
-                } else {
-                    ''
+                die 'join(): input must be an array' if ref($_) ne 'ARRAY';
+
+                my @parts;
+                for my $element (@$_) {
+                    if (!defined $element) {
+                        push @parts, '';
+                        next;
+                    }
+
+                    if (ref($element) eq 'JSON::PP::Boolean') {
+                        push @parts, ($element ? 'true' : 'false');
+                        next;
+                    }
+
+                    die 'join(): array elements must be scalars or booleans'
+                        if ref $element;
+
+                    push @parts, $element;
                 }
+
+                join($sep, @parts);
             } @results;
             @$out_ref = @next_results;
             return 1;
