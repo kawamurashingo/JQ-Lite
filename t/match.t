@@ -21,4 +21,13 @@ is($matched_bob[0]{name}, 'Bob', 'matched user name = Bob');
 is($matched_admin[0]{email}, 'bob@admin.com', 'matched email start with bob@');
 ok(!@matched_fail, 'no match for David');
 
+my $regex_error;
+eval { $jq->run_query($json, '.users[] | select(.name match "[")'); 1 };
+$regex_error = $@;
+like(
+    $regex_error,
+    qr/match\(\): invalid regular expression/i,
+    'match() reports errors for invalid regular expressions'
+);
+
 done_testing;

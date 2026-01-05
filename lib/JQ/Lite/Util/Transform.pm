@@ -726,10 +726,11 @@ sub _evaluate_condition {
     # support for the match operator (with optional 'i' flag)
     if ($cond =~ /^\s*\.(.+?)\s+match\s+"(.*?)"(i?)\s*$/) {
         my ($path, $pattern, $ignore_case) = ($1, $2, $3);
-        my $re = eval {
-            $ignore_case eq 'i' ? qr/$pattern/i : qr/$pattern/
-        };
-        return 0 unless $re;
+        my ($re, $error) = _build_regex($pattern, $ignore_case);
+        if ($error) {
+            $error =~ s/[\r\n]+$//;
+            die "match(): invalid regular expression - $error";
+        }
 
         my @vals = _traverse($item, $path);
         for my $val (@vals) {
