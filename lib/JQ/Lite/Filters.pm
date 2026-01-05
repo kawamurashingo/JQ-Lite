@@ -471,6 +471,9 @@ sub apply {
             my $has_comparison = ($cond =~ /(==|!=|>=|<=|>|<|\band\b|\bor\b|\bcontains\b|\bhas\b|\bmatch\b)/i);
             my $use_streaming_eval = $has_wildcard_array || !$has_comparison;
 
+            # allow built-in filters like match() and test() to run so their errors surface
+            $use_streaming_eval ||= ($cond =~ /^\s*(match|test)\s*\(/);
+
             VALUE: for my $value (@results) {
                 my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
 
@@ -485,13 +488,7 @@ sub apply {
                         $error = $@;
                     }
 
-                    if ($error) {
-                        if ($simple) {
-                            push @next_results, $value;
-                        }
-
-                        next VALUE;
-                    }
+                    die $error if $error;
 
                     if (@cond_results) {
                         my $truthy = 0;
@@ -1848,6 +1845,17 @@ sub apply {
             my $flags   = defined $flags_expr   ? JQ::Lite::Util::_parse_string_argument($flags_expr)   : '';
 
             @next_results = map { JQ::Lite::Util::_apply_test($_, $pattern, $flags) } @results;
+            @$out_ref = @next_results;
+            return 1;
+        }
+
+        # support for match("pattern"[, "flags"])
+        if ($part =~ /^match\((.+)\)$/) {
+            my ($pattern_expr, $flags_expr) = JQ::Lite::Util::_split_semicolon_arguments($1, 2);
+            my $pattern = defined $pattern_expr ? JQ::Lite::Util::_parse_string_argument($pattern_expr) : '';
+            my $flags   = defined $flags_expr   ? JQ::Lite::Util::_parse_string_argument($flags_expr)   : '';
+
+            @next_results = map { JQ::Lite::Util::_apply_match($_, $pattern, $flags) } @results;
             @$out_ref = @next_results;
             return 1;
         }

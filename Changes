@@ -1,3 +1,8 @@
+1.93  2026-01-05
+
+    - Promote release to version 1.93 covering the stricter invalid regex
+      handling for match conditions and the accompanying regression tests.
+
 1.92  2026-01-05
 
     - Promote release to version 1.92 capturing improved split handling
