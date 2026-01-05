@@ -1,3 +1,8 @@
+1.96  2026-01-05
+
+    - Promote release to version 1.96 capturing the substr argument
+      validation updates and expanded negative test coverage.
+
 1.95  2026-01-05
 
     - Promote release to version 1.95 covering substr boolean stringification

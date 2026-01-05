@@ -33,4 +33,12 @@ ok(!defined $null_slice[0], 'substr preserves undef for downstream defaults');
 my @no_args = $jq->run_query($json, '.users[1].name | substr');
 is($no_args[0], 'Bob', 'substr with no arguments returns original value');
 
+my $non_numeric_start_ok = eval { $jq->run_query($json, '.users[0].name | substr("foo")') };
+ok(!$non_numeric_start_ok && $@ =~ /substr\(\): start index must be numeric/,
+    'substr() rejects non-numeric start argument');
+
+my $non_numeric_length_ok = eval { $jq->run_query($json, '.users[0].name | substr(0, "bar")') };
+ok(!$non_numeric_length_ok && $@ =~ /substr\(\): length must be numeric/,
+    'substr() rejects non-numeric length argument');
+
 done_testing;
