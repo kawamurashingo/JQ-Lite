@@ -1,3 +1,9 @@
+1.94  2026-01-05
+
+    - Promote release to version 1.94 capturing the init-expression
+      fallback fixes for foreach/reduce and the expanded test coverage
+      around filtered initializers.
+
 1.93  2026-01-05
 
     - Promote release to version 1.93 covering the stricter invalid regex
@@ -1213,6 +1219,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
