@@ -1,3 +1,8 @@
+1.89  2026-01-06
+
+    - Release version 1.89 with stricter limit() validation and expanded
+      tests covering invalid arguments.
+
 1.88  2026-01-05
 
     - Promote release to version 1.88 including the invalid regex error
