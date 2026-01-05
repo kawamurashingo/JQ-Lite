@@ -1548,11 +1548,8 @@ sub apply {
             $sep =~ s/^['"](.*?)['"]$/$1/;  # remove quotes around separator
 
             @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    join($sep, map { defined $_ ? $_ : '' } @$_)
-                } else {
-                    ''
-                }
+                die 'join(): input must be an array' if ref($_) ne 'ARRAY';
+                join($sep, map { defined $_ ? $_ : '' } @$_)
             } @results;
             @$out_ref = @next_results;
             return 1;
