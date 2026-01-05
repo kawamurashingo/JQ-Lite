@@ -1,7 +1,9 @@
 1.97  2026-01-05
 
-    - Promote release to version 1.97 capturing the split null propagation
-      adjustments and expanded test coverage for recursive array flattening.
+    - Promote release to version 1.97 restoring jq-compatible flatten behavior:
+      depth-based array flattening while keeping .[] traversal separate.
+    - Preserve null outputs through map(... ) | flatten flows (no silent drops),
+      and expand tests covering passthrough and the null regression scenario.
 
 1.96  2026-01-05
 
@@ -1234,6 +1236,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
