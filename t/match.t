@@ -39,6 +39,15 @@ like(
     'match() function reports errors for invalid regular expressions'
 );
 
+my $match_in_select_error;
+eval { $jq->run_query('"abc"', 'select(match("[") )'); 1 };
+$match_in_select_error = $@;
+like(
+    $match_in_select_error,
+    qr/match\(\): invalid regular expression/i,
+    'match() inside select reports errors for invalid regular expressions'
+);
+
 my $regex_op_error;
 eval { $jq->run_query('"abc"', 'select(. =~ "[")'); 1 };
 $regex_op_error = $@;

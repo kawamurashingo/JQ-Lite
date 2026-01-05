@@ -471,6 +471,9 @@ sub apply {
             my $has_comparison = ($cond =~ /(==|!=|>=|<=|>|<|\band\b|\bor\b|\bcontains\b|\bhas\b|\bmatch\b)/i);
             my $use_streaming_eval = $has_wildcard_array || !$has_comparison;
 
+            # allow built-in filters like match() and test() to run so their errors surface
+            $use_streaming_eval ||= ($cond =~ /^\s*(match|test)\s*\(/);
+
             VALUE: for my $value (@results) {
                 my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
 
