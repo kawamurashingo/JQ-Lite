@@ -208,22 +208,28 @@ sub _parse_path_segments {
     $path =~ s/^\s+|\s+$//g;
 
     my @segments;
-    for my $chunk (split /\./, $path) {
-        next if $chunk eq '';
+    while (length $path) {
+        $path =~ s/^\.//;
 
-        while (length $chunk) {
-            if ($chunk =~ s/^\[(\-?\d+)\]//) {
-                push @segments, { type => 'index', value => $1 };
-                next;
-            }
-
-            if ($chunk =~ s/^([^\[]+)//) {
-                push @segments, { type => 'key', value => $1 };
-                next;
-            }
-
-            last;
+        if ($path =~ s/^\[(\-?\d+)\]//) {
+            push @segments, { type => 'index', value => $1 };
+            next;
         }
+
+        if ($path =~ s/^"((?:\\.|[^"])*)"//) {
+            my $raw = $1;
+            my $key = JSON::PP->new->allow_nonref->decode("\"$raw\"");
+
+            push @segments, { type => 'key', value => $key };
+            next;
+        }
+
+        if ($path =~ s/^([^\.\[]+)//) {
+            push @segments, { type => 'key', value => $1 };
+            next;
+        }
+
+        last;
     }
 
     return @segments;
