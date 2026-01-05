@@ -1340,7 +1340,7 @@ sub _apply_split {
         return \@parts;
     }
 
-    return [] if !defined $value;
+    return undef if !defined $value;
     if (ref($value) eq 'JSON::PP::Boolean') {
         $value = $value ? 'true' : 'false';
     }

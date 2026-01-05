@@ -1,3 +1,8 @@
+1.97  2026-01-05
+
+    - Promote release to version 1.97 capturing the split null propagation
+      adjustments and expanded test coverage for recursive array flattening.
+
 1.96  2026-01-05
 
     - Promote release to version 1.96 capturing the substr argument
