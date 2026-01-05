@@ -1,3 +1,8 @@
+1.95  2026-01-05
+
+    - Promote release to version 1.95 covering the boolean stringification
+      handling for substr along with the expanded regression tests.
+
 1.94  2026-01-05
 
     - Promote release to version 1.94 capturing the init-expression

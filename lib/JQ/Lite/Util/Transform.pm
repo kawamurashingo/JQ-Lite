@@ -1410,7 +1410,12 @@ sub _apply_substr {
     }
 
     return undef if !defined $value;
-    return $value if ref $value;
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        $value = $value ? 'true' : 'false';
+    }
+    elsif (ref $value) {
+        return $value;
+    }
 
     my ($start, $length) = @args;
     $start = 0 unless defined $start;
