@@ -24,11 +24,16 @@ is_deeply($chars[0], [qw(A l i c e)], 'split("") returns individual characters')
 
 my @array = $jq->run_query($json, '.mixed | split(" ")');
 my $expected = [
-    qw(alpha beta inner),
+    qw(alpha beta),
+    undef,
+    'inner',
     { skip => 'value' },
     'true',
 ];
 is_deeply($array[0], $expected, 'split applies recursively to arrays and flattens nested results');
+
+my @null_value = $jq->run_query('null', 'split(",")');
+ok(!defined $null_value[0], 'split propagates null inputs rather than dropping them');
 
 my @bool_chars = $jq->run_query('true', 'split("")');
 is_deeply($bool_chars[0], [qw(t r u e)], 'split treats booleans like strings when splitting characters');

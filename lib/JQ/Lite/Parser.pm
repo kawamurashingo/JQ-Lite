@@ -20,7 +20,7 @@ sub parse_query {
 
     @parts = map {
         if ($_ eq '.[]') {
-            'flatten';
+            '.[]';
         }
         elsif ($_ =~ /^\.(.+)$/) {
             my $rest = $1;

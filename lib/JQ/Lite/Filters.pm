@@ -464,8 +464,8 @@ sub apply {
             return 1;
         }
 
-        # support for flatten (alias for .[])
-        if ($part eq 'flatten') {
+        # support for .[] iteration
+        if ($part eq '.[]') {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? @$_
               : ref $_ eq 'HASH'  ? values %$_
@@ -852,9 +852,18 @@ sub apply {
         if ($part =~ /^map\((.+)\)$/) {
             my $filter = $1;
             @next_results = map {
-                ref $_ eq 'ARRAY'
-                    ? [ grep { defined($_) } map { $self->run_query(JQ::Lite::Util::_encode_json($_), $filter) } @$_ ]
-                    : $_
+                if (ref $_ eq 'ARRAY') {
+                    my @mapped;
+
+                    for my $element (@$_) {
+                        my @outputs = $self->run_query(JQ::Lite::Util::_encode_json($element), $filter);
+                        push @mapped, @outputs if @outputs;
+                    }
+
+                    \@mapped;
+                } else {
+                    $_;
+                }
             } @results;
             @$out_ref = @next_results;
             return 1;
@@ -1629,10 +1638,9 @@ sub apply {
         # support for flatten()
         if ($part eq 'flatten()' || $part eq 'flatten') {
             @next_results = map {
-                ref $_ eq 'ARRAY' ? @$_
-              : ref $_ eq 'HASH'  ? values %$_
-              : JQ::Lite::Util::_is_string_scalar($_) ? split(//, "$_")
-              : ()
+                ref $_ eq 'ARRAY'
+                    ? JQ::Lite::Util::_flatten_depth($_, 1)
+                    : $_
             } @results;
             @$out_ref = @next_results;
             return 1;
