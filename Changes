@@ -1,8 +1,10 @@
-1.87  2026-01-06
+1.87  2026-01-05
 
-    - Promote release to version 1.87 capturing the raw-input CLI guard
-      improvements and expanded usage coverage for missing queries.
-
+    - Clarified and enforced usage errors when --raw-input is used without
+      a filter expression, including distinct diagnostics for standalone
+      and --slurp modes.
+    - Added CLI regression tests to lock in exit code 5 and the expected
+      usage messages for missing-query scenarios.
 
 1.86  2026-01-05
 
@@ -1179,6 +1181,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
