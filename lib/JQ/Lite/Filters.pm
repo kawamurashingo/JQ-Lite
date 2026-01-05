@@ -485,13 +485,7 @@ sub apply {
                         $error = $@;
                     }
 
-                    if ($error) {
-                        if ($simple) {
-                            push @next_results, $value;
-                        }
-
-                        next VALUE;
-                    }
+                    die $error if $error;
 
                     if (@cond_results) {
                         my $truthy = 0;

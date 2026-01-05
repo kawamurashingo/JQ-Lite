@@ -51,4 +51,13 @@ like(
 my @regex_op_match = $jq->run_query('"abc"', 'select(. =~ "^a")');
 is_deeply(\@regex_op_match, [ 'abc' ], '=~ operator matches strings');
 
+my $test_in_select_error;
+eval { $jq->run_query('"abc"', 'select(test("[") )'); 1 };
+$test_in_select_error = $@;
+like(
+    $test_in_select_error,
+    qr/test\(\): invalid regular expression/i,
+    'test() inside select reports errors for invalid regular expressions',
+);
+
 done_testing;
