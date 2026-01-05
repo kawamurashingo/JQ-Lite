@@ -699,6 +699,19 @@ Examples:
   .users | tail(2)            # => last two users
   .users | tail(10)           # => full array when shorter than 10
 
+=item * chunks(n)
+
+Splits the current array into sub-arrays of length C<n>. A size of zero is
+rounded up to one so you always receive at least single-element chunks. When
+the final partition would be shorter than C<n>, the trailing chunk contains
+only the remaining elements. Non-array inputs are returned untouched so mixed
+pipelines continue working as expected.
+
+Examples:
+
+  [1,2,3,4,5] | chunks(2)     # => [[1,2],[3,4],[5]]
+  [1,2,3]     | chunks(0)     # => [[1],[2],[3]]
+
 =item * range(start; end[, step])
 
 Emits a numeric sequence that begins at C<start> (default C<0>) and advances
