@@ -1418,10 +1418,16 @@ sub _apply_substr {
     }
 
     my ($start, $length) = @args;
+    if (defined $start && !looks_like_number($start)) {
+        die 'substr(): start index must be numeric';
+    }
     $start = 0 unless defined $start;
     $start = int($start);
 
     if (defined $length) {
+        if (!looks_like_number($length)) {
+            die 'substr(): length must be numeric';
+        }
         $length = int($length);
         return substr($value, $start, $length);
     }
