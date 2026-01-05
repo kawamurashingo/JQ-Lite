@@ -30,4 +30,25 @@ like(
     'match() reports errors for invalid regular expressions'
 );
 
+my $match_fn_error;
+eval { $jq->run_query('"abc"', 'match("[")'); 1 };
+$match_fn_error = $@;
+like(
+    $match_fn_error,
+    qr/match\(\): invalid regular expression/i,
+    'match() function reports errors for invalid regular expressions'
+);
+
+my $regex_op_error;
+eval { $jq->run_query('"abc"', 'select(. =~ "[")'); 1 };
+$regex_op_error = $@;
+like(
+    $regex_op_error,
+    qr/invalid regular expression/i,
+    '=~ operator reports errors for invalid regular expressions'
+);
+
+my @regex_op_match = $jq->run_query('"abc"', 'select(. =~ "^a")');
+is_deeply(\@regex_op_match, [ 'abc' ], '=~ operator matches strings');
+
 done_testing;

@@ -739,6 +739,24 @@ sub _evaluate_condition {
         }
         return 0;
     }
+
+    # support for the =~ operator: select(. =~ "pattern")
+    if ($cond =~ /^\s*\.(.+?)\s*=~\s*"(.*?)"(i?)\s*$/) {
+        my ($path, $pattern, $ignore_case) = ($1, $2, $3);
+        my ($re, $error) = _build_regex($pattern, $ignore_case);
+        if ($error) {
+            $error =~ s/[\r\n]+$//;
+            die "=~: invalid regular expression - $error";
+        }
+
+        my @vals = _traverse($item, $path);
+        for my $val (@vals) {
+            next if ref $val;
+            return 1 if $val =~ $re;
+        }
+
+        return 0;
+    }
  
     # pattern for a single condition
     if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
@@ -1016,6 +1034,18 @@ sub _apply_test {
     if ($error) {
         $error =~ s/[\r\n]+$//;
         die "test(): invalid regular expression - $error";
+    }
+
+    return _test_against_regex($value, $regex);
+}
+
+sub _apply_match {
+    my ($value, $pattern, $flags) = @_;
+
+    my ($regex, $error) = _build_regex($pattern, $flags);
+    if ($error) {
+        $error =~ s/[\r\n]+$//;
+        die "match(): invalid regular expression - $error";
     }
 
     return _test_against_regex($value, $regex);
