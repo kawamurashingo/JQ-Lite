@@ -1297,11 +1297,13 @@ sub _apply_split {
         for my $element (@$value) {
             if (ref($element) eq 'JSON::PP::Boolean') {
                 my $stringified = $element ? 'true' : 'false';
-                push @parts, @{ _apply_split($stringified, $separator) };
+                my $result = _apply_split($stringified, $separator);
+                push @parts, ref($result) eq 'ARRAY' ? @$result : $result;
                 next;
             }
 
-            push @parts, _apply_split($element, $separator);
+            my $result = _apply_split($element, $separator);
+            push @parts, ref($result) eq 'ARRAY' ? @$result : $result;
         }
 
         return \@parts;
