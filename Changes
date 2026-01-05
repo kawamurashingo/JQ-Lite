@@ -1,3 +1,8 @@
+1.90  2026-01-05
+
+    - Promote release to version 1.90 including argument validation for
+      drop(), tail(), and chunks() along with expanded slice tests.
+
 1.89  2026-01-05
 
     - Release version 1.89 with stricter limit() validation and expanded

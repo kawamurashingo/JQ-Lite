@@ -731,8 +731,15 @@ sub apply {
         }
 
         # support for drop(n)
-        if ($part =~ /^drop\((\d+)\)$/) {
-            my $count = $1;
+        if ($part =~ /^drop\((.+)\)$/) {
+            my $count_str = $1;
+            $count_str =~ s/^\s+|\s+$//g;
+
+            if ($count_str !~ /^\d+$/) {
+                die "drop(): count must be a non-negative integer";
+            }
+
+            my $count = $count_str + 0;
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
@@ -750,8 +757,15 @@ sub apply {
         }
 
         # support for tail(n)
-        if ($part =~ /^tail\((\d+)\)$/) {
-            my $count = $1;
+        if ($part =~ /^tail\((.+)\)$/) {
+            my $count_str = $1;
+            $count_str =~ s/^\s+|\s+$//g;
+
+            if ($count_str !~ /^\d+$/) {
+                die "tail(): count must be a non-negative integer";
+            }
+
+            my $count = $count_str + 0;
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
@@ -774,8 +788,15 @@ sub apply {
         }
 
         # support for chunks(n)
-        if ($part =~ /^chunks\((\d+)\)$/) {
-            my $size = $1;
+        if ($part =~ /^chunks\((.+)\)$/) {
+            my $size_str = $1;
+            $size_str =~ s/^\s+|\s+$//g;
+
+            if ($size_str !~ /^\d+$/) {
+                die "chunks(): size must be a non-negative integer";
+            }
+
+            my $size = $size_str + 0;
             $size = 1 if $size < 1;
 
             @next_results = map {
