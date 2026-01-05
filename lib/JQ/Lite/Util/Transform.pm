@@ -1292,7 +1292,19 @@ sub _apply_split {
     my ($value, $separator) = @_;
 
     if (ref $value eq 'ARRAY') {
-        return [ map { _apply_split($_, $separator) } @$value ];
+        my @parts;
+
+        for my $element (@$value) {
+            if (ref($element) eq 'JSON::PP::Boolean') {
+                my $stringified = $element ? 'true' : 'false';
+                push @parts, @{ _apply_split($stringified, $separator) };
+                next;
+            }
+
+            push @parts, _apply_split($element, $separator);
+        }
+
+        return \@parts;
     }
 
     return [] if !defined $value;

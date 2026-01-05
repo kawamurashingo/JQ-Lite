@@ -28,12 +28,15 @@ my $expected = [
     [],
     [[qw(inner)]],
     { skip => 'value' },
-    ['true'],
+    'true',
 ];
-is_deeply($array[0], $expected, 'split applies recursively to arrays and keeps non-strings untouched');
+is_deeply($array[0], $expected, 'split applies recursively to arrays and flattens boolean results');
 
 my @bool_chars = $jq->run_query('true', 'split("")');
 is_deeply($bool_chars[0], [qw(t r u e)], 'split treats booleans like strings when splitting characters');
+
+my @bool_array = $jq->run_query('[true,false]', 'split(",")');
+is_deeply($bool_array[0], [qw(true false)], 'split flattens results for arrays of booleans');
 
 my @literal = $jq->run_query($json, '.dots | split(".")');
 is_deeply($literal[0], [qw(a b c)], 'split uses literal separator rather than regex');

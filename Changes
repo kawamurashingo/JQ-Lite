@@ -2,6 +2,8 @@
 
     - Promote release to version 1.92 capturing the split boolean handling
       improvements and accompanying test coverage.
+    - Flatten split results when splitting arrays of booleans to avoid nested
+      arrays of single-element strings.
 
 1.91  2026-01-05
 
