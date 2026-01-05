@@ -455,6 +455,7 @@ sub apply {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? @$_
               : ref $_ eq 'HASH'  ? values %$_
+              : JQ::Lite::Util::_is_string_scalar($_) ? split(//, "$_")
               : ()
             } @results;
             @$out_ref = @next_results;
@@ -1619,6 +1620,7 @@ sub apply {
             @next_results = map {
                 ref $_ eq 'ARRAY' ? @$_
               : ref $_ eq 'HASH'  ? values %$_
+              : JQ::Lite::Util::_is_string_scalar($_) ? split(//, "$_")
               : ()
             } @results;
             @$out_ref = @next_results;
