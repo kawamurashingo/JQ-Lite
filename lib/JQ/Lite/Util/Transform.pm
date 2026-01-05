@@ -1296,7 +1296,12 @@ sub _apply_split {
     }
 
     return [] if !defined $value;
-    return $value if ref $value;
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        $value = $value ? 'true' : 'false';
+    }
+    elsif (ref $value) {
+        return $value;
+    }
 
     $separator = '' unless defined $separator;
 

@@ -9,7 +9,7 @@ my $json = q({
     { "name": "Alice" },
     { "name": "Bob" }
   ],
-  "mixed": ["alpha beta", null, ["inner"], {"skip": "value"}],
+  "mixed": ["alpha beta", null, ["inner"], {"skip": "value"}, true],
   "trailing": "tail,",
   "dots": "a.b.c"
 });
@@ -28,8 +28,12 @@ my $expected = [
     [],
     [[qw(inner)]],
     { skip => 'value' },
+    ['true'],
 ];
 is_deeply($array[0], $expected, 'split applies recursively to arrays and keeps non-strings untouched');
+
+my @bool_chars = $jq->run_query('true', 'split("")');
+is_deeply($bool_chars[0], [qw(t r u e)], 'split treats booleans like strings when splitting characters');
 
 my @literal = $jq->run_query($json, '.dots | split(".")');
 is_deeply($literal[0], [qw(a b c)], 'split uses literal separator rather than regex');

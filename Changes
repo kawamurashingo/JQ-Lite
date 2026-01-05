@@ -1,3 +1,8 @@
+1.92  2026-01-05
+
+    - Promote release to version 1.92 capturing the split boolean handling
+      improvements and accompanying test coverage.
+
 1.91  2026-01-05
 
     - Promote release to version 1.91 covering string scalar flattening
