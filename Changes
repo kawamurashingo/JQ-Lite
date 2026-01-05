@@ -1,3 +1,8 @@
+1.98  2026-01-05
+
+    - Promote release to version 1.98 capturing the path-expression support and
+      expanded deletion tests for C<del()>.
+
 1.97  2026-01-05
 
     - Promote release to version 1.97 restoring jq-compatible flatten behavior:

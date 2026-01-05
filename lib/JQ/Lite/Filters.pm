@@ -1730,18 +1730,46 @@ sub apply {
         # support for del(key)
         if ($part =~ /^del\((.+?)\)$/) {
             my $key = $1;
-            $key =~ s/^['"](.*?)['"]$/$1/;  # remove quotes
+            $key =~ s/^\s+|\s+$//g;
 
-            @next_results = map {
-                if (ref $_ eq 'HASH') {
-                    my %copy = %$_;  # shallow copy
-                    delete $copy{$key};
-                    \%copy
-                } else {
-                    $_
-                }
-            } @results;
-            @$out_ref = @next_results;
+            # quoted string key
+            if ($key =~ s/^['"](.*?)['"]$/$1/) {
+                @next_results = map {
+                    if (ref $_ eq 'HASH') {
+                        my %copy = %$_;  # shallow copy
+                        delete $copy{$key};
+                        \%copy
+                    } else {
+                        $_
+                    }
+                } @results;
+                @$out_ref = @next_results;
+                return 1;
+            }
+
+            # path expression like .foo or .items[0]
+            my $path_expr = $key;
+            $path_expr =~ s/^\.//;
+            my @segments = JQ::Lite::Util::_parse_path_segments($path_expr);
+
+            if (@segments) {
+                my @path = map { $_->{value} } @segments;
+                @next_results = map {
+                    if (ref $_ eq 'HASH' || ref $_ eq 'ARRAY') {
+                        my $clone = JQ::Lite::Util::_deep_clone($_);
+                        JQ::Lite::Util::_delete_path_inplace($clone, [@path]);
+                        $clone;
+                    }
+                    else {
+                        $_
+                    }
+                } @results;
+
+                @$out_ref = @next_results;
+                return 1;
+            }
+
+            @$out_ref = @results;
             return 1;
         }
 
