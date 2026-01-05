@@ -1,3 +1,10 @@
+1.92  2026-01-05
+
+    - Promote release to version 1.92 capturing improved split handling
+      for boolean values and mixed arrays, with accompanying test coverage.
+    - Ensure split returns flat arrays when applied to arrays, avoiding
+      nested results for boolean and string elements.
+
 1.91  2026-01-05
 
     - Promote release to version 1.91 covering string scalar flattening
@@ -1201,6 +1208,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
