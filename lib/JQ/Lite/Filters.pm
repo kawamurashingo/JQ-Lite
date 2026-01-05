@@ -706,8 +706,16 @@ sub apply {
         }
 
         # support for limit(n)
-        if ($part =~ /^limit\((\d+)\)$/) {
-            my $limit = $1;
+        if ($part =~ /^limit\((.+)\)$/) {
+            my $limit_str = $1;
+            $limit_str =~ s/^\s+|\s+$//g;
+
+            if ($limit_str !~ /^\d+$/) {
+                die "limit(): count must be a non-negative integer";
+            }
+
+            my $limit = $limit_str + 0;
+
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
