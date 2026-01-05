@@ -1,3 +1,8 @@
+1.88  2026-01-05
+
+    - Promote release to version 1.88 including the invalid regex error
+      handling improvements and additional test coverage.
+
 1.87  2026-01-05
 
     - Clarified and enforced usage errors when --raw-input is used without

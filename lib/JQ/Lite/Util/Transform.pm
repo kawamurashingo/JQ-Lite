@@ -1012,7 +1012,10 @@ sub _apply_test {
     my ($value, $pattern, $flags) = @_;
 
     my ($regex, $error) = _build_regex($pattern, $flags);
-    return JSON::PP::false if $error;
+    if ($error) {
+        $error =~ s/[\r\n]+$//;
+        die "test(): invalid regular expression - $error";
+    }
 
     return _test_against_regex($value, $regex);
 }
