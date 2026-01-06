@@ -75,7 +75,7 @@ Version 1.98
 
 =head1 DESCRIPTION
 
-B<JQ::Lite> is a lightweight, jq-compatible JSON query engine written entirely
+B<JQ::Lite> is a lightweight, jq-compatible alternative JSON processor written 
 in pure Perl.
 
 It is designed for environments where the L<jq|https://stedolan.github.io/jq/>
