@@ -75,7 +75,7 @@ and is intentionally avoided.
 | Environment          | jq | jq-lite |
 | -------------------- | -- | ------- |
 | Alpine Linux         | △  | ✓       |
-| Legacy CentOS / RHEL | ✗  | ✓       |
+| Legacy OS            | ✗  | ✓       |
 | Air-gapped systems   | ✗  | ✓       |
 | No root privileges   | △  | ✓       |
 
@@ -201,3 +201,4 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
