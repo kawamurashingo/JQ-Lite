@@ -5,6 +5,8 @@ jq-lite is a jq-compatible JSON processor written in pure Perl.
 It is designed for **long-term CLI stability** and **minimal dependencies**,
 making it suitable as an **OS-level JSON utility** in constrained or long-lived environments.
 
+It serves as a substitute for jq in environments where installing jq is difficult.
+
 - No external binaries
 - No native libraries
 - No compilation step
@@ -201,5 +203,6 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
 
 
