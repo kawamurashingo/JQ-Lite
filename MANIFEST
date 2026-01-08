@@ -8,7 +8,7 @@ lib/JQ/Lite/Parser.pm
 lib/JQ/Lite/Util.pm
 LICENSE
 Makefile.PL
-MANIFEST			This list of files
+MANIFEST                       This list of files
 MANIFEST.SKIP
 README.md
 SECURITY.md
