@@ -1,4 +1,4 @@
-2.03  2026-01-10
+2.03  2026-01-11
 
     - Ensure try/catch can return empty results without forcing null output.
 
@@ -1275,6 +1275,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
