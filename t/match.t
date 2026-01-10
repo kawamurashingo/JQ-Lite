@@ -69,4 +69,22 @@ like(
     'test() inside select reports errors for invalid regular expressions',
 );
 
+my @multiline_match = $jq->run_query('"alpha\nbeta"', 'match("^beta"; "m")');
+ok($multiline_match[0], 'match() honors multiline flag (m) for anchors');
+
+my @multiline_default = $jq->run_query('"alpha\nbeta"', 'match("^beta")');
+ok(!$multiline_default[0], 'match() defaults to single-line anchors without m');
+
+my @dotall_match = $jq->run_query('"a\nb"', 'match("a.*b"; "s")');
+ok($dotall_match[0], 'match() honors dotall flag (s) for newlines');
+
+my @dotall_default = $jq->run_query('"a\nb"', 'match("a.*b")');
+ok(!$dotall_default[0], 'match() defaults to non-dotall behavior without s');
+
+my @extended_match = $jq->run_query('"ab"', 'match("a b"; "x")');
+ok($extended_match[0], 'match() honors extended flag (x) for whitespace');
+
+my @extended_default = $jq->run_query('"ab"', 'match("a b")');
+ok(!$extended_default[0], 'match() treats whitespace literally without x');
+
 done_testing;
