@@ -150,7 +150,7 @@ sub apply {
                             push @next_results, undef;
                         }
                         else {
-                            push @next_results, @catch_outputs ? @catch_outputs : (undef);
+                            push @next_results, @catch_outputs;
                         }
                     }
 

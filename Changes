@@ -1,3 +1,7 @@
+2.03  2026-01-10
+
+    - Ensure try/catch can return empty results without forcing null output.
+
 2.02  2026-01-10
 
     - Fix bracketed array/index access parsing so expressions like .[0]

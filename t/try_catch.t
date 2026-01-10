@@ -62,6 +62,14 @@ is_deeply(
     'catch expression is evaluated as a filter on the original input'
 );
 
+my $empty_catch = run($fail_json, 'try (.num / .den) catch empty');
+
+is_deeply(
+    $empty_catch,
+    [],
+    'catch can return empty results without forcing null'
+);
+
 my $multi_value = run('[{"v": 0}, {"v": 2}]', 'map(try (1 /.v) catch 42)');
 
 is_deeply(
