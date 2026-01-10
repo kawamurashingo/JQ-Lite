@@ -28,6 +28,9 @@ sub parse_query {
             if ($rest =~ /,/) {
                 $_;    # preserve leading dot when sequence filters are present
             }
+            elsif ($rest =~ /^\s*\[/) {
+                $_;    # preserve leading dot for array indexing and bracket access
+            }
             elsif ($rest =~ /^\s*[+\-*\/%]/
                 || $rest =~ /[+\-*\/%]/
                 || $rest =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b)/i
