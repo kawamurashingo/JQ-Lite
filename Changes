@@ -1,3 +1,8 @@
+2.09  2026-01-11
+
+  - Update contains() handling so null needles do not match non-null scalars.
+  - Expand contains()/contains_subset() tests for null handling on strings.
+
 2.08  2026-01-11
 
   - Updated match() to return jq-compatible match objects instead of booleans.
