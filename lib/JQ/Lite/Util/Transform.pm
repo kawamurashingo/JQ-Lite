@@ -942,7 +942,7 @@ sub _group_by {
     my %groups;
     for my $item (@$array_ref) {
         my @keys = _traverse($item, $path);
-        my $key = defined $keys[0] ? "$keys[0]" : 'null';
+        my $key = defined $keys[0] ? _key($keys[0]) : 'null';
         push @{ $groups{$key} }, $item;
     }
     return \%groups;
