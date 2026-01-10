@@ -937,15 +937,47 @@ sub _key {
 
 sub _group_by {
     my ($array_ref, $path) = @_;
-    return {} unless ref $array_ref eq 'ARRAY';
+    die 'group_by(): input must be an array' unless ref $array_ref eq 'ARRAY';
 
-    my %groups;
+    my ($key_path, $use_entire_item) = _normalize_path_argument($path);
+
+    my @entries;
+    my $index = 0;
     for my $item (@$array_ref) {
-        my @keys = _traverse($item, $path);
-        my $key = defined $keys[0] ? "$keys[0]" : 'null';
-        push @{ $groups{$key} }, $item;
+        my $key_value;
+        if ($use_entire_item) {
+            $key_value = $item;
+        } else {
+            my @values = _traverse($item, $key_path);
+            $key_value = @values ? $values[0] : undef;
+        }
+
+        my $signature = defined $key_value ? _key($key_value) : "\0__JQ_LITE_UNDEF__";
+        push @entries, {
+            item      => $item,
+            signature => $signature,
+            index     => $index++,
+        };
     }
-    return \%groups;
+
+    my $cmp = _smart_cmp();
+    my @sorted = sort {
+        my $order = $cmp->($a->{signature}, $b->{signature});
+        $order = $a->{index} <=> $b->{index} if $order == 0;
+        $order;
+    } @entries;
+
+    my @groups;
+    my $current_signature;
+    for my $entry (@sorted) {
+        if (!defined $current_signature || $entry->{signature} ne $current_signature) {
+            push @groups, [];
+            $current_signature = $entry->{signature};
+        }
+        push @{ $groups[-1] }, $entry->{item};
+    }
+
+    return \@groups;
 }
 
 sub _flatten_all {
