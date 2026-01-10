@@ -1,3 +1,18 @@
+2.08  2026-01-11
+
+  - Updated match() to return jq-compatible match objects instead of booleans.
+    The result now includes:
+      * offset   — start position of the match
+      * length   — length of the matched substring
+      * string   — the full matched text
+      * captures — array of capture group objects (offset, length, string)
+
+  - match() now returns null when the regular expression does not match,
+    aligning behavior with jq.
+
+  - This enables jq-style regex introspection such as accessing capture
+    groups (e.g. match("(...)(...)").captures[1].string).
+
 2.07  2026-01-11
 
     - Enforced validation of regular expression flags for test() and match()
@@ -1298,6 +1313,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
