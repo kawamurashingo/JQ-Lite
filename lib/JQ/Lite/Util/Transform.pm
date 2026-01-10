@@ -2009,10 +2009,11 @@ sub _scalar_contains {
     my ($value, $needle) = @_;
 
     return 0 if !defined $value;
+    return 0 if !defined $needle;
 
     if (!ref $value || ref($value) eq 'JSON::PP::Boolean') {
         my $haystack = "$value";
-        my $fragment = defined $needle ? "$needle" : '';
+        my $fragment = "$needle";
         return index($haystack, $fragment) >= 0 ? 1 : 0;
     }
 
