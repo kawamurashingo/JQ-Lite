@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use JQ::Lite::Util ();
+use JSON::PP ();
 
 sub parse_query {
     my ($query) = @_;
@@ -35,6 +36,12 @@ sub parse_query {
                 $_;
             }
             else {
+                my $trimmed = $rest;
+                $trimmed =~ s/^\s+|\s+$//g;
+                if ($trimmed =~ /^"(?:[^"\\]|\\.)*"$/s) {
+                    my $decoded = eval { JSON::PP::decode_json($trimmed) };
+                    return $decoded if defined $decoded && !$@;
+                }
                 $rest;
             }
         }
