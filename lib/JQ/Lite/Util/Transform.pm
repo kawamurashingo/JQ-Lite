@@ -1080,7 +1080,7 @@ sub _apply_match {
         die "match(): invalid regular expression - $error";
     }
 
-    return _test_against_regex($value, $regex);
+    return _match_against_regex($value, $regex);
 }
 
 sub _test_against_regex {
@@ -1099,6 +1099,57 @@ sub _test_against_regex {
     return JSON::PP::false if ref $value;
 
     return $value =~ $regex ? JSON::PP::true : JSON::PP::false;
+}
+
+sub _match_against_regex {
+    my ($value, $regex) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        return [ map { _match_against_regex($_, $regex) } @$value ];
+    }
+
+    return undef if !defined $value;
+
+    if (ref($value) eq 'JSON::PP::Boolean') {
+        $value = $value ? 'true' : 'false';
+    }
+
+    return undef if ref $value;
+
+    my $text = "$value";
+    return undef unless $text =~ $regex;
+
+    my $offset = $-[0];
+    my $length = $+[0] - $-[0];
+    my $string = substr($text, $offset, $length);
+
+    my @captures;
+    my $capture_count = $#-;
+    for my $index (1 .. $capture_count) {
+        if (defined $-[$index] && $-[$index] >= 0) {
+            my $capture_offset = $-[$index];
+            my $capture_length = $+[$index] - $-[$index];
+            my $capture_string = substr($text, $capture_offset, $capture_length);
+            push @captures, {
+                offset => $capture_offset,
+                length => $capture_length,
+                string => $capture_string,
+            };
+        } else {
+            push @captures, {
+                offset => undef,
+                length => undef,
+                string => undef,
+            };
+        }
+    }
+
+    return {
+        offset   => $offset,
+        length   => $length,
+        string   => $string,
+        captures => \@captures,
+    };
 }
 
 sub _build_regex {
