@@ -1110,7 +1110,7 @@ sub _build_regex {
     my %allowed = map { $_ => 1 } qw(i m s x);
     my $modifiers = '';
     for my $flag (split //, $flags) {
-        next unless $allowed{$flag};
+        return (undef, "unknown regex flag '$flag'") unless $allowed{$flag};
         next if index($modifiers, $flag) >= 0;
         $modifiers .= $flag;
     }
