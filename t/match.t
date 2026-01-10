@@ -39,6 +39,15 @@ like(
     'match() function reports errors for invalid regular expressions'
 );
 
+my $invalid_flag_error;
+eval { $jq->run_query('"abc"', 'match("a"; "z")'); 1 };
+$invalid_flag_error = $@;
+like(
+    $invalid_flag_error,
+    qr/match\(\): invalid regular expression - unknown regex flag 'z'/,
+    'match() reports errors for unknown regex flags'
+);
+
 my $match_in_select_error;
 eval { $jq->run_query('"abc"', 'select(match("[") )'); 1 };
 $match_in_select_error = $@;

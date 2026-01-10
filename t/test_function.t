@@ -24,6 +24,15 @@ ok(!$case_sensitive[0], 'test() is case-sensitive by default');
 my @case_insensitive = $jq->run_query($json, '.title | test("world"; "i")');
 ok($case_insensitive[0], 'test() honours case-insensitive flag');
 
+my $invalid_flag_ok = eval { $jq->run_query($json, '.title | test("Hello"; "z")'); 1 };
+my $invalid_flag_error = $@;
+ok(!$invalid_flag_ok, 'test() dies on unknown regex flags');
+like(
+    $invalid_flag_error,
+    qr/test\(\): invalid regular expression - unknown regex flag 'z'/,
+    'test() surfaces unknown regex flags in error message'
+);
+
 my @array_map = $jq->run_query($json, '.tags | test("^p")');
 is_deeply(
     $array_map[0],
