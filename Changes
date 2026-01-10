@@ -1,3 +1,8 @@
+2.06  2026-01-11
+
+    - Treat JSON string scalars as strings during addition and throw on
+      mixed string/number operands.
+
 2.05  2026-01-11
 
     - Fix value parsing so string literals containing "contains" are not
