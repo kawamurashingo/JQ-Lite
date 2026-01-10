@@ -1,3 +1,13 @@
+2.01  2026-01-10
+
+    - Fixed quoted field access so expressions like ."k" and ."a b"
+      are correctly parsed as key paths instead of string literals.
+
+    - Added proper decoding and traversal support for quoted keys,
+      allowing access to object fields containing spaces or dots.
+
+    - Added regression tests covering quoted field access behavior.
+
 2.00  2026-01-10
 
     - Fix group_by() to evaluate the key per element and form correct
@@ -1255,6 +1265,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
