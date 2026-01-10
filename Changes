@@ -1,3 +1,9 @@
+2.02  2026-01-10
+
+    - Fix bracketed array/index access parsing so expressions like .[0]
+      remain traversal expressions instead of array constructors.
+    - Add CLI regression coverage for compact output array indexing.
+
 2.01  2026-01-10
 
     - Fixed quoted field access so expressions like ."k" and ."a b"
