@@ -79,21 +79,71 @@ like(
 );
 
 my @multiline_match = $jq->run_query('"alpha\nbeta"', 'match("^beta"; "m")');
-ok($multiline_match[0], 'match() honors multiline flag (m) for anchors');
+is_deeply(
+    $multiline_match[0],
+    {
+        offset   => 6,
+        length   => 4,
+        string   => 'beta',
+        captures => [],
+    },
+    'match() honors multiline flag (m) for anchors',
+);
 
 my @multiline_default = $jq->run_query('"alpha\nbeta"', 'match("^beta")');
 ok(!$multiline_default[0], 'match() defaults to single-line anchors without m');
 
 my @dotall_match = $jq->run_query('"a\nb"', 'match("a.*b"; "s")');
-ok($dotall_match[0], 'match() honors dotall flag (s) for newlines');
+is_deeply(
+    $dotall_match[0],
+    {
+        offset   => 0,
+        length   => 3,
+        string   => "a\nb",
+        captures => [],
+    },
+    'match() honors dotall flag (s) for newlines',
+);
 
 my @dotall_default = $jq->run_query('"a\nb"', 'match("a.*b")');
 ok(!$dotall_default[0], 'match() defaults to non-dotall behavior without s');
 
 my @extended_match = $jq->run_query('"ab"', 'match("a b"; "x")');
-ok($extended_match[0], 'match() honors extended flag (x) for whitespace');
+is_deeply(
+    $extended_match[0],
+    {
+        offset   => 0,
+        length   => 2,
+        string   => 'ab',
+        captures => [],
+    },
+    'match() honors extended flag (x) for whitespace',
+);
 
 my @extended_default = $jq->run_query('"ab"', 'match("a b")');
 ok(!$extended_default[0], 'match() treats whitespace literally without x');
+
+my @captures_match = $jq->run_query('"abc123"', 'match("([a-z]+)([0-9]+)")');
+is_deeply(
+    $captures_match[0],
+    {
+        offset   => 0,
+        length   => 6,
+        string   => 'abc123',
+        captures => [
+            {
+                offset => 0,
+                length => 3,
+                string => 'abc',
+            },
+            {
+                offset => 3,
+                length => 3,
+                string => '123',
+            },
+        ],
+    },
+    'match() returns capture group details',
+);
 
 done_testing;
