@@ -21,6 +21,22 @@ is_deeply(
     'try returns expression result when no error occurs'
 );
 
+my $string_literal = run('null', 'try "catch me"');
+
+is_deeply(
+    $string_literal,
+    ['catch me'],
+    'try ignores catch keywords inside string literals'
+);
+
+my $array_literal = run('null', 'try ["catch me"]');
+
+is_deeply(
+    $array_literal,
+    [['catch me']],
+    'try ignores catch keywords inside array literals'
+);
+
 my $fail_json = '{"num": 1, "den": 0}';
 my $fallback = run($fail_json, 'try (.num / .den)');
 
