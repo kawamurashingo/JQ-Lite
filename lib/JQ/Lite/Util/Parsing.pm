@@ -918,16 +918,6 @@ sub _evaluate_value_expression {
         }
     }
 
-    if ($copy !~ /\bthen\b/i
-        && $copy !~ /\belse\b/i
-        && $copy !~ /\bend\b/i
-        && $copy =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b|\bcontains\b|\bhas\b|\bmatch\b)/)
-    {
-        my $bool = _evaluate_condition($context, $copy);
-        my $json_bool = $bool ? JSON::PP::true : JSON::PP::false;
-        return ([ $json_bool ], 1);
-    }
-
     my $decoded = eval { _decode_json($copy) };
     if (!$@) {
         return ([ $decoded ], 1);
@@ -937,6 +927,16 @@ sub _evaluate_value_expression {
         my $text = $1;
         $text =~ s/\\'/'/g;
         return ([ $text ], 1);
+    }
+
+    if ($copy !~ /\bthen\b/i
+        && $copy !~ /\belse\b/i
+        && $copy !~ /\bend\b/i
+        && $copy =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b|\bcontains\b|\bhas\b|\bmatch\b)/)
+    {
+        my $bool = _evaluate_condition($context, $copy);
+        my $json_bool = $bool ? JSON::PP::true : JSON::PP::false;
+        return ([ $json_bool ], 1);
     }
 
     return ([], 0);
