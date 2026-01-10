@@ -17,15 +17,15 @@ JSON
 
 my @res = $jq->run_query($json, 'group_by(team)');
 
-is_deeply($res[0], {
-  A => [
+is_deeply($res[0], [
+  [
     { name => "Alice", team => "A" },
     { name => "Carol", team => "A" }
   ],
-  B => [
+  [
     { name => "Bob", team => "B" }
   ]
-}, 'group_by(team) works as expected');
+], 'group_by(team) works as expected');
 
 my $json_complex = <<'JSON';
 [
@@ -38,21 +38,21 @@ JSON
 
 my @complex_res = $jq->run_query($json_complex, 'group_by(tags)');
 
-is_deeply($complex_res[0], {
-  '1,2' => [
+is_deeply($complex_res[0], [
+  [
+    { name => 'Delta', tags => undef }
+  ],
+  [
     { name => 'Alpha', tags => [1, 2] },
     { name => 'Beta',  tags => [1, 2] }
   ],
-  '2,3' => [
+  [
     { name => 'Gamma', tags => [2, 3] }
-  ],
-  null => [
-    { name => 'Delta', tags => undef }
   ]
-}, 'group_by(tags) groups by array keys and nulls');
+], 'group_by(tags) groups by array keys and nulls');
 
 my @scalar_res = $jq->run_query('"not an array"', 'group_by(.)');
 
-is_deeply($scalar_res[0], {}, 'group_by on scalar returns empty hash');
+is_deeply($scalar_res[0], [], 'group_by on scalar returns empty array');
 
 done_testing;

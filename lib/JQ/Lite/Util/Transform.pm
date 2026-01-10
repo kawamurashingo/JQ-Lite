@@ -937,15 +937,43 @@ sub _key {
 
 sub _group_by {
     my ($array_ref, $path) = @_;
-    return {} unless ref $array_ref eq 'ARRAY';
+    return [] unless ref $array_ref eq 'ARRAY';
 
-    my %groups;
+    my @pairs;
     for my $item (@$array_ref) {
         my @keys = _traverse($item, $path);
-        my $key = defined $keys[0] ? _key($keys[0]) : 'null';
-        push @{ $groups{$key} }, $item;
+        my $key = @keys ? $keys[0] : undef;
+        my $cmp_key = _value_to_comparable($key);
+        push @pairs, {
+            item    => $item,
+            key     => $key,
+            cmp_key => $cmp_key,
+        };
     }
-    return \%groups;
+
+    my $cmp = _smart_cmp();
+    @pairs = sort {
+        my $a_key = defined $a->{cmp_key} ? $a->{cmp_key} : '';
+        my $b_key = defined $b->{cmp_key} ? $b->{cmp_key} : '';
+        $cmp->($a_key, $b_key);
+    } @pairs;
+
+    my @groups;
+    my $current_signature;
+    for my $pair (@pairs) {
+        my $signature = defined $pair->{key}
+            ? _key($pair->{key})
+            : "\0__JQ_LITE_UNDEF__";
+
+        if (!defined $current_signature || $signature ne $current_signature) {
+            push @groups, [];
+            $current_signature = $signature;
+        }
+
+        push @{ $groups[-1] }, $pair->{item};
+    }
+
+    return \@groups;
 }
 
 sub _flatten_all {
