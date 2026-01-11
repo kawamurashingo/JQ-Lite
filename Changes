@@ -1,3 +1,8 @@
+2.10  2026-01-11
+
+  - Improve mode() handling for nested values by generating recursive keys.
+  - Add regression coverage for mode() with nested objects.
+
 2.09  2026-01-11
 
   - Update contains() handling so null needles do not match non-null scalars.
