@@ -28,15 +28,21 @@ is_deeply(
 my @description = $jq->run_query($json, '.details.description | replace("perl", "Perl")');
 is($description[0], 'Perl world', 'replace respects case-sensitive search term');
 
-my @count = $jq->run_query($json, '.details.count | replace("2", "three")');
-is($count[0], 2, 'replace leaves non-string scalars untouched');
+my $count_ok = eval {
+    $jq->run_query($json, '.details.count | replace("2", "three")');
+    1;
+};
+my $count_err = $@;
+ok(!$count_ok, 'replace errors on non-string scalar inputs');
+like($count_err, qr/^replace\(\): argument must be a string/, 'replace error message mentions string');
 
-my @mixed = $jq->run_query($json, '.mixed | replace("World", "Earth")');
-is_deeply(
-    $mixed[0],
-    ['Earth', 42, undef],
-    'replace leaves non-string values unchanged and keeps undef'
-);
+my $mixed_ok = eval {
+    $jq->run_query($json, '.mixed | replace("World", "Earth")');
+    1;
+};
+my $mixed_err = $@;
+ok(!$mixed_ok, 'replace errors when array contains non-string values');
+like($mixed_err, qr/^replace\(\): argument must be a string/, 'replace array error mentions string');
 
 my @empty_search = $jq->run_query($json, '.title | replace("", "no-op")');
 is($empty_search[0], 'Hello World', 'replace is a no-op when search term is empty');

@@ -1572,8 +1572,8 @@ sub _apply_replace {
     }
 
     return $value if !defined $value;
-    return $value if ref $value;
-    return $value unless _is_string_scalar($value);
+    die 'replace(): argument must be a string' if ref $value;
+    die 'replace(): argument must be a string' unless _is_string_scalar($value);
 
     $search      = defined $search      ? "$search"      : '';
     $replacement = defined $replacement ? "$replacement" : '';
