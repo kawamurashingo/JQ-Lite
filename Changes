@@ -1,3 +1,9 @@
+2.11  2026-01-11
+
+  - Decode quoted field names with the shared JSON decoder for consistent
+    behavior on older Perl versions.
+  - Bump module version and documentation to 2.11.
+
 2.10  2026-01-11
 
   - Improve mode() handling for nested values by generating recursive keys.
