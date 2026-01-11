@@ -59,4 +59,7 @@ is($double[0], 'HeLLo WorLd', 'replace substitutes all occurrences of the search
 my @numeric_string = $jq->run_query('null', '"v2" | replace("2", "two")');
 is($numeric_string[0], 'vtwo', 'replace operates on string scalars even if they look numeric');
 
+my @semicolon_args = $jq->run_query('null', '"123" | replace("1"; "9")');
+is($semicolon_args[0], '923', 'replace supports semicolon-separated arguments');
+
 done_testing;
