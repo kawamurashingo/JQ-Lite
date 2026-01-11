@@ -927,7 +927,7 @@ sub _uniq {
 sub _key {
     my ($val) = @_;
     if (ref $val eq 'HASH') {
-        return join(",", sort map { "$_=$val->{$_}" } keys %$val);
+        return join(",", sort map { "$_=" . _key($val->{$_}) } keys %$val);
     } elsif (ref $val eq 'ARRAY') {
         return join(",", map { _key($_) } @$val);
     } else {

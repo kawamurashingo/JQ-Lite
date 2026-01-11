@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '2.09';
+our $VERSION = '2.10';
 
 sub new {
     my ($class, %opts) = @_;
