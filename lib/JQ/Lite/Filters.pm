@@ -1951,11 +1951,21 @@ sub apply {
             return 1;
         }
 
-        # support for replace(old, new)
+        # support for replace(old; new) / replace(old, new)
         if ($part =~ /^replace\((.+)\)$/) {
-            my ($search, $replacement) = JQ::Lite::Util::_parse_arguments($1);
-            $search      = defined $search      ? $search      : '';
-            $replacement = defined $replacement ? $replacement : '';
+            my @semicolon_segments = JQ::Lite::Util::_split_semicolon_arguments($1);
+            my ($search, $replacement);
+
+            if (@semicolon_segments > 1) {
+                my ($search_expr, $replacement_expr) = JQ::Lite::Util::_split_semicolon_arguments($1, 2);
+                $search      = defined $search_expr      ? JQ::Lite::Util::_parse_string_argument($search_expr)      : '';
+                $replacement = defined $replacement_expr ? JQ::Lite::Util::_parse_string_argument($replacement_expr) : '';
+            }
+            else {
+                ($search, $replacement) = JQ::Lite::Util::_parse_arguments($1);
+                $search      = defined $search      ? $search      : '';
+                $replacement = defined $replacement ? $replacement : '';
+            }
 
             @next_results = map { JQ::Lite::Util::_apply_replace($_, $search, $replacement) } @results;
             @$out_ref = @next_results;

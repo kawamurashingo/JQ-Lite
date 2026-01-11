@@ -1,3 +1,8 @@
+2.11  2026-01-11
+
+  - Update replace() to treat numeric-looking strings as strings.
+  - Add regression coverage for replace() on numeric-looking strings.
+
 2.10  2026-01-11
 
   - Improve mode() handling for nested values by generating recursive keys.
