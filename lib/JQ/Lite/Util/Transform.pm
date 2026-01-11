@@ -1573,8 +1573,7 @@ sub _apply_replace {
 
     return $value if !defined $value;
     return $value if ref $value;
-
-    return $value if looks_like_number($value);
+    return $value unless _is_string_scalar($value);
 
     $search      = defined $search      ? "$search"      : '';
     $replacement = defined $replacement ? "$replacement" : '';

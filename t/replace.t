@@ -50,4 +50,7 @@ is($chained[0], 'HELLO PERL', 'replace result can be chained with other function
 my @double = $jq->run_query($json, '.title | replace("l", "L")');
 is($double[0], 'HeLLo WorLd', 'replace substitutes all occurrences of the search term');
 
+my @numeric_string = $jq->run_query('null', '"v2" | replace("2", "two")');
+is($numeric_string[0], 'vtwo', 'replace operates on string scalars even if they look numeric');
+
 done_testing;
