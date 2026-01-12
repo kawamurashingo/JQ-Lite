@@ -1588,8 +1588,7 @@ sub apply {
 
         # support for join(", ")
         if ($part =~ /^join\((.*?)\)$/) {
-            my $sep = $1;
-            $sep =~ s/^['"](.*?)['"]$/$1/;  # remove quotes around separator
+            my $sep = JQ::Lite::Util::_parse_string_argument($1);
 
             @next_results = map {
                 die 'join(): input must be an array' if ref($_) ne 'ARRAY';
