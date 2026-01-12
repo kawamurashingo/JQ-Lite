@@ -1,3 +1,9 @@
+2.12  2026-01-12
+
+  - Add string scalar support to reverse() so it reverses plain strings while
+    leaving non-string scalars unchanged.
+  - Expand reverse() coverage for string and numeric-string inputs.
+
 2.11  2026-01-12
 
   - Decode quoted field names with the shared JSON decoder for consistent

@@ -753,7 +753,9 @@ sub apply {
         # support for reverse
         if ($part eq 'reverse') {
             @next_results = map {
-                ref $_ eq 'ARRAY' ? [ reverse @$_ ] : $_
+                ref $_ eq 'ARRAY' ? [ reverse @$_ ]
+                : JQ::Lite::Util::_is_string_scalar($_) ? scalar reverse $_
+                : $_
             } @results;
             @$out_ref = @next_results;
             return 1;
