@@ -1,3 +1,8 @@
+2.15  2026-01-12
+
+  - Preserve per-item variable bindings across pipeline steps.
+  - Add regression coverage for as $var usage in pipelines.
+
 2.14  2026-01-12
 
   - Validate slice() start/length arguments and raise clear errors when
