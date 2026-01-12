@@ -1,3 +1,9 @@
+2.14  2026-01-12
+
+  - Validate slice() start/length arguments and raise clear errors when
+    non-numeric values are provided.
+  - Expand slice() tests to cover invalid argument errors.
+
 2.13  2026-01-12
 
   - Parse join() separators with the shared string argument decoder so
