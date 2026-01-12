@@ -796,6 +796,9 @@ sub _evaluate_variable_reference {
 
     my $expr = $suffix;
     $expr =~ s/^\s+//;
+    if ($expr =~ /^(?:\||[+\-*\/%]|==|!=|>=|<=|>|<|\band\b|\bor\b)/i) {
+        $expr = ". $expr";
+    }
 
     my ($values, $ok) = _evaluate_value_expression($self, $value, $expr);
     return $ok ? @$values : ();
