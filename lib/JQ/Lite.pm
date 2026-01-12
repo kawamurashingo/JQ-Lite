@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '2.14';
+our $VERSION = '2.15';
 
 sub new {
     my ($class, %opts) = @_;
@@ -31,22 +31,35 @@ sub run_query {
 
     my @parts = JQ::Lite::Parser::parse_query($query);
 
-    my @results = ($data);
+    my @states = ({ value => $data, vars => { %{ $self->{_vars} || {} } } });
+
     for my $part (@parts) {
-        my @next_results;
+        my @next_states;
 
-        if (JQ::Lite::Filters::apply($self, $part, \@results, \@next_results)) {
-            @results = @next_results;
-            next;
+        for my $state (@states) {
+            local $self->{_vars} = { %{ $state->{vars} || {} } };
+            my @outputs;
+
+            if (JQ::Lite::Filters::apply($self, $part, [ $state->{value} ], \@outputs)) {
+                # handled by filter
+            }
+            else {
+                @outputs = JQ::Lite::Util::_traverse($state->{value}, $part);
+            }
+
+            my $vars_after = $self->{_vars} || {};
+            for my $output (@outputs) {
+                push @next_states, {
+                    value => $output,
+                    vars  => { %$vars_after },
+                };
+            }
         }
 
-        for my $item (@results) {
-            push @next_results, JQ::Lite::Util::_traverse($item, $part);
-        }
-        @results = @next_results;
+        @states = @next_states;
     }
 
-    return @results;
+    return map { $_->{value} } @states;
 }
 
 1;
@@ -60,7 +73,7 @@ JQ::Lite - jq-compatible JSON query engine in pure Perl (no external binaries)
 
 =head1 VERSION
 
-Version 2.14
+Version 2.15
 
 =head1 SYNOPSIS
 
