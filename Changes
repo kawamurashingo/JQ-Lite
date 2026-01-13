@@ -1,3 +1,9 @@
+2.15  2026-01-12
+
+  - Treat null haystacks or needles in index()/rindex() string searches as
+    null results.
+  - Expand index()/rindex() tests for null input handling.
+
 2.14  2026-01-12
 
   - Validate slice() start/length arguments and raise clear errors when
