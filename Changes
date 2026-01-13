@@ -1,4 +1,4 @@
-2.15  2026-01-12
+2.15  2026-01-14
 
   - Treat null haystacks or needles in index()/rindex() string searches as
     null results.
@@ -1353,6 +1353,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
