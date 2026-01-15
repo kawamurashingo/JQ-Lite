@@ -65,15 +65,25 @@ is_deeply(
 my @array_roundtrip = $jq->run_query('["perl", "json"]', 'to_entries | from_entries');
 is_deeply(
     $array_roundtrip[0],
-    { '0' => 'perl', '1' => 'json' },
-    'to_entries/from_entries round-trip arrays by stringifying indexes'
+    ['perl', 'json'],
+    'to_entries/from_entries round-trip arrays back to arrays'
 );
 
 my @numeric_key = $jq->run_query('[ {"key": 1, "value": "x"} ]', 'from_entries');
 is_deeply(
     $numeric_key[0],
     { '1' => 'x' },
-    'from_entries stringifies numeric keys'
+    'from_entries keeps sparse numeric keys as an object'
+);
+
+my @numeric_range = $jq->run_query(
+    '[ {"key": 0, "value": "a"}, {"key": 1, "value": "b"} ]',
+    'from_entries'
+);
+is_deeply(
+    $numeric_range[0],
+    [ 'a', 'b' ],
+    'from_entries restores arrays for contiguous numeric keys'
 );
 
 my $non_array_ok = eval {
