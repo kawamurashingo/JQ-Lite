@@ -62,6 +62,20 @@ is_deeply(
     'with_entries filters entries before reconstruction'
 );
 
+my @array_roundtrip = $jq->run_query('["perl", "json"]', 'to_entries | from_entries');
+is_deeply(
+    $array_roundtrip[0],
+    { '0' => 'perl', '1' => 'json' },
+    'to_entries/from_entries round-trip arrays by stringifying indexes'
+);
+
+my @numeric_key = $jq->run_query('[ {"key": 1, "value": "x"} ]', 'from_entries');
+is_deeply(
+    $numeric_key[0],
+    { '1' => 'x' },
+    'from_entries stringifies numeric keys'
+);
+
 my $non_array_ok = eval {
     $jq->run_query('"oops"', 'from_entries');
     1;
@@ -96,18 +110,6 @@ like(
     $bad_key_err,
     qr/^from_entries\(\): key must be a string/,
     'runtime error message mentions string key'
-);
-
-my $numeric_key_ok = eval {
-    $jq->run_query('[ {"key": 1, "value": "x"} ]', 'from_entries');
-    1;
-};
-my $numeric_key_err = $@;
-ok(!$numeric_key_ok, 'from_entries throws runtime error when key is numeric');
-like(
-    $numeric_key_err,
-    qr/^from_entries\(\): key must be a string/,
-    'runtime error message rejects non-string numeric key'
 );
 
 my $missing_value_ok = eval {

@@ -265,6 +265,12 @@ sub _from_entries {
             die 'from_entries(): entry must be an object or [key, value] tuple';
         }
 
+        if (!defined $key || ref $key) {
+            die 'from_entries(): key must be a string';
+        }
+
+        $key = "$key";
+
         die 'from_entries(): key must be a string' if !_is_string_scalar($key);
 
         $result{$key} = $val;
