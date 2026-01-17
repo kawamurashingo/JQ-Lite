@@ -1936,7 +1936,6 @@ sub _apply_has {
         my $sv = B::svref_2object(\$needle);
         my $flags = $sv->FLAGS;
         return JSON::PP::false unless ($flags & (B::SVp_IOK() | B::SVp_NOK()));
-        return JSON::PP::false if $needle != int($needle);
 
         my $index = int($needle);
         return ($index >= 0 && $index < @$value)
