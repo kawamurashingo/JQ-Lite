@@ -2223,8 +2223,23 @@ sub apply {
 
         # support for default(value)
         if ($part =~ /^default\((.+)\)$/) {
-            my $default_value = $1;
-            $default_value =~ s/^['"](.*?)['"]$/$1/;
+            my $default_expr = $1;
+            $default_expr =~ s/^\s+|\s+$//g;
+            my $default_value;
+
+            if ($default_expr =~ /^'(.*)'$/) {
+                $default_value = $1;
+                $default_value =~ s/\\'/'/g;
+            }
+            else {
+                my $decoded = eval { JQ::Lite::Util::_decode_json($default_expr) };
+                if ($@) {
+                    $default_value = $default_expr;
+                }
+                else {
+                    $default_value = $decoded;
+                }
+            }
 
             @results = @results ? @results : (undef);
 
