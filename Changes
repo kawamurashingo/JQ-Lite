@@ -1,3 +1,8 @@
+2.19  2026-01-17
+
+  - Ensure try/catch parsing does not treat field names like .catch as a catch
+    clause, and add regression coverage.
+
 2.18  2026-01-16
 
   - Improve from_entries() to handle numeric keys by normalizing them to strings,
