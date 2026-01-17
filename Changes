@@ -1,3 +1,8 @@
+2.21  2026-01-17
+
+  - Fix delpaths handling for boolean-keyed segments and stable deletion
+    ordering, with added test coverage for boolean paths.
+
 2.20  2026-01-17
 
   - Validate has() array indices to require numeric scalar integers and add
