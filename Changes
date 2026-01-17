@@ -1,6 +1,16 @@
 2.22  2026-01-17
 
-  - Bump version to 2.22.
+  - Updated join() to stringify JSON boolean values as true and false, 
+    instead of relying on implicit or inconsistent coercion.
+
+  - Modified join() to error when encountering non-scalar elements (objects or arrays)
+    within the input array, aligning behavior with jq for unsupported nested structures.
+
+  - Expanded test coverage for join() to include:
+
+  - Mixed scalar type coercion (string, number, boolean, null)
+
+  - Proper error handling when object or array elements are present
 
 2.21  2026-01-17
 
@@ -1394,6 +1404,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
