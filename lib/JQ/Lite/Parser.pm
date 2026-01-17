@@ -45,7 +45,7 @@ sub parse_query {
                     my $decoded = eval { JQ::Lite::Util::_decode_json($trimmed) };
                     return $decoded if defined $decoded && !$@;
                 }
-                $rest;
+                ".$rest";
             }
         }
         else {
