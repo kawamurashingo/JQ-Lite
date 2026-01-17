@@ -1931,7 +1931,11 @@ sub _apply_has {
     }
 
     if (ref $value eq 'ARRAY') {
-        return JSON::PP::false unless looks_like_number($needle);
+        return JSON::PP::false if ref $needle;
+
+        my $sv = B::svref_2object(\$needle);
+        my $flags = $sv->FLAGS;
+        return JSON::PP::false unless ($flags & (B::SVp_IOK() | B::SVp_NOK()));
 
         my $index = int($needle);
         return ($index >= 0 && $index < @$value)
