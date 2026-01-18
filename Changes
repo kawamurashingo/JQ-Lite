@@ -1,3 +1,8 @@
+2.23  2026-01-17
+
+  - Skip ltrimstr()/rtrimstr() processing for non-string scalars so numbers
+    and booleans remain unchanged, with expanded coverage for mixed arrays.
+
 2.22  2026-01-17
 
   - Updated join() to stringify JSON boolean values as true and false, 
