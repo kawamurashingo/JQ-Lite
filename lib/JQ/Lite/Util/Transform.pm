@@ -797,15 +797,15 @@ sub _evaluate_condition {
         return 0;
     }
 
-    # support for the has operator: select(.meta has "key")
-    if ($cond =~ /^\s*\.(.+?)\s+has\s+"(.*?)"\s*$/) {
-        my ($path, $key) = ($1, $2);
+    # support for the has operator: select(.meta has "key"), select(.items has 1)
+    if ($cond =~ /^\s*\.(.+?)\s+has\s+(.+)\s*$/) {
+        my ($path, $needle_raw) = ($1, $2);
+        my $needle = _parse_literal_argument($needle_raw);
         my @vals = _traverse($item, $path);
 
         for my $val (@vals) {
-            if (ref $val eq 'HASH' && exists $val->{$key}) {
-                return 1;
-            }
+            my $result = _apply_has($val, $needle);
+            return 1 if _is_truthy($result);
         }
         return 0;
     }
