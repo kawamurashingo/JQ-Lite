@@ -1,8 +1,8 @@
 2.24  2026-01-18
 
   - Treat startswith()/endswith() as string-only predicates so numeric
-    scalars no longer match, with added coverage for numeric scalars
-    and numeric string values.
+    scalars and non-string arguments no longer match, with added coverage
+    for numeric scalars, numeric string values, and numeric arguments.
 
   - Bump module version to 2.24.
 

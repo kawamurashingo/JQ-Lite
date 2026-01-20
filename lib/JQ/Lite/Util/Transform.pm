@@ -1119,6 +1119,8 @@ sub _apply_string_predicate {
         return [ map { _apply_string_predicate($_, $needle, $mode) } @$value ];
     }
 
+    return JSON::PP::false if !_is_string_scalar($needle);
+
     return _string_predicate_result($value, $needle, $mode);
 }
 

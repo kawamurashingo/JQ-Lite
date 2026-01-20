@@ -60,6 +60,12 @@ ok($numeric_string_prefix[0], 'startswith() matches numeric string values');
 my @numeric_string_suffix = $jq->run_query($json, '.numeric_string | endswith("3")');
 ok($numeric_string_suffix[0], 'endswith() matches numeric string values');
 
+my @numeric_arg_prefix = $jq->run_query($json, '.numeric_string | startswith(1)');
+ok(!$numeric_arg_prefix[0], 'startswith() requires a string argument');
+
+my @numeric_arg_suffix = $jq->run_query($json, '.numeric_string | endswith(3)');
+ok(!$numeric_arg_suffix[0], 'endswith() requires a string argument');
+
 my @empty_prefix = $jq->run_query($json, '.title | startswith("")');
 ok($empty_prefix[0], 'empty prefix always matches');
 
