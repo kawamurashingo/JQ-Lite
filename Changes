@@ -1,3 +1,10 @@
+2.25  2026-01-21
+
+  - Normalize JSON boolean detection via JSON::PP::is_bool to ensure stable
+    path handling on older Perl releases.
+
+  - Bump module version to 2.25.
+
 2.24  2026-01-21
 
   - Treat startswith()/endswith() as string-only predicates so numeric
