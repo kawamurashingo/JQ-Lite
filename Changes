@@ -1,3 +1,11 @@
+2.24  2026-01-18
+
+  - Treat startswith()/endswith() as string-only predicates so numeric
+    scalars no longer match, with added coverage for numeric scalars
+    and numeric string values.
+
+  - Bump module version to 2.24.
+
 2.23  2026-01-18
 
   - Skip ltrimstr()/rtrimstr() processing for non-string scalars so numbers
