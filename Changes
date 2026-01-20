@@ -1,3 +1,11 @@
+2.24  2026-01-21
+
+  - Treat startswith()/endswith() as string-only predicates so numeric
+    scalars and non-string arguments no longer match, with added coverage
+    for numeric scalars, numeric string values, and numeric arguments.
+
+  - Bump module version to 2.24.
+
 2.23  2026-01-18
 
   - Skip ltrimstr()/rtrimstr() processing for non-string scalars so numbers
@@ -1409,6 +1417,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
