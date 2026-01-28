@@ -277,7 +277,7 @@ sub _from_entries {
 
         $result{$key} = $val;
 
-        if ($key =~ /^\d+$/) {
+        if ($key =~ /^(?:0|[1-9]\d*)$/) {
             push @numeric_keys, 0 + $key;
         }
         else {

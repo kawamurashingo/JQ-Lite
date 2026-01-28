@@ -1,3 +1,10 @@
+2.29  2026-02-05
+
+  - Treat only canonical numeric keys as array indices in from_entries so
+    keys with leading zeros remain object keys, with added coverage.
+
+  - Bump module version to 2.29.
+
 2.28  2026-01-29
 
   - Unescape single-quoted assignment literals with embedded quotes and
