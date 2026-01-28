@@ -86,6 +86,16 @@ is_deeply(
     'from_entries restores arrays for contiguous numeric keys'
 );
 
+my @leading_zero_keys = $jq->run_query(
+    '[ {"key": "0", "value": "zero"}, {"key": "01", "value": "leading"} ]',
+    'from_entries'
+);
+is_deeply(
+    $leading_zero_keys[0],
+    { '0' => 'zero', '01' => 'leading' },
+    'from_entries keeps keys with leading zeros as object entries'
+);
+
 my $non_array_ok = eval {
     $jq->run_query('"oops"', 'from_entries');
     1;
