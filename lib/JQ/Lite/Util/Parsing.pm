@@ -1094,7 +1094,9 @@ sub _parse_assignment_value {
     }
 
     if ($raw =~ /^'(.*)'$/) {
-        return { type => 'literal', value => $1 };
+        my $text = $1;
+        $text =~ s/\\'/'/g;
+        return { type => 'literal', value => $text };
     }
 
     return { type => 'expression', value => $raw };

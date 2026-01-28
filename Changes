@@ -1,3 +1,10 @@
+2.28  2026-01-29
+
+  - Unescape single-quoted assignment literals with embedded quotes and
+    add coverage for single-quoted assignment values.
+
+  - Bump module version to 2.28.
+
 2.27  2026-01-22
 
   - Skip delpaths boolean index assertions on Perl versions older than 5.32.
@@ -1430,6 +1437,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 

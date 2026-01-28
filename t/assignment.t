@@ -65,6 +65,17 @@ subtest 'assign null literal' => sub {
     ok(!defined $result->{spec}{replicas}, 'value set to null');
 };
 
+subtest 'assign single-quoted strings' => sub {
+    my $data = { spec => {} };
+    my ($simple) = apply_query($data, ".spec.label = 'release'");
+
+    is($simple->{spec}{label}, 'release', 'single-quoted literal stored as string');
+
+    my ($escaped) = apply_query($data, ".spec.label = 'O\\'Reilly'");
+
+    is($escaped->{spec}{label}, "O'Reilly", 'single-quoted literal unescapes embedded quotes');
+};
+
 subtest 'compound assignments on numbers' => sub {
     subtest 'addition assignment' => sub {
         my $data = { spec => { count => 2 } };
