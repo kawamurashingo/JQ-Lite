@@ -80,7 +80,7 @@ my @result_boolean_indices = $jq->run_query(
 
 SKIP: {
     skip 'Perl 5.32+ required for boolean segment array index handling', 1
-        if $] < 5.032;
+        if $] <= 5.032;
     is_deeply(
         $result_boolean_indices[0],
         ['two'],
