@@ -1,8 +1,8 @@
-2.26  2026-01-22
+2.27  2026-01-22
 
   - Skip delpaths boolean index assertions on Perl versions older than 5.32.
 
-  - Bump module version to 2.26.
+  - Bump module version to 2.27.
 
 2.25  2026-01-21
 
