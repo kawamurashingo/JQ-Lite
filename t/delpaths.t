@@ -73,14 +73,15 @@ is_deeply(
     'delpaths removes boolean-keyed object entries'
 );
 
-my @result_boolean_indices = $jq->run_query(
-    $json_boolean_paths,
-    '.items | delpaths([[false], [true]])'
-);
-
 SKIP: {
     skip 'Perl 5.32+ required for boolean segment array index handling', 1
         if $] <= 5.032;
+
+    my @result_boolean_indices = $jq->run_query(
+        $json_boolean_paths,
+        '.items | delpaths([[false], [true]])'
+    );
+
     is_deeply(
         $result_boolean_indices[0],
         ['two'],
