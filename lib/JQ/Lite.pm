@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '2.30';
+our $VERSION = '2.31';
 
 sub new {
     my ($class, %opts) = @_;
@@ -60,7 +60,7 @@ JQ::Lite - jq-compatible JSON query engine in pure Perl (no external binaries)
 
 =head1 VERSION
 
-Version 2.30
+Version 2.31
 
 =head1 SYNOPSIS
 
