@@ -9,22 +9,40 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '2.31';
+our $VERSION = '2.32';
 
 sub new {
     my ($class, %opts) = @_;
-    my $self = {
-        raw   => $opts{raw} || 0,
-        _vars => {},
-    };
+    my $base_vars = {};
     if (exists $opts{vars} && ref $opts{vars} eq 'HASH') {
-        $self->{_vars} = { %{ $opts{vars} } };
+        $base_vars = { %{ $opts{vars} } };
     }
+
+    my $self = {
+        raw        => $opts{raw} || 0,
+        _base_vars => $base_vars,
+        _vars      => { %{$base_vars} },
+    };
+
     return bless $self, $class;
 }
 
 sub run_query {
     my ($self, $json_text, $query) = @_;
+
+    my $depth = $self->{_query_depth} || 0;
+    local $self->{_query_depth} = $depth + 1;
+    if ($depth == 0) {
+        local $self->{_vars} = { %{ $self->{_base_vars} || {} } };
+        return _run_query_internal($self, $json_text, $query);
+    }
+
+    return _run_query_internal($self, $json_text, $query);
+}
+
+sub _run_query_internal {
+    my ($self, $json_text, $query) = @_;
+
     my $data = JQ::Lite::Util::_decode_json($json_text);
 
     return ($data) if !defined $query || $query =~ /^\s*\.\s*$/;
@@ -60,7 +78,7 @@ JQ::Lite - jq-compatible JSON query engine in pure Perl (no external binaries)
 
 =head1 VERSION
 
-Version 2.31
+Version 2.32
 
 =head1 SYNOPSIS
 
