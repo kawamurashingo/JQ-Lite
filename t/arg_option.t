@@ -27,4 +27,13 @@ my $array_json = encode_json({ users => [ { id => 1 }, { id => 2 } ] });
 @results = $jq->run_query($array_json, '.users[] | $greeting');
 is_deeply(\@results, ['hello', 'hello'], 'variables remain available across pipelines');
 
+@results = $jq->run_query('{"value":1}', '. as $tmp | $tmp.value');
+is_deeply(\@results, [1], 'query-local variables work within the same pipeline');
+
+@results = $jq->run_query($empty_json, '$tmp');
+is_deeply(\@results, [undef], 'query-local variables do not leak into later top-level queries');
+
+@results = $jq->run_query($empty_json, '$greeting');
+is_deeply(\@results, ['hello'], 'predeclared variables remain available after local variable usage');
+
 done_testing();

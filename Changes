@@ -1,3 +1,19 @@
+2.32  2026-02-07
+
+  - Reset runtime query variables per top-level run_query() call so
+    query-local bindings (for example `. as $tmp`) do not leak across
+    independent queries.
+
+  - Preserve constructor-provided vars by introducing a base variable
+    snapshot reapplied at each top-level query, while keeping nested
+    run_query() evaluations in the same dynamic scope.
+
+  - Add regression coverage in t/arg_option.t for query-local variable
+    usage, non-leakage across top-level queries, and continued access
+    to predeclared variables.
+
+  - Bump module version to 2.32.
+
 2.31  2026-02-07
 
   - Fix try/catch parsing so nested top-level try expressions do not
