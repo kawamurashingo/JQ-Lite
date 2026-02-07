@@ -1,3 +1,13 @@
+2.31  2026-02-07
+
+  - Fix try/catch parsing so nested top-level try expressions do not
+    incorrectly bind the outer catch clause.
+
+  - Add regression coverage for nested try/catch handling with
+    `try try (.num / .den) catch 7 catch 9`.
+
+  - Bump module version to 2.31.
+
 2.30  2026-02-07
 
   - Skip executing the delpaths boolean-segment array-index test on Perl

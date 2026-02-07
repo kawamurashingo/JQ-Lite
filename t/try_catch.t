@@ -86,6 +86,14 @@ is_deeply(
     'try ignores catch when used as a field name'
 );
 
+
+my $nested_try = run($fail_json, 'try try (.num / .den) catch 7 catch 9');
+
+is_deeply(
+    $nested_try,
+    [7],
+    'outer try/catch respects nested try/catch expressions'
+);
 my $empty_catch = run($fail_json, 'try (.num / .den) catch empty');
 
 is_deeply(

@@ -97,6 +97,7 @@ sub apply {
             my $string;
             my $escape = 0;
             my $catch_index = undef;
+            my $nested_try_depth = 0;
             for (my $i = 0; $i < length $body; $i++) {
                 my $ch = substr($body, $i, 1);
 
@@ -136,11 +137,27 @@ sub apply {
                 }
 
                 next if @stack;
-                if (substr($body, $i) =~ /^catch\s+/) {
+
+                if (substr($body, $i) =~ /^try\b/) {
+                    if ($i > 0) {
+                        my $prev = substr($body, $i - 1, 1);
+                        next unless $prev =~ /[\s\(\[\{\|,]/;
+                    }
+                    $nested_try_depth++;
+                    next;
+                }
+
+                if (substr($body, $i) =~ /^catch\b/) {
                     if ($i > 0) {
                         my $prev = substr($body, $i - 1, 1);
                         next unless $prev =~ /[\s\)\]\}\|,]/;
                     }
+
+                    if ($nested_try_depth > 0) {
+                        $nested_try_depth--;
+                        next;
+                    }
+
                     $catch_index = $i;
                     last;
                 }
