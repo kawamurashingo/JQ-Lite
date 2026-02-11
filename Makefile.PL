@@ -40,10 +40,19 @@ WriteMakefile(
         no_index    => {
             directory => [ 't', 'inc' ],
         },
+        provides => {
+            'JQ::Lite'                  => { file => 'lib/JQ/Lite.pm', version => MM->parse_version('lib/JQ/Lite.pm') },
+            'JQ::Lite::Util'            => { file => 'lib/JQ/Lite/Util.pm'           },
+            'JQ::Lite::Util::Parsing'   => { file => 'lib/JQ/Lite/Util/Parsing.pm'   },
+            'JQ::Lite::Util::Paths'     => { file => 'lib/JQ/Lite/Util/Paths.pm'     },
+            'JQ::Lite::Util::Transform' => { file => 'lib/JQ/Lite/Util/Transform.pm' },
+            'JQ::Lite::Expression'      => { file => 'lib/JQ/Lite/Expression.pm'     },
+            'JQ::Lite::Filters'         => { file => 'lib/JQ/Lite/Filters.pm'        },
+            'JQ::Lite::Parser'          => { file => 'lib/JQ/Lite/Parser.pm'         },
+        },
     },
     META_ADD => {
         resources => $resources,
     },
+    clean => { FILES => 'JQ-Lite-*'},
 );
-
-
