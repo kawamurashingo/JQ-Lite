@@ -1,3 +1,8 @@
+2.33  2026-02-11
+  - Strengthen @base64d validation to reject non-string scalar input.
+  - Expand @base64d edge-case coverage for invalid alphabet, length, and padding.
+  - Bump module version to 2.33.
+
 2.32  2026-02-07
 
   - Reset runtime query variables per top-level run_query() call so
