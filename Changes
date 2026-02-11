@@ -1,3 +1,8 @@
+2.34  2026-02-11
+  - Accept whitespace around del() key arguments before unquoting.
+  - Expand del() test coverage for whitespace, quoting, missing keys, and non-object passthrough.
+  - Bump module version to 2.34.
+
 2.33  2026-02-11
   - Strengthen @base64d validation to reject non-string scalar input.
   - Expand @base64d edge-case coverage for invalid alphabet, length, and padding.

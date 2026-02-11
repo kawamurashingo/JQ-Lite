@@ -1810,6 +1810,7 @@ sub apply {
         # support for del(key)
         if ($part =~ /^del\((.+?)\)$/) {
             my $key = $1;
+            $key =~ s/^\s+|\s+$//g;             # allow whitespace around argument
             $key =~ s/^['"](.*?)['"]$/$1/;  # remove quotes
 
             @next_results = map {
