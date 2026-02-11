@@ -1356,6 +1356,8 @@ sub _apply_base64d {
         $text = $value ? 'true' : 'false';
     }
     elsif (!ref $value) {
+        die '@base64d(): input must be base64 text'
+            if !_is_string_scalar($value);
         $text = "$value";
     }
     elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
