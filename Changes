@@ -1,3 +1,8 @@
+2.34  2026-02-14
+  - Accept whitespace around del() key arguments before unquoting.
+  - Expand del() test coverage for whitespace, quoting, missing keys, and non-object passthrough.
+  - Bump module version to 2.34.
+
 2.33  2026-02-11
   - Strengthen @base64d validation to reject non-string scalar input.
   - Expand @base64d edge-case coverage for invalid alphabet, length, and padding.
@@ -1482,6 +1487,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
