@@ -1,4 +1,4 @@
-2.38  2026-02-14
+2.38  2026-02-15
 
   - Normalize JSON::PP boolean decoding across supported runtimes and
     enforce delpaths boolean-index coverage in tests.
@@ -1515,6 +1515,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
