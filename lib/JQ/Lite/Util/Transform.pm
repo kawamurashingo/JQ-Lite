@@ -143,6 +143,18 @@ sub _apply_to_number {
     return $value;
 }
 
+sub _extract_numeric_values {
+    my ($values) = @_;
+
+    return () unless ref $values eq 'ARRAY';
+
+    return map {
+        JSON::PP::is_bool($_) ? ($_ ? 1 : 0) : 0 + $_;
+    } grep {
+        defined $_ && (JSON::PP::is_bool($_) || (!ref $_ && looks_like_number($_)));
+    } @$values;
+}
+
 sub _normalize_percentile {
     my ($value) = @_;
 

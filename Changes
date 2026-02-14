@@ -1,3 +1,12 @@
+2.37  2026-02-14
+
+  - Harden numeric extraction across aggregate functions to avoid
+    spurious warnings with mixed-type arrays while preserving boolean
+    1/0 handling.
+  - Expand aggregate and percentile tests for mixed-value arrays and
+    warning-free execution.
+  - Bump module version to 2.37.
+
 2.36  2026-02-14
 
   - Fix @uri encoding for decoded UTF-8 object input by avoiding

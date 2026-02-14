@@ -1279,7 +1279,10 @@ sub apply {
         # support for min
         if ($part eq 'min') {
             @next_results = map {
-                ref $_ eq 'ARRAY' ? min(map { 0 + $_ } @$_) : $_
+                ref $_ eq 'ARRAY' ? do {
+                my @numbers = JQ::Lite::Util::_extract_numeric_values($_);
+                @numbers ? min(@numbers) : undef;
+            } : $_
             } @results;
             @$out_ref = @next_results;
             return 1;
@@ -1288,7 +1291,10 @@ sub apply {
         # support for max
         if ($part eq 'max') {
             @next_results = map {
-                ref $_ eq 'ARRAY' ? max(map { 0 + $_ } @$_) : $_
+                ref $_ eq 'ARRAY' ? do {
+                my @numbers = JQ::Lite::Util::_extract_numeric_values($_);
+                @numbers ? max(@numbers) : undef;
+            } : $_
             } @results;
             @$out_ref = @next_results;
             return 1;
@@ -1398,9 +1404,7 @@ sub apply {
             @next_results = map {
                 if (ref $_ eq 'ARRAY' && @$_) {
                     my @numbers = sort { $a <=> $b }
-                        map { 0 + $_ }
-                        grep { looks_like_number($_) }
-                        @$_;
+                        JQ::Lite::Util::_extract_numeric_values($_);
 
                     if (@numbers) {
                         my $count  = @numbers;
@@ -1430,9 +1434,7 @@ sub apply {
             @next_results = map {
                 if (ref $_ eq 'ARRAY' && @$_) {
                     my @numbers = sort { $a <=> $b }
-                        map { 0 + $_ }
-                        grep { looks_like_number($_) }
-                        @$_;
+                        JQ::Lite::Util::_extract_numeric_values($_);
 
                     if (@numbers) {
                         defined $fraction ? JQ::Lite::Util::_percentile_value(\@numbers, $fraction) : undef;
@@ -1503,9 +1505,7 @@ sub apply {
         if ($part eq 'variance') {
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
-                    my @numbers = map { 0 + $_ }
-                        grep { looks_like_number($_) }
-                        @$_;
+                    my @numbers = JQ::Lite::Util::_extract_numeric_values($_);
 
                     if (@numbers) {
                         my $mean = sum(@numbers) / @numbers;
@@ -1528,9 +1528,7 @@ sub apply {
         if ($part eq 'stddev') {
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
-                    my @numbers = map { 0 + $_ }
-                        grep { looks_like_number($_) }
-                        @$_;
+                    my @numbers = JQ::Lite::Util::_extract_numeric_values($_);
 
                     if (@numbers) {
                         my $mean = sum(@numbers) / @numbers;

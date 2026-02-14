@@ -59,4 +59,14 @@ my $json_single = q([99]);
 my ($p_single) = $jq->run_query($json_single, 'percentile(25)');
 is($p_single, 99, 'percentile returns the only element when the array has one value');
 
+
+my $warned = 0;
+my ($p_bool_mixed);
+{
+    local $SIG{__WARN__} = sub { $warned = 1 };
+    ($p_bool_mixed) = $jq->run_query(q([true, "x", false, 9]), 'percentile(50)');
+}
+is($p_bool_mixed, 1, 'percentile treats booleans as numeric values and ignores non-numeric values');
+ok(!$warned, 'percentile on mixed arrays does not emit numeric warnings');
+
 done_testing;
