@@ -1,3 +1,9 @@
+2.38  2026-02-14
+
+  - Normalize JSON::PP boolean decoding across supported runtimes and
+    enforce delpaths boolean-index coverage in tests.
+  - Bump module version to 2.38.
+
 2.37  2026-02-14
 
   - Harden numeric extraction across aggregate functions to avoid
