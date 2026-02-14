@@ -8,9 +8,19 @@ use Scalar::Util qw(looks_like_number);
 use Encode qw(encode is_utf8);
 use JQ::Lite::Expression ();
 
-our $JSON_DECODER     = JSON::PP->new->utf8->allow_nonref;
-our $FROMJSON_DECODER = JSON::PP->new->utf8->allow_nonref;
+our $JSON_DECODER     = _build_json_decoder();
+our $FROMJSON_DECODER = _build_json_decoder();
 our $TOJSON_ENCODER   = JSON::PP->new->utf8->allow_nonref;
+
+sub _build_json_decoder {
+    my $decoder = JSON::PP->new->utf8->allow_nonref;
+
+    if ($decoder->can('boolean_values')) {
+        $decoder->boolean_values(JSON::PP::false, JSON::PP::true);
+    }
+
+    return $decoder;
+}
 
 sub _encode_json {
     my ($value) = @_;
