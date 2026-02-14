@@ -339,7 +339,17 @@ sub _apply_map_values {
     }
 
     if (ref $value eq 'ARRAY') {
-        return [ map { _apply_map_values($self, $_, $filter) } @$value ];
+        my @result;
+        for my $original (@$value) {
+            if (ref $original eq 'HASH' || ref $original eq 'ARRAY') {
+                push @result, _apply_map_values($self, $original, $filter);
+                next;
+            }
+
+            my @outputs = $self->run_query(_encode_json($original), $filter);
+            push @result, $outputs[0] if @outputs;
+        }
+        return \@result;
     }
 
     return $value;
