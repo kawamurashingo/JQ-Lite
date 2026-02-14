@@ -26,4 +26,18 @@ is_deeply($array_results[0], [
 my @emptied = $jq->run_query($length_json, 'map_values(empty)');
 is_deeply($emptied[0], {}, 'map_values(empty) drops keys when the filter yields no result');
 
+my @incremented = $jq->run_query('[1,2,3]', 'map_values(. + 1)');
+is_deeply(
+    $incremented[0],
+    [2, 3, 4],
+    'map_values(. + 1) applies the filter to scalar array elements'
+);
+
+my @emptied_array = $jq->run_query('[1,2,3]', 'map_values(empty)');
+is_deeply(
+    $emptied_array[0],
+    [],
+    'map_values(empty) drops array elements when the filter yields no result'
+);
+
 done_testing;

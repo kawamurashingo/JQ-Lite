@@ -1,3 +1,8 @@
+2.35  2026-02-14
+  - Fix map_values() to apply filters to scalar array elements.
+  - Expand map_values() tests for scalar-array transform and filtering behavior.
+  - Bump module version to 2.35.
+
 2.34  2026-02-14
   - Accept whitespace around del() key arguments before unquoting.
   - Expand del() test coverage for whitespace, quoting, missing keys, and non-object passthrough.
