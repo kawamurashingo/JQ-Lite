@@ -1418,7 +1418,9 @@ sub _apply_uri {
         $text = "$value";
     }
 
-    my $encoded = encode('UTF-8', $text);
+    my $encoded = is_utf8($text, 1)
+        ? encode('UTF-8', $text)
+        : $text;
     $encoded =~ s/([^A-Za-z0-9\-._~])/sprintf('%%%02X', ord($1))/ge;
     return $encoded;
 }

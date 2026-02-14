@@ -1,3 +1,11 @@
+2.36  2026-02-14
+
+  - Fix @uri encoding for decoded UTF-8 object input by avoiding
+    unnecessary UTF-8 re-encoding of byte-oriented strings.
+  - Expand UTF-8 regression coverage in t/decode_utf8_input.t for
+    decoded UTF-8 scalar and object key/value encoding behavior.
+  - Bump module version to 2.36.
+
 2.35  2026-02-14
   - Fix map_values() to apply filters to scalar array elements.
   - Expand map_values() tests for scalar-array transform and filtering behavior.
