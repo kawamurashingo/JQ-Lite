@@ -47,4 +47,20 @@ ok(!defined $variance_non_numeric, 'variance returns undef when array has no num
 my ($stddev_non_numeric) = $jq->run_query(q(["alpha", "beta", "gamma"]), 'stddev');
 ok(!defined $stddev_non_numeric, 'stddev returns undef when array has no numeric values');
 
+
+my $warned = 0;
+{
+    local $SIG{__WARN__} = sub { $warned = 1 };
+    my ($min_mixed) = $jq->run_query(q(["x", 10, true, "5", null]), 'min');
+    my ($max_mixed) = $jq->run_query(q(["x", 10, true, "5", null]), 'max');
+    is($min_mixed, 1, 'min ignores non-numeric values and handles booleans numerically');
+    is($max_mixed, 10, 'max ignores non-numeric values and keeps numeric candidates');
+}
+ok(!$warned, 'min/max with mixed arrays do not emit numeric warnings');
+
+my ($min_none) = $jq->run_query(q(["alpha", "beta", null]), 'min');
+my ($max_none) = $jq->run_query(q(["alpha", "beta", null]), 'max');
+ok(!defined $min_none, 'min returns undef when no numeric values are present');
+ok(!defined $max_none, 'max returns undef when no numeric values are present');
+
 done_testing;
