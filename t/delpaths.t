@@ -1,6 +1,12 @@
 use strict;
 use warnings;
 use Test::More;
+
+BEGIN {
+    if ($] < 5.034) {
+        plan skip_all => q{delpaths tests require Perl 5.34 or newer};
+    }
+}
 use JQ::Lite;
 
 my $jq = JQ::Lite->new;
