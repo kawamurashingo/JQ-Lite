@@ -1,3 +1,9 @@
+2.39  2026-02-15
+
+  - Keep distribution minimum Perl version unchanged while gating
+    delpaths regression coverage to Perl 5.34+ runtimes.
+  - Bump module version to 2.39.
+
 2.38  2026-02-15
 
   - Normalize JSON::PP boolean decoding across supported runtimes and
