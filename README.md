@@ -111,8 +111,13 @@ without requiring jq.
 ### Download (latest)
 
 ```bash
+curl -sSfL https://cpan.metacpan.org/authors/id/I/IS/ISHIGAKI/JSON-PP-4.16.tar.gz -o JSON-PP.tar.gz
+tar xzf JSON-PP.tar.gz
+
+JSONPP_LIB=$(echo JSON-PP-*/lib)
+
 ver=$(curl -s http://fastapi.metacpan.org/v1/release/JQ-Lite \
-  | perl -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
+  | perl -I"$JSONPP_LIB" -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
 curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
 ```
 
@@ -201,6 +206,7 @@ say for $jq->run_query($json, '.users[].name');
 ## License
 
 Same terms as Perl itself.
+
 
 
 
