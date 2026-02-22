@@ -1,3 +1,10 @@
+2.40  2026-02-23
+
+  - Strengthen replace() test coverage for boundary conditions:
+    regex metacharacter search terms, empty replacement strings,
+    and object inputs that must remain unchanged.
+  - Bump module version to 2.40.
+
 2.39  2026-02-15
 
   - Keep distribution minimum Perl version unchanged while gating
@@ -1521,6 +1528,7 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
+
 
 
 
