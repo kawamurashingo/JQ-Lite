@@ -50,4 +50,17 @@ is($chained[0], 'HELLO PERL', 'replace result can be chained with other function
 my @double = $jq->run_query($json, '.title | replace("l", "L")');
 is($double[0], 'HeLLo WorLd', 'replace substitutes all occurrences of the search term');
 
+my @literal_meta = $jq->run_query('"a.b.c"', '. | replace(".", "-")');
+is($literal_meta[0], 'a-b-c', 'replace treats regex metacharacters in the search term as literals');
+
+my @empty_replacement = $jq->run_query('"foooo"', '. | replace("o", "")');
+is($empty_replacement[0], 'f', 'replace supports empty replacement text');
+
+my @object_input = $jq->run_query('{"name":"world","nested":{"name":"world"}}', '. | replace("world", "earth")');
+is_deeply(
+    $object_input[0],
+    { name => 'world', nested => { name => 'world' } },
+    'replace leaves object inputs untouched instead of stringifying or mutating hashes'
+);
+
 done_testing;

@@ -1,3 +1,10 @@
+2.40  2026-02-22
+
+  - Strengthen replace() test coverage for boundary conditions:
+    regex metacharacter search terms, empty replacement strings,
+    and object inputs that must remain unchanged.
+  - Bump module version to 2.40.
+
 2.39  2026-02-15
 
   - Keep distribution minimum Perl version unchanged while gating
