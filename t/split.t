@@ -50,4 +50,16 @@ is_deeply($literal[0], [qw(a b c)], 'split uses literal separator rather than re
 my @trailing = $jq->run_query($json, '.trailing | split(",")');
 is_deeply($trailing[0], ['tail', ''], 'split preserves trailing empty fields');
 
+my @leading = $jq->run_query('",head"', 'split(",")');
+is_deeply($leading[0], ['', 'head'], 'split preserves leading empty fields');
+
+my @repeated = $jq->run_query('"alpha::beta::"', 'split("::")');
+is_deeply($repeated[0], ['alpha', 'beta', ''], 'split handles multi-character separators and trailing empties');
+
+my @unicode_chars = $jq->run_query('"あい"', 'split("")');
+is_deeply($unicode_chars[0], ["\x{3042}", "\x{3044}"], 'split("") preserves Unicode characters');
+
+my @meta_separator = $jq->run_query('"a$^b$^c"', 'split("$^")');
+is_deeply($meta_separator[0], ['a', 'b', 'c'], 'split escapes regex metacharacters in separators');
+
 done_testing;
