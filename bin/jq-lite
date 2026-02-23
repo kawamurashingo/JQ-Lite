@@ -659,7 +659,7 @@ sub _build_yaml_loader {
     }
     elsif (eval { require YAML::PP; 1 }) {
         require YAML::PP;
-        my $yp = YAML::PP->new(boolean => 'JSON');
+        my $yp = YAML::PP->new(boolean => 'JSON::PP');
         return (sub { $yp->load_string($_[0]) }, 'YAML::PP');
     }
     else {
@@ -1146,4 +1146,3 @@ This software is released under the same terms as Perl itself.
 =head1 DISCLAIMER
 
 jq-lite is provided "as is", without warranty of any kind.
-
