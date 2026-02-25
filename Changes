@@ -1,3 +1,11 @@
+2.42  2026-02-25
+
+  - Improve --slurpfile JSON stream handling by preserving all
+    top-level documents as array entries.
+  - Reuse shared JSON stream decoding for --slurp and --slurpfile.
+  - Expand --slurpfile regression coverage for multi-document input.
+  - Bump module version to 2.42.
+
 2.41  2026-02-23
 
   - Fix YAML::PP loader boolean backend selection by using

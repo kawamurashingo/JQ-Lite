@@ -26,6 +26,23 @@ my $decoded = JSON::PP->new->decode($stdout);
 is_deeply($decoded, { a => 1, b => 2 }, 'slurpfile makes decoded JSON available inside queries');
 like($stderr, qr/^\s*\z/, 'no warnings emitted for valid --slurpfile usage');
 
+my ($stream_fh, $stream_path) = tempfile();
+print {$stream_fh} "{\"a\":1}\n{\"b\":2}\n";
+close $stream_fh;
+
+my $stream_err = gensym;
+my $stream_pid = open3(my $stream_in, my $stream_out, $stream_err, $^X, 'bin/jq-lite', '-n', '--slurpfile', 'cfg', $stream_path, '$cfg | length');
+close $stream_in;
+
+my $stream_stdout = do { local $/; <$stream_out> } // '';
+my $stream_stderr = do { local $/; <$stream_err> } // '';
+waitpid($stream_pid, 0);
+my $stream_exit = $? >> 8;
+
+is($stream_exit, 0, '--slurpfile accepts JSON streams with multiple top-level values');
+is($stream_stdout, "2\n", '--slurpfile exposes every JSON value as array entries');
+like($stream_stderr, qr/^\s*\z/, 'no warnings emitted for streamed --slurpfile JSON');
+
 my $missing_query_err = gensym;
 my $missing_query_pid = open3(my $missing_query_in, my $missing_query_out, $missing_query_err, $^X, 'bin/jq-lite', '--slurpfile', 'cfg', '.');
 close $missing_query_in;
