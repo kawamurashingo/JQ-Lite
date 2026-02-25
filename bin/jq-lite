@@ -529,12 +529,12 @@ if (@slurpfiles) {
         $json_text = '' unless defined $json_text;
         $fh->close;
 
-        my $decoded = eval { JQ::Lite::Util::_decode_json($json_text) };
+        my $decoded = eval { _decode_json_stream($json_text) };
         if ($@) {
             _usage_error("invalid JSON in slurpfile $var_name");
         }
 
-        $arg_vars{$var_name} = [$decoded];
+        $arg_vars{$var_name} = $decoded;
     }
 }
 
@@ -597,29 +597,12 @@ if ($raw_input) {
 }
 
 if (!$raw_input && $slurp_input && !$null_input) {
-    my $text   = $json_text // '';
-    my $length = length $text;
-    my $offset = 0;
-    my @values;
-    my $decoder = JSON::PP->new->utf8->allow_nonref;
-
-    while (1) {
-        while ($offset < $length && substr($text, $offset, 1) =~ /\s/) {
-            $offset++;
-        }
-        last if $offset >= $length;
-
-        my ($value, $consumed);
-        my $ok = eval { ($value, $consumed) = $decoder->decode_prefix(substr($text, $offset)); 1 };
-        if (!$ok) {
-            _input_error("Failed to decode JSON stream for --slurp: $@");
-        }
-
-        push @values, $value;
-        $offset += $consumed;
+    my $decoded = eval { _decode_json_stream($json_text) };
+    if (!$decoded && $@) {
+        _input_error("Failed to decode JSON stream for --slurp: $@");
     }
 
-    $json_text = JSON::PP->new->encode(\@values);
+    $json_text = JSON::PP->new->encode($decoded);
 }
 
 if (!$raw_input) {
@@ -682,6 +665,31 @@ sub _build_yaml_loader {
             'CPAN::Meta::YAML'
         );
     }
+}
+
+sub _decode_json_stream {
+    my ($text) = @_;
+    $text = '' unless defined $text;
+
+    my $length  = length $text;
+    my $offset  = 0;
+    my @values;
+    my $decoder = JSON::PP->new->utf8->allow_nonref;
+
+    while (1) {
+        while ($offset < $length && substr($text, $offset, 1) =~ /\s/) {
+            $offset++;
+        }
+        last if $offset >= $length;
+
+        my ($value, $consumed);
+        ($value, $consumed) = $decoder->decode_prefix(substr($text, $offset));
+
+        push @values, $value;
+        $offset += $consumed;
+    }
+
+    return \@values;
 }
 
 # ---------- Colorization ----------
