@@ -59,6 +59,12 @@ sub _runtime_error {
     _exit_with_error('RUNTIME', 'runtime error', 3, $message);
 }
 
+my %BRACKET_PAIRS = (
+    ')' => '(',
+    ']' => '[',
+    '}' => '{',
+);
+
 sub _validate_query_syntax {
     my ($query) = @_;
 
@@ -98,12 +104,7 @@ sub _validate_query_syntax {
 
         if ($char eq ')' || $char eq ']' || $char eq '}') {
             my $open = pop @stack;
-            my %pairs = (
-                ')' => '(',
-                ']' => '[',
-                '}' => '{',
-            );
-            if (!defined $open || $open ne $pairs{$char}) {
+            if (!defined $open || $open ne $BRACKET_PAIRS{$char}) {
                 _compile_error('Invalid query syntax: unmatched brackets');
             }
         }
