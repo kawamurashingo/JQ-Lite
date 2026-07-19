@@ -425,7 +425,7 @@ sub _split_top_level_comparison {
 
     my %close = ('(' => ')', '[' => ']', '{' => '}');
     my %open = reverse %close;
-    my (@stack, $quote, $escape);
+    my (@stack, $quote, $escape, @comparison);
 
     for (my $i = 0; $i < length($text); $i++) {
         my $char = substr($text, $i, 1);
@@ -441,12 +441,21 @@ sub _split_top_level_comparison {
         next if @stack;
 
         my $tail = substr($text, $i);
-        if ($tail =~ /^(==|!=|>=|<=|>|<)/) {
+        my $previous = $i > 0 ? substr($text, $i - 1, 1) : '';
+        if (($i == 0 || $previous =~ /\s/)
+            && $tail =~ /^(?:and|or)(?=\s|$)/)
+        {
+            # Compound boolean expressions are handled by the condition
+            # evaluator, which applies jq's logical precedence.  Splitting
+            # only their first comparison would make the rest an operand.
+            return;
+        }
+        if (!@comparison && $tail =~ /^(==|!=|>=|<=|>|<)/) {
             my $operator = $1;
-            return (substr($text, 0, $i), $operator, substr($text, $i + length($operator)));
+            @comparison = (substr($text, 0, $i), $operator, substr($text, $i + length($operator)));
         }
     }
-    return;
+    return @comparison;
 }
 
 sub _split_top_level_colon {

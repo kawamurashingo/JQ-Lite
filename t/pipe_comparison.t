@@ -29,4 +29,20 @@ for my $case (@cases) {
     is($results[0] ? 1 : 0, $expected, "$query compares the piped value");
 }
 
+my $compound_json = '{"a":1,"b":2,"label":"rock and roll"}';
+my @compound_cases = (
+    ['.a > 0 and .b > 0',          1],
+    ['.a > 2 and .b > 0',          0],
+    ['.a > 2 or .b > 0',           1],
+    ['.a > 2 or .b < 0',           0],
+    ['.label == "rock and roll"',  1],
+);
+
+for my $case (@compound_cases) {
+    my ($query, $expected) = @$case;
+    my @results = $jq->run_query($compound_json, $query);
+    is(scalar(@results), 1, "$query returns one result");
+    is($results[0] ? 1 : 0, $expected, "$query preserves compound comparison semantics");
+}
+
 done_testing;
