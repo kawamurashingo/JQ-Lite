@@ -419,6 +419,36 @@ sub _split_top_level_operator {
     return;
 }
 
+sub _split_top_level_comparison {
+    my ($text) = @_;
+    return unless defined $text;
+
+    my %close = ('(' => ')', '[' => ']', '{' => '}');
+    my %open = reverse %close;
+    my (@stack, $quote, $escape);
+
+    for (my $i = 0; $i < length($text); $i++) {
+        my $char = substr($text, $i, 1);
+        if (defined $quote) {
+            if ($escape) { $escape = 0; next; }
+            if ($char eq '\\') { $escape = 1; next; }
+            undef $quote if $char eq $quote;
+            next;
+        }
+        if ($char eq q{"} || $char eq q{'}) { $quote = $char; next; }
+        if (exists $close{$char}) { push @stack, $char; next; }
+        if (exists $open{$char}) { pop @stack if @stack; next; }
+        next if @stack;
+
+        my $tail = substr($text, $i);
+        if ($tail =~ /^(==|!=|>=|<=|>|<)/) {
+            my $operator = $1;
+            return (substr($text, 0, $i), $operator, substr($text, $i + length($operator)));
+        }
+    }
+    return;
+}
+
 sub _split_top_level_colon {
     my ($text) = @_;
 

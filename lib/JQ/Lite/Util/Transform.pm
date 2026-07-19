@@ -943,6 +943,28 @@ sub _compare_numeric_values {
     return 0;
 }
 
+sub _compare_values {
+    my ($left, $operator, $right) = @_;
+
+    my $both_numeric = defined($left) && defined($right)
+        && !ref($left) && !ref($right)
+        && looks_like_number($left) && looks_like_number($right);
+
+    if ($operator eq '==') {
+        return $both_numeric ? $left == $right : _values_equal($left, $right);
+    }
+    if ($operator eq '!=') {
+        return $both_numeric ? $left != $right : !_values_equal($left, $right);
+    }
+
+    return 0 unless $both_numeric;
+    return $left >= $right if $operator eq '>=';
+    return $left <= $right if $operator eq '<=';
+    return $left >  $right if $operator eq '>';
+    return $left <  $right if $operator eq '<';
+    return 0;
+}
+
 sub _smart_cmp {
     return sub {
         my ($a, $b) = @_;
