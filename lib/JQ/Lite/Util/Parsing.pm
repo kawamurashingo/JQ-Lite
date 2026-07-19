@@ -458,6 +458,44 @@ sub _split_top_level_comparison {
     return @comparison;
 }
 
+sub _split_top_level_keyword {
+    my ($text, $keyword) = @_;
+    return ($text) unless defined $text && defined $keyword && length $keyword;
+
+    my %close = ('(' => ')', '[' => ']', '{' => '}');
+    my %open = reverse %close;
+    my (@stack, $quote, $escape, @parts);
+    my $start = 0;
+
+    for (my $i = 0; $i < length($text); $i++) {
+        my $char = substr($text, $i, 1);
+        if (defined $quote) {
+            if ($escape) { $escape = 0; next; }
+            if ($char eq '\\') { $escape = 1; next; }
+            undef $quote if $char eq $quote;
+            next;
+        }
+        if ($char eq q{"} || $char eq q{'}) { $quote = $char; next; }
+        if (exists $close{$char}) { push @stack, $char; next; }
+        if (exists $open{$char}) { pop @stack if @stack; next; }
+        next if @stack;
+
+        my $before = $i > 0 ? substr($text, $i - 1, 1) : '';
+        my $after_pos = $i + length($keyword);
+        my $after = $after_pos < length($text) ? substr($text, $after_pos, 1) : '';
+        next unless substr($text, $i, length($keyword)) eq $keyword;
+        next unless ($i == 0 || $before =~ /\s/);
+        next unless ($after_pos == length($text) || $after =~ /\s/);
+
+        push @parts, substr($text, $start, $i - $start);
+        $start = $after_pos;
+        $i = $after_pos - 1;
+    }
+
+    push @parts, substr($text, $start);
+    return @parts;
+}
+
 sub _split_top_level_colon {
     my ($text) = @_;
 

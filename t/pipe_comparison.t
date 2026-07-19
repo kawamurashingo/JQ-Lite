@@ -35,6 +35,11 @@ my @compound_cases = (
     ['.a > 2 and .b > 0',          0],
     ['.a > 2 or .b > 0',           1],
     ['.a > 2 or .b < 0',           0],
+    ['(.a > 0) and (.b > 0)',      1],
+    ['.a > 0 and (.b > 0)',        1],
+    ['(.a > 2) or (.b > 0)',       1],
+    ['(.a > 0 or .b < 0) and (.b > 0)', 1],
+    ['.a > 0 or .a > 2 and .b < 0',     1],
     ['.label == "rock and roll"',  1],
 );
 
