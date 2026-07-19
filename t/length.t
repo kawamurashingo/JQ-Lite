@@ -45,4 +45,16 @@ ok($count_eq[0], 'current numeric value supports equality after a pipe');
 ok($string_eq[0], 'current string value supports equality after a pipe');
 ok($parenthesized[0], 'parenthesized pipeline result supports comparison');
 
+my @string_number = $jq->run_query('"1"', '. == 1');
+my @string_order = $jq->run_query('{"x":"m"}', '.x < "z"');
+my @type_order = $jq->run_query('null', '. < false');
+my @nested_types = $jq->run_query('["1"]', '. == [1]');
+my @rhs_context = $jq->run_query('{"a":[1],"b":1}', '(.a | length) == .b');
+
+ok(!$string_number[0], 'numeric strings are not equal to JSON numbers');
+ok($string_order[0], 'relational comparison supports JSON strings');
+ok($type_order[0], 'relational comparison follows jq JSON type ordering');
+ok(!$nested_types[0], 'deep equality preserves nested JSON scalar types');
+ok($rhs_context[0], 'parenthesized comparison RHS uses the original input');
+
 done_testing;

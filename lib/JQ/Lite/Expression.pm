@@ -5,6 +5,7 @@ use warnings;
 
 use JSON::PP ();    # lightweight decoder for string literals
 use Scalar::Util qw(looks_like_number);
+use B qw(SVp_IOK SVp_NOK SVp_POK);
 
 # Internal constant used to signal that parsing failed and callers should
 # silently fall back to other heuristics.
@@ -425,18 +426,17 @@ sub _eval_node {
         my $right_value = _eval_node($node->{right}, $opts);
 
         if ($node->{op} eq '==' || $node->{op} eq '!=') {
-            my $equal = _values_equal($left_value, $right_value);
+            my $equal = _compare_values($left_value, $right_value) == 0;
             $equal = !$equal if $node->{op} eq '!=';
             return $equal ? JSON::PP::true : JSON::PP::false;
         }
 
         if ($node->{op} =~ /^(?:>=|<=|>|<)$/) {
-            my $left_num  = $opts->{coerce_number}->($left_value,  'left operand');
-            my $right_num = $opts->{coerce_number}->($right_value, 'right operand');
-            my $result = $node->{op} eq '>=' ? $left_num >= $right_num
-                       : $node->{op} eq '<=' ? $left_num <= $right_num
-                       : $node->{op} eq '>'  ? $left_num >  $right_num
-                       :                       $left_num <  $right_num;
+            my $comparison = _compare_values($left_value, $right_value);
+            my $result = $node->{op} eq '>=' ? $comparison >= 0
+                       : $node->{op} eq '<=' ? $comparison <= 0
+                       : $node->{op} eq '>'  ? $comparison >  0
+                       :                       $comparison <  0;
             return $result ? JSON::PP::true : JSON::PP::false;
         }
 
@@ -473,38 +473,68 @@ sub _eval_node {
     _parse_error();
 }
 
-sub _values_equal {
+sub compare_values {
+    my ($left, $right, $operator) = @_;
+    my $comparison = _compare_values($left, $right);
+    my $result = $operator eq '==' ? $comparison == 0
+               : $operator eq '!=' ? $comparison != 0
+               : $operator eq '>=' ? $comparison >= 0
+               : $operator eq '<=' ? $comparison <= 0
+               : $operator eq '>'  ? $comparison >  0
+               : $operator eq '<'  ? $comparison <  0
+               : 0;
+    return $result ? JSON::PP::true : JSON::PP::false;
+}
+
+sub _compare_values {
     my ($left, $right) = @_;
 
-    return 1 if !defined $left && !defined $right;
-    return 0 if !defined $left || !defined $right;
-    return JSON::PP::is_bool($left) && JSON::PP::is_bool($right)
-        ? (!!$left == !!$right) : 0
-        if JSON::PP::is_bool($left) || JSON::PP::is_bool($right);
+    my $left_type  = _value_type($left);
+    my $right_type = _value_type($right);
+    return $left_type <=> $right_type if $left_type != $right_type;
 
-    if (!ref $left && !ref $right) {
-        return looks_like_number($left) && looks_like_number($right)
-            ? $left == $right : "$left" eq "$right";
+    return 0 if $left_type == 0;
+    return (!!$left) <=> (!!$right) if $left_type == 1;
+    return $left <=> $right if $left_type == 2;
+    return "$left" cmp "$right" if $left_type == 3;
+
+    if ($left_type == 4) {
+        my $limit = @$left < @$right ? @$left : @$right;
+        if ($limit) {
+            for my $i (0 .. $limit - 1) {
+                my $comparison = _compare_values($left->[$i], $right->[$i]);
+                return $comparison if $comparison;
+            }
+        }
+        return @$left <=> @$right;
     }
 
-    if (ref $left eq 'ARRAY' && ref $right eq 'ARRAY') {
-        return 0 unless @$left == @$right;
-        for my $i (0 .. $#$left) {
-            return 0 unless _values_equal($left->[$i], $right->[$i]);
+    if ($left_type == 5) {
+        my @left_keys  = sort keys %$left;
+        my @right_keys = sort keys %$right;
+        my $keys_comparison = _compare_values(\@left_keys, \@right_keys);
+        return $keys_comparison if $keys_comparison;
+        for my $key (@left_keys) {
+            my $comparison = _compare_values($left->{$key}, $right->{$key});
+            return $comparison if $comparison;
         }
-        return 1;
-    }
-
-    if (ref $left eq 'HASH' && ref $right eq 'HASH') {
-        return 0 unless keys(%$left) == keys(%$right);
-        for my $key (keys %$left) {
-            return 0 unless exists $right->{$key}
-                && _values_equal($left->{$key}, $right->{$key});
-        }
-        return 1;
+        return 0;
     }
 
     return 0;
+}
+
+sub _value_type {
+    my ($value) = @_;
+    return 0 unless defined $value;                    # null
+    return 1 if JSON::PP::is_bool($value);             # false, true
+    return 4 if ref $value eq 'ARRAY';
+    return 5 if ref $value eq 'HASH';
+    return 6 if ref $value;
+
+    my $flags = B::svref_2object(\$value)->FLAGS;
+    return 2 if ($flags & (SVp_IOK | SVp_NOK)) && !($flags & SVp_POK);
+    return 3;
 }
 
 sub _default_coerce_number {
@@ -525,4 +555,3 @@ sub _default_coerce_number {
 }
 
 1;
-

@@ -7,6 +7,7 @@ use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 use B qw(SVp_IOK SVp_NOK);
 use JQ::Lite::Util ();
+use JQ::Lite::Expression ();
 
 sub apply {
     my ($self, $part, $results_ref, $out_ref) = @_;
@@ -93,10 +94,15 @@ sub apply {
                 );
 
                 for my $lhs_value (@lhs_values) {
-                    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression(
-                        $self, $lhs_value, ". $operator $rhs"
+                    my ($rhs_values, $rhs_ok) = JQ::Lite::Util::_evaluate_value_expression(
+                        $self, $item, $rhs
                     );
-                    push @next_results, @$values if $ok;
+                    next unless $rhs_ok;
+                    for my $rhs_value (@$rhs_values) {
+                        push @next_results, JQ::Lite::Expression::compare_values(
+                            $lhs_value, $rhs_value, $operator
+                        );
+                    }
                 }
             }
 
