@@ -963,12 +963,44 @@ sub _compare_values {
         return $both_numeric ? $left != $right : !_values_equal($left, $right);
     }
 
-    return 0 unless $both_numeric;
-    return $left >= $right if $operator eq '>=';
-    return $left <= $right if $operator eq '<=';
-    return $left >  $right if $operator eq '>';
-    return $left <  $right if $operator eq '<';
+    my $ordering = _jq_order_compare($left, $right);
+    return $ordering >= 0 if $operator eq '>=';
+    return $ordering <= 0 if $operator eq '<=';
+    return $ordering >  0 if $operator eq '>';
+    return $ordering <  0 if $operator eq '<';
     return 0;
+}
+
+sub _jq_order_compare {
+    my ($left, $right) = @_;
+
+    my $left_rank  = _jq_type_rank($left);
+    my $right_rank = _jq_type_rank($right);
+    return $left_rank <=> $right_rank if $left_rank != $right_rank;
+
+    return 0 if $left_rank == 0;    # null
+    return (!!$left) <=> (!!$right) if $left_rank == 1;    # boolean
+    return $left <=> $right if $left_rank == 2;            # number
+    return "$left" cmp "$right" if $left_rank == 3;        # string
+
+    # Keep ordering deterministic for compound values.  Cross-type ordering,
+    # including null versus numbers, follows jq's documented type order.
+    return _encode_json($left) cmp _encode_json($right);
+}
+
+sub _jq_type_rank {
+    my ($value) = @_;
+
+    return 0 if !defined $value;
+    return 1 if JSON::PP::is_bool($value);
+    if (!ref $value) {
+        return 3 if _is_string_scalar($value);
+        return 2 if looks_like_number($value);
+        return 3;
+    }
+    return 4 if ref $value eq 'ARRAY';
+    return 5 if ref $value eq 'HASH';
+    return 6;
 }
 
 sub _smart_cmp {

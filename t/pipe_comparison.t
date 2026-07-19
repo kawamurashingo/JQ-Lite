@@ -44,6 +44,10 @@ my @compound_cases = (
     ['.missing == 1',               0],
     ['.missing != 1',               1],
     ['.missing == null',            1],
+    ['.missing > 1',                0],
+    ['.missing < 1',                1],
+    ['.a == .missing',              0],
+    ['.missing == .also_missing',   1],
 );
 
 for my $case (@compound_cases) {
