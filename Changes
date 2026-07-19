@@ -1,3 +1,10 @@
+2.48  2026-07-19
+
+  - Fix comparisons after pipeline filters, including bare length and
+    parenthesized pipeline expressions.
+  - Prevent dotted field names such as .count from colliding with built-ins.
+  - Bump module version to 2.48.
+
 2.47  2026-05-29
 
   - Centralize CLI error exit handling to reduce duplicated code.

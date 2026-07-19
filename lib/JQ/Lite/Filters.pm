@@ -80,6 +80,30 @@ sub apply {
             return 1;
         }
 
+        # A parenthesized pipeline can be the left operand of a comparison,
+        # e.g. `(.devices | length) > 0`.  Evaluate that pipeline first, then
+        # compare each value as the current input.
+        if ($normalized =~ /^\((.*)\)\s*(==|!=|>=|<=|>|<)\s*(.+)$/s) {
+            my ($lhs, $operator, $rhs) = ($1, $2, $3);
+            @next_results = ();
+
+            for my $item (@results) {
+                my @lhs_values = $self->run_query(
+                    JQ::Lite::Util::_encode_json($item), $lhs
+                );
+
+                for my $lhs_value (@lhs_values) {
+                    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression(
+                        $self, $lhs_value, ". $operator $rhs"
+                    );
+                    push @next_results, @$values if $ok;
+                }
+            }
+
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         if ($normalized =~ /^try\b/) {
             my $body = $normalized;
             $body =~ s/^try\s*//;

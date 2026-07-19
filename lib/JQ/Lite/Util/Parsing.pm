@@ -822,6 +822,14 @@ sub _evaluate_value_expression {
 
     if (_looks_like_expression($copy)) {
         my %builtins = (
+            length => sub {
+                my ($value) = @_;
+                return 0 unless defined $value;
+                return scalar @$value if ref $value eq 'ARRAY';
+                return scalar keys %$value if ref $value eq 'HASH';
+                return length "$value" if !ref $value || JSON::PP::is_bool($value);
+                return 0;
+            },
             floor => sub {
                 my ($value) = @_;
                 my $numeric = _coerce_number_strict($value, 'floor() argument');

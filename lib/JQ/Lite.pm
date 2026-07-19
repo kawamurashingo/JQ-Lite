@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '2.47';
+our $VERSION = '2.48';
 
 sub new {
     my ($class, %opts) = @_;
@@ -53,13 +53,27 @@ sub _run_query_internal {
     for my $part (@parts) {
         my @next_results;
 
+        # Resolve plain dotted paths before filter dispatch.  Retaining the
+        # leading dot in the parser prevents fields such as `.count` from
+        # colliding with built-in filter names.
+        if ($part =~ /^\.[A-Za-z_][A-Za-z0-9_?]*(?:\.[A-Za-z_][A-Za-z0-9_?]*)*$/) {
+            my $path = substr($part, 1);
+            for my $item (@results) {
+                push @next_results, JQ::Lite::Util::_traverse($item, $path);
+            }
+            @results = @next_results;
+            next;
+        }
+
         if (JQ::Lite::Filters::apply($self, $part, \@results, \@next_results)) {
             @results = @next_results;
             next;
         }
 
         for my $item (@results) {
-            push @next_results, JQ::Lite::Util::_traverse($item, $part);
+            my $path = $part;
+            $path =~ s/^\.// unless $path =~ /^\.\s*\[/;
+            push @next_results, JQ::Lite::Util::_traverse($item, $path);
         }
         @results = @next_results;
     }
@@ -78,7 +92,7 @@ JQ::Lite - jq-compatible JSON query engine in pure Perl (no external binaries)
 
 =head1 VERSION
 
-Version 2.47
+Version 2.48
 
 =head1 SYNOPSIS
 

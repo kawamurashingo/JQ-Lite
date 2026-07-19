@@ -71,7 +71,14 @@ sub _tokenize {
             next;
         }
 
-        if ($char =~ /[+\-*\/%]/) {
+        my $comparison = substr($expr, $i, 2);
+        if ($comparison =~ /^(?:==|!=|>=|<=)$/) {
+            push @tokens, { type => 'OP', value => $comparison };
+            $i += 2;
+            next;
+        }
+
+        if ($char =~ /[+\-*\/%<>]/) {
             push @tokens, { type => 'OP', value => $char };
             $i++;
             next;
@@ -246,6 +253,12 @@ sub _consume_single_string {
 }
 
 my %LBP = (
+    '==' => 5,
+    '!=' => 5,
+    '>=' => 5,
+    '<=' => 5,
+    '>'  => 5,
+    '<'  => 5,
     '+' => 10,
     '-' => 10,
     '*' => 20,
@@ -330,6 +343,13 @@ sub _nud {
         if ($token->{value} eq 'null') {
             return { type => 'NULL', value => undef };
         }
+        if ($token->{value} eq 'length') {
+            return {
+                type => 'CALL',
+                name => 'length',
+                args => [ { type => 'CURRENT' } ],
+            };
+        }
         return { type => 'IDENT', name => $token->{value} };
     }
 
@@ -404,6 +424,22 @@ sub _eval_node {
         my $left_value  = _eval_node($node->{left},  $opts);
         my $right_value = _eval_node($node->{right}, $opts);
 
+        if ($node->{op} eq '==' || $node->{op} eq '!=') {
+            my $equal = _values_equal($left_value, $right_value);
+            $equal = !$equal if $node->{op} eq '!=';
+            return $equal ? JSON::PP::true : JSON::PP::false;
+        }
+
+        if ($node->{op} =~ /^(?:>=|<=|>|<)$/) {
+            my $left_num  = $opts->{coerce_number}->($left_value,  'left operand');
+            my $right_num = $opts->{coerce_number}->($right_value, 'right operand');
+            my $result = $node->{op} eq '>=' ? $left_num >= $right_num
+                       : $node->{op} eq '<=' ? $left_num <= $right_num
+                       : $node->{op} eq '>'  ? $left_num >  $right_num
+                       :                       $left_num <  $right_num;
+            return $result ? JSON::PP::true : JSON::PP::false;
+        }
+
         my $left_num  = $opts->{coerce_number}->($left_value,  'left operand');
         my $right_num = $opts->{coerce_number}->($right_value, 'right operand');
 
@@ -435,6 +471,40 @@ sub _eval_node {
     }
 
     _parse_error();
+}
+
+sub _values_equal {
+    my ($left, $right) = @_;
+
+    return 1 if !defined $left && !defined $right;
+    return 0 if !defined $left || !defined $right;
+    return JSON::PP::is_bool($left) && JSON::PP::is_bool($right)
+        ? (!!$left == !!$right) : 0
+        if JSON::PP::is_bool($left) || JSON::PP::is_bool($right);
+
+    if (!ref $left && !ref $right) {
+        return looks_like_number($left) && looks_like_number($right)
+            ? $left == $right : "$left" eq "$right";
+    }
+
+    if (ref $left eq 'ARRAY' && ref $right eq 'ARRAY') {
+        return 0 unless @$left == @$right;
+        for my $i (0 .. $#$left) {
+            return 0 unless _values_equal($left->[$i], $right->[$i]);
+        }
+        return 1;
+    }
+
+    if (ref $left eq 'HASH' && ref $right eq 'HASH') {
+        return 0 unless keys(%$left) == keys(%$right);
+        for my $key (keys %$left) {
+            return 0 unless exists $right->{$key}
+                && _values_equal($left->{$key}, $right->{$key});
+        }
+        return 1;
+    }
+
+    return 0;
 }
 
 sub _default_coerce_number {

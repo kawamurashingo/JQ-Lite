@@ -39,13 +39,17 @@ sub parse_query {
                 $_;
             }
             else {
+                # Keep the dot on plain field paths so names that match
+                # built-in filters (for example `.count`) stay unambiguous.
+                # Other legacy forms (such as `. as $x`) still use the
+                # normalized representation expected by filter dispatch.
                 my $trimmed = $rest;
                 $trimmed =~ s/^\s+|\s+$//g;
                 if ($trimmed =~ /^"(?:[^"\\]|\\.)*"$/s) {
                     my $decoded = eval { JQ::Lite::Util::_decode_json($trimmed) };
                     return $decoded if defined $decoded && !$@;
                 }
-                $rest;
+                $rest =~ /^[A-Za-z_][A-Za-z0-9_.?]*$/ ? $_ : $rest;
             }
         }
         else {
