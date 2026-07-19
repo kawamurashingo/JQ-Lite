@@ -256,6 +256,13 @@ sub apply {
                         $rhs_values = \@values;
                     }
 
+                    # A missing path participates in a comparison as null;
+                    # it must not turn the comparison into an empty stream.
+                    # This also preserves the expected result for `!=` and
+                    # comparisons against an explicit null literal.
+                    $lhs_values = [undef] unless @$lhs_values;
+                    $rhs_values = [undef] unless @$rhs_values;
+
                     for my $lhs (@$lhs_values) {
                         for my $rhs (@$rhs_values) {
                             push @next_results,

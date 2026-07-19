@@ -41,6 +41,9 @@ my @compound_cases = (
     ['(.a > 0 or .b < 0) and (.b > 0)', 1],
     ['.a > 0 or .a > 2 and .b < 0',     1],
     ['.label == "rock and roll"',  1],
+    ['.missing == 1',               0],
+    ['.missing != 1',               1],
+    ['.missing == null',            1],
 );
 
 for my $case (@compound_cases) {
