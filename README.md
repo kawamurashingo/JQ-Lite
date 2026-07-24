@@ -28,7 +28,7 @@ It is particularly suited for:
 jq-lite is available as an **official Alpine Linux package**:
 
 ```bash
-apk add jq-lite
+apk add perl-jq-lite
 ````
 
 ---
