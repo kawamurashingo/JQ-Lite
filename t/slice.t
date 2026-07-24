@@ -43,8 +43,14 @@ my $semicolon_length_ok = eval { $jq->run_query($json, '.numbers | slice(1; "2")
 ok(!$semicolon_length_ok && $@ =~ /slice\(\): length must be numeric/,
     'slice() identifies a non-numeric semicolon-separated length');
 
-@result = $jq->run_query($json, '.numbers[1:2]');
-is_deeply($result[0], [20, 30], 'bracket slice uses start and length');
+@result = $jq->run_query($json, '.numbers[1:3]');
+is_deeply($result[0], [20, 30], 'bracket slice uses an exclusive end bound');
+
+@result = $jq->run_query($json, '.numbers[-2:-1]');
+is_deeply($result[0], [40], 'bracket slice supports negative end bounds');
+
+@result = $jq->run_query($json, '.numbers[2:]');
+is_deeply($result[0], [30, 40, 50], 'bracket slice supports an omitted end bound');
 
 my $bracket_start_ok = eval { $jq->run_query($json, '.numbers["1":2]') };
 ok(!$bracket_start_ok && $@ =~ /slice\(\): start must be numeric/,

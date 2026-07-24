@@ -698,17 +698,17 @@ sub _traverse {
         for my $item (@stack) {
             next if !defined $item;
 
-            # array slice access: [start:length]
+            # array slice access: [start:end]
             if ($step =~ /^\[(.*):(.*)\]$/s) {
                 my @args = _parse_bracket_slice_arguments($1, $2);
-                push @next_stack, _apply_slice($item, @args);
+                push @next_stack, _apply_bracket_slice($item, @args);
             }
-            # array slice access: key[start:length]
+            # array slice access: key[start:end]
             elsif ($step =~ /^(.*?)\[(.*):(.*)\]$/s) {
-                my ($key, $raw_start, $raw_length) = ($1, $2, $3);
+                my ($key, $raw_start, $raw_end) = ($1, $2, $3);
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
-                    my @args = _parse_bracket_slice_arguments($raw_start, $raw_length);
-                    push @next_stack, _apply_slice($item->{$key}, @args);
+                    my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
+                    push @next_stack, _apply_bracket_slice($item->{$key}, @args);
                 }
             }
             # direct index access: [index]
@@ -1789,6 +1789,34 @@ sub _apply_slice {
     }
 
     return $value;
+}
+
+sub _apply_bracket_slice {
+    my ($value, $raw_start, $raw_end) = @_;
+
+    return _apply_slice($value, $raw_start, $raw_end)
+        if ref $value ne 'ARRAY';
+
+    if (defined $raw_start
+        && (_is_string_scalar($raw_start) || !looks_like_number($raw_start))) {
+        die 'slice(): start must be numeric';
+    }
+    if (defined $raw_end
+        && (_is_string_scalar($raw_end) || !looks_like_number($raw_end))) {
+        die 'slice(): length must be numeric';
+    }
+
+    my $size  = scalar @$value;
+    my $start = defined $raw_start ? int($raw_start) : 0;
+    $start += $size if $start < 0;
+    $start = 0       if $start < 0;
+
+    return _apply_slice($value, $start) unless defined $raw_end;
+
+    my $end = int($raw_end);
+    $end += $size if $end < 0;
+
+    return _apply_slice($value, $start, $end - $start);
 }
 
 sub _apply_replace {
