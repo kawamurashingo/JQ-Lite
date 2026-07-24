@@ -39,5 +39,24 @@ my $non_numeric_length_ok = eval { $jq->run_query($json, '.numbers | slice(1, "n
 ok(!$non_numeric_length_ok && $@ =~ /slice\(\): length must be numeric/,
     'slice() rejects non-numeric length values');
 
+my $semicolon_length_ok = eval { $jq->run_query($json, '.numbers | slice(1; "2")') };
+ok(!$semicolon_length_ok && $@ =~ /slice\(\): length must be numeric/,
+    'slice() identifies a non-numeric semicolon-separated length');
+
+@result = $jq->run_query($json, '.numbers[1:2]');
+is_deeply($result[0], [20, 30], 'bracket slice uses start and length');
+
+my $bracket_start_ok = eval { $jq->run_query($json, '.numbers["1":2]') };
+ok(!$bracket_start_ok && $@ =~ /slice\(\): start must be numeric/,
+    'bracket slice rejects a non-numeric start');
+
+my $spaced_bracket_start_ok = eval { $jq->run_query($json, '.numbers[ "1" : 2 ]') };
+ok(!$spaced_bracket_start_ok && $@ =~ /slice\(\): start must be numeric/,
+    'bracket slice validates spaced arguments');
+
+my $bracket_length_ok = eval { $jq->run_query($json, '.numbers[1:"2"]') };
+ok(!$bracket_length_ok && $@ =~ /slice\(\): length must be numeric/,
+    'bracket slice rejects a non-numeric length');
+
 
 done_testing();
