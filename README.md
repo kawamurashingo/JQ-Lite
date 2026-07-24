@@ -74,7 +74,6 @@ and is intentionally avoided.
 
 | Environment          | jq | jq-lite |
 | -------------------- | -- | ------- |
-| Alpine Linux         | △  | ✓       |
 | Legacy hosts         | ✗  | ✓       |
 | Air-gapped systems   | ✗  | ✓       |
 | No root privileges   | △  | ✓       |
