@@ -72,17 +72,17 @@ For a distribution using `ExtUtils::MakeMaker`:
 WriteMakefile(
     NAME => 'My::Module',
     PREREQ_PM => {
-        'JQ::Lite' => '2.49',
+        'JQ::Lite' => '2.50',
     },
 );
 ```
 
-Choose the minimum JQ::Lite version that provides the behavior your distribution actually requires rather than automatically pinning to the newest release.
+Choose the minimum JQ::Lite version that provides the behavior your distribution actually requires rather than automatically pinning to the newest release. The structured Library API error classes documented below are available from version 2.50.
 
 For `cpanfile`:
 
 ```perl
-requires 'JQ::Lite', '>= 2.49';
+requires 'JQ::Lite', '>= 2.50';
 ```
 
 ## Error handling
