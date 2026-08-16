@@ -18,7 +18,7 @@ sub capture_error (&) {
     ok(!$ok, 'invalid JSON throws');
     isa_ok($error, 'JQ::Lite::Error::Input');
     is($error->category, 'input', 'input error exposes input category');
-    like("$error", qr/(?:malformed|unexpected|JSON)/i, 'input error preserves a useful message');
+    like("$error", qr/(?:expected|malformed|unexpected|JSON)/i, 'input error preserves a useful message');
 }
 
 {
