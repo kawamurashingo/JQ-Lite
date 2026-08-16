@@ -17,13 +17,17 @@ my @results = $jq->run_query($json_text, $query);
 
 Only APIs explicitly documented as public are covered by the compatibility guarantees in this document.
 
-### Public package
+### Public packages
 
 | Package | Status | Compatibility |
 | --- | --- | --- |
 | `JQ::Lite` | Public | Covered by this Library API contract |
+| `JQ::Lite::Error` | Public | Base class for documented Library API exceptions |
+| `JQ::Lite::Error::Input` | Public | Stable input-error category |
+| `JQ::Lite::Error::Parse` | Public | Stable query-parse-error category |
+| `JQ::Lite::Error::Evaluation` | Public | Stable evaluation-error category |
 
-At present, downstream distributions should declare and import `JQ::Lite`, not its implementation submodules.
+Downstream distributions should use `JQ::Lite` as the query entry point. The documented `JQ::Lite::Error` hierarchy may be used for machine-readable error classification.
 
 ## Internal implementation packages
 
@@ -80,7 +84,7 @@ Within a major release series, JQ::Lite will preserve compatibility for the docu
 - documented argument meanings;
 - documented return-value semantics;
 - documented constructor options;
-- documented error categories and observable error behavior once explicitly covered by this contract.
+- documented error classes/categories and their meanings.
 
 Bug fixes may change behavior when the previous behavior was incorrect, unsafe, or inconsistent with documented jq-lite semantics. Such changes should be called out in the changelog when they may affect downstream callers.
 
@@ -96,7 +100,7 @@ Examples include:
 - changing the meaning of an existing documented argument;
 - changing `run_query` from list-returning semantics to a different return contract;
 - removing a documented constructor option;
-- changing documented error behavior in a way that requires downstream code changes.
+- removing or repurposing a documented structured error class/category.
 
 Internal package refactoring is not a breaking Library API change when the documented `JQ::Lite` public contract remains intact.
 
@@ -104,17 +108,29 @@ When a breaking change is unavoidable, it should be documented in `Changes` toge
 
 ## Errors
 
-At the time this contract was introduced, JQ::Lite does not yet promise a structured exception-class API for library callers.
+Library calls may throw objects derived from `JQ::Lite::Error`. The documented categories are:
 
-Callers should therefore not parse exact exception text as a stable machine-readable interface unless that text is explicitly documented elsewhere as contractual.
+| Class | `category` | Meaning |
+| --- | --- | --- |
+| `JQ::Lite::Error::Input` | `input` | The JSON input supplied to the Library API could not be decoded |
+| `JQ::Lite::Error::Parse` | `parse` | The jq-lite query is syntactically malformed |
+| `JQ::Lite::Error::Evaluation` | `evaluation` | Query evaluation failed at runtime |
 
-A future structured error API may strengthen this section without weakening the compatibility guarantees above.
+Each documented error object provides:
+
+- `message` — a human-readable diagnostic;
+- `category` — a stable machine-readable category;
+- stringification to the human-readable message.
+
+The class names and category values above are part of the 2.x Library API compatibility contract. Exact human-readable message wording is **not** a compatibility contract and downstream code should not parse it for machine-readable decisions.
+
+Stringification deliberately preserves the traditional `$@` usage pattern so existing callers that log or display an exception continue to receive a useful diagnostic.
 
 ## Testing expectations
 
 Behavior covered by this contract should be protected by regression tests where practical. New stable public APIs should include tests for their documented argument and return-value semantics.
 
-The existing test suite already exercises `JQ::Lite->new` and `run_query` extensively through supported query behavior; dedicated Library API compatibility tests may be added as the public surface grows.
+The test suite includes dedicated Library API error tests covering the documented input, parse, and evaluation categories and message stringification behavior.
 
 ## Versioning principle
 
