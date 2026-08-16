@@ -217,6 +217,9 @@ my $jq = JQ::Lite->new;
 say for $jq->run_query($json, '.users[].name');
 ```
 
+For dependency declarations, result handling, and error-handling guidance, see
+[`docs/library-integration.md`](docs/library-integration.md).
+
 Downstream users should rely on documented public entry points rather than
 implementation submodules. See the [Library API contract](docs/library-contract.md)
 for compatibility guarantees.
@@ -227,6 +230,7 @@ for compatibility guarantees.
 
 * [`docs/cli-contract.md`](docs/cli-contract.md) — **stable, test-backed CLI contract**
 * [`docs/library-contract.md`](docs/library-contract.md) — **stable Library API compatibility contract**
+* [`docs/library-integration.md`](docs/library-integration.md) — examples for downstream Perl/CPAN users
 * [`docs/FUNCTIONS.md`](docs/FUNCTIONS.md) — supported jq functions
 * [`docs/DESIGN.md`](docs/DESIGN.md) — design principles and scope
 * [CPAN documentation](https://metacpan.org/pod/JQ::Lite)
