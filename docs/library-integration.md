@@ -87,9 +87,13 @@ requires 'JQ::Lite', '>= 2.49';
 
 ## Error handling
 
-Library calls may throw exceptions for invalid JSON, invalid query syntax, or evaluation failures.
+Library failures expose structured exceptions while preserving human-readable stringification:
 
-Until a structured exception API is explicitly documented as stable, downstream code should treat exception text as human-readable diagnostics rather than parse exact strings as a machine-readable interface.
+- `JQ::Lite::Error::Input` — invalid JSON input supplied to `run_query`
+- `JQ::Lite::Error::Parse` — malformed jq-lite query syntax
+- `JQ::Lite::Error::Evaluation` — query evaluation/runtime failure
+
+All three inherit from `JQ::Lite::Error` and provide `message` and `category` accessors.
 
 ```perl
 my @results;
@@ -100,26 +104,30 @@ my $ok = eval {
 
 if (!$ok) {
     my $error = $@;
-    # Log or surface the diagnostic. Do not depend on exact message text.
+
+    if (ref($error) && $error->isa('JQ::Lite::Error')) {
+        warn $error->category . ': ' . $error->message . "\n";
+    }
+    else {
+        warn $error;
+    }
 }
 ```
+
+Exception objects stringify to their diagnostic message, so existing code that logs or displays `$@` continues to receive a useful message. Downstream code should depend on the documented class/category rather than exact message text.
 
 See [`library-contract.md`](library-contract.md) for the compatibility guarantees that apply to Library API callers.
 
 ## Public API boundary
 
-Downstream distributions should depend on the `JQ::Lite` package itself:
+Downstream distributions should depend on the `JQ::Lite` package itself and may use the documented `JQ::Lite::Error` hierarchy for error classification.
 
-```perl
-use JQ::Lite;
-```
-
-Implementation packages such as `JQ::Lite::Parser`, `JQ::Lite::Filters`, and `JQ::Lite::Util` are internal unless explicitly promoted to public API in the Library API contract.
+Implementation packages such as `JQ::Lite::Parser`, `JQ::Lite::Filters`, and `JQ::Lite::Util` remain internal unless explicitly promoted to public API in the Library API contract.
 
 ## Recommended integration checklist
 
-- Depend on `JQ::Lite`, not internal submodules.
+- Depend on `JQ::Lite`, not internal parser/filter/utility submodules.
 - Use `run_query` in list context and handle zero or multiple results.
 - Choose a minimum dependency version based on features actually used.
-- Do not parse undocumented exception strings.
+- Detect failures using the documented `JQ::Lite::Error` classes/categories rather than parsing message strings.
 - Review the Library API contract before relying on newly introduced public behavior.
