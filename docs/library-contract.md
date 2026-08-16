@@ -6,7 +6,7 @@ The goal is to make it safe for downstream code to depend on the documented publ
 
 ## Stable public API
 
-For the 2.x series, the following entry points are part of the stable Library API:
+For the 2.x series, the supported public library entry point is:
 
 ```perl
 use JQ::Lite;
@@ -15,7 +15,35 @@ my $jq = JQ::Lite->new(%options);
 my @results = $jq->run_query($json_text, $query);
 ```
 
-The compatibility guarantees in this document apply only to behavior documented as public. Internal packages, private methods, undocumented object fields, and implementation details are not covered by this contract.
+Only APIs explicitly documented as public are covered by the compatibility guarantees in this document.
+
+### Public package
+
+| Package | Status | Compatibility |
+| --- | --- | --- |
+| `JQ::Lite` | Public | Covered by this Library API contract |
+
+At present, downstream distributions should declare and import `JQ::Lite`, not its implementation submodules.
+
+## Internal implementation packages
+
+The following installed packages are implementation details in the 2.x series and are **not** part of the stable public API unless a future release explicitly documents otherwise:
+
+| Package | Role | Status |
+| --- | --- | --- |
+| `JQ::Lite::Expression` | Expression evaluation helpers | Internal |
+| `JQ::Lite::Filters` | Filter dispatch and implementation | Internal |
+| `JQ::Lite::Parser` | Query parsing | Internal |
+| `JQ::Lite::Util` | Shared implementation utilities | Internal |
+| `JQ::Lite::Util::Parsing` | Parsing helpers | Internal |
+| `JQ::Lite::Util::Paths` | Path helpers | Internal |
+| `JQ::Lite::Util::Transform` | Transformation helpers | Internal |
+
+Downstream code must not rely on these packages as compatibility-stable APIs merely because they are installed or loadable. Their functions, signatures, package structure, and behavior may change during refactoring without a major version bump, provided the documented `JQ::Lite` public API remains compatible.
+
+Private methods, undocumented object fields, and other implementation details are likewise outside the compatibility contract.
+
+If an internal package is promoted to public API in the future, that status must be stated explicitly in user-facing documentation and accompanied by tests for its promised behavior.
 
 ## Constructor contract
 
@@ -48,7 +76,7 @@ A query that is undefined or consists only of `.` returns the decoded input valu
 
 Within a major release series, JQ::Lite will preserve compatibility for the documented Library API in the following areas:
 
-- public method names;
+- public package and method names;
 - documented argument meanings;
 - documented return-value semantics;
 - documented constructor options;
@@ -70,6 +98,8 @@ Examples include:
 - removing a documented constructor option;
 - changing documented error behavior in a way that requires downstream code changes.
 
+Internal package refactoring is not a breaking Library API change when the documented `JQ::Lite` public contract remains intact.
+
 When a breaking change is unavoidable, it should be documented in `Changes` together with a migration path where practical.
 
 ## Errors
@@ -79,12 +109,6 @@ At the time this contract was introduced, JQ::Lite does not yet promise a struct
 Callers should therefore not parse exact exception text as a stable machine-readable interface unless that text is explicitly documented elsewhere as contractual.
 
 A future structured error API may strengthen this section without weakening the compatibility guarantees above.
-
-## Public versus internal modules
-
-`JQ::Lite` is the supported library entry point.
-
-Submodules used by the implementation, including parser, filter, expression, and utility packages, are not automatically part of the public compatibility contract merely because they are installed with the distribution. Any submodule that becomes public will be documented explicitly.
 
 ## Testing expectations
 
