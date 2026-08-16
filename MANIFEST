@@ -5,6 +5,7 @@ docs/DESIGN.md
 docs/FUNCTIONS.md
 docs/cli-contract.md
 docs/library-contract.md
+docs/library-integration.md
 install-jq-lite.ps1
 lib/JQ/Lite.pm
 lib/JQ/Lite/Expression.pm
