@@ -1,3 +1,13 @@
+2.51  2026-09-12
+
+  - Fix CVE-2026-78497: avoid string eval when compiling user-supplied
+    regular expressions, preventing Perl code execution through runtime
+    regex constructs such as (?{ ... }).
+  - Add regression coverage ensuring runtime Perl code embedded in
+    regular expressions is rejected without being executed.
+  - Preserve support for the i, m, s, and x regex flags.
+  - Bump module version to 2.51.
+
 2.50  2026-08-16
 
   - Define and document the stable JQ::Lite Library API contract.
