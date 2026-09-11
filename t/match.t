@@ -147,6 +147,21 @@ is_deeply(
     'match() honors extended flag (x) for whitespace',
 );
 
+my @extended_comment_match = $jq->run_query(
+    '"abc"',
+    'match("abc# trailing comment"; "x")',
+);
+is_deeply(
+    $extended_comment_match[0],
+    {
+        offset   => 0,
+        length   => 3,
+        string   => 'abc',
+        captures => [],
+    },
+    'match() preserves trailing comments in extended-mode patterns',
+);
+
 my @extended_default = $jq->run_query('"ab"', 'match("a b")');
 ok(!$extended_default[0], 'match() treats whitespace literally without x');
 
