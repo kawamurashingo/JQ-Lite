@@ -1379,10 +1379,7 @@ sub _build_regex {
         $modifiers .= $flag;
     }
 
-    my $escaped = $pattern;
-    $escaped =~ s/'/\\'/g;
-
-    my $regex = eval "qr'$escaped'$modifiers";
+    my $regex = eval { qr/(?$modifiers:$pattern)/ };
     if ($@) {
         return (undef, $@);
     }
