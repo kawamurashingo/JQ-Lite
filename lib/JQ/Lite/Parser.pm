@@ -90,6 +90,21 @@ sub parse_query {
     # split(","), or an array constructor) to reuse the existing .[] logic.
     my @iterator_expanded;
     for my $part (@parts) {
+        my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($part);
+        if (@sequence_parts > 1) {
+            for my $sequence_part (@sequence_parts) {
+                $sequence_part =~ s/^\s+|\s+$//g;
+                next if $sequence_part =~ /^\./s;
+                if ($sequence_part =~ /^(.*?)\s*\[\s*\]\s*$/s) {
+                    my $filter = $1;
+                    $filter =~ s/\s+$//;
+                    $sequence_part = "($filter | .[])" if $filter =~ /\S/;
+                }
+            }
+            push @iterator_expanded, join(', ', @sequence_parts);
+            next;
+        }
+
         if ($part !~ /^\s*\./s && $part =~ /^(.*?)\s*\[\s*\]\s*$/s) {
             my $filter = $1;
             $filter =~ s/\s+$//;

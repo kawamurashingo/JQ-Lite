@@ -41,6 +41,27 @@ is_deeply(
     'iterator suffix applies to an array constructor'
 );
 
+my @comma_path_suffix = $jq->run_query('[4,5]', '0, .[]');
+is_deeply(
+    \@comma_path_suffix,
+    [0, 4, 5],
+    'a trailing path iterator does not consume an earlier comma result'
+);
+
+my @comma_object_suffix = $jq->run_query('[4,5]', '{"kept":true}, .[]');
+is_deeply(
+    \@comma_object_suffix,
+    [{ kept => JSON::PP::true }, 4, 5],
+    'a trailing path iterator preserves an earlier object-valued branch'
+);
+
+my @comma_constructor_suffix = $jq->run_query('null', '0, [4,5][]');
+is_deeply(
+    \@comma_constructor_suffix,
+    [0, 4, 5],
+    'a non-path iterator suffix applies only to its comma branch'
+);
+
 my $users = '{"users":[{"name":"Alice"},{"name":"Bob"}]}';
 my @path_results = $jq->run_query($users, '.users[] | .name');
 is_deeply(\@path_results, ['Alice', 'Bob'], 'existing path iteration remains unchanged');

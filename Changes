@@ -4,6 +4,8 @@
     including function calls and array constructors.
   - Support whitespace before iterator suffixes while preserving dotted path
     traversal such as .keys[] and .to_entries[].
+  - Preserve earlier results when an iterator suffix appears in a top-level
+    comma expression.
   - Strengthen iterator suffix regression coverage with explicit expected
     results and additional supported filter forms.
   - Bump module version to 2.53.
