@@ -1,3 +1,12 @@
+2.52  2026-09-13
+
+  - Add jq-compatible iterator suffix syntax for named filters and functions,
+    including keys[] and to_entries[], by lowering them to explicit .[]
+    iteration internally.
+  - Preserve existing dotted path iteration such as .users[] and .values[].
+  - Add regression coverage for iterator suffix parsing and dotted paths.
+  - Bump module version to 2.52.
+
 2.51  2026-09-12
 
   - Fix CVE-2026-78497: avoid string eval when compiling user-supplied
@@ -982,7 +991,8 @@
     - Added regression coverage asserting fromjson() handles objects, arrays,
       invalid JSON text, and null propagation.
     [Docs]
-    - Documented fromjson() across README, CLI helper listings, and module POD.
+    - Documented fromjson() across README, POD, CLI help listings, and function
+      tables alongside existing string helpers.
 
 0.104  2025-10-13
     [Feature]
@@ -1013,7 +1023,8 @@
     - Added regression coverage ensuring not() inverts truthiness for
       booleans, nulls, arrays, and objects.
     [Docs]
-    - Documented not across README, module POD, and CLI helper listings.
+    - Documented not across README, module POD, helper listings, and
+      updated MANIFEST.
 
 0.101  2025-10-13
     [Feature]
@@ -1023,7 +1034,7 @@
     - Added regression coverage ensuring scalars() keeps strings, numbers,
       booleans, and nulls while dropping containers.
     [Docs]
-    - Documented scalars across README, module POD, and helper listings.
+    - Documented scalars across README, POD, and helper listings.
 
 0.100  2025-10-13
     [Feature]
@@ -1033,7 +1044,7 @@
     - Added regression coverage ensuring objects() mirrors jq semantics for
       arrays, scalars, and nested objects.
     [Docs]
-    - Documented objects across README, module POD, helper listings, and
+    - Documented objects across README, POD, helper listings, and
       updated MANIFEST.
 
 0.99  2025-10-13
@@ -1044,7 +1055,7 @@
     - Added regression coverage ensuring arrays() filters pipelines and
       non-array inputs as jq does.
     [Docs]
-    - Documented arrays across README, module POD, CLI helper listings, and
+    - Documented arrays across README, POD, CLI helper listings, and
       updated MANIFEST.
 
 0.98  2025-10-13
@@ -1055,7 +1066,7 @@
     - Added regression coverage ensuring rindex() handles arrays of scalars,
       nested hashes, booleans, empty fragments, and missing values.
     [Docs]
-    - Documented rindex() across README, module POD, CLI help listings, and
+    - Documented rindex() across README, POD, CLI help listings, and
       updated MANIFEST.
 
 0.97  2025-10-12
@@ -1147,7 +1158,7 @@
     - Added explode() and implode() helpers to convert between strings and
       arrays of Unicode code points, mirroring jq's functions and handling
       nested arrays element-wise.
-    - Documented the helpers across README, POD, and regression tests.
+    - Documented the helpers across README, POD, CLI help, and regression tests.
 
 0.87  2025-10-11
     [Feature]
@@ -1360,7 +1371,8 @@
 
 0.52  2025-10-04
     - Added split() helper for splitting string values by a literal separator.
-    - Documented the new function in README, POD, and --help-functions output.
+    - Documented the new function and included it in the --help-functions
+      listing and README feature table.
     - Added regression tests covering scalar strings, nested arrays, and edge cases.
 
 0.51  2025-10-04
@@ -1561,7 +1573,7 @@
     - Improved CLI usability by simplifying option name (from --color-output to --color).
 
 0.16  2025-04-05
-    - Added --version (-v) option to the jq-lite CLI script.
+    - Added --version (-v) option to jq-lite CLI script.
       It displays the installed version of JQ::Lite.
 
 0.14  2025-04-05
@@ -1608,7 +1620,6 @@
     - Removed use of eval in _evaluate_condition for better performance and stability.
     - Refactored _traverse for readability and maintainability.
     - Added support for multi-level array traversal (e.g., .users[].friends[].name).
-
 
 
 

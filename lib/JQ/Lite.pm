@@ -9,7 +9,7 @@ use JQ::Lite::Filters;
 use JQ::Lite::Parser;
 use JQ::Lite::Util ();
 
-our $VERSION = '2.51';
+our $VERSION = '2.52';
 
 sub new {
     my ($class, %opts) = @_;
@@ -78,7 +78,7 @@ JQ::Lite - jq-compatible JSON query engine in pure Perl (no external binaries)
 
 =head1 VERSION
 
-Version 2.51
+Version 2.52
 
 =head1 SYNOPSIS
 
@@ -843,8 +843,7 @@ Example:
 Constrains numeric values within the supplied inclusive range. Scalars and
 array elements that look like numbers are coerced into numeric context and
 clamped between the provided minimum and maximum. When a bound is omitted or
-non-numeric, it is treated as unbounded on that side. Non-numeric values pass
-through unchanged so pipelines remain lossless.
+non-numeric, it is treated as unbounded on that side. Non-numeric values pass through unchanged so pipelines remain lossless.
 
 Example:
 
@@ -880,8 +879,7 @@ Example:
 
 Parses JSON text back into native Perl data structures. Plain strings are
 decoded directly, while arrays are processed element-by-element to mirror jq's
-convenient broadcasting behaviour. Invalid JSON inputs are passed through
-unchanged so pipelines remain lossless.
+convenient broadcasting behaviour. Invalid JSON inputs are passed through unchanged so pipelines remain lossless.
 
 Example:
 
@@ -892,8 +890,7 @@ Example:
 
 Coerces values that look like numbers into actual numeric scalars. Strings are
 converted with Perl's numeric semantics, booleans become 1 or 0, and arrays are
-processed element-by-element. Non-numeric strings, objects, and other references
-are returned unchanged so pipelines remain lossless.
+processed element-by-element. Non-numeric strings, objects, and other references are returned unchanged so pipelines remain lossless.
 
 Example:
 
@@ -913,8 +910,7 @@ Example:
 =item * ltrimstr("prefix")
 
 Removes C<prefix> from the start of strings when present. Arrays are processed
-recursively so nested string values receive the same treatment. Inputs that do
-not begin with the supplied prefix are returned unchanged.
+recursively so nested string values receive the same treatment. Inputs that do not begin with the supplied prefix are returned unchanged.
 
 Example:
 
@@ -924,8 +920,7 @@ Example:
 =item * rtrimstr("suffix")
 
 Removes C<suffix> from the end of strings when present. Arrays are processed
-recursively so nested string values are handled consistently. Inputs that do
-not end with the supplied suffix are returned unchanged.
+recursively so nested string values are handled consistently. Inputs that do not end with the supplied suffix are returned unchanged.
 
 Example:
 
@@ -939,10 +934,10 @@ Example:
 C<jq-lite> is a CLI wrapper for this module.
 
   cat data.json | jq-lite '.users[].name'
-  jq-lite '.users[] | select(.age > 25)' data.json
-  jq-lite -r '.users[].name' data.json
-  jq-lite '.[] | select(.active == true) | .name' data.json
-  jq-lite '.users[] | select(.age > 25) | count' data.json
+  jq-lite '.users[] | select(.age > 25)' users.json
+  jq-lite -r '.users[].name' users.json
+  jq-lite '.[] | select(.active == true) | .name' users.json
+  jq-lite '.users[] | select(.age > 25) | count' users.json
   jq-lite '.users | map(.name) | join(", ")'
   jq-lite '.users[] | select(.age > 25) | empty'
   jq-lite '.profile | values'
