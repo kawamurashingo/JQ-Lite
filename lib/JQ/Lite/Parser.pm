@@ -84,6 +84,20 @@ sub parse_query {
         $part;
     } @parts;
 
+    # Expand jq's iterator suffix before path normalization. This preserves
+    # existing dotted path traversal such as .values[] while allowing bare
+    # filters like keys[] and to_entries[] to reuse the existing .[] logic.
+    my @iterator_expanded;
+    for my $part (@parts) {
+        if ($part =~ /^(keys|to_entries)\[\]$/) {
+            push @iterator_expanded, $1, '.[]';
+        }
+        else {
+            push @iterator_expanded, $part;
+        }
+    }
+    @parts = @iterator_expanded;
+
     @parts = map {
         if ($_ eq '.[]') {
             '.[]';
@@ -129,14 +143,6 @@ sub parse_query {
 
         my $trimmed = $part;
         $trimmed =~ s/^\s+|\s+$//g;
-
-        # jq allows a filter result to be iterated with a trailing [] suffix,
-        # e.g. keys[] or to_entries[].  Lower the suffix to an explicit
-        # pipeline so existing filter and .[] handling can be reused.
-        if ($trimmed =~ /^([A-Za-z_][A-Za-z0-9_]*(?:\(.*\))?)\[\]$/s) {
-            push @expanded, $1, '.[]';
-            next;
-        }
 
         if ($trimmed =~ /^\(.*\)$/s) {
             my $inner = JQ::Lite::Util::_strip_wrapping_parens($trimmed);
