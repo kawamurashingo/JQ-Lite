@@ -79,6 +79,7 @@ t/if_then_else.t
 t/index.t
 t/indices.t
 t/inside.t
+t/iterator_suffix.t
 t/is_empty.t
 t/join.t
 t/json_formatter.t

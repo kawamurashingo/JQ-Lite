@@ -1,3 +1,10 @@
+2.52  2026-09-13
+
+  - Add jq-compatible iterator suffix syntax for keys[] and to_entries[].
+  - Preserve existing dotted path iteration such as .users[] and .values[].
+  - Add regression coverage for iterator suffix parsing and dotted paths.
+  - Bump module version to 2.52.
+
 2.51  2026-09-12
 
   - Fix CVE-2026-78497: avoid string eval when compiling user-supplied
