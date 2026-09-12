@@ -1,0 +1,5 @@
+jq-lite (2.51-1) unstable; urgency=medium
+
+  * Initial release. (Closes: #1123715)
+
+ -- Shingo Kawamura <pannakoota1@gmail.com>  Sat, 12 Sep 2026 11:30:00 +0000
