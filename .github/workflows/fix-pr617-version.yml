@@ -1,0 +1,30 @@
+name: Fix PR 617 version
+
+on:
+  push:
+    branches:
+      - fix/iterator-suffix
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/iterator-suffix
+          fetch-depth: 0
+      - name: Set module version
+        shell: bash
+        run: |
+          set -euo pipefail
+          perl -0pi -e 's/our \$VERSION = '\''2\.51'\'';/our \$VERSION = '\''2.52'\'';/' lib/JQ/Lite.pm
+          rm .github/workflows/fix-pr617-version.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/JQ/Lite.pm .github/workflows/fix-pr617-version.yml
+          git commit -m 'Set module version to 2.52 [skip ci]'
+          git push origin HEAD:fix/iterator-suffix
