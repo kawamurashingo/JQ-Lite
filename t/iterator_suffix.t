@@ -19,4 +19,11 @@ my $users = '{"users":[{"name":"Alice"},{"name":"Bob"}]}';
 my @path_results = $jq->run_query($users, '.users[] | .name');
 is_deeply(\@path_results, ['Alice', 'Bob'], 'existing path iteration remains unchanged');
 
+my $builtin_named_fields = '{"keys":["x","y"],"to_entries":[1,2]}';
+my @dotted_keys = $jq->run_query($builtin_named_fields, '.keys[]');
+is_deeply(\@dotted_keys, ['x', 'y'], '.keys[] remains dotted field traversal');
+
+my @dotted_to_entries = $jq->run_query($builtin_named_fields, '.to_entries[]');
+is_deeply(\@dotted_to_entries, [1, 2], '.to_entries[] remains dotted field traversal');
+
 done_testing();
