@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+test "$(printf '%s\n' '{"answer":42}' | jq-lite '.answer')" = "42"
+perl -MJQ::Lite -e 'die "unexpected version\n" unless $JQ::Lite::VERSION eq "2.51"'
