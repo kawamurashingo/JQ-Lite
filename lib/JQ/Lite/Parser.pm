@@ -130,6 +130,14 @@ sub parse_query {
         my $trimmed = $part;
         $trimmed =~ s/^\s+|\s+$//g;
 
+        # jq allows a filter result to be iterated with a trailing [] suffix,
+        # e.g. keys[] or to_entries[].  Lower the suffix to an explicit
+        # pipeline so existing filter and .[] handling can be reused.
+        if ($trimmed =~ /^([A-Za-z_][A-Za-z0-9_]*(?:\(.*\))?)\[\]$/s) {
+            push @expanded, $1, '.[]';
+            next;
+        }
+
         if ($trimmed =~ /^\(.*\)$/s) {
             my $inner = JQ::Lite::Util::_strip_wrapping_parens($trimmed);
             if (defined $inner && length $inner && $inner ne $trimmed) {
