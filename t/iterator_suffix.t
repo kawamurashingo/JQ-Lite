@@ -10,10 +10,36 @@ my $json = '{"b":2,"a":1}';
 my @keys_suffix = $jq->run_query($json, 'keys[]');
 my @keys_pipe   = $jq->run_query($json, 'keys | .[]');
 is_deeply(\@keys_suffix, \@keys_pipe, 'keys[] matches keys | .[]');
+is_deeply(\@keys_suffix, ['a', 'b'], 'keys[] returns each sorted key');
 
 my @entries_suffix = $jq->run_query($json, 'to_entries[]');
 my @entries_pipe   = $jq->run_query($json, 'to_entries | .[]');
 is_deeply(\@entries_suffix, \@entries_pipe, 'to_entries[] matches to_entries | .[]');
+is_deeply(
+    \@entries_suffix,
+    [
+        { key => 'a', value => 1 },
+        { key => 'b', value => 2 },
+    ],
+    'to_entries[] returns each entry rather than a shared empty result'
+);
+
+my @spaced_suffix = $jq->run_query($json, 'keys []');
+is_deeply(\@spaced_suffix, ['a', 'b'], 'iterator suffix permits whitespace');
+
+my @function_suffix = $jq->run_query('"red,green,blue"', 'split(",")[]');
+is_deeply(
+    \@function_suffix,
+    ['red', 'green', 'blue'],
+    'iterator suffix applies to any array-producing function'
+);
+
+my @constructor_suffix = $jq->run_query($json, '[.a, .b][]');
+is_deeply(
+    \@constructor_suffix,
+    [1, 2],
+    'iterator suffix applies to an array constructor'
+);
 
 my $users = '{"users":[{"name":"Alice"},{"name":"Bob"}]}';
 my @path_results = $jq->run_query($users, '.users[] | .name');

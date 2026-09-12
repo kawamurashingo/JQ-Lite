@@ -1,3 +1,13 @@
+2.53  2026-09-13
+
+  - Generalize jq-compatible iterator suffix syntax to any non-path filter,
+    including function calls and array constructors.
+  - Support whitespace before iterator suffixes while preserving dotted path
+    traversal such as .keys[] and .to_entries[].
+  - Strengthen iterator suffix regression coverage with explicit expected
+    results and additional supported filter forms.
+  - Bump module version to 2.53.
+
 2.52  2026-09-13
 
   - Add jq-compatible iterator suffix syntax for keys[] and to_entries[].

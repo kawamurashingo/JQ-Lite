@@ -85,12 +85,20 @@ sub parse_query {
     } @parts;
 
     # Expand jq's iterator suffix before path normalization. This preserves
-    # existing dotted path traversal such as .values[] while allowing bare
-    # filters like keys[] and to_entries[] to reuse the existing .[] logic.
+    # existing dotted path traversal such as .values[] while allowing any
+    # non-path filter that produces an array or object (for example keys,
+    # split(","), or an array constructor) to reuse the existing .[] logic.
     my @iterator_expanded;
     for my $part (@parts) {
-        if ($part =~ /^(keys|to_entries)\[\]$/) {
-            push @iterator_expanded, $1, '.[]';
+        if ($part !~ /^\s*\./s && $part =~ /^(.*?)\s*\[\s*\]\s*$/s) {
+            my $filter = $1;
+            $filter =~ s/\s+$//;
+            if ($filter =~ /\S/) {
+                push @iterator_expanded, $filter, '.[]';
+            }
+            else {
+                push @iterator_expanded, $part;
+            }
         }
         else {
             push @iterator_expanded, $part;
