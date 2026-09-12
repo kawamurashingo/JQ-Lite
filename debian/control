@@ -1,0 +1,27 @@
+Source: jq-lite
+Section: utils
+Priority: optional
+Maintainer: Shingo Kawamura <pannakoota1@gmail.com>
+Build-Depends: debhelper-compat (= 13), perl
+Standards-Version: 4.7.4
+Rules-Requires-Root: no
+Homepage: https://kawamurashingo.github.io/JQ-Lite/
+Vcs-Browser: https://github.com/kawamurashingo/JQ-Lite/tree/debian/2.51-1
+Vcs-Git: https://github.com/kawamurashingo/JQ-Lite.git -b debian/2.51-1
+
+Package: jq-lite
+Architecture: all
+Depends: libjq-lite-perl (= ${binary:Version}), ${misc:Depends}, ${perl:Depends}
+Description: lightweight jq-compatible JSON processor written in Perl
+ jq-lite is a command-line JSON processor implemented in pure Perl. It provides
+ jq-like filtering and transformation features without requiring a compiled jq
+ binary, making it suitable for portable and constrained environments.
+
+Package: libjq-lite-perl
+Section: perl
+Architecture: all
+Depends: ${misc:Depends}, ${perl:Depends}
+Description: lightweight jq-compatible JSON query engine for Perl
+ JQ::Lite is a pure-Perl JSON query engine with jq-compatible filtering and
+ transformation features. This package contains the reusable Perl modules used
+ by the jq-lite command-line program.
