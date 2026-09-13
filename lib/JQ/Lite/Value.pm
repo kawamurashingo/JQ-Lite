@@ -20,7 +20,10 @@ sub type_of {
     return 'object' if ref($value) eq 'HASH';
     if (!ref($value)) {
         my $flags = B::svref_2object(\$value)->FLAGS;
-        return 'string' if $flags & B::SVp_POK();
+        # SVp_POK also describes a cached string representation. Numeric JSON
+        # scalars acquire that private flag when interpolated, while SVf_POK
+        # remains clear and preserves their declared numeric identity.
+        return 'string' if $flags & B::SVf_POK();
         return 'number' if looks_like_number($value);
     }
     return 'string';

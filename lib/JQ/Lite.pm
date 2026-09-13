@@ -64,7 +64,7 @@ JQ::Lite - jq-compatible JSON query engine in pure Perl (no external binaries)
 
 =head1 VERSION
 
-Version 2.54
+Version 2.55
 
 =head1 SYNOPSIS
 

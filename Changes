@@ -6,6 +6,9 @@
   - Add an internal built-in registry and dispatch exact and parameterized
     built-ins to Array, Object, String, Math, Aggregate, Encoding, and Type
     category modules instead of implementing them directly in Filters.pm.
+  - Preserve numeric JSON identity in the internal value classifier after a
+    scalar has acquired a cached string representation.
+  - Keep the POD version synchronized with the module version.
 
 2.54  2026-09-13
 

@@ -14,6 +14,14 @@ is(JQ::Lite::Value::type_of('ten'), 'string', 'classifies strings');
 is(JQ::Lite::Value::type_of([]), 'array', 'classifies arrays');
 is(JQ::Lite::Value::type_of({}), 'object', 'classifies objects');
 
+my $decoded_number = JSON::PP::decode_json('10');
+my $stringified_number = "$decoded_number";
+is($stringified_number, '10', 'decoded number is stringified before classification');
+is(JQ::Lite::Value::type_of($decoded_number), 'number',
+    'stringification does not change a decoded number type');
+ok(JQ::Lite::Value::equal($decoded_number, 10),
+    'stringification does not change numeric equality');
+
 ok(!JQ::Lite::Value::equal('10', 10), 'equality keeps JSON scalar types distinct');
 ok(JQ::Lite::Value::equal([1, { a => JSON::PP::true }],
         [1, { a => JSON::PP::true }]), 'equality handles nested JSON values');
