@@ -3,6 +3,7 @@ use warnings;
 
 use Test::More;
 use JSON::PP ();
+use Scalar::Util qw(dualvar);
 
 use lib 'lib';
 use JQ::Lite::Value ();
@@ -21,6 +22,14 @@ is(JQ::Lite::Value::type_of($decoded_number), 'number',
     'stringification does not change a decoded number type');
 ok(JQ::Lite::Value::equal($decoded_number, 10),
     'stringification does not change numeric equality');
+
+my $dual_number = dualvar(10, '10');
+is(JSON::PP::encode_json($dual_number), '10',
+    'dual-valued scalar retains JSON numeric identity');
+is(JQ::Lite::Value::type_of($dual_number), 'number',
+    'numeric flags take precedence over a public string flag');
+ok(JQ::Lite::Value::equal($dual_number, 10),
+    'dual-valued numeric scalar retains numeric equality');
 
 ok(!JQ::Lite::Value::equal('10', 10), 'equality keeps JSON scalar types distinct');
 ok(JQ::Lite::Value::equal([1, { a => JSON::PP::true }],
