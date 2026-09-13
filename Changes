@@ -1,5 +1,12 @@
 2.53  2026-09-13
 
+  - Inventory and classify known JQ::Lite 2.x semantic differences from jq
+    1.7 without changing runtime behaviour.
+  - Classify each difference as preserve, change in v3, or undecided, and add
+    regression coverage across arithmetic/coercion, comparison, null/missing
+    paths, iterators/pipelines, assignment/update, and unsupported jq syntax.
+  - Document and test that contains_subset() is not a drop-in jq contains()
+    replacement for duplicate needles or mixed scalar types.
   - Generalize jq-compatible iterator suffix syntax to any non-path filter,
     including function calls and array constructors.
   - Support whitespace before iterator suffixes while preserving dotted path
