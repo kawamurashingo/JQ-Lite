@@ -5,9 +5,9 @@ use warnings;
 
 use JSON::PP ();
 
-use JQ::Lite::Filters;
+use JQ::Lite::Evaluator;
 use JQ::Lite::Parser;
-use JQ::Lite::Util ();
+use JQ::Lite::Runtime;
 
 our $VERSION = '2.53';
 
@@ -43,28 +43,14 @@ sub run_query {
 sub _run_query_internal {
     my ($self, $json_text, $query) = @_;
 
-    my $data = JQ::Lite::Util::_decode_json($json_text);
+    my $runtime = JQ::Lite::Runtime->new(owner => $self);
+    my $data = $runtime->decode_input($json_text);
 
     return ($data) if !defined $query || $query =~ /^\s*\.\s*$/;
 
-    my @parts = JQ::Lite::Parser::parse_query($query);
-
-    my @results = ($data);
-    for my $part (@parts) {
-        my @next_results;
-
-        if (JQ::Lite::Filters::apply($self, $part, \@results, \@next_results)) {
-            @results = @next_results;
-            next;
-        }
-
-        for my $item (@results) {
-            push @next_results, JQ::Lite::Util::_traverse($item, $part);
-        }
-        @results = @next_results;
-    }
-
-    return @results;
+    my $ast = JQ::Lite::Parser::parse_ast($query);
+    my $evaluator = JQ::Lite::Evaluator->new(runtime => $runtime);
+    return $evaluator->evaluate($ast, $data);
 }
 
 1;
