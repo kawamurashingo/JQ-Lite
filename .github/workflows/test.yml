@@ -56,4 +56,10 @@ jobs:
         run: prove -lv t/portability.t
 
       - name: Run full test suite
+        if: runner.os != 'Windows'
         run: prove -lr t
+
+      - name: Run full test suite (Windows diagnostic)
+        if: runner.os == 'Windows'
+        timeout-minutes: 10
+        run: prove -lvr t
