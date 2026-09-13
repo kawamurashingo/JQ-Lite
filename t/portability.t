@@ -87,9 +87,14 @@ subtest 'non-interactive CLI works through perl on this platform' => sub {
     waitpid($pid, 0);
     my $exit = $? >> 8;
 
+    $out = '' unless defined $out;
+    $stderr = '' unless defined $stderr;
+    $out =~ s/\r\n/\n/g;
+    $stderr =~ s/\r\n/\n/g;
+
     is($exit, 0, 'CLI exits successfully');
-    is($stderr // '', '', 'CLI writes no stderr');
-    is($out // '', "3\n", 'CLI produces expected output');
+    is($stderr, '', 'CLI writes no stderr');
+    is($out, "3\n", 'CLI produces expected output');
 };
 
 done_testing;
