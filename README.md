@@ -233,6 +233,7 @@ for compatibility guarantees.
 * [`docs/library-integration.md`](docs/library-integration.md) — examples for downstream Perl/CPAN users
 * [`docs/FUNCTIONS.md`](docs/FUNCTIONS.md) — supported jq functions
 * [`docs/jq-semantics-differences.md`](docs/jq-semantics-differences.md) — jq 1.7 semantic differences in the current 2.x series
+* [`docs/v3-roadmap.md`](docs/v3-roadmap.md) — compatibility policy, migration plan, and release criteria for JQ::Lite 3.0
 * [`docs/DESIGN.md`](docs/DESIGN.md) — design principles and scope
 * [CPAN documentation](https://metacpan.org/pod/JQ::Lite)
 
