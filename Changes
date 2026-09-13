@@ -1,5 +1,8 @@
 2.53  2026-09-13
 
+  - Add the JQ::Lite 3.0 compatibility roadmap, including committed semantic
+    changes, decision gates, migration guidance, delivery order, and release
+    criteria.
   - Inventory and classify known JQ::Lite 2.x semantic differences from jq
     1.7 without changing runtime behaviour.
   - Classify each difference as preserve, change in v3, or undecided, and add

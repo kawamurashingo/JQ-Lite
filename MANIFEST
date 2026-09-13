@@ -7,6 +7,7 @@ docs/cli-contract.md
 docs/library-contract.md
 docs/library-integration.md
 docs/jq-semantics-differences.md
+docs/v3-roadmap.md
 install-jq-lite.ps1
 lib/JQ/Lite.pm
 lib/JQ/Lite/Error.pm
