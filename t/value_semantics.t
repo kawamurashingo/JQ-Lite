@@ -1,0 +1,31 @@
+use strict;
+use warnings;
+
+use Test::More;
+use JSON::PP ();
+
+use lib 'lib';
+use JQ::Lite::Value ();
+
+is(JQ::Lite::Value::type_of(undef), 'null', 'classifies null');
+is(JQ::Lite::Value::type_of(JSON::PP::false), 'boolean', 'classifies booleans');
+is(JQ::Lite::Value::type_of(10), 'number', 'classifies numbers');
+is(JQ::Lite::Value::type_of('ten'), 'string', 'classifies strings');
+is(JQ::Lite::Value::type_of([]), 'array', 'classifies arrays');
+is(JQ::Lite::Value::type_of({}), 'object', 'classifies objects');
+
+ok(!JQ::Lite::Value::equal('10', 10), 'equality keeps JSON scalar types distinct');
+ok(JQ::Lite::Value::equal([1, { a => JSON::PP::true }],
+        [1, { a => JSON::PP::true }]), 'equality handles nested JSON values');
+ok(JQ::Lite::Value::compare(JSON::PP::false, 0) < 0,
+    'comparison follows jq cross-type ordering');
+ok(JQ::Lite::Value::compare([1, 2], [1, 3]) < 0,
+    'arrays compare lexicographically');
+ok(JQ::Lite::Value::compare([1, 2], [1, 2, 0]) < 0,
+    'an equal array prefix sorts before the longer array');
+ok(JQ::Lite::Value::compare({ a => 1 }, { a => 2 }) < 0,
+    'objects with equal keys compare their values');
+ok(JQ::Lite::Value::compare({ a => 9 }, { b => 0 }) < 0,
+    'objects compare sorted key sets before values');
+
+done_testing;

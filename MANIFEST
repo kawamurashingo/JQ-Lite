@@ -11,6 +11,7 @@ docs/v3-roadmap.md
 install-jq-lite.ps1
 lib/JQ/Lite.pm
 lib/JQ/Lite/Tokenizer.pm
+lib/JQ/Lite/Value.pm
 lib/JQ/Lite/Runtime.pm
 lib/JQ/Lite/Evaluator.pm
 lib/JQ/Lite/AST.pm
@@ -158,5 +159,6 @@ t/uri_format.t
 t/type.t
 t/unique_by.t
 t/values.t
+t/value_semantics.t
 t/walk.t
 t/yaml_cli.t

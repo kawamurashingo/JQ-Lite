@@ -185,3 +185,9 @@ parsing decisions from being mixed into the top-level evaluation loop.
 the stable Library API and may evolve as more filter-local syntax is represented
 by dedicated AST node types. `JQ::Lite->new` and `run_query` remain the public
 entry points.
+
+`JQ::Lite::Value` is the shared value-semantics layer for the 3.0 evaluator.
+It classifies JSON values without conflating booleans, numbers, and strings,
+and provides recursive jq-style equality and total ordering for compound
+values. The stable 2.x filter implementation does not call this layer yet;
+that separation prevents preparatory 3.0 work from changing 2.x results.

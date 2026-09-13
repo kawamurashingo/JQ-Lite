@@ -102,8 +102,9 @@ Unresolved items retain their 2.x behaviour in 3.0.
 ## Delivery sequence
 
 1. **Freeze the baseline.** Keep the 2.x inventory and regression tests intact.
-2. **Build shared semantics.** Introduce internal JSON type comparison and path
-   result primitives without changing public behaviour.
+2. **Build shared semantics.** Use the internal `JQ::Lite::Value` type and
+   comparison primitives, then introduce path-result primitives, without
+   changing public behaviour.
 3. **Land isolated changes.** Implement containment, fallback/path,
    arithmetic/comparison, and update-assignment changes in separate reviews.
 4. **Publish migration notes.** Provide before/after examples and replacements

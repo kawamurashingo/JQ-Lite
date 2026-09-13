@@ -1,3 +1,9 @@
+2.55  2026-09-13
+
+  - Add internal jq-style JSON value classification, recursive equality, and
+    total-order comparison primitives for the 3.0 evaluator.
+  - Keep the new semantics isolated from the stable 2.x filter runtime.
+
 2.54  2026-09-13
 
   - Introduce internal Tokenizer, Parser, AST, Evaluator, and Runtime layers
