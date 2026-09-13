@@ -1,3 +1,12 @@
+2.54  2026-09-13
+
+  - Introduce internal Tokenizer, Parser, AST, Evaluator, and Runtime layers
+    while preserving existing 2.x query behavior and public API.
+  - Add the JQ::Lite 3.0 compatibility roadmap.
+  - Clarify that update assignment migration requires version-aware handling.
+  - Document the internal query architecture for maintainers.
+  - Bump module version to 2.54.
+
 2.53  2026-09-13
 
   - Inventory and classify known JQ::Lite 2.x semantic differences from jq

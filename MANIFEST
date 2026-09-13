@@ -7,8 +7,13 @@ docs/cli-contract.md
 docs/library-contract.md
 docs/library-integration.md
 docs/jq-semantics-differences.md
+docs/v3-roadmap.md
 install-jq-lite.ps1
 lib/JQ/Lite.pm
+lib/JQ/Lite/Tokenizer.pm
+lib/JQ/Lite/Runtime.pm
+lib/JQ/Lite/Evaluator.pm
+lib/JQ/Lite/AST.pm
 lib/JQ/Lite/Error.pm
 lib/JQ/Lite/Expression.pm
 lib/JQ/Lite/Filters.pm
@@ -32,6 +37,7 @@ t/arg_option.t
 t/argfile_cli.t
 t/argjson_cli.t
 t/ascii_output_cli.t
+t/architecture.t
 t/array_constructor.t
 t/arrays.t
 t/assignment.t

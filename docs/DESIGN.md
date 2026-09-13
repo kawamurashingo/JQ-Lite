@@ -150,3 +150,38 @@ it helps ensure that data remains usable — regardless of environment or scale.
 ---
 
 © 2025 Shingo Kawamura
+
+## 8. Internal Query Architecture
+
+Query execution has an explicit internal pipeline:
+
+```text
+source text
+    ↓
+JQ::Lite::Tokenizer
+    ↓
+JQ::Lite::Parser
+    ↓
+JQ::Lite::AST
+    ↓
+JQ::Lite::Evaluator
+    ↓
+JQ::Lite::Runtime
+```
+
+The tokenizer owns source boundaries and currently emits top-level filter,
+pipe, and end-of-input tokens. Delimiters inside strings, arrays, objects, and
+parenthesized expressions remain within a filter token. This narrow lexer
+boundary allows syntax to move incrementally without changing 2.x behavior.
+
+The parser validates and compatibility-normalizes those filter tokens and
+builds a typed pipeline AST. The evaluator only walks AST nodes and controls
+stream propagation. The runtime owns JSON decoding and dispatch to the
+existing built-in and traversal implementations. This separation prevents
+parsing decisions from being mixed into the top-level evaluation loop.
+
+`JQ::Lite::Tokenizer`, `JQ::Lite::AST`, `JQ::Lite::Evaluator`, and
+`JQ::Lite::Runtime` are implementation details. They are intentionally outside
+the stable Library API and may evolve as more filter-local syntax is represented
+by dedicated AST node types. `JQ::Lite->new` and `run_query` remain the public
+entry points.
