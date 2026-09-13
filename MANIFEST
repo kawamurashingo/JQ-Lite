@@ -15,6 +15,14 @@ lib/JQ/Lite/Value.pm
 lib/JQ/Lite/Runtime.pm
 lib/JQ/Lite/Evaluator.pm
 lib/JQ/Lite/AST.pm
+lib/JQ/Lite/Builtin.pm
+lib/JQ/Lite/Builtin/Aggregate.pm
+lib/JQ/Lite/Builtin/Array.pm
+lib/JQ/Lite/Builtin/Encoding.pm
+lib/JQ/Lite/Builtin/Math.pm
+lib/JQ/Lite/Builtin/Object.pm
+lib/JQ/Lite/Builtin/String.pm
+lib/JQ/Lite/Builtin/Type.pm
 lib/JQ/Lite/Error.pm
 lib/JQ/Lite/Expression.pm
 lib/JQ/Lite/Filters.pm
@@ -45,6 +53,7 @@ t/assignment.t
 t/avg_by.t
 t/base64_format.t
 t/base64d.t
+t/builtin_dispatch.t
 t/basic.t
 t/case_transform.t
 t/ceil_floor.t

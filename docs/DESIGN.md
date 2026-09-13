@@ -191,3 +191,19 @@ It classifies JSON values without conflating booleans, numbers, and strings,
 and provides recursive jq-style equality and total ordering for compound
 values. The stable 2.x filter implementation does not call this layer yet;
 that separation prevents preparatory 3.0 work from changing 2.x results.
+
+### Built-in registry
+
+`JQ::Lite::Filters` owns language constructs such as expressions, control
+flow, constructors, assignment, and traversal. Built-in filters are resolved
+through `JQ::Lite::Builtin`, whose internal registry supports both exact names
+and parameterized-call patterns. Implementations are grouped by responsibility
+under `JQ::Lite::Builtin::{Array,Object,String,Math,Aggregate,Encoding,Type}`.
+Category modules receive the evaluator owner and current input stream, so they
+can preserve streaming and error behaviour without depending on the parser or
+the top-level filter loop.
+
+The registry and all category packages are internal implementation details,
+like the tokenizer and evaluator layers. New built-ins should be registered in
+the narrowest applicable category rather than adding another branch to
+`JQ::Lite::Filters`.

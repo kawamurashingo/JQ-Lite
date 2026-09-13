@@ -3,6 +3,9 @@
   - Add internal jq-style JSON value classification, recursive equality, and
     total-order comparison primitives for the 3.0 evaluator.
   - Keep the new semantics isolated from the stable 2.x filter runtime.
+  - Add an internal built-in registry and dispatch exact and parameterized
+    built-ins to Array, Object, String, Math, Aggregate, Encoding, and Type
+    category modules instead of implementing them directly in Filters.pm.
 
 2.54  2026-09-13
 
