@@ -1,5 +1,9 @@
 2.53  2026-09-13
 
+  - Inventory and classify known JQ::Lite 2.x semantic differences from jq
+    1.7 without changing runtime behaviour.
+  - Add regression coverage for preserved compatibility, permissive and
+    vectorised semantics, and the contains_subset() migration aid.
   - Generalize jq-compatible iterator suffix syntax to any non-path filter,
     including function calls and array constructors.
   - Support whitespace before iterator suffixes while preserving dotted path

@@ -6,6 +6,7 @@ docs/FUNCTIONS.md
 docs/cli-contract.md
 docs/library-contract.md
 docs/library-integration.md
+docs/jq-semantics-differences.md
 install-jq-lite.ps1
 lib/JQ/Lite.pm
 lib/JQ/Lite/Error.pm
@@ -82,6 +83,7 @@ t/inside.t
 t/iterator_suffix.t
 t/is_empty.t
 t/join.t
+t/jq_semantic_differences.t
 t/json_formatter.t
 t/keys.t
 t/keys_unsorted.t
