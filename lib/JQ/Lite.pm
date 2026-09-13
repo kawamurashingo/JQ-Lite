@@ -557,16 +557,21 @@ Example:
 
 =item * contains_subset(value)
 
-Opt-in jq-style subset containment. Behaves like C<contains/1>, but when
-arrays are involved the right-hand array must be a multiset subset of the
-left-hand one. Order does not matter and duplicate elements are honoured.
-Nested arrays inside hashes are evaluated with the same subset rules.
+Recursive, order-insensitive subset containment. Behaves like C<contains/1>,
+but when arrays are involved the right-hand array must be a multiset subset of
+the left-hand one. Duplicate needles require distinct matching elements, and
+scalar values are compared after string coercion. It is therefore not a
+drop-in implementation of jq's C<contains/1>, which can reuse one match for
+duplicate needles and keeps JSON scalar types distinct. Nested arrays inside
+hashes are evaluated with the same subset rules.
 
 Examples:
 
   [1,2,3] | contains_subset([2,3])            # => true
   [1,2,3] | contains_subset([3,2])            # => true
   [1,2,3] | contains_subset([4])              # => false
+  [1] | contains_subset([1,1])                # => false (jq contains => true)
+  ["1"] | contains_subset([1])                # => true  (jq contains => false)
   {"b":{"y":[1,2,3]}} | contains_subset({"b":{"y":[2]}})  # => true
 
 =item * test(pattern[, flags])

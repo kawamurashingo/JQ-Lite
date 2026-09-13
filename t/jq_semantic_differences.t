@@ -75,10 +75,18 @@ subtest 'permissive and vectorised semantics' => sub {
     is($match->{offset}, 1, 'match reports the coerced-string offset');
 };
 
-subtest 'explicit jq-style migration aid' => sub {
+subtest 'contains_subset extension limitations' => sub {
     ok(
         result_for('[1,2,3]', 'contains_subset([1,3])'),
-        'contains_subset opts in to jq-style array subset containment',
+        'contains_subset supports distinct same-type subset values',
+    );
+    ok(
+        !result_for('[1]', 'contains_subset([1,1])'),
+        'duplicate needles require distinct matches, unlike jq contains',
+    );
+    ok(
+        result_for('["1"]', 'contains_subset([1])'),
+        'scalar subset comparison coerces types, unlike jq contains',
     );
 };
 

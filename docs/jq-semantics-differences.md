@@ -40,9 +40,15 @@ an incidental parser or filter refactor.
 | Alternative operator | `false // 9` | `9` | `false` (only null, missing, or empty output selects the fallback) | **change in v3** | null and fallback semantics |
 | Jagged `transpose` | `[[1,2],[3]] \| transpose` | `[[1,3],[2,null]]` | `[[1,3]]` (truncates to the shortest row) | **preserve** | none |
 
-For jq-style recursive array containment, JQ::Lite provides the explicit
-`contains_subset(value)` alternative. It avoids changing the established
-meaning of `contains(value)` in the 2.x series.
+For recursive, order-insensitive array containment, JQ::Lite provides the
+explicit `contains_subset(value)` alternative. It avoids changing the
+established meaning of `contains(value)` in the 2.x series, but it is not a
+drop-in implementation of jq's `contains`: it uses multiset counting, whereas
+jq can satisfy repeated needles with one matching value, and it compares
+scalars by their string forms, whereas jq keeps JSON scalar types distinct.
+For example, `[1] | contains_subset([1,1])` is `false` although jq's
+`contains([1,1])` is `true`; `["1"] | contains_subset([1])` is `true` although
+jq's `contains([1])` is `false`.
 
 ### B. Arithmetic and type coercion
 
@@ -127,7 +133,7 @@ intent explicit or provide behaviours useful to existing pipelines.
 
 | Extension | Purpose | v3 status | Follow-up |
 | --- | --- | --- | --- |
-| `contains_subset(value)` | Opt in to recursive, order-insensitive subset containment without changing 2.x `contains(value)` | **preserve** | reconcile its name if `contains` changes in v3 |
+| `contains_subset(value)` | Recursive, order-insensitive multiset containment; unlike jq, duplicate needles require duplicate matches and scalar comparison coerces to strings | **undecided** | reconcile its semantics and name if `contains` changes in v3 |
 | `to_number()` | Lossless/vectorised numeric conversion, distinct from strict `tonumber()` | **preserve** | none |
 | `flatten_all()`, `flatten_depth(n)` | Explicit flattening variants | **preserve** | none |
 | Statistical and convenience helpers | `avg`, `median`, `mode`, `percentile`, `variance`, `stddev`, `clamp`, and the other extensions listed in the function reference | **preserve** | none |
