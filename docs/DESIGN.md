@@ -149,7 +149,7 @@ it helps ensure that data remains usable — regardless of environment or scale.
 
 ---
 
-© 2025 SHINGO
+© 2025 Shingo Kawamura
 
 ## 8. Internal Query Architecture
 
