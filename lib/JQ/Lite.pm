@@ -979,7 +979,7 @@ L<https://kawamurashingo.github.io/JQ-Lite/index-en.html>.
 
 =head1 AUTHOR
 
-SHINGO E<lt>SHINGO@cpan.orgE<gt>
+Shingo Kawamura E<lt>pannakoota1@gmail.comE<gt>
 
 =head1 LICENSE
 
