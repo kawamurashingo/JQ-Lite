@@ -17,7 +17,8 @@ my $resources = {
 WriteMakefile(
     NAME             => 'JQ::Lite',
     VERSION_FROM     => 'lib/JQ/Lite.pm',
-    ABSTRACT         => 'A lightweight jq-like JSON query engine in Perl',    AUTHOR           => 'SHINGO <shingo@cpan.org>',
+    ABSTRACT         => 'A lightweight jq-like JSON query engine in Perl',
+    AUTHOR           => 'SHINGO <shingo@cpan.org>',
     LICENSE          => 'perl',
     MIN_PERL_VERSION => '5.014',
     PREREQ_PM        => {
