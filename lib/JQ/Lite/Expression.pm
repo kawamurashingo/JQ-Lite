@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use JSON::PP ();    # lightweight decoder for string literals
-use Scalar::Util qw(looks_like_number);
+use JQ::Lite::Value ();
 
 # Internal constant used to signal that parsing failed and callers should
 # silently fall back to other heuristics.
@@ -124,7 +124,7 @@ sub _tokenize {
             next;
         }
 
-        if (substr($expr, $i) =~ /\G(-?\d+(?:\.\d+)?)/) {
+        if (substr($expr, $i) =~ /\G(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/) {
             my $match = $1;
             my $len_match = length $match;
             push @tokens, { type => 'NUMBER', value => 0 + $match };
@@ -150,7 +150,7 @@ sub _consume_path {
     my ($expr, $start) = @_;
 
     my $len   = length $expr;
-    my $i     = $start + 1;    # skip the leading '.'
+    my $i     = $start + 1;
     my $depth = 0;
     my $path  = '';
 
@@ -264,12 +264,12 @@ sub _parse_expression {
         last unless $next;
 
         if ($next->{type} eq 'LPAREN' && _is_callable($lhs)) {
-            _next($state);    # consume '('
+            _next($state);
             my @args;
             if (_peek($state)->{type} ne 'RPAREN') {
                 push @args, _parse_expression($state, 0);
                 while (_peek($state)->{type} eq 'COMMA') {
-                    _next($state);    # consume ','
+                    _next($state);
                     push @args, _parse_expression($state, 0);
                 }
             }
@@ -288,7 +288,7 @@ sub _parse_expression {
         my $lbp = $LBP{$op} || 0;
         last if $lbp < $min_bp;
 
-        _next($state);    # consume operator
+        _next($state);
         my $rhs = _parse_expression($state, $lbp + 1);
         $lhs = {
             type  => 'BINARY',
@@ -304,32 +304,15 @@ sub _parse_expression {
 sub _nud {
     my ($state, $token) = @_;
 
-    if ($token->{type} eq 'NUMBER') {
-        return { type => 'NUMBER', value => $token->{value} };
-    }
-
-    if ($token->{type} eq 'STRING') {
-        return { type => 'STRING', value => $token->{value} };
-    }
-
-    if ($token->{type} eq 'CURRENT') {
-        return { type => 'CURRENT' };
-    }
-
-    if ($token->{type} eq 'PATH') {
-        return { type => 'PATH', value => $token->{value} };
-    }
+    return { type => 'NUMBER', value => $token->{value} } if $token->{type} eq 'NUMBER';
+    return { type => 'STRING', value => $token->{value} } if $token->{type} eq 'STRING';
+    return { type => 'CURRENT' } if $token->{type} eq 'CURRENT';
+    return { type => 'PATH', value => $token->{value} } if $token->{type} eq 'PATH';
 
     if ($token->{type} eq 'IDENT') {
-        if ($token->{value} eq 'true') {
-            return { type => 'BOOLEAN', value => JSON::PP::true };
-        }
-        if ($token->{value} eq 'false') {
-            return { type => 'BOOLEAN', value => JSON::PP::false };
-        }
-        if ($token->{value} eq 'null') {
-            return { type => 'NULL', value => undef };
-        }
+        return { type => 'BOOLEAN', value => JSON::PP::true } if $token->{value} eq 'true';
+        return { type => 'BOOLEAN', value => JSON::PP::false } if $token->{value} eq 'false';
+        return { type => 'NULL', value => undef } if $token->{value} eq 'null';
         return { type => 'IDENT', name => $token->{value} };
     }
 
@@ -370,25 +353,11 @@ sub _parse_error {
 sub _eval_node {
     my ($node, $opts) = @_;
 
-    if ($node->{type} eq 'NUMBER') {
-        return $node->{value};
-    }
-
-    if ($node->{type} eq 'STRING') {
-        return $node->{value};
-    }
-
-    if ($node->{type} eq 'BOOLEAN') {
-        return $node->{value};
-    }
-
-    if ($node->{type} eq 'NULL') {
-        return undef;
-    }
-
-    if ($node->{type} eq 'CURRENT') {
-        return $opts->{context};
-    }
+    return $node->{value} if $node->{type} eq 'NUMBER';
+    return $node->{value} if $node->{type} eq 'STRING';
+    return $node->{value} if $node->{type} eq 'BOOLEAN';
+    return undef if $node->{type} eq 'NULL';
+    return $opts->{context} if $node->{type} eq 'CURRENT';
 
     if ($node->{type} eq 'PATH') {
         return $opts->{resolve_path}->($opts->{context}, $node->{value});
@@ -404,12 +373,13 @@ sub _eval_node {
         my $left_value  = _eval_node($node->{left},  $opts);
         my $right_value = _eval_node($node->{right}, $opts);
 
+        if ($node->{op} eq '+') {
+            return _apply_addition($left_value, $right_value);
+        }
+
         my $left_num  = $opts->{coerce_number}->($left_value,  'left operand');
         my $right_num = $opts->{coerce_number}->($right_value, 'right operand');
 
-        if ($node->{op} eq '+') {
-            return $left_num + $right_num;
-        }
         if ($node->{op} eq '-') {
             return $left_num - $right_num;
         }
@@ -437,22 +407,41 @@ sub _eval_node {
     _parse_error();
 }
 
+sub _apply_addition {
+    my ($left, $right) = @_;
+    my $left_type  = JQ::Lite::Value::type_of($left);
+    my $right_type = JQ::Lite::Value::type_of($right);
+
+    return $right if $left_type eq 'null';
+    return $left if $right_type eq 'null';
+
+    if ($left_type eq 'number' && $right_type eq 'number') {
+        return $left + $right;
+    }
+
+    if ($left_type eq 'string' && $right_type eq 'string') {
+        return "$left$right";
+    }
+
+    if ($left_type eq 'array' && $right_type eq 'array') {
+        return [ @{$left}, @{$right} ];
+    }
+
+    if ($left_type eq 'object' && $right_type eq 'object') {
+        return { %{$left}, %{$right} };
+    }
+
+    die "addition operands must have compatible jq types ($left_type + $right_type)";
+}
+
 sub _default_coerce_number {
     my ($value, $label) = @_;
 
     $label ||= 'value';
-
-    die "$label must be a number" unless defined $value;
-
-    if (ref($value) eq 'JSON::PP::Boolean') {
-        return $value ? 1 : 0;
-    }
-
-    die "$label must be a number" if ref $value;
-    die "$label must be a number" unless looks_like_number($value);
+    my $type = JQ::Lite::Value::type_of($value);
+    die "$label must be a number, got $type" unless $type eq 'number';
 
     return 0 + $value;
 }
 
 1;
-

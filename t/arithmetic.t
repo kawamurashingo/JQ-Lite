@@ -87,4 +87,34 @@ my $string_number_error = $@;
 ok(!$string_number_ok, 'string plus number throws an error');
 like($string_number_error, qr/addition operands/i, 'string plus number error message');
 
+
+{
+    my $ok = eval { $jq->run_query('true', '. + 1'); 1 };
+    my $error = $@;
+    ok(!$ok, 'boolean arithmetic throws in v3');
+    isa_ok($error, 'JQ::Lite::Error::Evaluation');
+    like("$error", qr/number|compatible jq types/i, 'boolean arithmetic reports a type error');
+}
+
+{
+    my $ok = eval { $jq->run_query('"1"', '. * 2'); 1 };
+    my $error = $@;
+    ok(!$ok, 'numeric-looking string multiplication throws in v3');
+    isa_ok($error, 'JQ::Lite::Error::Evaluation');
+    like("$error", qr/must be a number/i, 'numeric-looking string multiplication reports a numeric type error');
+}
+
+{
+    my @scientific = $jq->run_query('{}', '1e3 + 2');
+    is($scientific[0], 1002, 'scientific notation remains numeric');
+}
+
+{
+    my $ok = eval { $jq->run_query('{}', '5 % 0'); 1 };
+    my $error = $@;
+    ok(!$ok, 'modulo by zero throws');
+    isa_ok($error, 'JQ::Lite::Error::Evaluation');
+    like("$error", qr/Modulo by zero/, 'modulo by zero keeps its runtime message');
+}
+
 done_testing;

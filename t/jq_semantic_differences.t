@@ -44,18 +44,18 @@ subtest 'preserved 2.x compatibility semantics' => sub {
     );
 };
 
-subtest 'permissive and vectorised semantics' => sub {
-    is(
-        result_for('"1e3"', '. * 1'),
-        1000,
-        'multiplication numerically coerces a numeric-looking string',
-    );
+subtest 'strict arithmetic and preserved vectorised semantics' => sub {
+    {
+        my $ok = eval { result_for('"1e3"', '. * 1'); 1 };
+        ok(!$ok, 'numeric-looking string arithmetic is rejected in v3');
+        isa_ok($@, 'JQ::Lite::Error::Evaluation');
+    }
 
-    is(
-        result_for('true', '. + 1'),
-        2,
-        'addition numerically coerces a boolean',
-    );
+    {
+        my $ok = eval { result_for('true', '. + 1'); 1 };
+        ok(!$ok, 'boolean arithmetic is rejected in v3');
+        isa_ok($@, 'JQ::Lite::Error::Evaluation');
+    }
 
     is_deeply(
         result_for('[1.2,"2.8","x"]', 'floor'),

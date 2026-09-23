@@ -7,6 +7,7 @@ use JSON::PP ();
 use Scalar::Util qw(looks_like_number);
 use Encode qw(encode is_utf8);
 use JQ::Lite::Expression ();
+use JQ::Lite::Value ();
 
 our $JSON_DECODER     = _build_json_decoder();
 our $FROMJSON_DECODER = _build_json_decoder();
@@ -1033,70 +1034,37 @@ sub _evaluate_value_expression {
 sub _apply_addition {
     my ($left, $right) = @_;
 
-    return $right if !defined $left;
-    return $left  if !defined $right;
+    my $left_type  = JQ::Lite::Value::type_of($left);
+    my $right_type = JQ::Lite::Value::type_of($right);
 
-    if (ref($left) eq 'JSON::PP::Boolean') {
-        $left = $left ? 1 : 0;
+    return $right if $left_type eq 'null';
+    return $left  if $right_type eq 'null';
+
+    if ($left_type eq 'number' && $right_type eq 'number') {
+        return $left + $right;
     }
 
-    if (ref($right) eq 'JSON::PP::Boolean') {
-        $right = $right ? 1 : 0;
+    if ($left_type eq 'string' && $right_type eq 'string') {
+        return "$left$right";
     }
 
-    if (!ref $left && !ref $right) {
-        my $left_is_string  = _is_string_scalar($left);
-        my $right_is_string = _is_string_scalar($right);
-
-        if ($left_is_string || $right_is_string) {
-            die 'addition operands must both be strings' if !$left_is_string || !$right_is_string;
-            $left  = '' unless defined $left;
-            $right = '' unless defined $right;
-            return "$left$right";
-        }
-
-        if (looks_like_number($left) && looks_like_number($right)) {
-            return 0 + $left + $right;
-        }
-
-        die 'addition operands must both be numbers or both be strings';
-    }
-
-    if (ref $left eq 'ARRAY' && ref $right eq 'ARRAY') {
+    if ($left_type eq 'array' && $right_type eq 'array') {
         return [ @$left, @$right ];
     }
 
-    if (ref $left eq 'ARRAY') {
-        return [ @$left, $right ];
-    }
-
-    if (ref $right eq 'ARRAY') {
-        return [ $left, @$right ];
-    }
-
-    if (ref $left eq 'HASH' && ref $right eq 'HASH') {
+    if ($left_type eq 'object' && $right_type eq 'object') {
         return { %$left, %$right };
     }
 
-    return $right if !ref $left && ref $right eq 'HASH';
-    return $left  if ref $left eq 'HASH' && !ref $right;
-
-    return undef;
+    die "addition operands must have compatible jq types ($left_type + $right_type)";
 }
 
 sub _coerce_number_strict {
     my ($value, $label) = @_;
 
     $label ||= 'value';
-
-    die "$label must be a number" unless defined $value;
-
-    if (ref($value) eq 'JSON::PP::Boolean') {
-        return $value ? 1 : 0;
-    }
-
-    die "$label must be a number" if ref $value;
-    die "$label must be a number" unless looks_like_number($value);
+    my $type = JQ::Lite::Value::type_of($value);
+    die "$label must be a number, got $type" unless $type eq 'number';
 
     return 0 + $value;
 }
@@ -1131,6 +1099,7 @@ sub _looks_like_expression {
     return 0 if $expr =~ /^\s*[\{\[]/;
     return 0 if $expr =~ /^[A-Za-z_]\w*\s*\(/;
     return 1 if $expr =~ /[\-*\/%]/;
+    return 1 if $expr =~ /\+/ && $expr !~ /\|/;
     return 1 if $expr =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b)/i;
 
     return 0;
