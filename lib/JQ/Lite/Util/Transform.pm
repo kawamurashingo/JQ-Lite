@@ -9,6 +9,7 @@ use Scalar::Util qw(looks_like_number);
 use MIME::Base64 qw(encode_base64 decode_base64);
 use Encode qw(encode is_utf8);
 use B ();
+use JQ::Lite::Value ();
 
 our ($JSON_DECODER, $FROMJSON_DECODER, $TOJSON_ENCODER);
 
@@ -965,18 +966,10 @@ sub _compare_numeric_values {
 sub _compare_values {
     my ($left, $operator, $right) = @_;
 
-    my $both_numeric = defined($left) && defined($right)
-        && !ref($left) && !ref($right)
-        && looks_like_number($left) && looks_like_number($right);
+    my $ordering = JQ::Lite::Value::compare($left, $right);
 
-    if ($operator eq '==') {
-        return $both_numeric ? $left == $right : _values_equal($left, $right);
-    }
-    if ($operator eq '!=') {
-        return $both_numeric ? $left != $right : !_values_equal($left, $right);
-    }
-
-    my $ordering = _jq_order_compare($left, $right);
+    return $ordering == 0 if $operator eq '==';
+    return $ordering != 0 if $operator eq '!=';
     return $ordering >= 0 if $operator eq '>=';
     return $ordering <= 0 if $operator eq '<=';
     return $ordering >  0 if $operator eq '>';
@@ -986,34 +979,22 @@ sub _compare_values {
 
 sub _jq_order_compare {
     my ($left, $right) = @_;
-
-    my $left_rank  = _jq_type_rank($left);
-    my $right_rank = _jq_type_rank($right);
-    return $left_rank <=> $right_rank if $left_rank != $right_rank;
-
-    return 0 if $left_rank == 0;    # null
-    return (!!$left) <=> (!!$right) if $left_rank == 1;    # boolean
-    return $left <=> $right if $left_rank == 2;            # number
-    return "$left" cmp "$right" if $left_rank == 3;        # string
-
-    # Keep ordering deterministic for compound values.  Cross-type ordering,
-    # including null versus numbers, follows jq's documented type order.
-    return _encode_json($left) cmp _encode_json($right);
+    return JQ::Lite::Value::compare($left, $right);
 }
 
 sub _jq_type_rank {
     my ($value) = @_;
 
-    return 0 if !defined $value;
-    return 1 if JSON::PP::is_bool($value);
-    if (!ref $value) {
-        return 3 if _is_string_scalar($value);
-        return 2 if looks_like_number($value);
-        return 3;
-    }
-    return 4 if ref $value eq 'ARRAY';
-    return 5 if ref $value eq 'HASH';
-    return 6;
+    my %rank = (
+        null    => 0,
+        boolean => 1,
+        number  => 2,
+        string  => 3,
+        array   => 4,
+        object  => 5,
+    );
+
+    return $rank{ JQ::Lite::Value::type_of($value) };
 }
 
 sub _smart_cmp {
