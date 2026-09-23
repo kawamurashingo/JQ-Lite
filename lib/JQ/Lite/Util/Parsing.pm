@@ -962,6 +962,16 @@ sub _evaluate_value_expression {
         return ([ $context ], 1);
     }
 
+    # JSON array/object literals must be evaluated by the normal filter
+    # constructor path.  Treating them as dotted paths here turns comparison
+    # operands such as [1,2] into traversal syntax instead of JSON values.
+    if ($copy =~ /^[\[\{]/) {
+        my $decoded = eval { _decode_json($copy) };
+        if (!$@) {
+            return ([ $decoded ], 1);
+        }
+    }
+
     if ($copy =~ /^\.(.*)$/s) {
         my $path = $1;
         $path =~ s/^\s+|\s+$//g;
