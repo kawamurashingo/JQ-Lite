@@ -71,11 +71,19 @@ numeric coercion in JQ::Lite.
 
 ### C. Comparison
 
+In the 3.x developer series, comparison is defined by JSON value identity rather
+than Perl scalar coercion. Equality requires matching JSON types and recursively
+equal contents. Ordering uses jq's type order
+`null < false < true < numbers < strings < arrays < objects`; arrays compare
+lexicographically and objects compare deterministically by sorted keys and then
+their values. Code that intentionally compared numeric-looking strings with
+numbers should normalize explicitly with `tonumber()` or `tostring`.
+
 | Area | Example | jq | JQ::Lite 2.x | v3 status | Follow-up |
 | --- | --- | --- | --- | --- | --- |
-| Equality across types | `"10" == 10` | `false` | `true` (numeric-looking strings compare numerically) | **change in v3** | comparison semantics |
+| Equality across types | `"10" == 10` | `false` | `true` in 2.x; `false` in 3.x | **implemented in v3** | comparison semantics |
 | Ordering across JSON types | `false < 0` | `true` | `true` | **preserve** | none; regression parity guard |
-| Array ordering | `[1,2] < [1,3]` | `true` (lexicographic ordering) | `false` | **change in v3** | comparison semantics |
+| Array ordering | `[1,2] < [1,3]` | `true` (lexicographic ordering) | `false` in 2.x; `true` in 3.x | **implemented in v3** | comparison semantics |
 | Missing-value comparison | `.missing == null` | `true` | `true` | **preserve** | none; regression parity guard |
 
 Parity rows are included intentionally: they mark adjacent behaviour that was
