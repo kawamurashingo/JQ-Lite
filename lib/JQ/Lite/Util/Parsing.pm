@@ -898,6 +898,16 @@ sub _evaluate_value_expression {
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
 
+    # Compound JSON literals are valid comparison operands. Decode them
+    # before the generic expression detector sees operators that may appear
+    # inside their elements.
+    if ($copy =~ /^[\[\{]/) {
+        my $decoded = eval { _decode_json($copy) };
+        if (!$@) {
+            return ([ $decoded ], 1);
+        }
+    }
+
     if (_looks_like_expression($copy)) {
         my %builtins = (
             floor => sub {
@@ -960,16 +970,6 @@ sub _evaluate_value_expression {
 
     if ($copy eq '.') {
         return ([ $context ], 1);
-    }
-
-    # JSON array/object literals must be evaluated by the normal filter
-    # constructor path.  Treating them as dotted paths here turns comparison
-    # operands such as [1,2] into traversal syntax instead of JSON values.
-    if ($copy =~ /^[\[\{]/) {
-        my $decoded = eval { _decode_json($copy) };
-        if (!$@) {
-            return ([ $decoded ], 1);
-        }
     }
 
     if ($copy =~ /^\.(.*)$/s) {
