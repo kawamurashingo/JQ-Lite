@@ -940,6 +940,14 @@ sub _evaluate_value_expression {
                 my @values = _traverse($ctx, $path);
                 return @values ? $values[0] : undef;
             },
+            resolve_variable => sub {
+                my ($name, $suffix) = @_;
+                my ($value, $exists) = _resolve_variable_reference($self, $name);
+                return undef unless $exists;
+                return $value if !defined $suffix || $suffix eq '';
+                my @values = _evaluate_variable_reference($self, $name, $suffix);
+                return @values ? $values[0] : undef;
+            },
             coerce_number => \&_coerce_number_strict,
             builtins      => \%builtins,
         );
