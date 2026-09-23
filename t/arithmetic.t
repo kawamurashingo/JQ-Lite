@@ -87,8 +87,6 @@ my $string_number_error = $@;
 ok(!$string_number_ok, 'string plus number throws an error');
 like($string_number_error, qr/addition operands/i, 'string plus number error message');
 
-done_testing;
-
 
 {
     my $ok = eval { $jq->run_query('true', '. + 1'); 1 };
