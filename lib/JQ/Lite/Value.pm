@@ -61,12 +61,21 @@ sub compare {
     return $left cmp $right if $left_type eq 'string';
 
     if ($left_type eq 'array') {
-        my $limit = @{$left} < @{$right} ? @{$left} : @{$right};
+        my $left_count  = scalar @{$left};
+        my $right_count = scalar @{$right};
+        my $limit = $left_count < $right_count ? $left_count : $right_count;
         for my $index ($limit ? (0 .. $limit - 1) : ()) {
             my $ordering = compare($left->[$index], $right->[$index]);
             return $ordering if $ordering;
         }
-        return @{$left} <=> @{$right};
+        return $left_count <=> $right_count;
+    }
+
+    if ($left_type ne 'object') {
+        # Keep internal/non-JSON references deterministic without assuming
+        # they are hash references. Public query values are JSON-compatible,
+        # but helper paths may temporarily pass other refs through comparison.
+        return "$left" cmp "$right";
     }
 
     my @left_keys  = sort keys %{$left};

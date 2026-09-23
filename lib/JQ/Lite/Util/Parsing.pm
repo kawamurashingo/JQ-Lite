@@ -898,6 +898,16 @@ sub _evaluate_value_expression {
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
 
+    # Compound JSON literals are valid comparison operands. Decode them
+    # before the generic expression detector sees operators that may appear
+    # inside their elements.
+    if ($copy =~ /^[\[\{]/) {
+        my $decoded = eval { _decode_json($copy) };
+        if (!$@) {
+            return ([ $decoded ], 1);
+        }
+    }
+
     if (_looks_like_expression($copy)) {
         my %builtins = (
             floor => sub {
@@ -928,6 +938,14 @@ sub _evaluate_value_expression {
                 my ($ctx, $path) = @_;
                 return $ctx if !defined $path || $path eq '';
                 my @values = _traverse($ctx, $path);
+                return @values ? $values[0] : undef;
+            },
+            resolve_variable => sub {
+                my ($name, $suffix) = @_;
+                my ($value, $exists) = _resolve_variable_reference($self, $name);
+                return undef unless $exists;
+                return $value if !defined $suffix || $suffix eq '';
+                my @values = _evaluate_variable_reference($self, $name, $suffix);
                 return @values ? $values[0] : undef;
             },
             coerce_number => \&_coerce_number_strict,
