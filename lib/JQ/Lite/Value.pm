@@ -71,6 +71,13 @@ sub compare {
         return $left_count <=> $right_count;
     }
 
+    if ($left_type ne 'object') {
+        # Keep internal/non-JSON references deterministic without assuming
+        # they are hash references. Public query values are JSON-compatible,
+        # but helper paths may temporarily pass other refs through comparison.
+        return "$left" cmp "$right";
+    }
+
     my @left_keys  = sort keys %{$left};
     my @right_keys = sort keys %{$right};
     my $key_ordering = compare(\@left_keys, \@right_keys);
