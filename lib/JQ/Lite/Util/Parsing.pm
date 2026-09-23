@@ -1098,7 +1098,8 @@ sub _looks_like_expression {
     return 1 if $expr =~ /\b(?:floor|ceil|round|tonumber)\b/;
     return 0 if $expr =~ /^\s*[\{\[]/;
     return 0 if $expr =~ /^[A-Za-z_]\w*\s*\(/;
-    return 1 if $expr =~ /[+\-*\/%]/;
+    return 1 if $expr =~ /[\-*\/%]/;
+    return 1 if $expr =~ /\+/ && $expr !~ /\|/;
     return 1 if $expr =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b)/i;
 
     return 0;
