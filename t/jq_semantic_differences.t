@@ -91,9 +91,13 @@ subtest 'contains_subset extension limitations' => sub {
 };
 
 subtest 'comparison semantics' => sub {
-    ok(result_for('{}', '"10" == 10'), 'numeric string equals number');
-    ok(result_for('{}', 'false < 0'), 'cross-type ordering matches jq here');
-    ok(!result_for('{}', '[1,2] < [1,3]'), 'arrays are not ordered lexicographically');
+    ok(!result_for('{}', '"10" == 10'), 'numeric string remains distinct from number in v3');
+    ok(result_for('{}', '"10" != 10'), 'cross-type inequality remains type-sensitive in v3');
+    ok(result_for('{}', 'false < 0'), 'cross-type ordering follows jq type order');
+    ok(result_for('{}', '[1,2] < [1,3]'), 'arrays are ordered lexicographically in v3');
+    ok(result_for('{}', '[1,2] < [1,2,0]'), 'array prefix sorts before the longer array');
+    ok(result_for('{}', '{"a":1} == {"a":1}'), 'object equality remains structural');
+    ok(!result_for('{}', '{"a":"1"} == {"a":1}'), 'nested scalar equality preserves JSON types');
     ok(result_for('{}', '.missing == null'), 'missing compares equal to null');
 };
 
