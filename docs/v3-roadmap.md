@@ -58,8 +58,10 @@ by these changes.
   not equal to a number.
 - Compare arrays lexicographically using jq-compatible value ordering.
 
-Numeric-string arithmetic and regex scalar coercion remain undecided. Their
-current behaviour must not change as a side effect of the committed work.
+Numeric-looking strings are now rejected by numeric arithmetic in the 3.x
+developer-release series; callers that intend conversion should use
+`tonumber()` or `to_number()` explicitly. Regex scalar coercion remains
+undecided and is not changed by the arithmetic work.
 
 ### Assignment and update
 
@@ -127,6 +129,7 @@ application logic. In particular:
 | `false // fallback` expecting `false` | use an explicit null test when `false` is data |
 | a missing path as an empty output stream | use `empty`/selection explicitly rather than relying on implicit dropping |
 | arithmetic with booleans | convert the boolean to the intended number explicitly |
+| arithmetic with numeric-looking strings | convert explicitly with `tonumber()` or `to_number()` before using `- * / %` or numeric `+` |
 | equality between numeric strings and numbers | normalize both sides explicitly with `tonumber` or `tostring` |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
