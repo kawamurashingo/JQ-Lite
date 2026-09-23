@@ -7,6 +7,7 @@ use JSON::PP ();
 use Scalar::Util qw(looks_like_number);
 use Encode qw(encode is_utf8);
 use JQ::Lite::Expression ();
+use JQ::Lite::Value ();
 
 our $JSON_DECODER     = _build_json_decoder();
 our $FROMJSON_DECODER = _build_json_decoder();
@@ -1088,15 +1089,8 @@ sub _coerce_number_strict {
     my ($value, $label) = @_;
 
     $label ||= 'value';
-
-    die "$label must be a number" unless defined $value;
-
-    if (ref($value) eq 'JSON::PP::Boolean') {
-        return $value ? 1 : 0;
-    }
-
-    die "$label must be a number" if ref $value;
-    die "$label must be a number" unless looks_like_number($value);
+    my $type = JQ::Lite::Value::type_of($value);
+    die "$label must be a number, got $type" unless $type eq 'number';
 
     return 0 + $value;
 }
