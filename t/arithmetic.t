@@ -116,3 +116,5 @@ like($string_number_error, qr/addition operands/i, 'string plus number error mes
     isa_ok($error, 'JQ::Lite::Error::Evaluation');
     like("$error", qr/Modulo by zero/, 'modulo by zero keeps its runtime message');
 }
+
+done_testing;
