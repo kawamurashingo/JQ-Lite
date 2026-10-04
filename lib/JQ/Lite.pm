@@ -975,7 +975,7 @@ L<JSON::PP>, L<jq|https://stedolan.github.io/jq/>
 =head1 HOMEPAGE
 
 The project homepage provides documentation, examples, and release notes:
-L<https://kawamurashingo.github.io/JQ-Lite/index-en.html>.
+L<https://jq-lite.org>.
 
 =head1 AUTHOR
 
