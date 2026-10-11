@@ -37,8 +37,8 @@ subtest 'nested child filters produce a depth-first stream' => sub {
             '.a |= (recurse((range(2;1000000000), 1 / 0)) | select(. > 1))'),
         [{ a => 2 }], 'enormous child range and unused error do not materialize');
     is_deeply(results('{"a":1}',
-            '.a |= (recurse((1, 2)) | select(. == 2))'),
-        [{ a => 2 }], 'finite custom child stream still visits second alternative');
+            '.a |= (recurse(if . == 1 then (0, 2) else empty end) | select(. == 2))'),
+        [{ a => 2 }], 'finite child stream visits second sibling after first subtree');
     is_deeply(results('{"a":1}',
             '.a |= (recurse(empty) | select(. > 2))'),
         [{}], 'empty recursive child stream still deletes unaccepted path');
