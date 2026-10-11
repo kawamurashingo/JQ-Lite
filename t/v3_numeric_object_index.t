@@ -35,8 +35,8 @@ subtest 'numeric indices are invalid on JSON objects' => sub {
 subtest 'numeric indices on arrays remain valid' => sub {
     is_deeply(results('[10,20]', '.[0]'), [10], 'root array index');
     is_deeply(results('{"a":[10,20]}', '.a[1]'), [20], 'nested array index');
-    is_deeply(results('{"a":null}', '.a[5]'), [],
-        'null indexing keeps its pre-existing no-output behavior pending #625');
+    is_deeply(results('{"a":null}', '.a[5]'), [undef],
+        'null-valued nested field indexes to JSON null in v3');
 };
 
 subtest 'missing fields and empty array iterators retain their v3 behavior' => sub {
