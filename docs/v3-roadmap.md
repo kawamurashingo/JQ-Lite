@@ -126,7 +126,9 @@ structured evaluation errors, rather than creating a container.
 
 Object iterators (`.[]` on an object), paths with multiple iterators,
 computed/quoted iterator paths, and jq's fully streamed update evaluation
-remain outside this scoped implementation. The relationship with compound
+remain outside this scoped implementation. Array indices are processed in
+reverse to keep deletion stable; stateful RHS effects and their evaluation
+order are therefore **not** guaranteed to match jq. The relationship with compound
 `+=` and other operators requires a separate audit under #626. Do not
 assume complete jq assignment compatibility.
 
