@@ -104,10 +104,11 @@ sub _apply_update_assignment {
 # downstream one at a time.  The first completed output stops the traversal,
 # so later upstream values and alternatives never run their remaining filters.
 #
-# Most leaf filters still use the ordinary eager engine.  recurse/0 and
-# recurse/1 are handled as on-demand generators: their input is emitted
-# before attempting to visit children, so an unused recursive branch (even
-# an unbounded one) cannot run after the first accepted RHS result.
+# Most leaf filters still use the ordinary eager engine.  recurse/0,
+# recurse/1, and range(...) are handled as on-demand generators.  recurse
+# emits its current value before exploring children; range emits only as
+# many numbers as the downstream pipeline needs.  Neither has to exhaust
+# an unbounded or extremely large stream for |= to take its first value.
 # This is intentionally not a general-purpose streaming evaluator.
 # The explicit found flag preserves the difference between JSON null and
 # a zero-result RHS (which deletes the selected assignment path).
@@ -163,6 +164,14 @@ sub _visit_update_rhs_results {
         return _visit_update_rhs_recurse(
             $self, $input, $child_filter, $accept
         );
+    }
+
+    # Reuse the regular range argument decoder and numeric validation, but
+    # emit values one at a time.  The callback stops generation at the first
+    # completed RHS output (or keeps going if downstream filters reject it).
+    if ($expr =~ /\Arange\((.*)\)\z/s) {
+        my @args = _parse_range_arguments($1);
+        return _visit_range_sequence(\@args, $accept);
     }
 
     my @outputs = $self->run_query(_encode_json($input), $expr);
