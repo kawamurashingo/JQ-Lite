@@ -171,10 +171,10 @@ subtest 'scoped parser and literal path compatibility' => sub {
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.[.keys[]]')),
         'generator-backed selector is excluded until separately audited');
-    is_deeply(results('{"key":"x","x":7}', '.["key"]'),
-        ['x'], 'literal quoted field remains different from computed key');
-    is_deeply(results('{"key":"x","x":7}', '.["x"]'),
-        [7], 'literal bracket-quoted field remains intact');
+    is_deeply(results('{"key":"x","x":7}', '."key"'),
+        ['x'], 'existing dot-quoted field differs from computed key');
+    is_deeply(results('{"key":"x","x":7}', '."x"'),
+        [7], 'existing dot-quoted field lookup remains intact');
     is_deeply(results('{"items":[{"name":"A"}]}',
         '.["items"][].name'), ['A'],
         'prior quoted iterator path remains intact');
