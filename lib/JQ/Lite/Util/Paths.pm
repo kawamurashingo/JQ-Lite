@@ -106,9 +106,9 @@ sub _apply_update_assignment {
 #
 # Most leaf filters still use the ordinary eager engine.  recurse/0,
 # recurse/1, and range(...) are handled as on-demand generators.  recurse
-# emits its current value before exploring children; range emits only as
-# many numbers as the downstream pipeline needs.  Neither has to exhaust
-# an unbounded or extremely large stream for |= to take its first value.
+# emits its current value before exploring children and now streams its
+# custom child-filter outputs depth-first, skipping unused siblings; range
+# emits only as many numbers as the downstream pipeline needs.
 # This is intentionally not a general-purpose streaming evaluator.
 # The explicit found flag preserves the difference between JSON null and
 # a zero-result RHS (which deletes the selected assignment path).
@@ -187,6 +187,14 @@ sub _visit_update_rhs_results {
 sub _visit_update_rhs_recurse {
     my ($self, $input, $child_filter, $accept) = @_;
 
+    if (defined $child_filter) {
+        return _visit_update_rhs_recurse_filtered(
+            $self, $input, $child_filter, $accept
+        );
+    }
+
+    # Keep the original iterative traversal for default recurse: it avoids
+    # Perl call-stack growth for deeply nested JSON structures.
     my @stack = ($input);
     while (@stack) {
         my $current = pop @stack;
@@ -195,12 +203,7 @@ sub _visit_update_rhs_recurse {
         next unless defined $current;
 
         my @children;
-        if (defined $child_filter) {
-            @children = $self->run_query(
-                _encode_json($current), $child_filter
-            );
-        }
-        elsif (ref $current eq 'ARRAY') {
+        if (ref $current eq 'ARRAY') {
             @children = @$current;
         }
         elsif (ref $current eq 'HASH') {
@@ -210,6 +213,25 @@ sub _visit_update_rhs_recurse {
         push @stack, reverse @children if @children;
     }
     return 0;
+}
+
+# A custom recurse child filter may itself emit comma or pipeline streams.
+# Visit each child immediately, including its descendants, before requesting
+# the next sibling.  A successful downstream result propagates a stop signal
+# all the way up, so an unused sibling's error or unbounded range is skipped.
+# This deliberately uses recursion only for the custom-filter case.
+sub _visit_update_rhs_recurse_filtered {
+    my ($self, $current, $child_filter, $accept) = @_;
+
+    return 1 if $accept->($current);
+    return 0 unless defined $current;
+
+    return _visit_update_rhs_results($self, $current, $child_filter, sub {
+        my ($child) = @_;
+        return _visit_update_rhs_recurse_filtered(
+            $self, $child, $child_filter, $accept
+        );
+    });
 }
 
 # Delete only an existing leaf; do not create containers along the path.

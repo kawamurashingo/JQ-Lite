@@ -141,6 +141,12 @@ subtest 'assignment and update semantics' => sub {
         [{a => 1}], 'v3 update stops before unbounded recurse child expansion');
     is_deeply(results_for('{"a":1}', '.a |= (recurse(. + 1) | select(. > 3))'),
         [{a => 4}], 'v3 update expands only needed recurse descendants');
+    is_deeply(results_for('{"a":1}',
+            '.a |= (recurse((. + 1, 1 / 0)) | select(. > 1))'),
+        [{a => 2}], 'v3 update skips unused recurse child branch error');
+    is_deeply(results_for('{"a":1}',
+            '.a |= (recurse((. + 1, 1 / 0)) | select(. > 3))'),
+        [{a => 4}], 'v3 update searches custom children depth-first');
     is_deeply(results_for('{"a":17}', '.a |= range(1000000000)'),
         [{a => 0}], 'v3 update does not construct enormous range streams');
     is_deeply(results_for('{"a":17}', '.a |= (range(1000000000) | select(. > 3))'),
