@@ -151,6 +151,24 @@ subtest 'iterator and pipeline semantics' => sub {
         'optional intermediate iterator suppresses null iteration only');
     is_deeply(results_for('{"items":[[1,2],[3]]}', '.items[][]'),
         [1, 2, 3], 'two strict iterators flatten consecutive arrays');
+    is_deeply(results_for('{"items":[[{"name":"A"}]]}',
+            '.items[0][].name'), ['A'],
+        'numeric index before iterator and later field');
+    is_deeply(results_for('{"items":[{"names":["A","B"]}]}',
+            '.items[].names[0]'), ['A'],
+        'numeric index after intermediate iterator');
+    is_deeply(results_for('{"items":[[{"name":"A"}],[{"name":"B"}]]}',
+            '.items[-1][].name'), ['B'],
+        'negative numeric index in iterator path parses as indexing');
+    is_deeply(results_for('{"items":[]}', '.items[0][]?'), [],
+        'optional iterator skips null from out-of-bounds numeric index');
+    my $invalid_numeric_index = eval {
+        results_for('{"items":{}}', '.items[0][]?'); 1;
+    };
+    ok(!$invalid_numeric_index,
+        'optional iterator cannot mask numeric indexing into object');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation')
+        unless $invalid_numeric_index;
     is_deeply(results_for('{"items":[[1,2],null]}', '.items[][]?'),
         [1, 2], 'optional second iterator drops null leaf');
     my $bad_member_ok = eval {

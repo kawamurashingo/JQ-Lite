@@ -151,6 +151,14 @@ sub parse_query {
             elsif ($rest =~ /^\s*\[/) {
                 $_;
             }
+            # A negative numeric index such as .items[-1][] contains '-'
+            # but is a path, not subtraction.  Recognize scoped v3 literal
+            # iterator paths before the general arithmetic shortcut.
+            elsif ($rest =~ /\A[A-Za-z_]\w*(?:\[\]\??|\[-?\d+\])*(?:\.[A-Za-z_]\w*(?:\[\]\??|\[-?\d+\])*)*\z/
+                && index($rest, '[]') >= 0)
+            {
+                $rest;
+            }
             elsif ($rest =~ /^\s*[+\-*\/%]/
                 || $rest =~ /[+\-*\/%]/
                 || $rest =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b)/i

@@ -711,11 +711,11 @@ sub _evaluate_coalesce_operand {
     return _traverse($context, $path);
 }
 
-# v3: evaluate simple literal named-field paths with one or more []/[]?
-# iterators in expression order, including iterators BEFORE a later field.
-# A field lookup from null/missing keys yields null, while indexing a
-# scalar or array with a string errors.  Each [] is strict and each []?
-# drops only a non-container input at that particular iteration stage.
+# v3: evaluate simple literal named-field paths with []/[]? iterators
+# and numeric [index] accesses in expression order.  A field lookup from
+# null/missing keys yields null; numeric indexing of null or an out-of-range
+# array also yields null.  Indexing a mismatched scalar/container errors.
+# Each [] is strict; each []? drops only a non-container at that stage.
 #
 # Keep this separate from the compatibility-sensitive general _traverse,
 # which is also used by older/vectorised internal path consumers.
@@ -724,16 +724,23 @@ sub _traverse_v3_field_iterator {
 
     my @steps;
     for my $chunk (split /\./, $path) {
-        my ($field, $iterators)
-            = $chunk =~ /\A([A-Za-z_]\w*)((?:\[\]\??)*)\z/;
+        my ($field, $suffixes)
+            = $chunk =~ /\A([A-Za-z_]\w*)((?:\[\]\??|\[-?\d+\])*)\z/;
         die JQ::Lite::Error::Parse->new(
-            message => 'Invalid literal iterator path'
+            message => 'Invalid literal iterator/index path'
         ) unless defined $field;
 
         push @steps, ['field', $field];
 
-        while ($iterators =~ /(\[\]\??)/g) {
-            push @steps, ['iterator', $1 eq '[]?' ? 1 : 0];
+        # Preserve each suffix's order: [0][] differs from [][0], and
+        # an optional iterator never suppresses an earlier index error.
+        while ($suffixes =~ /(\[\]\??|\[(-?\d+)\])/g) {
+            if (defined $2) {
+                push @steps, ['index', 0 + $2];
+            }
+            else {
+                push @steps, ['iterator', $1 eq '[]?' ? 1 : 0];
+            }
         }
     }
 
@@ -758,6 +765,25 @@ sub _traverse_v3_field_iterator {
                     die JQ::Lite::Error::Evaluation->new(
                         message => 'Cannot index ' . $type
                             . ' with string "' . $field . '"'
+                    );
+                }
+                next;
+            }
+
+            if ($step->[0] eq 'index') {
+                if (!defined $value) {
+                    push @next, undef;
+                }
+                elsif (ref($value) eq 'ARRAY') {
+                    my $index = $step->[1];
+                    $index += scalar(@$value) if $index < 0;
+                    push @next, $index >= 0 && $index < @$value
+                        ? $value->[$index] : undef;
+                }
+                else {
+                    my $type = JQ::Lite::Value::type_of($value);
+                    die JQ::Lite::Error::Evaluation->new(
+                        message => 'Cannot index ' . $type . ' with number'
                     );
                 }
                 next;
