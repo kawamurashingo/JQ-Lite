@@ -105,11 +105,19 @@ intermediate objects or arrays are created solely to delete a path, and
 `null | .a |= empty` continues to produce `null`. This differs from
 `path |= null`, which **retains** the field or array slot with JSON null.
 
-An RHS with multiple values still raises a structured evaluation error.
-Although jq 1.7 uses only the first RHS value, that streaming behavior
-remains deferred pending a separate decision. Iterator/computed update paths
-and the relationship with compound `+=` and other operators also require
-separate audits under #626. Do not assume complete jq assignment compatibility.
+When the RHS produces multiple values, update assignment now takes the **first
+emitted result** and returns one updated root, matching jq 1.7 for the supported
+simple-path expressions. JSON `null` and `false` are valid first results and
+are not confused with an empty result stream. For example, `.a |= (10,20)`
+updates `a` to `10`; `.a |= (empty,5)` uses `5`; only an entirely empty
+RHS deletes the path.
+
+The current engine still eagerly evaluates the RHS before selecting its first
+result, unlike jq's streaming evaluation: a later result that raises an error
+may affect a query even when jq would have stopped at the first result.
+Iterator/computed update paths and the relationship with compound `+=` and
+other operators require separate audits under #626. Do not assume complete jq
+assignment compatibility.
 
 Multi-result **plain** assignment remains undecided and requires a separate design.
 
