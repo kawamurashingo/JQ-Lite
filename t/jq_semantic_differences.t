@@ -129,6 +129,10 @@ subtest 'assignment and update semantics' => sub {
         'v3 update assignment emits the updated root');
     is_deeply(results_for('{"a":1}', '.missing |= . + 1'),
         [{a => 1, missing => 1}], 'v3 update creates missing key');
+    is_deeply(results_for('{"a":1}', '.a |= (3, 4)'),
+        [{a => 3}], 'v3 update selects the first RHS result');
+    is_deeply(results_for('{"a":1}', '.a |= empty'),
+        [{}], 'v3 update deletes when the entire RHS is empty');
     is_deeply(results_for('{"a":0}', '.a = (1,2)'), [], 'multi-result assignment emits no result');
 };
 
