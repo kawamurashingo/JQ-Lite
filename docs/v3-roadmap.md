@@ -318,9 +318,21 @@ filter input (not the eventual object being indexed), so a numeric
 selector value may then index an array target. Negative indices count
 from the end, out-of-bounds and null array values yield JSON null,
 and numeric indexing on objects or scalars raises a structured runtime
-error. This selector-expression error remains observable even if an
-earlier `[]` iterator is empty or the *outer* computed indexing is
-optional `?`. Optional
+error.
+
+**Optional numeric selector indices** such as `.obj[.keys[0]?]` and
+`.obj[.cfg["names"][-1]?]` now suppress a numeric index's own invalid
+target type (scalar or object), yielding **zero filter results**. They do
+not turn that error into null. Out-of-range and null array values still
+produce a JSON null selector value; a strict *outer* computed lookup can
+therefore fail (e.g. `{"keys":[],"obj":{}} | .obj[.keys[0]?]`).
+Use an additional trailing `?` after the outer `]` when a null key
+should be skipped: `.obj[.keys[0]?]?`. Selector field lookup errors
+before the numeric index remain strict. Multiple computed selector
+expressions are resolved right-to-left, matching jq's nested index
+evaluation order; an empty optional selector can short-circuit an
+earlier selector's error. A numeric selector expression is still
+evaluated even if an *earlier path iterator* would be empty. Optional
 computed indexing is still available as `.obj[.cfg["full name"]]?`,
 without suppressing errors *inside* the selector. A balanced bracket
 scanner prevents `]` inside quoted key text from prematurely ending the
@@ -464,6 +476,7 @@ application logic. In particular:
 | a computed selector after an intermediate path (e.g. `.obj[.key]`) was assumed to read `key` from `obj` | the selector `.key` reads from the **original filter input**, not `.obj`; use a pipeline `.obj | .[.key]` only when the key should come from the nested object itself |
 | selector field names containing periods/spaces previously being interpreted as dots or unsupported syntax | use `."quoted.name"` or `["quoted.name"]` *inside the computed expression*, e.g. `.obj[.cfg["selected field"]]`, to read one exact original-input field name; this is different from putting a quoted literal key *outside* the selector |
 | selecting a key from an array in the input | use a literal numeric selector index, e.g. `.obj[.keys[0]]` or `.obj[.cfg["names"][-1]]`; out-of-range indices produce null, but invalid array target types raise an error even with `?` on the outer computed lookup |
+| a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
