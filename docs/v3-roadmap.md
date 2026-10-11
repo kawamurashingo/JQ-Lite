@@ -115,7 +115,7 @@ RHS deletes the path.
 The current engine still eagerly evaluates the RHS before selecting its first
 result, unlike jq's streaming evaluation: a later result that raises an error
 may affect a query even when jq would have stopped at the first result.
-One **array or object iterator** is now supported in a simple update path:
+**Array and object iterators** are supported in simple update paths:
 `.items[] |= . + 1` updates every array or object member value, and
 `.[] |= empty` removes every member of the root container. Each RHS runs
 against the old selected leaf and the query emits one updated root.
@@ -133,10 +133,26 @@ Object keys are processed in sorted order for determinism. Array indices
 are processed in reverse to keep deletion stable. **Stateful RHS effects
 and evaluation order are therefore not guaranteed to match jq.**
 
-Paths with multiple iterators, computed/quoted iterator paths, and jq's fully
-streamed update evaluation remain outside this scoped implementation. The
-relationship with compound `+=` and other operators requires a separate
-audit under #626. Do not assume complete jq assignment compatibility.
+Multiple `[]` iterators are now supported for simple literal paths.
+For example, `.groups[][] |= . + 1` updates the scalar leaves of arrays of
+arrays; `.groups[][].n |= . + 1` updates object fields nested under both
+iterators. Each iterator can traverse an array or an object, so an object of
+arrays, an array of objects, and deeper mixtures are supported. Iteration
+recurses into the original members, preserving arbitrary object keys instead
+of constructing dotted paths from them. Empty inner containers are no-ops.
+
+An RHS that emits no results deletes only the selected **innermost target**:
+`[[1,2],[3,4]] | .[][] |= empty` becomes `[[],[]]`; the outer
+arrays remain. Nested conditional updates also retain original container
+boundaries, and nested updates still emit one updated root.
+
+This extension retains the ordering limitations above: array members are
+visited in reverse to avoid deletion-induced index shifts and object keys
+are processed in sorted order, rather than promising jq's evaluation order.
+Computed/quoted iterator paths and jq's fully streamed update evaluation
+remain outside this scoped implementation. The relationship with compound
+`+=` and other operators requires a separate audit under #626. Do not
+assume complete jq assignment compatibility.
 
 Multi-result **plain** assignment remains undecided and requires a separate design.
 
