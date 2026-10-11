@@ -43,11 +43,12 @@ sub evaluate_filter {
     }
 
     # Scoped v3 literal field/iterator paths are evaluated step by step.
-    # An iterator can appear before a later field or iterator; [] is strict
-    # while []? suppresses only its own non-container iteration error.
-    # Other/general query paths keep the legacy _traverse contract.
+    # Include numeric [index] stages only when the path also has an
+    # iterator; standalone numeric paths retain their audited behavior.
+    # [] is strict; []? suppresses only its own iteration type error.
+    # Other/general paths still use the legacy _traverse contract.
     my $source = $filter->source;
-    if ($source =~ /\A[A-Za-z_]\w*(?:\[\]\??)*(?:\.[A-Za-z_]\w*(?:\[\]\??)*)*\z/
+    if ($source =~ /\A[A-Za-z_]\w*(?:\[\]\??|\[-?\d+\])*(?:\.[A-Za-z_]\w*(?:\[\]\??|\[-?\d+\])*)*\z/
         && index($source, '[]') >= 0)
     {
         for my $input (@{$inputs}) {
