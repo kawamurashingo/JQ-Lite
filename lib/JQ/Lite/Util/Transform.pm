@@ -715,13 +715,16 @@ sub _evaluate_coalesce_operand {
 # JSON-string bracket keys (or ."key"), signed numeric indices, []/[]?,
 # and simple computed selectors [.key] / [.parent."quoted.key"] /
 # [.parent["quoted.key"]], optionally ?. Quoted names stay literal.
+# Signed numeric array indices are accepted inside selector paths, e.g.
+# [.keys[0]] or [.cfg["names"][-1]].
 # Only paths containing an iterator or an audited computed selector are
 # accepted; all other paths retain their previous parsing behavior.
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
-# Dynamic expressions, array-index selector stages and generators remain
-# separate audits.
+# Numeric index steps are represented as ['index', N]; existing string
+# field steps keep their previous scalar representation for compatibility.
+# Dynamic expressions, iterator stages and generators remain separate audits.
 sub _parse_v3_computed_selector_fields {
     my ($selector) = @_;
     return undef unless defined($selector) && $selector =~ /\A\./;
@@ -743,19 +746,24 @@ sub _parse_v3_computed_selector_fields {
             $field = eval { _decode_json($json_name) };
             return undef if $@ || !defined($field) || ref($field);
         }
+        elsif ($rest =~ s/\A\[\s*(-?\d+)\s*\]//) {
+            # A numeric selector step is distinct from a quoted string
+            # such as ["0"], even when the object happens to have key "0".
+            $field = ['index', 0 + $1];
+        }
         else {
             return undef;
         }
 
         push @fields, $field;
         last unless length $rest;
-        # A bracket-quoted field can follow another field directly:
-        # .cfg["selected"].  A dot is also valid: .cfg.["selected"].
+        # Bracket-quoted and numeric-index steps can follow a field
+        # directly (.cfg["selected"][0]) or follow an explicit dot.
         if ($rest =~ s/\A\.//) {
             return undef unless length $rest;
         }
-        elsif ($rest =~ /\A\[\s*"/s) {
-            # Leave the opening bracket for the next loop iteration.
+        elsif ($rest =~ /\A\[\s*(?:"|-?\d+\s*\])/s) {
+            # Leave a quoted field / numeric index for the next stage.
         }
         else {
             return undef;
@@ -909,6 +917,26 @@ sub _resolve_v3_computed_key_selector {
 
     my $selected = $input;
     for my $field (@{$fields}) {
+        if (ref($field) eq 'ARRAY' && $field->[0] eq 'index') {
+            # jq numeric indexing: arrays accept signed indices, null
+            # produces one null, and other types are runtime errors.
+            if (!defined $selected) {
+                $selected = undef;
+            }
+            elsif (ref($selected) eq 'ARRAY') {
+                my $index = $field->[1];
+                $index += scalar(@{$selected}) if $index < 0;
+                $selected = $index >= 0 && $index < @{$selected}
+                    ? $selected->[$index] : undef;
+            }
+            else {
+                my $type = JQ::Lite::Value::type_of($selected);
+                die JQ::Lite::Error::Evaluation->new(
+                    message => 'Cannot index ' . $type . ' with number'
+                );
+            }
+            next;
+        }
         if (!defined $selected) {
             $selected = undef;
         }

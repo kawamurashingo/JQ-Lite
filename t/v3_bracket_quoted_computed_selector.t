@@ -151,8 +151,10 @@ subtest 'restricted parser and strict regression checks' => sub {
         '.obj[.cfg."selected"]'),
         [['field','obj'],['computed_context','.cfg."selected"']],
         'existing dot-quoted selector step shape unchanged');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.obj[.cfg[0]]')), 'numeric stage inside selector is not audited');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.obj[.cfg[0]]'),
+        [['field','obj'],['computed_context','.cfg[0]']],
+        'numeric selector stage is now recognized');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.obj[.cfg[]]')), 'iterator inside selector is not audited');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
