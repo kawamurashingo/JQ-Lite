@@ -236,23 +236,36 @@ an index's null result, but **cannot suppress an earlier invalid numeric
 index**. Thus `{"items":null} | .items[0][]?` has no result, but
 `{"items":3} | .items[0][]?` raises an error.
 
-Only unquoted named-field segments and adjacent `[]`/`[]?`/`[integer]`
-steps are included. In particular, **numeric-only composite paths with no
-iterator still use the prior query-path implementation**; this change does
-not promise broader indexed-path coverage or alter the compatibility-
-sensitive internal traversal helper. Implicit array projection,
-quoted/computed path segments, and arbitrary optional expressions remain
-outside this scoped implementation. Existing object iteration order
-remains unchanged.
+**Literal JSON-quoted field keys** are now supported within these ordered
+iterator paths. Bracket notation `.["items"][].name`, a key containing a
+literal period `.["a.b"][0][]`, and a quoted key after an iterator
+`.items[].["full name"]` each evaluate in jq 1.7's field/index/iterator
+order. A dot-quoted field such as `.items[]."full name"` is accepted as
+well. Quoted keys are decoded as JSON strings: empty keys, periods, spaces,
+brackets, arithmetic characters, escaped quotes/backslashes, and Unicode
+escapes remain **literal key text**, not path operators or separators.
+This also preserves error boundaries: `.["items"][]?` can drop a null
+field, but it does not suppress a bad field lookup, numeric index, or
+later field access. Paths beginning with a bracket-quoted root key bypass
+the legacy filter shortcut only when the parser recognizes a **complete
+literal iterator path**.
+
+Only unquoted literal names, JSON-quoted string keys, and adjacent
+`[]`/`[]?`/`[integer]` steps are included. In particular,
+**composite paths with no iterator still use their previous query-path
+implementation**. This does not change the compatibility-sensitive
+internal traversal helper, implicit array projection, computed keys
+such as `.[.key]`, slices, or arbitrary optional expressions.
+Existing object iteration order remains unchanged.
 
 Standalone `.[]?` is also available in a pipeline (including
 `recurse(.[]?)`). Non-path array-result suffixes `keys[]?`,
 `split(",")[]?`, and `[4,5][]?` lower to an optional iteration stage,
 with the same rule independently applied inside comma alternatives.
 Errors from upstream functions are not converted to empty results.
-Computed/quoted path segments, numeric-only composite paths,
-arbitrary optional expressions and more general iterator compositions still
-require separate audits beyond the literal named-field/index paths above.
+Computed (non-literal) path segments, composite paths with no iterator,
+arbitrary optional expressions and more general iterator compositions
+still require separate audits beyond the literal paths above.
 
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
@@ -367,6 +380,7 @@ application logic. In particular:
 | `.field[]` on a missing, null, or scalar-valued field expecting no results | use `.field[]?` when dropping non-iterable final values is intended; ensure every preceding named-field lookup is valid, because `[]?` does not suppress an invalid prefix lookup |
 | intermediate `.items[].name` or nested `.items[][]` silently skipping malformed values | use `[]?` at precisely the iteration stage where skipping non-containers is intended; later named-field lookups can still fail, so validate those inputs separately |
 | `.items[0][].name` or `.items[].names[0]` assuming invalid array indexing quietly disappears | use explicit validation or null/array checks for numeric-index input; `[]?` can skip only a later iteration failure, not indexing a wrong JSON type |
+| keys containing periods, spaces, quotes, or brackets used inside iterator paths | use literal bracket-quoted fields (e.g. `.["a.b"][].["full name"]`) instead of manually splitting dotted path text; the quoted keys retain their JSON meaning and each `[]?` applies only at its own stage |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
