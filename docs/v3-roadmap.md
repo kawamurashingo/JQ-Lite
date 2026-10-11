@@ -190,9 +190,26 @@ the characters of a string. For example, `"abc" | .[]` and
 The check also applies when `.[]` receives scalar values from a preceding
 pipeline stage, but does not run if an earlier stage emitted no inputs.
 Existing object traversal order is intentionally unchanged; JSON object
-insertion-order parity remains a separate concern. Optional `.[]?`,
-computed paths, and other implicit iterator suffixes need independent
-audits rather than inheriting this change automatically.
+insertion-order parity remains a separate concern.
+
+The **optional standalone iterator `.[]?`** now matches jq 1.7 for the
+audited container/scalar cases. Like `.[]`, it emits all members of arrays
+and objects (including any null or false members), but it **silently drops
+only non-container inputs** (null, booleans, numbers, strings) instead of
+raising the strict iteration error. For example, `1 | .[]?` emits no
+results whereas `1 | .[]` raises an error. `[1,null,[2]] | .[]? | .[]?`
+emits `2`. Errors in other filters are not suppressed: `1 / 0 | .[]?`
+still fails, and `[1] | .[]? | .[]` still errors.
+
+The existing literal field suffix `.field[]?` continues to omit
+non-iterable or missing field values; standalone `.[]?` is additionally
+available in a pipeline (including `recurse(.[]?)`). Non-path array-result
+suffixes `keys[]?`, `split(",")[]?`, and `[4,5][]?` now lower to an
+optional iteration stage, with the same rule applied independently inside
+comma alternatives. jq-compatible strict errors from **upstream functions**
+are not converted to empty results. More complex computed paths and general
+optional expressions (other than the scoped iterator forms) still need
+separate audits.
 
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;

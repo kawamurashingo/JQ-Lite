@@ -121,6 +121,23 @@ subtest 'iterator and pipeline semantics' => sub {
     );
     is_deeply(results_for('{"b":2,"a":1}', 'keys[]'), ['a', 'b'], 'iterator suffix is stable');
     is_deeply(results_for('null', '0, [4,5][]'), [0, 4, 5], 'comma branches survive iterator suffix');
+    is_deeply(results_for('null', '.[]?'), [],
+        'optional iterator drops null rather than raising a type error');
+    is_deeply(results_for('1', '.[]?'), [],
+        'optional iterator drops numeric scalars');
+    is_deeply(results_for('"abc"', '.[]?'), [],
+        'optional iterator never splits string characters');
+    is_deeply(results_for('[null,false,[2]]', '.[]?'),
+        [undef, JSON::PP::false, [2]],
+        'optional iterator preserves null/false array members');
+    is_deeply(results_for('[null,false,[2]]', '.[]? | .[]?'),
+        [2], 'chained optional iterators drop scalar leaves');
+    is_deeply(results_for('{"a":null}', '.a[]?'), [],
+        'optional literal path suffix discards non-iterable field');
+    is_deeply(results_for('{"a":1}', 'keys[]?'), ['a'],
+        'function-result optional suffix expands keys');
+    is_deeply(results_for('null', 'recurse(.[]?)'), [undef],
+        'optional recurse child iteration terminates at null');
     is_deeply(results_for('[1,[2]]', 'recurse'),
         [[1,[2]],1,[2],2],
         'default recurse still terminates safely at scalar leaves');
