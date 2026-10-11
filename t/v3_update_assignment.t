@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use JSON::PP ();
 use JQ::Lite;
 use JQ::Lite::Error ();
 
@@ -83,9 +84,40 @@ subtest 'other zero-result filters also delete' => sub {
         [{}], 'select(false) produces no value and deletes path');
 };
 
+subtest 'multi-result RHS uses only its first emitted value' => sub {
+    is_deeply(results('{"a":1,"b":7}', '.a |= (10,20)'),
+        [{ a => 10, b => 7 }], 'first value selected and root retained');
+    is_deeply(results('{"a":1}', '.a |= (1,2,3)'),
+        [{ a => 1 }], 'three-value stream emits one updated root');
+    is_deeply(results('{"a":2}', '.a |= (., . + 1)'),
+        [{ a => 2 }], 'first RHS value is the old target');
+    is_deeply(results('{"a":{"b":2}}', '.a |= (.b, 10)'),
+        [{ a => 2 }], 'RHS path evaluates against the original leaf');
+    is_deeply(results('{"a":1}', '.a |= (null, 2)'),
+        [{ a => undef }], 'first JSON null is retained, not deletion');
+    is_deeply(results('{"a":1}', '.a |= (false, 2)'),
+        [{ a => JSON::PP::false }], 'first JSON false is retained');
+    is_deeply(results('{"a":1}', '.a |= (empty, 5)'),
+        [{ a => 5 }], 'zero-output branch skipped before first value');
+    is_deeply(results('{"a":1}', '.a |= (select(false), 9)'),
+        [{ a => 9 }], 'first later output is used');
+    is_deeply(results('{"a":[10,20]}', '.a[1] |= (30,40)'),
+        [{ a => [10,30] }], 'array slot updated once');
+    is_deeply(results('{}', '.missing |= (3,4)'),
+        [{ missing => 3 }], 'missing target uses first replacement');
+    is_deeply(results('{"a":1}', '.a |= (null, empty)'),
+        [{ a => undef }], 'null before empty is a real first result');
+};
+
+subtest 'empty RHS still deletes instead of selecting undefined' => sub {
+    is_deeply(results('{"a":1}', '.a |= (empty)'),
+        [{}], 'zero-result RHS still deletes target');
+    is_deeply(results('[10,20]', '.[0] |= empty'),
+        [[20]], 'zero-result RHS still splices array');
+};
+
 subtest 'unsupported update streams and invalid target types are explicit errors' => sub {
     for my $case (
-        ['{"a":1}', '.a |= (1,2)', 'multiple RHS results'],
         ['{"a":2}', '.a[0] |= . + 1', 'index on numeric leaf'],
         ['{"a":{}}', '.a[0] |= . + 1', 'numeric index on object'],
     ) {
