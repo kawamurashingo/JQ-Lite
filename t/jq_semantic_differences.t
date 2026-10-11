@@ -100,8 +100,8 @@ subtest 'comparison semantics' => sub {
 };
 
 subtest 'null, missing, and path semantics' => sub {
-    is_deeply(results_for('{}', '.missing'), [], 'missing field emits no result');
-    is_deeply(results_for('{}', '.missing.value'), [], 'path through missing field emits no result');
+    is_deeply(results_for('{}', '.missing'), [undef], 'missing field emits JSON null');
+    is_deeply(results_for('{}', '.missing.value'), [undef], 'path through missing field emits JSON null');
     is_deeply(results_for('{"a":[]}', '.a.value'), [], 'field access through array emits no result');
     is_deeply(results_for('{}', '.[5]'), [undef], 'numeric object index emits null');
 };
