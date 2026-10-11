@@ -112,9 +112,21 @@ are not confused with an empty result stream. For example, `.a |= (10,20)`
 updates `a` to `10`; `.a |= (empty,5)` uses `5`; only an entirely empty
 RHS deletes the path.
 
-The current engine still eagerly evaluates the RHS before selecting its first
-result, unlike jq's streaming evaluation: a later result that raises an error
-may affect a query even when jq would have stopped at the first result.
+Update assignment now short-circuits **top-level comma alternatives**
+in its RHS, including nested parenthesized groups: once an alternative
+produces a value, subsequent alternatives are not evaluated. For example,
+`.a |= (7, 1 / 0)` now updates `a` to `7` without evaluating the unused
+division-by-zero expression; `.a |= (empty, 7, 1 / 0)` also selects `7`,
+and `.a |= (empty, 1 / 0)` still evaluates and raises the error. JSON
+`null`, `false`, and numeric `0` are values, not empty result streams.
+This short-circuit applies to updates using literal fields and all supported
+array/object iterator paths.
+
+**The individual RHS branches remain eagerly evaluated** by the existing
+query engine. This change does not implement jq's fully lazy streaming
+evaluation inside a single pipeline, iterator, or arbitrary nested
+subexpression. An unused error later within one branch can still surface
+where jq would have stopped at its first value.
 **Array and object iterators** are supported in simple update paths:
 `.items[] |= . + 1` updates every array or object member value, and
 `.[] |= empty` removes every member of the root container. Each RHS runs

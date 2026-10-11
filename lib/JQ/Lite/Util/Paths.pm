@@ -83,8 +83,9 @@ sub _apply_update_assignment {
     }
 
     my $old = _clone_for_assignment(_get_path_value($root, $path));
-    my @replacement = $self->run_query(_encode_json($old), $rhs);
-    if (!@replacement) {
+    my ($has_replacement, $replacement)
+        = _first_update_rhs_result($self, $old, $rhs);
+    if (!$has_replacement) {
         # jq 1.7 deletes the selected path when the RHS emits no values.
         # Do not materialize a missing intermediate just to delete it.
         # In particular, a JSON null input remains null on deletion.
@@ -92,12 +93,39 @@ sub _apply_update_assignment {
         _delete_update_assignment_path($root, \@segments);
         return $root;
     }
-    # jq 1.7 update assignment consumes only the *first emitted value*
-    # from the RHS filter.  A defined null or JSON false is still a value;
-    # only a completely empty result stream deletes the target above.
-    # Do not loop over later values or emit multiple updated roots.
-    _set_path_value($root, $path, $replacement[0]);
+    # A defined JSON null or false is still a value; only an entirely
+    # empty result stream deletes the target above.
+    _set_path_value($root, $path, $replacement);
     return $root;
+}
+
+# jq's |= takes the first output of its RHS.  Top-level comma alternatives
+# are evaluated left-to-right, and after the first value is emitted jq never
+# evaluates later branches.  Preserve that short-circuit for the simple
+# alternative/grouping subset supported by the parser instead of eagerly
+# calling run_query on the entire comma expression.
+#
+# An individual branch is still evaluated by the regular eager engine;
+# this helper does not promise streaming for pipes, iterators or arbitrary
+# subexpressions.  The explicit found flag distinguishes JSON null from an
+# empty result stream, which means deletion.
+sub _first_update_rhs_result {
+    my ($self, $old, $rhs) = @_;
+
+    my $expr = _strip_wrapping_parens($rhs);
+    my @alternatives = _split_top_level_commas($expr);
+
+    if (@alternatives > 1) {
+        for my $alternative (@alternatives) {
+            my ($found, $first)
+                = _first_update_rhs_result($self, $old, $alternative);
+            return (1, $first) if $found;
+        }
+        return (0, undef);
+    }
+
+    my @results = $self->run_query(_encode_json($old), $expr);
+    return @results ? (1, $results[0]) : (0, undef);
 }
 
 # Delete only an existing leaf; do not create containers along the path.
@@ -186,9 +214,10 @@ sub _apply_container_iterator_update_assignment {
             }
 
             my $old = _clone_for_assignment($selected->{$key});
-            my @replacement = $self->run_query(_encode_json($old), $rhs);
-            if (@replacement) {
-                $selected->{$key} = _clone_for_assignment($replacement[0]);
+            my ($found, $replacement)
+                = _first_update_rhs_result($self, $old, $rhs);
+            if ($found) {
+                $selected->{$key} = _clone_for_assignment($replacement);
             }
             else {
                 # No RHS values means deletion; unlike array deletion, this
