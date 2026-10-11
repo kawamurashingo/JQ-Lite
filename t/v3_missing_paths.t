@@ -22,7 +22,7 @@ subtest 'object field traversal through a missing or null value' => sub {
     is_deeply(query_results('{"a":{}}', '.a.missing'), [undef], 'nested missing field');
     is_deeply(query_results('{"a":null}', '.a.b'), [undef], 'traversal through explicit null');
     is_deeply(query_results('null', '.a'), [undef], 'field access on null remains null');
-    is_deeply(query_results('{}', '.missing?'), [], 'optional missing path retains existing behavior pending separate policy');
+    is_deeply(query_results('{}', '.missing?'), [undef], 'optional missing object field yields one JSON null');
     is_deeply(query_results('{"a":{"b":3}}', '.a.b'), [3], 'present nested field');
 };
 

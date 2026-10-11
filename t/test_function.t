@@ -72,7 +72,7 @@ like(
     'test() surfaces regex compile errors with a helpful message'
 );
 
-my @default_chain = $jq->run_query($json, '.missing? | test("foo") | default("fallback")');
+my @default_chain = $jq->run_query($json, '.missing | test("foo") | default("fallback")');
 is($default_chain[0], 'fallback', 'test() preserves undef so default() can supply a fallback');
 
 my @multiline_flag = $jq->run_query($json, '.multiline | test("^beta"; "m")');

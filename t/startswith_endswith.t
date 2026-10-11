@@ -72,7 +72,7 @@ ok($empty_prefix[0], 'empty prefix always matches');
 my @empty_suffix = $jq->run_query($json, '.title | endswith("")');
 ok($empty_suffix[0], 'empty suffix always matches');
 
-my @default_chain = $jq->run_query($json, '.missing? | startswith("foo") | default("fallback")');
+my @default_chain = $jq->run_query($json, '.missing | startswith("foo") | default("fallback")');
 is($default_chain[0], 'fallback', 'startswith() preserves undef values for default() to handle');
 
 my @array_empty = $jq->run_query($json, '.names | endswith("")');
