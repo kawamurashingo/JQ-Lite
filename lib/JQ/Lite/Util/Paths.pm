@@ -11,6 +11,15 @@ use Scalar::Util qw(looks_like_number);
 sub _apply_update_assignment {
     my ($self, $input, $path, $rhs) = @_;
 
+    # A single array iterator expands into concrete update paths.  Its
+    # original indices are visited in reverse so '|= empty' can splice array
+    # elements without shifting the indices of paths not yet visited.
+    if (defined($path) && index($path, '[]') >= 0) {
+        return _apply_array_iterator_update_assignment(
+            $self, $input, $path, $rhs
+        );
+    }
+
     # Do not silently reinterpret unsupported iterator/computed paths as
     # ordinary object keys. Their path streams need a separate design.
     unless (defined($path)
@@ -125,6 +134,44 @@ sub _delete_update_assignment_path {
         );
         splice(@$cursor, $index, 1) if $index >= 0 && $index <= $#$cursor;
     }
+}
+
+# Evaluate exactly one iterator in a simple literal path.  The selected
+# values are array elements; object iteration and nested/compound iterator
+# path streams need a separate path-engine audit under #626.
+sub _apply_array_iterator_update_assignment {
+    my ($self, $input, $path, $rhs) = @_;
+
+    my @parts = split /\[\]/, $path, -1;
+    unless (@parts == 2
+        && $path =~ /\A(?:[A-Za-z_]\w*|\[\d+\]|\[\])(?:\.[A-Za-z_]\w*|\[\d+\]|\[\])*\z/)
+    {
+        die JQ::Lite::Error::Parse->new(
+            message => 'Update assignment supports exactly one array iterator in a simple path'
+        );
+    }
+    my ($prefix, $suffix) = @parts;
+
+    my $root = _clone_for_assignment($input);
+    my $selected = length($prefix)
+        ? _get_path_value($root, $prefix)
+        : $root;
+
+    unless (ref($selected) eq 'ARRAY') {
+        die JQ::Lite::Error::Evaluation->new(
+            message => 'Cannot iterate over non-array update target'
+        );
+    }
+
+    # Starting from the highest original array index keeps lower index paths
+    # stable when an RHS emits no values and deletes the selected element.
+    # Every concrete update continues to use the original leaf as its RHS
+    # input; later updates to higher indices cannot change that leaf.
+    for (my $index = $#$selected; $index >= 0; --$index) {
+        my $concrete = $prefix . "[$index]" . $suffix;
+        $root = _apply_update_assignment($self, $root, $concrete, $rhs);
+    }
+    return $root;
 }
 
 sub _apply_assignment {
