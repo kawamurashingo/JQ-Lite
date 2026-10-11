@@ -122,11 +122,22 @@ and `.a |= (empty, 1 / 0)` still evaluates and raises the error. JSON
 This short-circuit applies to updates using literal fields and all supported
 array/object iterator paths.
 
-**The individual RHS branches remain eagerly evaluated** by the existing
-query engine. This change does not implement jq's fully lazy streaming
-evaluation inside a single pipeline, iterator, or arbitrary nested
-subexpression. An unused error later within one branch can still surface
-where jq would have stopped at its first value.
+The update RHS now also walks **pipeline stages** in first-result order.
+For example, `.a |= ((1,2) | . + 1)` updates `a` to `2`,
+and `.a |= ((1,0) | (1 / .))` uses the result of the first upstream value
+without evaluating the division by zero from the later input. If the first
+upstream input produces no downstream output, evaluation continues with the
+next input (`.a |= ((1,2) | select(. > 1))` updates `a` to `2`).
+If *all* pipeline paths produce no value, the selected assignment path is
+deleted as before. These semantics also apply to nested array and object
+update paths, and do not change the public `run_query` stream results.
+
+The visitor only splits top-level comma alternatives and pipeline stages
+(including parenthesized groups). **Each leaf filter remains eagerly
+evaluated** by the existing query engine, so short-circuiting within an
+individual built-in, filter body, or arbitrary subexpression is not yet
+guaranteed. Stateful filter effects and iterator update ordering still
+require separate audits. This is not a general-purpose streaming evaluator.
 **Array and object iterators** are supported in simple update paths:
 `.items[] |= . + 1` updates every array or object member value, and
 `.[] |= empty` removes every member of the root container. Each RHS runs
