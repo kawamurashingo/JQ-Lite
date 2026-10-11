@@ -17,6 +17,17 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # The legacy filter fast paths treat a root .["name"] prefix as an
+    # expression even when it is followed by [] or more path stages.
+    # Yield only recognized *literal iterator paths* to the audited v3
+    # runtime path visitor, rather than returning one spurious JSON null.
+    # Do not alter bare .["name"] or other computed bracket expressions.
+    if ($normalized =~ /\A\.(?:\[\s*"|")/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # v3 update assignment must run before expression/arithmetic shortcuts.
     # The RHS is a filter on the *old target value*, not the input root.
     if (index($normalized, '|=') >= 0) {
