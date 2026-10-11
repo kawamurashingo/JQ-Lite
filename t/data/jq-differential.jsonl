@@ -930,5 +930,5 @@
 {"name":"optliteralnum-control-index-before-opt-iter","input":{"items":[[1],3]},"filter":".items[][0][]?","status":"compatible","expected":"runtime-error"}
 {"name":"optliteralnum-control-prev-iterator","input":{"items":3},"filter":".items[][0]?","status":"compatible","expected":"runtime-error"}
 {"name":"optliteralnum-control-later-strict-iterator","input":{"items":[]},"filter":".items[0]?[]","status":"compatible","expected":"runtime-error"}
-{"name":"optliteralnum-control-later-strict-scalar","input":{"items":[[1]]},"filter":".items[0]?[]","status":"compatible","expected":"runtime-error"}
+{"name":"optliteralnum-control-later-strict-scalar","input":{"items":[1]},"filter":".items[0]?[]","status":"compatible","expected":"runtime-error"}
 {"name":"optliteralnum-control-skip-suffix","input":{"items":[3]},"filter":".items[][0]?.child","status":"compatible","expected":"ok"}

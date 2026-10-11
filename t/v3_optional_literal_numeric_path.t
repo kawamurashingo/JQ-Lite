@@ -124,7 +124,7 @@ subtest 'strict numeric index and iterator errors remain intact' => sub {
     runtime_error('{"items":[]}',
         '.items[0]?[]', 'Cannot iterate over null',
         'later strict iterator still errors');
-    runtime_error('{"items":[[1]]}',
+    runtime_error('{"items":[1]}',
         '.items[0]?[]', 'Cannot iterate over number',
         'strict iterator on scalar still errors');
     is_deeply(results('{"items":[3]}',
