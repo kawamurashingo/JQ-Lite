@@ -17,6 +17,17 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # A root .[.key] selector is a computed *path*, not an ordinary
+    # bracket expression.  Let the scoped v3 visitor resolve the selector
+    # against each current input before the legacy expression shortcuts
+    # turn it into a null or malformed lookup.  A complete simple
+    # computed-root path is required: arbitrary jq expressions stay here.
+    if ($normalized =~ /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # Legacy filter shortcuts can mistake quoted-key iterator paths for
     # arithmetic, assignment, or a root bracket expression when the key
     # contains punctuation such as '=', '|=', or a literal dot.  Yield

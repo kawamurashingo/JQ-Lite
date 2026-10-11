@@ -725,6 +725,7 @@ sub _parse_v3_literal_iterator_path {
 
     my @steps;
     my $has_iterator = 0;
+    my $has_computed_root = 0;
     my $after_step = 0;
 
     while (length $rest) {
@@ -736,6 +737,16 @@ sub _parse_v3_literal_iterator_path {
         if ($rest =~ s/\A([A-Za-z_]\w*)//) {
             return undef if $after_step;
             push @steps, ['field', $1];
+        }
+        # First, resolve a simple computed key relative to the original
+        # input.  Do not accept a computed index after an earlier stage:
+        # jq evaluates such selectors in the original filter context and
+        # their broader semantics require a separate audit.
+        elsif (!@steps && $path =~ /\A\.\[/
+            && $rest =~ s/\A\[\s*(\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\]//)
+        {
+            push @steps, ['computed_root', $1];
+            $has_computed_root = 1;
         }
         elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\]//s) {
             my $quoted = $1;
@@ -770,7 +781,7 @@ sub _parse_v3_literal_iterator_path {
             && $after_step;
     }
 
-    return $has_iterator ? \@steps : undef;
+    return ($has_iterator || $has_computed_root) ? \@steps : undef;
 }
 
 # Visit each literal field, numeric index, and strict/optional iterator
@@ -789,6 +800,58 @@ sub _traverse_v3_field_iterator {
         my @next;
 
         for my $value (@stream) {
+            if ($step->[0] eq 'computed_root') {
+                # In .[.key], the selector .key runs on this SAME input,
+                # then its resulting string indexes that input.  Keep
+                # evaluation scoped to a plain dotted selector path.
+                my $selected = $value;
+                for my $field (split /\./, substr($step->[1], 1)) {
+                    if (!defined $selected) {
+                        $selected = undef;
+                    }
+                    elsif (ref($selected) eq 'HASH') {
+                        $selected = exists($selected->{$field})
+                            ? $selected->{$field} : undef;
+                    }
+                    else {
+                        my $type = JQ::Lite::Value::type_of($selected);
+                        die JQ::Lite::Error::Evaluation->new(
+                            message => 'Cannot index ' . $type
+                                . ' with string "' . $field . '"'
+                        );
+                    }
+                }
+
+                my $input_type = JQ::Lite::Value::type_of($value);
+                my $key_type = JQ::Lite::Value::type_of($selected);
+                if ($key_type eq 'string' && $input_type eq 'object') {
+                    push @next, exists($value->{$selected})
+                        ? $value->{$selected} : undef;
+                }
+                elsif ($key_type eq 'number' && $input_type eq 'array') {
+                    my $index = int($selected);
+                    $index += scalar(@$value) if $index < 0;
+                    push @next, $index >= 0 && $index < @$value
+                        ? $value->[$index] : undef;
+                }
+                elsif ($key_type eq 'string' && $input_type eq 'null') {
+                    push @next, undef;
+                }
+                elsif ($key_type eq 'number' && $input_type eq 'null') {
+                    push @next, undef;
+                }
+                else {
+                    my $diagnostic = 'Cannot index ' . $input_type
+                        . ' with ' . $key_type;
+                    $diagnostic .= ' "' . $selected . '"'
+                        if $key_type eq 'string';
+                    die JQ::Lite::Error::Evaluation->new(
+                        message => $diagnostic
+                    );
+                }
+                next;
+            }
+
             if ($step->[0] eq 'field') {
                 my $field = $step->[1];
 

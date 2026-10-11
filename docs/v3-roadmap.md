@@ -251,12 +251,34 @@ quoted literal iterator path** bypasses the legacy expression/assignment
 shortcut; arbitrary quoted expressions and standalone quoted key access
 keep their previous processing.
 
-Only unquoted literal names, JSON-quoted string keys, and adjacent
-`[]`/`[]?`/`[integer]` steps are included. In particular,
-**composite paths with no iterator still use their previous query-path
-implementation**. This does not change the compatibility-sensitive
-internal traversal helper, implicit array projection, computed keys
-such as `.[.key]`, slices, or arbitrary optional expressions.
+The v3 evaluator now also supports **a simple computed root key**
+`.[.key]` (including a literal dotted selector such as
+`.[.config.selected]`). The selector field path is evaluated against
+the **same current input** that is indexed. A resulting JSON string is
+used as the exact object key, including unusual characters and numeric-
+looking strings. A missing selected object field produces one null, but
+a selector returning null, number, boolean, array, or object raises
+a structured indexing error. For example,
+`{"key":"a","a":7} | .[.key]` yields `7` while
+`{"key":null} | .[.key]` fails. The computed output can feed audited
+literal suffix stages such as `.[.key][]?`, `.[.key][0]`, or
+`.[.key].child`. After a pipeline stage, e.g.
+`.items[] | .[.field]`, each emitted object computes its own key.
+
+The computed expression is currently **only an initial bracket selector**
+with a plain dotted, unquoted field expression. In particular,
+`.obj[.key]` is *not* routed through this implementation: jq evaluates
+its selector in the surrounding filter context rather than relative
+to the previously traversed field. Generating multiple dynamic selectors,
+computed expressions with arithmetic, optional computed selectors `?`,
+and bracket keys with arbitrary filters remain unimplemented. They require
+a separate audit instead of silently broadening this behavior.
+
+For literal paths, only unquoted names, JSON-quoted keys, and adjacent
+`[]`/`[]?`/`[integer]` steps are covered. Composite literal paths
+with no iterator retain their previous query-path implementation.
+The compatibility-sensitive internal traversal helper, implicit array
+projection, slices, and arbitrary optional expressions remain unchanged.
 Existing object iteration order remains unchanged.
 
 Standalone `.[]?` is also available in a pipeline (including
@@ -264,9 +286,10 @@ Standalone `.[]?` is also available in a pipeline (including
 `split(",")[]?`, and `[4,5][]?` lower to an optional iteration stage,
 with the same rule independently applied inside comma alternatives.
 Errors from upstream functions are not converted to empty results.
-Computed (non-literal) path segments, composite paths with no iterator,
-arbitrary optional expressions and more general iterator compositions
-still require separate audits beyond the literal paths above.
+Computed (non-literal) path segments beyond the simple initial
+`.[.field]` selector, composite literal paths with no iterator,
+arbitrary optional expressions, and more general iterator compositions
+still require separate audits beyond the scoped support described above.
 
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
@@ -382,6 +405,7 @@ application logic. In particular:
 | intermediate `.items[].name` or nested `.items[][]` silently skipping malformed values | use `[]?` at precisely the iteration stage where skipping non-containers is intended; later named-field lookups can still fail, so validate those inputs separately |
 | `.items[0][].name` or `.items[].names[0]` assuming invalid array indexing quietly disappears | use explicit validation or null/array checks for numeric-index input; `[]?` can skip only a later iteration failure, not indexing a wrong JSON type |
 | keys containing periods, spaces, quotes, or brackets used inside iterator paths | use literal bracket-quoted fields (e.g. `.["a.b"][].["full name"]`) instead of manually splitting dotted path text; the quoted keys retain their JSON meaning and each `[]?` applies only at its own stage |
+| a field's name is stored in another field (e.g. `{"key":"a","a":7}`) | use `.[.key]` to select dynamically, or `.items[] | .[.field]` per item; the selected key must be a JSON string, and `[]?` does not suppress a bad computed selector |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed

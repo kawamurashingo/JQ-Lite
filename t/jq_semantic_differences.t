@@ -169,6 +169,24 @@ subtest 'iterator and pipeline semantics' => sub {
     is_deeply(results_for('{"items":[{"full name":"Ada"}]}',
             '.items[].["full name"]'), ['Ada'],
         'quoted name after iterator remains literal');
+    is_deeply(results_for('{"key":"a","a":7}', '.[.key]'), [7],
+        'computed root field uses key string from current object');
+    is_deeply(results_for('{"key":"missing"}', '.[.key]'), [undef],
+        'computed root field emits null for a missing selected object key');
+    is_deeply(results_for('{"key":"a","a":[1,2]}',
+            '.[.key][]'), [1,2],
+        'computed root selector can feed a strict iterator');
+    is_deeply(results_for('{"key":"a","a":null}',
+            '.[.key][]?'), [],
+        'computed root selector can feed an optional iterator');
+    is_deeply(results_for('{"items":[{"field":"x","x":2}]}',
+            '.items[] | .[.field]'), [2],
+        'each pipeline item evaluates its own computed selector');
+    my $bad_dynamic_key = eval {
+        results_for('{"key":null}', '.[.key]'); 1;
+    };
+    ok(!$bad_dynamic_key, 'computed key rejects null selector result');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $bad_dynamic_key;
     is_deeply(results_for('{"a.b":null}', '.["a.b"][]?'), [],
         'quoted optional iterator omits null field');
     my $quoted_strict_ok = eval {
