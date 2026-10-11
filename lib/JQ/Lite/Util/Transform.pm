@@ -711,48 +711,81 @@ sub _evaluate_coalesce_operand {
     return _traverse($context, $path);
 }
 
-# v3: literal named-field paths ending with [] or []? have separate
-# index and iteration error semantics.  Only the *final iteration* is
-# optional: a bad field lookup along the path must still fail, including
-# when the final iterator has a question mark.
+# v3: evaluate simple literal named-field paths with one or more []/[]?
+# iterators in expression order, including iterators BEFORE a later field.
+# A field lookup from null/missing keys yields null, while indexing a
+# scalar or array with a string errors.  Each [] is strict and each []?
+# drops only a non-container input at that particular iteration stage.
 #
-# This is kept separate from _traverse because that compatibility-sensitive
-# helper serves existing vectorised/internal path consumers and has not yet
-# had its general computed-path behavior audited against jq.
+# Keep this separate from the compatibility-sensitive general _traverse,
+# which is also used by older/vectorised internal path consumers.
 sub _traverse_v3_field_iterator {
     my ($input, $path) = @_;
 
-    my $optional = $path =~ s/\?\z//;
-    $path =~ s/\[\]\z//;
-    my @fields = split /\./, $path;
-    my $cursor = $input;
+    my @steps;
+    for my $chunk (split /\./, $path) {
+        my ($field, $iterators)
+            = $chunk =~ /\A([A-Za-z_]\w*)((?:\[\]\??)*)\z/;
+        die JQ::Lite::Error::Parse->new(
+            message => 'Invalid literal iterator path'
+        ) unless defined $field;
 
-    for my $field (@fields) {
-        # jq allows reading a field from JSON null, returning another null.
-        # The final [] then raises (or, for []?, drops) the null result.
-        next unless defined $cursor;
+        push @steps, ['field', $field];
 
-        if (ref($cursor) eq 'HASH') {
-            $cursor = exists($cursor->{$field}) ? $cursor->{$field} : undef;
-            next;
+        while ($iterators =~ /(\[\]\??)/g) {
+            push @steps, ['iterator', $1 eq '[]?' ? 1 : 0];
         }
-
-        my $type = JQ::Lite::Value::type_of($cursor);
-        die JQ::Lite::Error::Evaluation->new(
-            message => 'Cannot index ' . $type . ' with string "'
-                . $field . '"'
-        );
     }
 
-    return @$cursor if ref($cursor) eq 'ARRAY';
-    return values %$cursor if ref($cursor) eq 'HASH';
-    return () if $optional;
+    my @stream = ($input);
+    for my $step (@steps) {
+        my @next;
 
-    my $type = JQ::Lite::Value::type_of($cursor);
-    die JQ::Lite::Error::Evaluation->new(
-        message => 'Cannot iterate over ' . $type . ' ('
-            . _encode_json($cursor) . ')'
-    );
+        for my $value (@stream) {
+            if ($step->[0] eq 'field') {
+                my $field = $step->[1];
+
+                if (!defined $value) {
+                    # Reading a named field from null also yields null.
+                    push @next, undef;
+                }
+                elsif (ref($value) eq 'HASH') {
+                    push @next, exists($value->{$field})
+                        ? $value->{$field} : undef;
+                }
+                else {
+                    my $type = JQ::Lite::Value::type_of($value);
+                    die JQ::Lite::Error::Evaluation->new(
+                        message => 'Cannot index ' . $type
+                            . ' with string "' . $field . '"'
+                    );
+                }
+                next;
+            }
+
+            if (ref($value) eq 'ARRAY') {
+                push @next, @$value;
+            }
+            elsif (ref($value) eq 'HASH') {
+                # Preserve the library's established object-value order.
+                push @next, values %$value;
+            }
+            elsif (!$step->[1]) {
+                my $type = JQ::Lite::Value::type_of($value);
+                die JQ::Lite::Error::Evaluation->new(
+                    message => 'Cannot iterate over ' . $type . ' ('
+                        . _encode_json($value) . ')'
+                );
+            }
+            # []? emits no value for a scalar. It does not mask errors
+            # from previous field lookups or later strict stages.
+        }
+
+        @stream = @next;
+        last unless @stream;
+    }
+
+    return @stream;
 }
 
 sub _traverse {
