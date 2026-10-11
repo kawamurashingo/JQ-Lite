@@ -128,7 +128,7 @@ application logic. In particular:
 | 2.x-dependent filter | 3.0-safe migration approach |
 | --- | --- |
 | `contains(...)` expecting exact array elements or nested object equality | express exact equality explicitly before upgrading |
-| `false // fallback` expecting `false` | use an explicit null test when `false` is data |
+| `false // fallback` expecting `false` | use an explicit null test when `false` is data; in v3 `false // 9` returns `9` |
 | a missing path as an empty output stream | use `empty`/selection explicitly rather than relying on implicit dropping |
 | arithmetic with booleans | convert the boolean to the intended number explicitly |
 | arithmetic with numeric-looking strings | convert explicitly with `tonumber()` or `to_number()` before using `- * / %` or numeric `+` |

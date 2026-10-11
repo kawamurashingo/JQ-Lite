@@ -632,7 +632,12 @@ sub _apply_coalesce {
 
     my @lhs_values = _evaluate_coalesce_operand($self, $value, $lhs_expr);
     for my $candidate (@lhs_values) {
-        return $candidate if defined $candidate;
+        # jq's alternative operator discards only null and JSON false.
+        # In particular, numeric zero, empty strings and empty containers
+        # remain valid left-hand results.
+        next unless defined $candidate;
+        next if JSON::PP::is_bool($candidate) && !$candidate;
+        return $candidate;
     }
 
     my @rhs_values = _evaluate_coalesce_operand($self, $value, $rhs_expr);
