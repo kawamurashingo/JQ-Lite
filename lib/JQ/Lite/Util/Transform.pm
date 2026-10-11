@@ -786,9 +786,35 @@ sub _parse_v3_literal_iterator_path {
     return ($has_iterator || $has_computed_key) ? \@steps : undef;
 }
 
-# Visit each literal field, numeric index, and strict/optional iterator
-# in source order.  Field lookup errors remain separate from iteration
-# errors. Quoted key strings are decoded once by the shared path parser.
+# The simple selector expression inside [.key] is evaluated against the
+# full input for this filter, never against an intermediate path result.
+# Resolve selectors before visiting path stages: jq evaluates a malformed
+# selector field lookup even if a preceding [] would emit no values.
+sub _resolve_v3_computed_key_selector {
+    my ($input, $selector) = @_;
+    my $selected = $input;
+    for my $field (split /\./, substr($selector, 1)) {
+        if (!defined $selected) {
+            $selected = undef;
+        }
+        elsif (ref($selected) eq 'HASH') {
+            $selected = exists($selected->{$field})
+                ? $selected->{$field} : undef;
+        }
+        else {
+            my $type = JQ::Lite::Value::type_of($selected);
+            die JQ::Lite::Error::Evaluation->new(
+                message => 'Cannot index ' . $type
+                    . ' with string "' . $field . '"'
+            );
+        }
+    }
+    return $selected;
+}
+
+# Visit each literal field, numeric index, computed key, and strict/optional
+# iterator in source order. Computed selectors refer to the original input,
+# while each subsequent index operates on the current intermediate stream.
 # The compatibility-sensitive general _traverse is deliberately unchanged.
 sub _traverse_v3_field_iterator {
     my ($input, $path, $steps) = @_;
@@ -797,8 +823,19 @@ sub _traverse_v3_field_iterator {
         message => 'Invalid literal iterator/index path'
     ) unless $steps;
 
-    my @stream = ($input);
+    my @selected_keys;
     for my $step (@{$steps}) {
+        push @selected_keys,
+            ($step->[0] eq 'computed_root'
+                || $step->[0] eq 'computed_context')
+            ? _resolve_v3_computed_key_selector($input, $step->[1])
+            : undef;
+    }
+
+    my @stream = ($input);
+    my $step_index = 0;
+    for my $step (@{$steps}) {
+        my $selector_value = $selected_keys[$step_index++];
         my @next;
 
         for my $value (@stream) {
@@ -809,23 +846,7 @@ sub _traverse_v3_field_iterator {
                 # original filter input. After .obj, only the *lookup
                 # target* is the intermediate object; the selector is not
                 # rebound to that object or to an iterator's element.
-                my $selected = $input;
-                for my $field (split /\./, substr($step->[1], 1)) {
-                    if (!defined $selected) {
-                        $selected = undef;
-                    }
-                    elsif (ref($selected) eq 'HASH') {
-                        $selected = exists($selected->{$field})
-                            ? $selected->{$field} : undef;
-                    }
-                    else {
-                        my $type = JQ::Lite::Value::type_of($selected);
-                        die JQ::Lite::Error::Evaluation->new(
-                            message => 'Cannot index ' . $type
-                                . ' with string "' . $field . '"'
-                        );
-                    }
-                }
+                my $selected = $selector_value;
 
                 my $input_type = JQ::Lite::Value::type_of($value);
                 my $key_type = JQ::Lite::Value::type_of($selected);
