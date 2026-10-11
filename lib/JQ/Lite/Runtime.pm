@@ -55,6 +55,7 @@ sub evaluate_filter {
             {
                 missing_object_null => $is_direct_field_path ? 1 : 0,
                 numeric_object_index_error => $source =~ /\[\d+\]/ ? 1 : 0,
+                numeric_null_index => $source =~ /\[\d+\]/ ? 1 : 0,
             }
         );
     }
