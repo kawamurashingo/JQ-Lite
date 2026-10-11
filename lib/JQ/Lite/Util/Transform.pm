@@ -712,10 +712,11 @@ sub _evaluate_coalesce_operand {
 }
 
 # Parse the subset of jq paths consisting of literal unquoted field names,
-# JSON-string bracket keys (or ."key"), signed numeric indices, and []/[]?.
-# Do not split on dots: periods, brackets, and quotes can be part of keys.
-# The presence of an iterator is required to preserve previously audited
-# behavior of non-iterator paths and other expression syntax.
+# JSON-string bracket keys (or ."key"), signed numeric indices, []/[]?,
+# and simple computed selectors [.key] / [.parent.key]. Do not split on
+# dots: periods, brackets, and quotes can be part of literal key strings.
+# Only paths containing an iterator or an audited computed selector are
+# accepted; all other paths retain their previous parsing behavior.
 sub _parse_v3_literal_iterator_path {
     my ($path) = @_;
     return undef unless defined($path) && length($path);
@@ -725,7 +726,7 @@ sub _parse_v3_literal_iterator_path {
 
     my @steps;
     my $has_iterator = 0;
-    my $has_computed_root = 0;
+    my $has_computed_key = 0;
     my $after_step = 0;
 
     while (length $rest) {
@@ -738,15 +739,16 @@ sub _parse_v3_literal_iterator_path {
             return undef if $after_step;
             push @steps, ['field', $1];
         }
-        # First, resolve a simple computed key relative to the original
-        # input.  Do not accept a computed index after an earlier stage:
-        # jq evaluates such selectors in the original filter context and
-        # their broader semantics require a separate audit.
-        elsif (!@steps && $path =~ /\A\.\[/
-            && $rest =~ s/\A\[\s*(\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\]//)
+        # A simple computed selector [.key] can follow literal fields,
+        # indices, or iterators. jq evaluates the selector against the
+        # filter's ORIGINAL input, not against the intermediate value being
+        # indexed. Keep the existing computed_root step for compatibility
+        # with callers that inspect parsed paths.
+        elsif ($rest =~ s/\A\[\s*(\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\]//)
         {
-            push @steps, ['computed_root', $1];
-            $has_computed_root = 1;
+            return undef unless @steps || $path =~ /\A\.\[/;
+            push @steps, [@steps ? 'computed_context' : 'computed_root', $1];
+            $has_computed_key = 1;
         }
         elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\]//s) {
             my $quoted = $1;
@@ -781,7 +783,7 @@ sub _parse_v3_literal_iterator_path {
             && $after_step;
     }
 
-    return ($has_iterator || $has_computed_root) ? \@steps : undef;
+    return ($has_iterator || $has_computed_key) ? \@steps : undef;
 }
 
 # Visit each literal field, numeric index, and strict/optional iterator
@@ -800,11 +802,14 @@ sub _traverse_v3_field_iterator {
         my @next;
 
         for my $value (@stream) {
-            if ($step->[0] eq 'computed_root') {
-                # In .[.key], the selector .key runs on this SAME input,
-                # then its resulting string indexes that input.  Keep
-                # evaluation scoped to a plain dotted selector path.
-                my $selected = $value;
+            if ($step->[0] eq 'computed_root'
+                || $step->[0] eq 'computed_context')
+            {
+                # Both .[.key] and .obj[.key] evaluate .key against the
+                # original filter input. After .obj, only the *lookup
+                # target* is the intermediate object; the selector is not
+                # rebound to that object or to an iterator's element.
+                my $selected = $input;
                 for my $field (split /\./, substr($step->[1], 1)) {
                     if (!defined $selected) {
                         $selected = undef;
