@@ -740,3 +740,39 @@
 {"name":"compdotquote-quoted-comma-after","input":{"key":"a","obj":{"a":7}},"filter":".obj[.\"key\"], 0","status":"compatible","expected":"ok"}
 {"name":"compdotquote-quoted-suffix-iter-field","input":{"cfg":{"a.b":"v"},"obj":{"v":[{"child":7}]}},"filter":".obj[.cfg.\"a.b\"][].child","status":"compatible","expected":"ok"}
 {"name":"compdotquote-quoted-control-unquoted","input":{"key":"a","obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-root","input":{"key":"a","a":7},"filter":".[.[\"key\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-root-optional","input":{"key":null,"a":7},"filter":".[.[\"key\"]]?","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-original-root","input":{"key":"a","obj":{"key":"b","a":7,"b":8}},"filter":".obj[.[\"key\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-named-bracket","input":{"cfg":{"selected":"a"},"obj":{"a":7}},"filter":".obj[.cfg[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-dotted-bracket","input":{"cfg":{"selected":"a"},"obj":{"a":7}},"filter":".obj[.cfg.[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-consecutive-brackets","input":{"cfg":{"selected":"a"},"obj":{"a":7}},"filter":".obj[.[\"cfg\"][\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-period-key","input":{"cfg":{"a.b":"v"},"obj":{"v":4}},"filter":".obj[.cfg[\"a.b\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-space-key","input":{"cfg":{"full name":"v"},"obj":{"v":4}},"filter":".obj[.cfg[\"full name\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-empty-key","input":{"cfg":{"":"v"},"obj":{"v":4}},"filter":".obj[.cfg[\"\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-close-bracket-key","input":{"cfg":{"x]y":"v"},"obj":{"v":4}},"filter":".obj[.cfg[\"x]y\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-both-brackets-key","input":{"cfg":{"[x]":"v"},"obj":{"v":4}},"filter":".obj[.cfg[\"[x]\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-escaped-quote-key","input":{"cfg":{"a\"b":"v"},"obj":{"v":4}},"filter":".obj[.cfg[\"a\\\"b\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-unicode-key","input":{"cfg":{"name":"v"},"obj":{"v":4}},"filter":".obj[.cfg[\"n\\u0061me\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-iterator","input":{"cfg":{"selected":"a"},"items":[{"a":1},{"a":2}]},"filter":".items[][.cfg[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-iterator-optional","input":{"cfg":{"selected":"a"},"items":[{"a":1},3,{"a":2}]},"filter":".items[][.cfg[\"selected\"]]?","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-iterator-empty","input":{"cfg":{"selected":"a"},"items":[]},"filter":".items[][.cfg[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-iterator-error","input":{"cfg":7,"items":[]},"filter":".items[][.cfg[\"selected\"]]?","status":"compatible","expected":"runtime-error"}
+{"name":"compbracketquote-iterator-empty-null-selector","input":{"cfg":{"selected":null},"items":[]},"filter":".items[][.cfg[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-missing-key","input":{"cfg":{"selected":"a"},"obj":{}},"filter":".obj[.cfg[\"selected\"]]?","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-selected-null","input":{"cfg":{"selected":"a"},"obj":{"a":null}},"filter":".obj[.cfg[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-selected-false","input":{"cfg":{"selected":"a"},"obj":{"a":false}},"filter":".obj[.cfg[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-bad-key-optional","input":{"cfg":{"selected":null},"obj":{"a":1}},"filter":".obj[.cfg[\"selected\"]]?","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-bad-key-strict","input":{"cfg":{"selected":null},"obj":{"a":1}},"filter":".obj[.cfg[\"selected\"]]","status":"compatible","expected":"runtime-error"}
+{"name":"compbracketquote-bad-selector","input":{"cfg":7,"obj":{"a":1}},"filter":".obj[.cfg[\"selected\"]]","status":"compatible","expected":"runtime-error"}
+{"name":"compbracketquote-suffix-iterator","input":{"cfg":{"selected":"a"},"obj":{"a":[1,2]}},"filter":".obj[.cfg[\"selected\"]][]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-suffix-iterator-optional","input":{"cfg":{"selected":"a"},"obj":{"a":3}},"filter":".obj[.cfg[\"selected\"]][]?","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-suffix-iterator-error","input":{"cfg":{"selected":"a"},"obj":{"a":3}},"filter":".obj[.cfg[\"selected\"]][]","status":"compatible","expected":"runtime-error"}
+{"name":"compbracketquote-suffix-field","input":{"cfg":{"selected":"a"},"obj":{"a":{"child":3}}},"filter":".obj[.cfg[\"selected\"]].child","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-suffix-field-error","input":{"cfg":{"selected":"a"},"obj":{"a":3}},"filter":".obj[.cfg[\"selected\"]].child","status":"compatible","expected":"runtime-error"}
+{"name":"compbracketquote-numeric-prefix","input":{"cfg":{"selected":"a"},"items":[{"a":9}]},"filter":".items[0][.cfg[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-quoted-prefix","input":{"cfg":{"selected":"a"},"a.b":{"a":9}},"filter":".[\"a.b\"][.cfg[\"selected\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-two-computed","input":{"first":{"a.b":"x"},"second":"y","obj":{"x":{"y":10}}},"filter":".obj[.first[\"a.b\"]][.second]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-pipeline","input":{"items":[{"key":"a","obj":{"a":1}},{"key":"b","obj":{"b":2}}]},"filter":".items[] | .obj[.[\"key\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-comma","input":{"key":"a","obj":{"a":7}},"filter":"0, .obj[.[\"key\"]]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-control-dot-quoted","input":{"cfg":{"selected":"a"},"obj":{"a":7}},"filter":".obj[.cfg.\"selected\"]","status":"compatible","expected":"ok"}
+{"name":"compbracketquote-control-unquoted","input":{"cfg":{"selected":"a"},"obj":{"a":7}},"filter":".obj[.cfg.selected]","status":"compatible","expected":"ok"}
