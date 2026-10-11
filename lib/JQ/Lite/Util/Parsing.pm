@@ -927,9 +927,13 @@ sub _evaluate_value_expression {
             resolve_path  => sub {
                 my ($ctx, $path) = @_;
                 return $ctx if !defined $path || $path eq '';
+                my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
                 my @values = _traverse(
                     $ctx, $path,
-                    { numeric_object_index_error => $path =~ /\[\d+\]/ ? 1 : 0 }
+                    {
+                        numeric_object_index_error => $numeric_path,
+                        numeric_null_index => $numeric_path,
+                    }
                 );
                 return @values ? $values[0] : undef;
             },
@@ -971,12 +975,16 @@ sub _evaluate_value_expression {
 
         my $is_bracket_slice = $path =~ /\[[^\]]*:[^\]]*\]/;
         if (($path !~ /\s/ || $is_bracket_slice) && $path !~ /[+\-*\/]/) {
-            return ([], 1) unless defined $context;
             return ([], 1) if $path eq '';
+            my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
+            return ($numeric_path ? [undef] : [], 1) unless defined $context;
 
             my @values = _traverse(
                 $context, $path,
-                { numeric_object_index_error => $path =~ /\[\d+\]/ ? 1 : 0 }
+                {
+                    numeric_object_index_error => $numeric_path,
+                    numeric_null_index => $numeric_path,
+                }
             );
             return (\@values, 1);
         }
