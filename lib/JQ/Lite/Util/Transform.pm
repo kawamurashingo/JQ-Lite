@@ -722,8 +722,9 @@ sub _evaluate_coalesce_operand {
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
-# Numeric index steps are represented as ['index', N]; existing string
-# field steps keep their previous scalar representation for compatibility.
+# Numeric index steps are represented as ['index', N] or
+# ['index', N, 1] for an optional lookup; existing string field steps
+# keep their previous scalar representation for compatibility.
 # Dynamic expressions, iterator stages and generators remain separate audits.
 sub _parse_v3_computed_selector_fields {
     my ($selector) = @_;
@@ -746,10 +747,14 @@ sub _parse_v3_computed_selector_fields {
             $field = eval { _decode_json($json_name) };
             return undef if $@ || !defined($field) || ref($field);
         }
-        elsif ($rest =~ s/\A\[\s*(-?\d+)\s*\]//) {
-            # A numeric selector step is distinct from a quoted string
-            # such as ["0"], even when the object happens to have key "0".
-            $field = ['index', 0 + $1];
+        elsif ($rest =~ s/\A\[\s*(-?\d+)\s*\](\?)?//) {
+            # The '?' belongs to the selector's numeric index, not to
+            # the outer computed index, and only suppresses its own
+            # invalid target types. Existing strict steps keep their shape.
+            my $index = 0 + $1;
+            my $optional = defined($2) ? 1 : 0;
+            $field = ['index', $index];
+            push @{$field}, 1 if $optional;
         }
         else {
             return undef;
@@ -909,7 +914,7 @@ sub _parse_v3_literal_iterator_path {
 # Resolve selectors before visiting path stages: jq evaluates a malformed
 # selector field lookup even if a preceding [] would emit no values.
 sub _resolve_v3_computed_key_selector {
-    my ($input, $selector) = @_;
+    my ($input, $selector, $no_output_ref) = @_;
     my $fields = _parse_v3_computed_selector_fields($selector);
     die JQ::Lite::Error::Parse->new(
         message => 'Invalid simple computed-key selector'
@@ -930,6 +935,16 @@ sub _resolve_v3_computed_key_selector {
                     ? $selected->[$index] : undef;
             }
             else {
+                # Optional selector stages emit *no result* for invalid
+                # types. They do not convert such failures to JSON null.
+                # Do not suppress failures from earlier strict stages.
+                if ($field->[2]) {
+                    if ($no_output_ref) {
+                        $$no_output_ref = 1;
+                        return undef;
+                    }
+                    return undef;  # only the streaming caller tracks empty
+                }
                 my $type = JQ::Lite::Value::type_of($selected);
                 die JQ::Lite::Error::Evaluation->new(
                     message => 'Cannot index ' . $type . ' with number'
@@ -967,12 +982,21 @@ sub _traverse_v3_field_iterator {
     ) unless $steps;
 
     my @selected_keys;
-    for my $step (@{$steps}) {
-        push @selected_keys,
-            ($step->[0] eq 'computed_root'
-                || $step->[0] eq 'computed_context')
-            ? _resolve_v3_computed_key_selector($input, $step->[1])
-            : undef;
+    # jq resolves nested computed selectors from the rightmost bracket
+    # inward. An optional numeric selector which emits no results drops
+    # this filter input before evaluating selectors further to its left.
+    # This still resolves selector errors before a preceding [] traversal.
+    for (my $i = $#{$steps}; $i >= 0; --$i) {
+        my $step = $steps->[$i];
+        if ($step->[0] eq 'computed_root'
+            || $step->[0] eq 'computed_context')
+        {
+            my $no_output = 0;
+            $selected_keys[$i] = _resolve_v3_computed_key_selector(
+                $input, $step->[1], \$no_output
+            );
+            return () if $no_output;
+        }
     }
 
     my @stream = ($input);
