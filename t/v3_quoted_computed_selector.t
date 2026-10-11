@@ -21,7 +21,7 @@ sub runtime_error {
     if (!$ok) {
         isa_ok($err, 'JQ::Lite::Error::Evaluation',
             "$label: structured evaluation error");
-        like("$err", qr/\Q$fragment\E, "$label: correct error boundary");
+        like("$err", qr/\Q$fragment\E/, "$label: correct error boundary");
     }
 }
 
@@ -40,8 +40,8 @@ subtest 'quoted selectors read the original filter input' => sub {
         '.obj[.cfg.""]'), [4], 'empty quoted field name');
     is_deeply(results('{"cfg":{"name\"q":"v"},"obj":{"v":4}}',
         '.obj[.cfg."name\"q"]'), [4], 'escaped quote in name');
-    is_deeply(results('{"cfg":{"a\\b":"v"},"obj":{"v":4}}',
-        '.obj[.cfg."a\\b"]'), [4], 'escaped backslash in name');
+    is_deeply(results('{"cfg":{"a\\\\b":"v"},"obj":{"v":4}}',
+        '.obj[.cfg."a\\\\b"]'), [4], 'escaped backslash in name');
     is_deeply(results('{"cfg":{"selected":"v"},"obj":{"v":4}}',
         '.obj[.cfg."sel\u0065cted"]'), [4], 'Unicode escape in name');
     is_deeply(results('{"sel":{"name":"v"},"obj":{"v":4}}',
