@@ -187,3 +187,28 @@
 {"name":"rhs-recurse-nested-iterators","input":{"groups":[[1],[2]]},"filter":".groups[][] |= recurse(. + 1)","status":"compatible","expected":"ok"}
 {"name":"rhs-recurse-special-keys","input":{"items":{"a.b":1,"":2}},"filter":".items[] |= recurse(. + 1)","status":"compatible","expected":"ok"}
 {"name":"rhs-recurse-public-control","input":[1,[2]],"filter":"recurse","status":"compatible","expected":"ok"}
+{"name":"rhs-range-large-first","input":{"a":17,"other":4},"filter":".a |= range(1000000000)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-large-pipeline","input":{"a":17},"filter":".a |= (range(1000000000) | . + 5)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-large-select","input":{"a":17},"filter":".a |= (range(1000000000) | select(. > 3))","status":"compatible","expected":"ok"}
+{"name":"rhs-range-two-args","input":{"a":17},"filter":".a |= range(2;9)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-descending","input":{"a":17},"filter":".a |= range(10;2;-3)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-descending-select","input":{"a":17},"filter":".a |= (range(10;2;-3) | select(. < 9))","status":"compatible","expected":"ok"}
+{"name":"rhs-range-empty","input":{"a":17,"b":2},"filter":".a |= range(0;0)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-zero-step","input":{"a":17},"filter":".a |= range(0;5;0)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-wrong-direction","input":{"a":17},"filter":".a |= range(1;5;-1)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-null-after-empty","input":{"a":17},"filter":".a |= (range(0;0), null)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-comma-shortcircuit","input":{"a":17},"filter":".a |= (range(0;3), 1 / 0)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-array-delete","input":{"a":[2,3]},"filter":".a[0] |= range(0;0)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-select-empty","input":{"a":17},"filter":".a |= (range(0;4) | select(. > 8))","status":"compatible","expected":"ok"}
+{"name":"rhs-range-three-stage","input":{"a":17},"filter":".a |= (range(0;5) | select(. > 2) | . + 1)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-downstream-shortcircuit","input":{"a":17},"filter":".a |= (range(0;5) | select(. > 1) | (., 1 / 0))","status":"compatible","expected":"ok"}
+{"name":"rhs-range-downstream-simple","input":{"a":17},"filter":".a |= (range(0;3) | . + 1)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-empty-upstream","input":{"a":17},"filter":".a |= (range(0;0) | . + 1)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-invalid-bound","input":{"a":17},"filter":".a |= range(\"bad\")","status":"compatible","expected":"runtime-error"}
+{"name":"rhs-range-array-iterator","input":{"items":[1,2]},"filter":".items[] |= (range(1;10) | select(. > 3))","status":"compatible","expected":"ok"}
+{"name":"rhs-range-object-iterator","input":{"items":{"x":2,"y":3}},"filter":".items[] |= (range(1;10) | select(. > 3))","status":"compatible","expected":"ok"}
+{"name":"rhs-range-nested-iterator","input":{"groups":[[1],[2]]},"filter":".groups[][] |= range(20)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-special-keys","input":{"items":{"a.b":1,"":2}},"filter":".items[] |= range(5)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-public-full","input":null,"filter":"range(5)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-public-negative","input":null,"filter":"range(10;2;-3)","status":"compatible","expected":"ok"}
+{"name":"rhs-range-public-zero-step","input":null,"filter":"range(0;3;0)","status":"compatible","expected":"ok"}

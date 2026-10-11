@@ -2128,8 +2128,22 @@ sub _apply_range {
     return @$sequence;
 }
 
+# Produce range values through a visitor, allowing update assignment to stop
+# at the first accepted value instead of allocating the entire range.  The
+# regular range() filter uses the same iterator but collects every result.
 sub _build_range_sequence {
     my ($args_ref) = @_;
+
+    my @sequence;
+    _visit_range_sequence($args_ref, sub {
+        push @sequence, $_[0];
+        return 0;
+    });
+    return \@sequence;
+}
+
+sub _visit_range_sequence {
+    my ($args_ref, $accept) = @_;
 
     my @args = @$args_ref;
     die 'range(): bounds must be numeric' unless @args;
@@ -2156,26 +2170,21 @@ sub _build_range_sequence {
 
     die 'range(): bounds must be numeric' unless defined $start && defined $end;
     die 'range(): step must be numeric'    if !defined $step;
-    return []    if $step == 0;
+    return 0 if $step == 0;
 
     if ($step > 0) {
-        return [] if $start >= $end;
-        my @sequence;
+        return 0 if $start >= $end;
         for (my $current = $start; $current < $end; $current += $step) {
-            push @sequence, 0 + $current;
+            return 1 if $accept->(0 + $current);
         }
-        return \@sequence;
+        return 0;
     }
 
-    # negative step
-    return [] if $start <= $end;
-
-    my @sequence;
+    return 0 if $start <= $end;
     for (my $current = $start; $current > $end; $current += $step) {
-        push @sequence, 0 + $current;
+        return 1 if $accept->(0 + $current);
     }
-
-    return \@sequence;
+    return 0;
 }
 
 sub _coerce_range_number {
