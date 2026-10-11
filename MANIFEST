@@ -172,5 +172,6 @@ t/type.t
 t/unique_by.t
 t/values.t
 t/value_semantics.t
+t/v3_missing_paths.t
 t/walk.t
 t/yaml_cli.t

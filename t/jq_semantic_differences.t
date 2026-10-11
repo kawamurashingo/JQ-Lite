@@ -100,8 +100,8 @@ subtest 'comparison semantics' => sub {
 };
 
 subtest 'null, missing, and path semantics' => sub {
-    is_deeply(results_for('{}', '.missing'), [], 'missing field emits no result');
-    is_deeply(results_for('{}', '.missing.value'), [], 'path through missing field emits no result');
+    is_deeply(results_for('{}', '.missing'), [undef], 'missing field emits JSON null');
+    is_deeply(results_for('{}', '.missing.value'), [undef], 'path through missing field emits JSON null');
     is_deeply(results_for('{"a":[]}', '.a.value'), [], 'field access through array emits no result');
     is_deeply(results_for('{}', '.[5]'), [undef], 'numeric object index emits null');
 };
@@ -123,8 +123,9 @@ subtest 'iterator and pipeline semantics' => sub {
 
 subtest 'assignment and update semantics' => sub {
     is_deeply(result_for('{"a":1}', '.a = 2'), {a => 2}, 'plain assignment emits updated root');
-    is_deeply(results_for('{"a":1}', '.a |= . + 1'), [2], 'update assignment emits updated value');
-    is_deeply(results_for('{"a":1}', '.missing |= . + 1'), [], 'missing update target emits no result');
+    # Update assignment is tracked by #626 and the 'update-assignment'
+    # differential fixture. Do not pin an intermediate v3 implementation:
+    # missing-path output changes before jq-compatible update semantics land.
     is_deeply(results_for('{"a":0}', '.a = (1,2)'), [], 'multi-result assignment emits no result');
 };
 

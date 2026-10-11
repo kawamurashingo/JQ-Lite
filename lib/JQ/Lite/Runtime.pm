@@ -42,8 +42,18 @@ sub evaluate_filter {
         return @outputs;
     }
 
+    # Only direct unquoted field paths have an approved v3 null-on-missing
+    # contract. Do not reclassify unrecognized expressions/assignments as
+    # missing object fields; their behavior has separate roadmap decisions.
+    my $source = $filter->source;
+    my $is_direct_field_path = $source =~
+        /\A[A-Za-z_][A-Za-z_0-9]*(?:\[\d+\]|\[\])*(?:\.[A-Za-z_][A-Za-z_0-9]*(?:\[\d+\]|\[\])*)*\z/;
+
     for my $input (@{$inputs}) {
-        push @outputs, JQ::Lite::Util::_traverse($input, $filter->source);
+        push @outputs, JQ::Lite::Util::_traverse(
+            $input, $source,
+            $is_direct_field_path ? { missing_object_null => 1 } : undef
+        );
     }
 
     return @outputs;

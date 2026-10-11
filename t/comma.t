@@ -37,7 +37,7 @@ is_deeply(
 );
 
 my @fallback = $jq->run_query('{}', '(.missing), 1');
-is_deeply(\@fallback, [1], 'comma skips branches that produce no output');
+is_deeply(\@fallback, [undef, 1], 'comma preserves JSON null from a missing field');
 
 my @chain = $jq->run_query('null', '1, 2, 3');
 is_deeply(\@chain, [1, 2, 3], 'comma is left-associative and preserves order');
