@@ -145,11 +145,24 @@ result still propagate. This behavior is shared by array/object update
 iterators, including nested `[][]` paths. Normal `run_query` still
 emits its complete finite recurse stream.
 
-**Other leaf filters and each `recurse` child-filter invocation remain
-eager** under the existing query engine. Short-circuiting within arbitrary
-built-ins, other generators, and complex filter bodies is not yet guaranteed.
-Stateful filter effects and iterator update ordering require separate
-audits. This is not a general-purpose streaming evaluator.
+The update RHS now also generates `range(...)` values **on demand**,
+using the same numeric argument parsing, endpoint exclusion, and step
+semantics as the regular range filter. For example,
+`.a |= range(1000000000)` immediately uses `0` instead of materializing
+a billion values, while `.a |= (range(1000000000) | select(. > 3))`
+visits only the first five integers before selecting `4`. Positive and
+negative steps, zero-step and empty ranges, comma alternatives, and pipeline
+filtering all retain their established behavior. In particular, a range
+that emits no values causes an update assignment to delete the selected
+path; a later comma alternative can still supply a replacement instead.
+The ordinary `range` query continues to emit its complete finite stream.
+
+Only `recurse` and `range` are demand-driven leaf generators at present.
+Each `recurse` child-filter invocation and **other leaf filters remain
+eager** under the existing engine; short-circuiting within arbitrary
+built-ins, generator argument expressions, and complex filter bodies is not
+yet guaranteed. Stateful filter effects and iterator update ordering require
+separate audits. This is not a general-purpose streaming evaluator.
 **Array and object iterators** are supported in simple update paths:
 `.items[] |= . + 1` updates every array or object member value, and
 `.[] |= empty` removes every member of the root container. Each RHS runs
