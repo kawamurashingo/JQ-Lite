@@ -103,7 +103,9 @@ subtest 'null, missing, and path semantics' => sub {
     is_deeply(results_for('{}', '.missing'), [undef], 'missing field emits JSON null');
     is_deeply(results_for('{}', '.missing.value'), [undef], 'path through missing field emits JSON null');
     is_deeply(results_for('{"a":[]}', '.a.value'), [], 'field access through array emits no result');
-    is_deeply(results_for('{}', '.[5]'), [undef], 'numeric object index emits null');
+    my $ok = eval { results_for('{}', '.[5]'); 1 };
+    ok(!$ok, 'numeric object index rejects object input in v3');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation');
 };
 
 subtest 'iterator and pipeline semantics' => sub {
