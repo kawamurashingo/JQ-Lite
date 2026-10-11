@@ -171,6 +171,18 @@ now use recursive visitor calls to maintain depth-first streaming, so very
 deeply nested custom recursion may need further stack-depth work.
 Ordinary `run_query` and its finite `recurse(filter)` streams are unchanged.
 
+The ordinary `recurse(.[])` filter now also respects jq 1.7's **strict
+iterator type errors**: a scalar or JSON null root/descendant causes a
+structured evaluation error rather than silently terminating the recursion.
+In contrast, plain `recurse` still terminates safely at all scalar/null
+leaves, and optional child navigation such as `recurse(.children[]?)`
+remains non-throwing. For example, `[1,[2]] | recurse(.[])` fails
+when visiting `1`, whereas `[[],{}] | recurse(.[])` succeeds.
+The same scoped validation applies to `recurse(.[] | ...)` when the
+explicit iterator is the first child-filter stage. It does not change the
+legacy semantics of a standalone `.[]` or all computed/nested iterator
+expressions; those require a separate traversal audit.
+
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
 short-circuiting within arbitrary built-ins, generator argument expressions,
