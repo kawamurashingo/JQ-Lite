@@ -85,9 +85,9 @@ subtest 'standalone nested optional numeric path' => sub {
     runtime_error('{"a":[7]}', '.a[0]?.name',
         'Cannot index number with string "name"',
         'bad suffix remains strict');
-    runtime_error('{"a":7}', '.a[0].name',
+    runtime_error('{"a":7}', '.a[0][1]?',
         'Cannot index number with number',
-        'strict numeric parent error remains');
+        'earlier strict numeric index remains an error');
     runtime_error('7', '.a[0]?',
         'Cannot index number with string "a"',
         'bad earlier field remains strict');

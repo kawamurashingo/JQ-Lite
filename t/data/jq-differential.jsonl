@@ -960,7 +960,7 @@
 {"name":"standoptindex-nested-pipeline","input":{"a":[7]},"filter":".a[0]? | . + 1","status":"compatible","expected":"ok"}
 {"name":"standoptindex-nested-pipeline-no-output","input":{"a":7},"filter":".a[0]? | . + 1","status":"compatible","expected":"ok"}
 {"name":"standoptindex-nested-suffix-error","input":{"a":[7]},"filter":".a[0]?.name","status":"compatible","expected":"runtime-error"}
-{"name":"standoptindex-strict-index-control","input":{"a":7},"filter":".a[0].name","status":"compatible","expected":"runtime-error"}
+{"name":"standoptindex-strict-index-control","input":{"a":7},"filter":".a[0][1]?","status":"compatible","expected":"runtime-error"}
 {"name":"standoptindex-strict-earlier-field","input":7,"filter":".a[0]?","status":"compatible","expected":"runtime-error"}
 {"name":"standoptindex-two-optional","input":{"a":[[1,2],[3,4]]},"filter":".a[1]?[0]?","status":"compatible","expected":"ok"}
 {"name":"standoptindex-second-scalar-drop","input":{"a":[3,4]},"filter":".a[0]?[0]?","status":"compatible","expected":"ok"}
