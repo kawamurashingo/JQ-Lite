@@ -693,6 +693,7 @@ sub _evaluate_coalesce_operand {
 
 sub _traverse {
     my ($data, $query, $options) = @_;
+    my $numeric_object_index_error = $options && $options->{numeric_object_index_error};
     # This option is enabled only for direct query-path evaluation in 3.x.
     # Internal callers (select, aggregates, assignment, etc.) retain their
     # established no-result semantics until independently audited.
@@ -729,6 +730,11 @@ sub _traverse {
             # direct index access: [index]
             elsif ($step =~ /^\[(\d+)\]$/) {
                 my $index = $1;
+                if ($numeric_object_index_error && ref $item eq 'HASH') {
+                    die JQ::Lite::Error::Evaluation->new(
+                        message => 'Cannot index object with number'
+                    );
+                }
                 if (ref $item eq 'ARRAY' && defined $item->[$index]) {
                     push @next_stack, $item->[$index];
                 }
@@ -747,6 +753,11 @@ sub _traverse {
                 my ($key, $index) = ($1, $2);
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my $val = $item->{$key};
+                    if ($numeric_object_index_error && ref $val eq 'HASH') {
+                        die JQ::Lite::Error::Evaluation->new(
+                            message => 'Cannot index object with number'
+                        );
+                    }
                     push @next_stack, $val->[$index]
                         if ref $val eq 'ARRAY' && defined $val->[$index];
                 }

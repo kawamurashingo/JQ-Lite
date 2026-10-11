@@ -54,8 +54,11 @@ of an empty output stream. This applies to straightforward dot-separated,
 unquoted field paths only; quoted/optional paths and internal traversal
 consumers keep their earlier behavior pending separate audits. A genuine
 empty iterator (`.[]` on `[]`) still produces no output.
-Numeric indices on objects and the broader invalid-path policy remain separate
-work items.
+Numeric indices applied to objects now produce a structured evaluation
+error instead of silently yielding null, including the direct `.[5]` form and
+nested `.a[5]` where `a` holds an object. Numeric indexing into arrays
+continues to work. This change is limited to numeric object indices; the
+broader invalid-path policy remains a separate work item.
 
 The error policy for other invalid paths remains undecided and is not implied
 by these changes.

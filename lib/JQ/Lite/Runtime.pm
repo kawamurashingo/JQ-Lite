@@ -52,7 +52,10 @@ sub evaluate_filter {
     for my $input (@{$inputs}) {
         push @outputs, JQ::Lite::Util::_traverse(
             $input, $source,
-            $is_direct_field_path ? { missing_object_null => 1 } : undef
+            {
+                missing_object_null => $is_direct_field_path ? 1 : 0,
+                numeric_object_index_error => $source =~ /\[\d+\]/ ? 1 : 0,
+            }
         );
     }
 
