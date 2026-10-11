@@ -303,6 +303,7 @@ application logic. In particular:
 | arithmetic with booleans | convert the boolean to the intended number explicitly |
 | arithmetic with numeric-looking strings | convert explicitly with `tonumber()` or `to_number()` before using `- * / %` or numeric `+` |
 | equality between numeric strings and numbers | normalize both sides explicitly with `tonumber` or `tostring` |
+| bare `.[]` on null, booleans, numbers, or strings expecting empty results or character splitting | validate or normalize values to arrays/objects before iterating; v3 raises a runtime error for scalar inputs, matching jq 1.7 |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
