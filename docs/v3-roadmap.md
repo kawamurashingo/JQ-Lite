@@ -356,9 +356,27 @@ computed/generator-backed index expressions, slices, arithmetic and
 arbitrary computed expressions remain outside this scoped implementation. They need separately audited evaluation/streaming
 semantics rather than treating every expression as a field path.
 
-For literal paths, only unquoted names, JSON-quoted keys, and adjacent
-`[]`/`[]?`/`[integer]` steps are covered. Composite literal paths
-with no iterator retain their previous query-path implementation.
+**Optional literal numeric indices in ordered paths** now accept `[N]?`
+when the complete path contains an audited iterator or computed-key stage.
+Examples: `.items[][0]?`, `.items[0]?[]`, and
+`.obj[.key][0]?`. The trailing `?` suppresses only an invalid
+numeric lookup on an object or scalar, producing zero results for that
+intermediate value. Indexing an array out of bounds or indexing JSON
+null still produces **one JSON null**, even for `[N]?`. Earlier
+strict field lookups and iterators, computed-selector evaluation, and
+later strict suffixes retain their own error boundaries. This is
+different from optional numeric **selector** indices inside
+`[.keys[0]?]`, which are evaluated against the original input.
+The strict parser shape `['index', N]` is preserved; optional literal
+numeric index steps are `['index', N, 1]`.
+
+For literal paths, unquoted names, JSON-quoted keys, and adjacent
+`[]`/`[]?`/`[integer]`/`[integer]?` steps are supported
+**when an iterator or computed selector is present**. A standalone
+optional numeric path without such a step continues to use the
+existing non-audited query-path handling rather than being claimed
+as part of this change. Composite literal paths with no iterator
+retain their previous query-path implementation.
 The compatibility-sensitive internal traversal helper, implicit array
 projection, slices, and arbitrary optional expressions remain unchanged.
 Existing object iteration order remains unchanged.
@@ -493,6 +511,7 @@ application logic. In particular:
 | selecting a key from an array in the input | use a literal numeric selector index, e.g. `.obj[.keys[0]]` or `.obj[.cfg["names"][-1]]`; out-of-range indices produce null, but invalid array target types raise an error even with `?` on the outer computed lookup |
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
+| an ordered iterator/computed-key path contains a literal numeric index that should skip invalid object/scalar targets | place `?` immediately after that numeric index, e.g. `.items[][0]?` or `.obj[.key][0]?`; null and out-of-range array indices still produce JSON null, and later strict operations may still fail |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
