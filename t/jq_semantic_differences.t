@@ -137,6 +137,10 @@ subtest 'assignment and update semantics' => sub {
         [{a => 2}], 'v3 update takes the first complete pipeline output');
     is_deeply(results_for('{"a":1}', '.a |= ((1,0) | (1 / .))'),
         [{a => 1}], 'v3 update skips unused later upstream errors');
+    is_deeply(results_for('{"a":1}', '.a |= recurse(. + 1)'),
+        [{a => 1}], 'v3 update stops before unbounded recurse child expansion');
+    is_deeply(results_for('{"a":1}', '.a |= (recurse(. + 1) | select(. > 3))'),
+        [{a => 4}], 'v3 update expands only needed recurse descendants');
     is_deeply(results_for('{"a":1}', '.a |= empty'),
         [{}], 'v3 update deletes when the entire RHS is empty');
     is_deeply(results_for('{"items":[1,2,3]}', '.items[] |= . + 1'),

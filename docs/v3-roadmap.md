@@ -132,12 +132,24 @@ If *all* pipeline paths produce no value, the selected assignment path is
 deleted as before. These semantics also apply to nested array and object
 update paths, and do not change the public `run_query` stream results.
 
-The visitor only splits top-level comma alternatives and pipeline stages
-(including parenthesized groups). **Each leaf filter remains eagerly
-evaluated** by the existing query engine, so short-circuiting within an
-individual built-in, filter body, or arbitrary subexpression is not yet
-guaranteed. Stateful filter effects and iterator update ordering still
-require separate audits. This is not a general-purpose streaming evaluator.
+The update RHS visitor now also evaluates the leaf generator `recurse`
+(or `recurse(filter)`) **on demand**. jq emits each current value before
+attempting to traverse its descendants, and `|=` needs only the first
+value that survives the rest of the RHS pipeline. For example,
+`.a |= recurse(. + 1)` returns the old value immediately rather than
+evaluating unbounded recursion, and
+`.a |= (recurse(. + 1) | select(. > 3))` starts at `1` and stops at
+the first selected descendant, `4`. Errors in unused child expansions
+are not triggered, while errors from children required to find a matching
+result still propagate. This behavior is shared by array/object update
+iterators, including nested `[][]` paths. Normal `run_query` still
+emits its complete finite recurse stream.
+
+**Other leaf filters and each `recurse` child-filter invocation remain
+eager** under the existing query engine. Short-circuiting within arbitrary
+built-ins, other generators, and complex filter bodies is not yet guaranteed.
+Stateful filter effects and iterator update ordering require separate
+audits. This is not a general-purpose streaming evaluator.
 **Array and object iterators** are supported in simple update paths:
 `.items[] |= . + 1` updates every array or object member value, and
 `.[] |= empty` removes every member of the root container. Each RHS runs

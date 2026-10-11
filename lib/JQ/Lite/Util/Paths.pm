@@ -104,9 +104,11 @@ sub _apply_update_assignment {
 # downstream one at a time.  The first completed output stops the traversal,
 # so later upstream values and alternatives never run their remaining filters.
 #
-# Individual leaf filters still use the ordinary eager engine.  This is
-# intentionally not a general-purpose streaming evaluator: complex built-ins
-# or filter bodies which emit their own streams may evaluate extra work.
+# Most leaf filters still use the ordinary eager engine.  recurse/0 and
+# recurse/1 are handled as on-demand generators: their input is emitted
+# before attempting to visit children, so an unused recursive branch (even
+# an unbounded one) cannot run after the first accepted RHS result.
+# This is intentionally not a general-purpose streaming evaluator.
 # The explicit found flag preserves the difference between JSON null and
 # a zero-result RHS (which deletes the selected assignment path).
 sub _first_update_rhs_result {
@@ -151,9 +153,52 @@ sub _visit_update_rhs_results {
         });
     }
 
+    # The recurse generator emits its current value before exploring the
+    # next level.  Using run_query for this leaf would eagerly traverse
+    # *all* descendants, including branches never consumed by |=.
+    if ($expr =~ /\Arecurse(?:\((.*)\))?\z/s) {
+        my $child_filter = defined($1) ? $1 : '';
+        $child_filter =~ s/^\s+|\s+$//g;
+        $child_filter = undef unless length $child_filter;
+        return _visit_update_rhs_recurse(
+            $self, $input, $child_filter, $accept
+        );
+    }
+
     my @outputs = $self->run_query(_encode_json($input), $expr);
     for my $value (@outputs) {
         return 1 if $accept->($value);
+    }
+    return 0;
+}
+
+# Produce recurse values on demand in the same depth-first order as
+# _apply_recurse.  In particular, only expand children when the current
+# value was not accepted by the remaining RHS pipeline.
+sub _visit_update_rhs_recurse {
+    my ($self, $input, $child_filter, $accept) = @_;
+
+    my @stack = ($input);
+    while (@stack) {
+        my $current = pop @stack;
+        return 1 if $accept->($current);
+
+        next unless defined $current;
+
+        my @children;
+        if (defined $child_filter) {
+            @children = $self->run_query(
+                _encode_json($current), $child_filter
+            );
+        }
+        elsif (ref $current eq 'ARRAY') {
+            @children = @$current;
+        }
+        elsif (ref $current eq 'HASH') {
+            @children = map { $current->{$_} } sort keys %$current;
+        }
+
+        push @stack, reverse @children if @children;
     }
     return 0;
 }

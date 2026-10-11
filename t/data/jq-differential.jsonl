@@ -168,3 +168,22 @@
 {"name":"rhs-pipe-special-object-keys","input":{"items":{"a.b":1,"":2}},"filter":".items[] |= ((1,2) | . + 1)","status":"compatible","expected":"ok"}
 {"name":"rhs-pipe-public-query-control","input":null,"filter":"(1,2) | . + 1","status":"compatible","expected":"ok"}
 {"name":"rhs-pipe-public-iterator-control","input":[1,2],"filter":".[] | . + 1","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-unbounded-shortcircuit","input":{"a":1},"filter":".a |= recurse(. + 1)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-unbounded-pipeline","input":{"a":1},"filter":".a |= (recurse(. + 1) | . + 2)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-unused-child-error","input":{"a":1},"filter":".a |= recurse(1 / 0)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-unused-child-pipe-error","input":{"a":1},"filter":".a |= (recurse(1 / 0) | . + 3)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-null-result","input":{"a":null},"filter":".a |= recurse(empty)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-false-result","input":{"a":false},"filter":".a |= recurse(empty)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-first-descendant","input":{"a":1},"filter":".a |= (recurse(. + 1) | select(. > 3))","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-first-descendant-three-stage","input":{"a":1},"filter":".a |= (recurse(. + 1) | select(. > 3) | . + 1)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-default-array","input":{"a":[1,4]},"filter":".a |= (recurse | select(. == 4))","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-default-object","input":{"a":{"x":1,"y":4}},"filter":".a |= (recurse | select(. == 4))","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-default-nested-array","input":{"a":[[1],[4]]},"filter":".a |= (recurse | select(. == 4))","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-empty-deletes","input":{"a":1},"filter":".a |= (recurse(empty) | select(. > 2))","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-child-required-error","input":{"a":1},"filter":".a |= (recurse(1 / 0) | select(false))","status":"compatible","expected":"runtime-error"}
+{"name":"rhs-recurse-array-iterator","input":{"items":[1,2]},"filter":".items[] |= recurse(. + 1)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-array-descendants","input":{"items":[1,2]},"filter":".items[] |= (recurse(. + 1) | select(. > 3))","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-object-descendants","input":{"items":{"x":1,"y":2}},"filter":".items[] |= (recurse(. + 1) | select(. > 3))","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-nested-iterators","input":{"groups":[[1],[2]]},"filter":".groups[][] |= recurse(. + 1)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-special-keys","input":{"items":{"a.b":1,"":2}},"filter":".items[] |= recurse(. + 1)","status":"compatible","expected":"ok"}
+{"name":"rhs-recurse-public-control","input":[1,[2]],"filter":"recurse","status":"compatible","expected":"ok"}
