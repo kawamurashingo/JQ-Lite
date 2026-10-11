@@ -99,33 +99,63 @@ sub _apply_update_assignment {
     return $root;
 }
 
-# jq's |= takes the first output of its RHS.  Top-level comma alternatives
-# are evaluated left-to-right, and after the first value is emitted jq never
-# evaluates later branches.  Preserve that short-circuit for the simple
-# alternative/grouping subset supported by the parser instead of eagerly
-# calling run_query on the entire comma expression.
+# jq's |= takes only the first output of its RHS.  A visitor keeps
+# comma alternatives and pipeline stages in source order, passing values
+# downstream one at a time.  The first completed output stops the traversal,
+# so later upstream values and alternatives never run their remaining filters.
 #
-# An individual branch is still evaluated by the regular eager engine;
-# this helper does not promise streaming for pipes, iterators or arbitrary
-# subexpressions.  The explicit found flag distinguishes JSON null from an
-# empty result stream, which means deletion.
+# Individual leaf filters still use the ordinary eager engine.  This is
+# intentionally not a general-purpose streaming evaluator: complex built-ins
+# or filter bodies which emit their own streams may evaluate extra work.
+# The explicit found flag preserves the difference between JSON null and
+# a zero-result RHS (which deletes the selected assignment path).
 sub _first_update_rhs_result {
     my ($self, $old, $rhs) = @_;
 
-    my $expr = _strip_wrapping_parens($rhs);
-    my @alternatives = _split_top_level_commas($expr);
+    my ($found, $first) = (0, undef);
+    _visit_update_rhs_results($self, $old, $rhs, sub {
+        ($first) = @_;
+        $found = 1;
+        return 1;
+    });
+    return ($found, $first);
+}
 
+sub _visit_update_rhs_results {
+    my ($self, $input, $raw, $accept) = @_;
+
+    my $expr = _strip_wrapping_parens($raw);
+
+    # jq's comma operator has lower precedence than a pipeline.
+    my @alternatives = _split_top_level_commas($expr);
     if (@alternatives > 1) {
         for my $alternative (@alternatives) {
-            my ($found, $first)
-                = _first_update_rhs_result($self, $old, $alternative);
-            return (1, $first) if $found;
+            return 1 if _visit_update_rhs_results(
+                $self, $input, $alternative, $accept
+            );
         }
-        return (0, undef);
+        return 0;
     }
 
-    my @results = $self->run_query(_encode_json($old), $expr);
-    return @results ? (1, $results[0]) : (0, undef);
+    my @stages = _split_top_level_pipes($expr);
+    if (@stages > 1) {
+        my $head = shift @stages;
+        my $tail = join(' | ', @stages);
+
+        # For each produced input, recursively evaluate the rest of the
+        # pipeline.  An empty downstream stage tries the next upstream
+        # value; the first downstream output halts the whole pipeline.
+        return _visit_update_rhs_results($self, $input, $head, sub {
+            my ($value) = @_;
+            return _visit_update_rhs_results($self, $value, $tail, $accept);
+        });
+    }
+
+    my @outputs = $self->run_query(_encode_json($input), $expr);
+    for my $value (@outputs) {
+        return 1 if $accept->($value);
+    }
+    return 0;
 }
 
 # Delete only an existing leaf; do not create containers along the path.
