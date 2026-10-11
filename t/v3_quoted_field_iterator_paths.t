@@ -25,6 +25,30 @@ sub runtime_error {
     }
 }
 
+subtest 'scoped quoted-path parsing and filter dispatch' => sub {
+    is_deeply(
+        [JQ::Lite::Parser::parse_query('.["items"][].name')],
+        ['.["items"][].name'],
+        'parser keeps explicit root bracket notation intact'
+    );
+    is_deeply(
+        JQ::Lite::Util::_parse_v3_literal_iterator_path('.["items"][].name'),
+        [['field','items'],['iterator',0],['field','name']],
+        'path scanner preserves root quoted field and following iterator'
+    );
+    is_deeply(
+        JQ::Lite::Util::_parse_v3_literal_iterator_path('items[].["full name"]'),
+        [['field','items'],['iterator',0],['field','full name']],
+        'path scanner preserves quoted names after iterators'
+    );
+    my @out;
+    my $recognized = JQ::Lite::Filters::apply(
+        $jq, '.["items"][].name',
+        [{items => [{name => 'A'}]}], \@out
+    );
+    ok(!$recognized, 'general filters leave root quoted iterator path to runtime');
+};
+
 subtest 'quoted root field before strict or optional iteration' => sub {
     is_deeply(results('{"items":[{"name":"A"},{"name":"B"}]}',
             '.["items"][].name'), ['A','B'],
