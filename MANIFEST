@@ -178,6 +178,7 @@ t/v3_update_assignment.t
 t/v3_update_rhs_short_circuit.t
 t/v3_update_rhs_pipeline.t
 t/v3_update_rhs_recurse.t
+t/v3_update_rhs_range.t
 t/v3_update_iterator.t
 t/v3_update_object_iterator.t
 t/v3_update_nested_iterators.t
