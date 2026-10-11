@@ -310,13 +310,23 @@ a number, including when `items` is empty. Later stages remain strict;
 Each optional computed step applies independently within a path.
 
 Dot-quoted `."field name"` and bracket-quoted `["field name"]` field
-stages now share the same restricted computed-selector parser. Optional
+stages share the restricted computed-selector parser. **Signed literal
+numeric indices** are now also available inside selector paths, for
+example `.obj[.keys[0]]`, `.obj[.keys[-1]]`, and
+`.obj[.cfg["names"][0]]`. These indices read arrays in the original
+filter input (not the eventual object being indexed), so a numeric
+selector value may then index an array target. Negative indices count
+from the end, out-of-bounds and null array values yield JSON null,
+and numeric indexing on objects or scalars raises a structured runtime
+error. This selector-expression error remains observable even if an
+earlier `[]` iterator is empty or the *outer* computed indexing is
+optional `?`. Optional
 computed indexing is still available as `.obj[.cfg["full name"]]?`,
 without suppressing errors *inside* the selector. A balanced bracket
 scanner prevents `]` inside quoted key text from prematurely ending the
-computed selector. Numeric/index or iterator stages within selectors,
-generator-backed computed selectors, arithmetic and arbitrary computed
-expressions remain outside this scoped implementation. They need separately audited evaluation/streaming
+computed selector. Iterator stages (`[]`/`[]?`) *inside* selectors,
+computed/generator-backed index expressions, slices, arithmetic and
+arbitrary computed expressions remain outside this scoped implementation. They need separately audited evaluation/streaming
 semantics rather than treating every expression as a field path.
 
 For literal paths, only unquoted names, JSON-quoted keys, and adjacent
@@ -453,6 +463,7 @@ application logic. In particular:
 | a field's name is stored in another field (e.g. `{"key":"a","a":7}`) | use `.[.key]` to select dynamically, or `.items[] | .[.field]` per item; the selected key must be a JSON string, and `[]?` does not suppress a bad computed selector |
 | a computed selector after an intermediate path (e.g. `.obj[.key]`) was assumed to read `key` from `obj` | the selector `.key` reads from the **original filter input**, not `.obj`; use a pipeline `.obj | .[.key]` only when the key should come from the nested object itself |
 | selector field names containing periods/spaces previously being interpreted as dots or unsupported syntax | use `."quoted.name"` or `["quoted.name"]` *inside the computed expression*, e.g. `.obj[.cfg["selected field"]]`, to read one exact original-input field name; this is different from putting a quoted literal key *outside* the selector |
+| selecting a key from an array in the input | use a literal numeric selector index, e.g. `.obj[.keys[0]]` or `.obj[.cfg["names"][-1]]`; out-of-range indices produce null, but invalid array target types raise an error even with `?` on the outer computed lookup |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
