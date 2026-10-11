@@ -95,7 +95,7 @@ subtest 'two iterators evaluate left-to-right and independently' => sub {
     is_deeply(results('{"items":[[1],2]}', '.items[][]?'),
         [1], 'optional second iterator drops numeric leaf');
     is_deeply(results('{"items":[{"only":[4,5]}]}', '.items[][]'),
-        [4,5], 'object-valued intermediate input expands its values');
+        [[4,5]], 'second iterator emits the array-valued object member once');
 
     runtime_error('{"items":[[1],null]}', '.items[][]',
         'Cannot iterate over null', 'strict second iterator rejects null leaf');
