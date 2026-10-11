@@ -548,3 +548,7 @@
 {"name":"quoted-iter-prev-noindex","input":{"items":[{"name":"A"},{}]},"filter":".items[].name","status":"compatible","expected":"ok"}
 {"name":"quoted-iter-prev-optional","input":{"a":null},"filter":".a[]?","status":"compatible","expected":"ok"}
 {"name":"quoted-iter-prev-direct-quoted","input":{"a b":2},"filter":".\"a b\"","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-equals-key","input":{"items":[{"a=b":21}]},"filter":".items[].[\"a=b\"]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-hyphen-key","input":{"items":[{"x-y":[22]}]},"filter":".items[].[\"x-y\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-pipe-key","input":{"items":[{"q|r":[23]}]},"filter":".items[].[\"q|r\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-update-token-key","input":{"a|=b":[24]},"filter":".[\"a|=b\"][]","status":"compatible","expected":"ok"}
