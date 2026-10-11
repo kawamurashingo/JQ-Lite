@@ -196,6 +196,7 @@ t/v3_optional_numeric_computed_selector.t
 t/v3_optional_field_computed_selector.t
 t/v3_optional_literal_numeric_path.t
 t/v3_standalone_optional_numeric_index.t
+t/v3_optional_literal_field_paths.t
 t/v3_optional_iterator.t
 t/v3_field_iterator_errors.t
 t/v3_intermediate_field_iterators.t
