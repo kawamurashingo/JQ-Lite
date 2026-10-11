@@ -599,11 +599,12 @@ sub apply {
             return 1;
         }
 
-        # jq 1.7: bare .[] iterates only arrays and objects.  A scalar
-        # is an evaluation error, not an empty stream (and strings are not
-        # arrays of characters).  Keep this local to the standalone iterator
-        # until the wider optional/computed path semantics are audited.
-        if ($part eq '.[]') {
+        # jq 1.7: .[] iterates arrays and objects, but raises a structured
+        # type error on scalars.  Its optional counterpart .[]? suppresses
+        # *only that iterator error*: it emits nothing on a scalar, not its
+        # string characters.  Both forms retain the same container stream.
+        if ($part eq '.[]' || $part eq '.[]?') {
+            my $optional = $part eq '.[]?';
             @next_results = ();
             for my $item (@results) {
                 if (ref($item) eq 'ARRAY') {
@@ -615,6 +616,8 @@ sub apply {
                     push @next_results, values %$item;
                     next;
                 }
+
+                next if $optional;
 
                 my $type = JQ::Lite::Value::type_of($item);
                 die JQ::Lite::Error::Evaluation->new(
