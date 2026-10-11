@@ -17,6 +17,18 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # Legacy filter shortcuts can mistake quoted-key iterator paths for
+    # arithmetic, assignment, or a root bracket expression when the key
+    # contains punctuation such as '=', '|=', or a literal dot.  Yield
+    # *complete, recognized quoted literal iterator paths* to the scoped
+    # v3 runtime visitor before those shortcuts.  Bare quoted lookups and
+    # computed expressions remain on their original evaluation paths.
+    if (index($normalized, '"') >= 0
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # v3 update assignment must run before expression/arithmetic shortcuts.
     # The RHS is a filter on the *old target value*, not the input root.
     if (index($normalized, '|=') >= 0) {

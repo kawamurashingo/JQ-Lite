@@ -42,18 +42,18 @@ sub evaluate_filter {
         return @outputs;
     }
 
-    # Scoped v3 literal field/iterator paths are evaluated step by step.
-    # Include numeric [index] stages only when the path also has an
-    # iterator; standalone numeric paths retain their audited behavior.
-    # [] is strict; []? suppresses only its own iteration type error.
-    # Other/general paths still use the legacy _traverse contract.
+    # Scoped v3 field/iterator paths are evaluated step by step.  Parse
+    # literal JSON-quoted keys without splitting on the dots inside them.
+    # Only paths containing [] or []? are intercepted; existing bare
+    # field/index and compatibility-sensitive computed-path behavior stays.
     my $source = $filter->source;
-    if ($source =~ /\A[A-Za-z_]\w*(?:\[\]\??|\[-?\d+\])*(?:\.[A-Za-z_]\w*(?:\[\]\??|\[-?\d+\])*)*\z/
-        && index($source, '[]') >= 0)
-    {
+    my $path_steps = JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        $source
+    );
+    if ($path_steps) {
         for my $input (@{$inputs}) {
             push @outputs, JQ::Lite::Util::_traverse_v3_field_iterator(
-                $input, $source
+                $input, $source, $path_steps
             );
         }
         return @outputs;

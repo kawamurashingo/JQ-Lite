@@ -489,3 +489,66 @@
 {"name":"numeric-iter-control-null-index","input":{"a":null},"filter":".a[5]","status":"compatible","expected":"ok"}
 {"name":"numeric-iter-control-root-index","input":[10,20],"filter":".[1]","status":"compatible","expected":"ok"}
 {"name":"numeric-iter-control-object-index","input":{"a":{}},"filter":".a[0]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-root-object","input":{"items":[{"name":"A"},{"name":"B"}]},"filter":".[\"items\"][].name","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-optional","input":{"items":[{"name":"A"},{}]},"filter":".[\"items\"][]?.name","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-dot-numeric","input":{"a.b":[[1,2],[3]]},"filter":".[\"a.b\"][0][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-dot-negative","input":{"a.b":[[1,2],[3]]},"filter":".[\"a.b\"][-1][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-null-optional","input":{"a.b":null},"filter":".[\"a.b\"][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-empty-strict","input":{"a.b":[]},"filter":".[\"a.b\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-double","input":{"items":[[1,2],[3]]},"filter":".[\"items\"][][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-double-optional","input":{"items":[[1,2],null]},"filter":".[\"items\"][][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-nested-object","input":{"a.b":[{"x":[1,2]}]},"filter":".[\"a.b\"][].x[]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-bracket","input":{"items":[{"full name":"Ada"},{"full name":"Bea"}]},"filter":".items[].[\"full name\"]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-dot","input":{"items":[{"full name":"Ada"},{"full name":"Bea"}]},"filter":".items[].\"full name\"","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-inner-array","input":{"items":[{"full name":["A"]},{"full name":[]}]},"filter":".items[].[\"full name\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-numeric","input":{"items":[{"a.b":[4,5]},{"a.b":[6]}]},"filter":".items[].[\"a.b\"][0]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-negative","input":{"items":[{"a.b":[4,5]},{"a.b":[6]}]},"filter":".items[].[\"a.b\"][-1]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-index-name","input":{"items":[[{"full name":"A"}],[{"full name":"B"}]]},"filter":".items[][0].[\"full name\"]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-nested-quoted","input":{"outer":{"a.b":[{"full name":"A"}]}},"filter":".outer[\"a.b\"][].[\"full name\"]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-null-member","input":{"items":[{"full name":"A"},null]},"filter":".items[]?.[\"full name\"]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-empty-key","input":{"":[1,2]},"filter":".[\"\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-bracket-text-key","input":{"a[]":[1]},"filter":".[\"a[]\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-numeric-text-key","input":{"[0]":[2]},"filter":".[\"[0]\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-dot-key","input":{"a.b":[3]},"filter":".[\"a.b\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-hyphen-key","input":{"x-y":[4]},"filter":".[\"x-y\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-plus-key","input":{"a+b":[5]},"filter":".[\"a+b\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-slash-key","input":{"a/b":[6]},"filter":".[\"a/b\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-pipe-key","input":{"q|r":[7]},"filter":".[\"q|r\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-comma-key","input":{"a,b":[8]},"filter":".[\"a,b\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-escaped-quote","input":{"a\"b":[9]},"filter":".[\"a\\\"b\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-escaped-backslash","input":{"a\\b":[10]},"filter":".[\"a\\\\b\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-escaped-unicode","input":{"日本語":[11]},"filter":".[\"\\u65e5\\u672c\\u8a9e\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-dots-and-spaces","input":{"a.b":[{"full name":[12]}]},"filter":".[\"a.b\"][].[\"full name\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-bang-key","input":{"x!y":[13]},"filter":".[\"x!y\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-equals-key","input":{"x=y":[14]},"filter":".[\"x=y\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-open-key","input":{"[hello]":[15]},"filter":".[\"[hello]\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-missing-strict","input":{},"filter":".[\"missing\"][]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-missing-optional","input":{},"filter":".[\"missing\"][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-null-strict","input":{"a.b":null},"filter":".[\"a.b\"][]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-number-strict","input":{"a.b":3},"filter":".[\"a.b\"][]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-number-optional","input":{"a.b":3},"filter":".[\"a.b\"][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-boolean-strict","input":{"a.b":true},"filter":".[\"a.b\"][]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-boolean-optional","input":{"a.b":false},"filter":".[\"a.b\"][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-bad-root-number","input":1,"filter":".[\"items\"][]?","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-bad-root-array","input":[],"filter":".[\"items\"][]?","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-bad-later-number","input":{"items":[2]},"filter":".[\"items\"][]?.[\"full name\"]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-bad-later-bool","input":{"items":[true]},"filter":".items[].[\"full name\"]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-later-null-field","input":{"items":[{"a.b":null}]},"filter":".items[].[\"a.b\"][]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-later-null-optional","input":{"items":[{"a.b":null}]},"filter":".items[].[\"a.b\"][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-bad-numeric-object","input":{"a.b":{}},"filter":".[\"a.b\"][0][]?","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-oob-numeric-optional","input":{"a.b":[]},"filter":".[\"a.b\"][0][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-oob-numeric-strict","input":{"a.b":[]},"filter":".[\"a.b\"][0][]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-escaped-field-null","input":{"a.b":null},"filter":".[\"a.b\"][0][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-comma-success","input":{"a.b":[1]},"filter":"0, .[\"a.b\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-comma-optional","input":{"a.b":null},"filter":"0, .[\"a.b\"][]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-root-comma-error","input":{"a.b":null},"filter":"0, .[\"a.b\"][]","status":"compatible","expected":"runtime-error"}
+{"name":"quoted-iter-root-pipeline","input":{"a.b":[1,2]},"filter":".[\"a.b\"][] | . + 1","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-empty-upstream","input":null,"filter":"empty | .[\"items\"][].name","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-prev-unquoted","input":{"items":[[{"name":"A"}]]},"filter":".items[0][].name","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-prev-noindex","input":{"items":[{"name":"A"},{}]},"filter":".items[].name","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-prev-optional","input":{"a":null},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-prev-direct-quoted","input":{"a b":2},"filter":".\"a b\"","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-equals-key","input":{"items":[{"a=b":21}]},"filter":".items[].[\"a=b\"]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-hyphen-key","input":{"items":[{"x-y":[22]}]},"filter":".items[].[\"x-y\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-mid-pipe-key","input":{"items":[{"q|r":[23]}]},"filter":".items[].[\"q|r\"][]","status":"compatible","expected":"ok"}
+{"name":"quoted-iter-update-token-key","input":{"a|=b":[24]},"filter":".[\"a|=b\"][]","status":"compatible","expected":"ok"}

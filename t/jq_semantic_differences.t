@@ -160,6 +160,28 @@ subtest 'iterator and pipeline semantics' => sub {
     is_deeply(results_for('{"items":[[{"name":"A"}],[{"name":"B"}]]}',
             '.items[-1][].name'), ['B'],
         'negative numeric index in iterator path parses as indexing');
+    is_deeply(results_for('{"items":[{"name":"A"},{"name":"B"}]}',
+            '.["items"][].name'), ['A','B'],
+        'quoted root field continues into strict iterator and named field');
+    is_deeply(results_for('{"a.b":[[1,2]]}',
+            '.["a.b"][0][]'), [1,2],
+        'quoted key with dot survives numeric index and iteration');
+    is_deeply(results_for('{"items":[{"full name":"Ada"}]}',
+            '.items[].["full name"]'), ['Ada'],
+        'quoted name after iterator remains literal');
+    is_deeply(results_for('{"a.b":null}', '.["a.b"][]?'), [],
+        'quoted optional iterator omits null field');
+    my $quoted_strict_ok = eval {
+        results_for('{"a.b":null}', '.["a.b"][]'); 1;
+    };
+    ok(!$quoted_strict_ok, 'quoted strict iterator errors on null field');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $quoted_strict_ok;
+    my $quoted_member_ok = eval {
+        results_for('{"items":[2]}', '.items[]?.["full name"]'); 1;
+    };
+    ok(!$quoted_member_ok,
+        'optional iterator does not hide later quoted field indexing error');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $quoted_member_ok;
     is_deeply(results_for('{"items":[]}', '.items[0][]?'), [],
         'optional iterator skips null from out-of-bounds numeric index');
     my $invalid_numeric_index = eval {
