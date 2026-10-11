@@ -251,3 +251,31 @@
 {"name":"recurse-implicit-string","input":"foo","filter":"recurse","status":"compatible","expected":"ok"}
 {"name":"recurse-implicit-scalar-leaves","input":[1,[2]],"filter":"recurse","status":"compatible","expected":"ok"}
 {"name":"recurse-optional-children","input":{"children":[{"name":"kid"}]},"filter":"recurse(.children[]?) | .name","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-error-null","input":null,"filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-number","input":1,"filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-zero","input":0,"filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-negative","input":-5,"filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-fractional","input":1.5,"filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-true","input":true,"filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-false","input":false,"filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-string","input":"hello","filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-empty-string","input":"","filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-error-numeric-string","input":"42","filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-array-empty","input":[],"filter":".[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-object-empty","input":{},"filter":".[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-array-mixed","input":[1,null,false,{"x":2}],"filter":".[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-object-one","input":{"only":42},"filter":".[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-nested-arrays","input":[[],[1,2]],"filter":".[] | .[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-nested-objects","input":[{},{"only":3}],"filter":".[] | .[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-empty-upstream","input":null,"filter":"empty | .[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-number-in-pipeline","input":[[],1],"filter":".[] | .[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-null-in-pipeline","input":[null],"filter":".[] | .[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-bool-in-pipeline","input":[true],"filter":".[] | .[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-string-in-pipeline","input":["ab"],"filter":".[] | .[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-identity-pipe","input":1,"filter":". | .[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-comma-empty","input":[],"filter":"0, .[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-comma-success","input":[1,2],"filter":"0, .[]","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-comma-error","input":null,"filter":"0, .[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-generator-error","input":1,"filter":"range(2) | .[]","status":"compatible","expected":"runtime-error"}
+{"name":"standalone-iterator-default-recurse","input":[1,[2]],"filter":"recurse","status":"compatible","expected":"ok"}
+{"name":"standalone-iterator-explicit-recurse","input":[1,[2]],"filter":"recurse(.[])","status":"compatible","expected":"runtime-error"}
