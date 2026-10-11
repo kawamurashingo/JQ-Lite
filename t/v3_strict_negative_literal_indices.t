@@ -138,10 +138,12 @@ subtest 'scope and earlier index regressions' => sub {
     is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.[-1].name'), [['index',-1],['field','name']],
         'negative root then strict field');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.[1]')), 'strict positive root still outside scoped visitor');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.items[0]')), 'strict positive nested still outside visitor');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.[1]'), [['index',1]],
+        'strict positive root now enters scoped visitor');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.items[0]'), [['field','items'],['index',0]],
+        'strict positive nested now enters scoped visitor');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.items[1+2]')), 'arithmetic index is not misparsed');
     is_deeply(results('[10,20]', '.[1]'), [20],

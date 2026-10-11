@@ -17,6 +17,16 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # Standalone strict positive literal numeric stages use the ordered
+    # v3 visitor for index type errors, null propagation and subsequent
+    # strict suffixes. Require a fully parsed literal path rather than
+    # routing arbitrary computed bracket expressions.
+    if ($normalized =~ /\[\d+\]/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # Strict signed negative literal indices also need the scoped v3
     # visitor even without an iterator or optional step. Legacy
     # arithmetic/field shortcuts can mistake [-N] for subtraction or

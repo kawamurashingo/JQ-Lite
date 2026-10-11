@@ -720,9 +720,10 @@ sub _evaluate_coalesce_operand {
 # [.keys[0]] or [.cfg["names"][-1]].
 # Paths with an iterator, an audited computed selector, an optional
 # literal numeric index/field, a strict negative literal numeric
-# index, or a strict JSON-quoted field are accepted. Strict-only
-# unquoted / positive numeric paths otherwise keep their
-# legacy dispatch. A bare "string" must remain a JSON string literal.
+# index, or a strict JSON-quoted field are accepted. Strict positive
+# literal numeric stages now also enter the visitor. Strict-only
+# unquoted paths otherwise keep their legacy dispatch. A bare "string"
+# must remain a JSON string literal.
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
@@ -856,6 +857,7 @@ sub _parse_v3_literal_iterator_path {
     my $has_optional_numeric_index = 0;
     my $has_optional_field = 0;
     my $has_strict_negative_index = 0;
+    my $has_strict_positive_index = 0;
     my $has_strict_bracket_quoted_field = 0;
     my $has_strict_dot_quoted_field = 0;
     my $after_step = 0;
@@ -947,6 +949,7 @@ sub _parse_v3_literal_iterator_path {
             push @steps, \@index_step;
             $has_optional_numeric_index = 1 if $optional;
             $has_strict_negative_index = 1 if $index < 0 && !$optional;
+            $has_strict_positive_index = 1 if $index >= 0 && !$optional;
         }
         else {
             return undef;
@@ -961,8 +964,9 @@ sub _parse_v3_literal_iterator_path {
 
     return ($has_iterator || $has_computed_key
         || $has_optional_numeric_index || $has_optional_field
-        || $has_strict_negative_index || $has_strict_bracket_quoted_field
-        || $has_strict_dot_quoted_field) ? \@steps : undef;
+        || $has_strict_negative_index || $has_strict_positive_index
+        || $has_strict_bracket_quoted_field || $has_strict_dot_quoted_field)
+        ? \@steps : undef;
 }
 
 # The simple selector expression inside [.key] is evaluated against the
