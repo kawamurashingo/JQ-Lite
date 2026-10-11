@@ -389,12 +389,32 @@ sub _apply_walk {
 sub _apply_recurse {
     my ($self, $value, $filter) = @_;
 
+    # Plain recurse walks only containers and stops at scalar leaves, just
+    # like jq's optional child iterator.  An *explicit* .[] child filter is
+    # different: jq raises an error when it tries to iterate a scalar/null.
+    # Keep this scoped to recurse rather than changing legacy .[] filters.
+    my $explicit_iterator = defined($filter)
+        && _strip_wrapping_parens($filter) =~ /\A\s*\.\[\]\s*(?:\||\z)/;
+
     my @stack   = ($value);
     my @outputs;
 
     while (@stack) {
         my $current = pop @stack;
         push @outputs, $current;
+
+        if ($explicit_iterator
+            && ref($current) ne 'ARRAY' && ref($current) ne 'HASH')
+        {
+            my $type = !defined($current) ? 'null'
+                : JSON::PP::is_bool($current) ? 'boolean'
+                : _is_string_scalar($current) ? 'string'
+                : 'number';
+            die JQ::Lite::Error::Evaluation->new(
+                message => 'Cannot iterate over ' . $type
+                    . ' (' . _encode_json($current) . ')'
+            );
+        }
 
         next unless defined $current;
 
