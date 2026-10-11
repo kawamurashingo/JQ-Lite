@@ -223,20 +223,36 @@ choice at each stage. Empty intermediate streams never evaluate later
 fields or iterators, and array/object members retain their original value
 types, including JSON null and false.
 
-Only simple unquoted name segments with zero or more adjacent `[]`/`[]?`
-suffixes are included. The compatibility-sensitive internal traversal helper,
-implicit array projection, numeric indices, quoted/computed path segments,
-and arbitrary optional expressions are **not** changed by this scoped query
-path implementation. Existing object iteration order remains unchanged.
+**Literal signed numeric indices** (`[0]`, `[1]`, `[-1]`, etc.) are
+now also supported as ordered steps **in these named-field paths when at
+least one `[]` or `[]?` iterator occurs**. `{"items":[[{"name":"A"}]]}
+| .items[0][].name` emits `"A"`, and
+`{"items":[{"names":["A","B"]}]} | .items[].names[-1]` emits `"B"`.
+Each numeric index reads an array element, including negative indexing
+relative to its length; a missing/out-of-bounds slot or an index on JSON
+null emits one null. An object, number, string, or boolean indexed by
+a number raises a structured evaluation error. A later `[]?` can drop
+an index's null result, but **cannot suppress an earlier invalid numeric
+index**. Thus `{"items":null} | .items[0][]?` has no result, but
+`{"items":3} | .items[0][]?` raises an error.
+
+Only unquoted named-field segments and adjacent `[]`/`[]?`/`[integer]`
+steps are included. In particular, **numeric-only composite paths with no
+iterator still use the prior query-path implementation**; this change does
+not promise broader indexed-path coverage or alter the compatibility-
+sensitive internal traversal helper. Implicit array projection,
+quoted/computed path segments, and arbitrary optional expressions remain
+outside this scoped implementation. Existing object iteration order
+remains unchanged.
 
 Standalone `.[]?` is also available in a pipeline (including
 `recurse(.[]?)`). Non-path array-result suffixes `keys[]?`,
 `split(",")[]?`, and `[4,5][]?` lower to an optional iteration stage,
 with the same rule independently applied inside comma alternatives.
 Errors from upstream functions are not converted to empty results.
-Computed/quoted/numeric path segments, arbitrary optional
-expressions, and more general iterator compositions still require separate
-audits beyond the simple named-field paths described above.
+Computed/quoted path segments, numeric-only composite paths,
+arbitrary optional expressions and more general iterator compositions still
+require separate audits beyond the literal named-field/index paths above.
 
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
@@ -350,6 +366,7 @@ application logic. In particular:
 | bare `.[]` on null, booleans, numbers, or strings expecting empty results or character splitting | validate or normalize values to arrays/objects before iterating; v3 raises a runtime error for scalar inputs, matching jq 1.7 |
 | `.field[]` on a missing, null, or scalar-valued field expecting no results | use `.field[]?` when dropping non-iterable final values is intended; ensure every preceding named-field lookup is valid, because `[]?` does not suppress an invalid prefix lookup |
 | intermediate `.items[].name` or nested `.items[][]` silently skipping malformed values | use `[]?` at precisely the iteration stage where skipping non-containers is intended; later named-field lookups can still fail, so validate those inputs separately |
+| `.items[0][].name` or `.items[].names[0]` assuming invalid array indexing quietly disappears | use explicit validation or null/array checks for numeric-index input; `[]?` can skip only a later iteration failure, not indexing a wrong JSON type |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
