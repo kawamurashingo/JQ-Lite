@@ -320,6 +320,21 @@ from the end, out-of-bounds and null array values yield JSON null,
 and numeric indexing on objects or scalars raises a structured runtime
 error.
 
+**Optional named-field selector stages** such as `.obj[.cfg.name?]`,
+`.obj[.cfg."name"?]`, and `.obj[.cfg["name"]?]` now skip an invalid
+field lookup into a number, boolean, string, or array, producing **no
+result**, rather than JSON null. A missing field in an object or a field
+read from JSON null still yields JSON null, which can fail a strict outer
+computed index. Optionality is scoped to a single named-field stage:
+`.obj[.cfg?.name]` still fails if `cfg` is a number, whereas
+`.obj[.cfg?.name?]` skips. An independent `?` after the closing
+computed bracket (e.g. `.obj[.cfg.name?]?`) is required to suppress
+an outer invalid/null-key index. The selector still reads from the
+original input; errors or empty results are resolved before an earlier
+path iterator. Multiple computed selectors continue evaluating from
+right to left, so a rightmost empty optional selector can short-circuit
+errors from a selector to its left.
+
 **Optional numeric selector indices** such as `.obj[.keys[0]?]` and
 `.obj[.cfg["names"][-1]?]` now suppress a numeric index's own invalid
 target type (scalar or object), yielding **zero filter results**. They do
@@ -477,6 +492,7 @@ application logic. In particular:
 | selector field names containing periods/spaces previously being interpreted as dots or unsupported syntax | use `."quoted.name"` or `["quoted.name"]` *inside the computed expression*, e.g. `.obj[.cfg["selected field"]]`, to read one exact original-input field name; this is different from putting a quoted literal key *outside* the selector |
 | selecting a key from an array in the input | use a literal numeric selector index, e.g. `.obj[.keys[0]]` or `.obj[.cfg["names"][-1]]`; out-of-range indices produce null, but invalid array target types raise an error even with `?` on the outer computed lookup |
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
+| a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
