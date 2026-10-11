@@ -713,10 +713,43 @@ sub _evaluate_coalesce_operand {
 
 # Parse the subset of jq paths consisting of literal unquoted field names,
 # JSON-string bracket keys (or ."key"), signed numeric indices, []/[]?,
-# and simple computed selectors [.key] / [.parent.key], optionally ?. Do not split on
-# dots: periods, brackets, and quotes can be part of literal key strings.
+# and simple computed selectors [.key] / [.parent."quoted.key"], optionally ?.
+# Do not split on dots: periods and quotes inside JSON-string names are literal.
 # Only paths containing an iterator or an audited computed selector are
 # accepted; all other paths retain their previous parsing behavior.
+# Decode a computed selector made only of dot-separated unquoted names or
+# JSON-quoted field names.  Parsing rather than split /\./ preserves literal
+# periods, escaped quotes/backslashes, empty names and Unicode escapes.
+# Dynamic expressions and bracket-quoted selectors remain separate audits.
+sub _parse_v3_computed_selector_fields {
+    my ($selector) = @_;
+    return undef unless defined($selector) && $selector =~ /\A\./;
+
+    my $rest = substr($selector, 1);
+    my @fields;
+    while (length $rest) {
+        my $field;
+        if ($rest =~ s/\A([A-Za-z_]\w*)//) {
+            $field = $1;
+        }
+        elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")//s) {
+            my $json_name = $1;
+            $field = eval { _decode_json($json_name) };
+            return undef if $@ || !defined($field) || ref($field);
+        }
+        else {
+            return undef;
+        }
+
+        push @fields, $field;
+        last unless length $rest;
+        return undef unless $rest =~ s/\A\.//;
+        return undef unless length $rest;
+    }
+
+    return @fields ? \@fields : undef;
+}
+
 sub _parse_v3_literal_iterator_path {
     my ($path) = @_;
     return undef unless defined($path) && length($path);
@@ -744,12 +777,13 @@ sub _parse_v3_literal_iterator_path {
         # filter's ORIGINAL input, not against the intermediate value being
         # indexed. Keep the existing computed_root step for compatibility
         # with callers that inspect parsed paths.
-        elsif ($rest =~ s/\A\[\s*(\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\](\?)?//)
+        elsif ($rest =~ s/\A\[\s*(\.(?:[A-Za-z_]\w*|"(?:[^"\\]|\\.)*")(?:\.(?:[A-Za-z_]\w*|"(?:[^"\\]|\\.)*"))*)\s*\](\?)?//s)
         {
             # Capture both values before the root-path regexp clears them.
             # Optionality applies only to indexing, not selector evaluation.
             my $selector = $1;
             my $optional = defined($2) ? 1 : 0;
+            return undef unless _parse_v3_computed_selector_fields($selector);
             return undef unless @steps || $path =~ /\A\.\[/;
             my @computed_step = (
                 @steps ? 'computed_context' : 'computed_root', $selector
@@ -800,8 +834,13 @@ sub _parse_v3_literal_iterator_path {
 # selector field lookup even if a preceding [] would emit no values.
 sub _resolve_v3_computed_key_selector {
     my ($input, $selector) = @_;
+    my $fields = _parse_v3_computed_selector_fields($selector);
+    die JQ::Lite::Error::Parse->new(
+        message => 'Invalid simple computed-key selector'
+    ) unless $fields;
+
     my $selected = $input;
-    for my $field (split /\./, substr($selector, 1)) {
+    for my $field (@{$fields}) {
         if (!defined $selected) {
             $selected = undef;
         }
