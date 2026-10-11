@@ -692,7 +692,11 @@ sub _evaluate_coalesce_operand {
 }
 
 sub _traverse {
-    my ($data, $query) = @_;
+    my ($data, $query, $options) = @_;
+    # This option is enabled only for direct query-path evaluation in 3.x.
+    # Internal callers (select, aggregates, assignment, etc.) retain their
+    # established no-result semantics until independently audited.
+    my $missing_object_null = $options && $options->{missing_object_null};
     my @steps = split /\./, $query;
     my @stack = ($data);
 
@@ -701,7 +705,13 @@ sub _traverse {
         my @next_stack;
 
         for my $item (@stack) {
-            next if !defined $item;
+            if (!defined $item) {
+                # A chain of object-field reads through JSON null remains
+                # null in jq, rather than dropping its output stream.
+                push @next_stack, undef
+                    if $missing_object_null && $step !~ /\[/;
+                next;
+            }
 
             # array slice access: [start:end]
             if ($step =~ /^\[(.*):(.*)\]$/s) {
@@ -769,8 +779,13 @@ sub _traverse {
             }
             # standard access: key
             else {
-                if (ref $item eq 'HASH' && exists $item->{$step}) {
-                    push @next_stack, $item->{$step};
+                if (ref $item eq 'HASH') {
+                    if (exists $item->{$step}) {
+                        push @next_stack, $item->{$step};
+                    }
+                    elsif ($missing_object_null) {
+                        push @next_stack, undef;
+                    }
                 }
                 elsif (ref $item eq 'ARRAY') {
                     for my $sub (@$item) {
