@@ -115,22 +115,28 @@ RHS deletes the path.
 The current engine still eagerly evaluates the RHS before selecting its first
 result, unlike jq's streaming evaluation: a later result that raises an error
 may affect a query even when jq would have stopped at the first result.
-One **array iterator** is now supported in a simple update path:
-`.items[] |= . + 1` updates every array element, and `.[]
-|= empty` deletes them all. Each RHS is applied to the old selected leaf;
-when an element is deleted, remaining indices stay aligned with the initial
-selection. A literal field or numeric index can precede or follow the single
-iterator (for example `.groups[0][]` or `.items[].count`). An empty array
-produces one unchanged root. Missing/null/non-array iterator targets raise
-structured evaluation errors, rather than creating a container.
+One **array or object iterator** is now supported in a simple update path:
+`.items[] |= . + 1` updates every array or object member value, and
+`.[] |= empty` removes every member of the root container. Each RHS runs
+against the old selected leaf and the query emits one updated root.
+A literal field or numeric index can precede or follow the iterator (for
+example `.groups[0][]` or `.items[].count`). Empty arrays and objects
+produce one unchanged root; missing/null/scalar iterator targets raise
+structured evaluation errors instead of manufacturing a container.
 
-Object iterators (`.[]` on an object), paths with multiple iterators,
-computed/quoted iterator paths, and jq's fully streamed update evaluation
-remain outside this scoped implementation. Array indices are processed in
-reverse to keep deletion stable; stateful RHS effects and their evaluation
-order are therefore **not** guaranteed to match jq. The relationship with compound
-`+=` and other operators requires a separate audit under #626. Do not
-assume complete jq assignment compatibility.
+For object iteration, the engine operates on the original **keys directly**:
+empty keys and names containing dots, spaces, or brackets are supported
+without constructing invalid dotted paths. No-output RHS deletes the member
+key, whereas `null` is stored as a value. A suffix path updates a member's
+nested field or indexed element without deleting the member itself.
+Object keys are processed in sorted order for determinism. Array indices
+are processed in reverse to keep deletion stable. **Stateful RHS effects
+and evaluation order are therefore not guaranteed to match jq.**
+
+Paths with multiple iterators, computed/quoted iterator paths, and jq's fully
+streamed update evaluation remain outside this scoped implementation. The
+relationship with compound `+=` and other operators requires a separate
+audit under #626. Do not assume complete jq assignment compatibility.
 
 Multi-result **plain** assignment remains undecided and requires a separate design.
 
