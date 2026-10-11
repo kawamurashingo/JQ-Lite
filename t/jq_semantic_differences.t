@@ -143,6 +143,13 @@ subtest 'assignment and update semantics' => sub {
     is_deeply(results_for('{"items":{"a":1,"b":2}}', '.items[] |= empty'),
         [{items => {}}],
         'v3 object iterator deletes member keys on empty RHS');
+    is_deeply(results_for('{"groups":[[1,2],[3,4]]}', '.groups[][] |= . + 1'),
+        [{groups => [[2,3],[4,5]]}],
+        'v3 nested iterators update multiple array dimensions');
+    is_deeply(results_for('{"groups":{"x":[1,2],"y":[3,4]}}',
+            '.groups[][] |= empty'),
+        [{groups => {x => [], y => []}}],
+        'v3 nested iterator deletion keeps outer object keys');
     is_deeply(results_for('{"a":0}', '.a = (1,2)'), [], 'multi-result assignment emits no result');
 };
 
