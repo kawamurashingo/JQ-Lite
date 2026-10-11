@@ -22,7 +22,9 @@ sub apply {
     # against each current input before the legacy expression shortcuts
     # turn it into a null or malformed lookup.  A complete simple
     # computed-root path is required: arbitrary jq expressions stay here.
-    if ($normalized =~ /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]/
+    # Numeric/quoted nested selector steps also need this bypass, e.g.
+    # .[.[0]], or the legacy root-bracket shortcut returns null.
+    if ($normalized =~ /\A\.\[\s*\./
         && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
     {
         return 0;
