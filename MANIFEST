@@ -188,6 +188,7 @@ t/v3_numeric_iterator_paths.t
 t/v3_quoted_field_iterator_paths.t
 t/v3_computed_root_key.t
 t/v3_intermediate_computed_key.t
+t/v3_optional_computed_key.t
 t/v3_optional_iterator.t
 t/v3_field_iterator_errors.t
 t/v3_intermediate_field_iterators.t
