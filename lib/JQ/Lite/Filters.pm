@@ -16,6 +16,27 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # v3 update assignment must run before expression/arithmetic shortcuts.
+    # The RHS is a filter on the *old target value*, not the input root.
+    if (index($normalized, '|=') >= 0) {
+        my ($path, $spec, $operator, $rhs)
+            = JQ::Lite::Util::_parse_assignment_expression($normalized);
+        if ($operator ne '|=' || $normalized !~ /^\s*\./
+            || !defined($rhs) || $rhs !~ /\S/)
+        {
+            die JQ::Lite::Error::Parse->new(
+                message => 'Invalid update-assignment syntax'
+            );
+        }
+
+        @next_results = map {
+            JQ::Lite::Util::_apply_update_assignment($self, $_, $path, $rhs)
+        } @results;
+
+        @$out_ref = @next_results;
+        return 1;
+    }
+
         my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($normalized);
         if (@sequence_parts > 1) {
             @next_results = ();
