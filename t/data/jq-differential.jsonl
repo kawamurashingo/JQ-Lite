@@ -611,3 +611,63 @@
 {"name":"computed-control-previous-quoted","input":{"items":[{"name":"A"}]},"filter":".[\"items\"][].name","status":"compatible","expected":"ok"}
 {"name":"computed-control-previous-numeric","input":{"items":[[1,2]]},"filter":".items[0][]","status":"compatible","expected":"ok"}
 {"name":"computed-control-previous-optional","input":{"a":null},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"intercomputed-root-target-diff","input":{"key":"a","obj":{"key":"b","a":7,"b":8}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-root-target-diff-reverse","input":{"key":"b","obj":{"key":"a","a":7,"b":8}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-missing-selected","input":{"key":"missing","obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-null-target","input":{"key":"a","obj":null},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-absent-target","input":{"key":"a"},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-selected-false","input":{"key":"a","obj":{"a":false}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-selected-null","input":{"key":"a","obj":{"a":null}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-selected-array","input":{"key":"a","obj":{"a":[1,2]}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-string-number-key","input":{"key":"0","obj":{"0":"zero"}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-empty-key","input":{"key":"","obj":{"":"empty"}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-dot-key","input":{"key":"a.b","obj":{"a.b":12}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-nested-selector","input":{"cfg":{"selected":"b"},"obj":{"a":7,"b":8}},"filter":".obj[.cfg.selected]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-quoted-prefix","input":{"key":"a","obj":{"a":7}},"filter":".[\"obj\"][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-quoted-dot-prefix","input":{"key":"a","a.b":{"a":9}},"filter":".[\"a.b\"][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-index-before","input":{"key":"a","items":[{"a":7},{"a":8}]},"filter":".items[0][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-negative-index-before","input":{"key":"a","items":[{"a":7},{"a":8}]},"filter":".items[-1][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-index-then-field","input":{"key":"a","items":[{"a":{"child":9}}]},"filter":".items[0][.key].child","status":"compatible","expected":"ok"}
+{"name":"intercomputed-2-selectors","input":{"first":"a","second":"b","obj":{"a":{"b":8}}},"filter":".obj[.first][.second]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-numeric-selector","input":{"key":0,"obj":[5,6]},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-negative-selector","input":{"key":-1,"obj":[5,6]},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-fraction-selector","input":{"key":0.5,"obj":[5,6]},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-numeric-after","input":{"key":"a","obj":{"a":[3,4]}},"filter":".obj[.key][-1]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-original-key","input":{"key":"a","items":[{"key":"b","a":1,"b":9},{"a":2}]},"filter":".items[][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-double-iter","input":{"key":"a","items":[[{"a":1}],[{"a":2}]]},"filter":".items[][][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-optional","input":{"key":"a","items":[{"a":1},{"a":2}]},"filter":".items[]?[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-explicit-dot","input":{"key":"a","items":[{"a":1},{"a":2}]},"filter":".items[].[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-empty","input":{"key":"a","items":[]},"filter":".items[][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-scalar-null","input":{"key":"a","items":[null]},"filter":".items[][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-array-preserved","input":{"key":"a","items":[{"a":[1,2]},{"a":null}]},"filter":".items[][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-strict-iter","input":{"key":"a","items":[{"a":[1,2]},{"a":[3]}]},"filter":".items[][.key][]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-stream-optional-iter","input":{"key":"a","items":[{"a":[1,2]},{"a":null}]},"filter":".items[][.key][]?","status":"compatible","expected":"ok"}
+{"name":"intercomputed-outer-pipe","input":{"items":[{"key":"a","obj":{"a":1}},{"key":"b","obj":{"b":2}}]},"filter":".items[] | .obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-outer-pipe-optional","input":{"items":[{"key":"a","obj":{"a":[1,2]}},{"key":"a","obj":{"a":null}}]},"filter":".items[] | .obj[.key][]?","status":"compatible","expected":"ok"}
+{"name":"intercomputed-comma-leading","input":{"key":"a","obj":{"a":7}},"filter":"0, .obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-comma-trailing","input":{"key":"a","obj":{"a":7}},"filter":".obj[.key], .key","status":"compatible","expected":"ok"}
+{"name":"intercomputed-pipe-empty","input":null,"filter":"empty | .obj[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-downstream-arithmetic","input":{"key":"a","obj":{"a":7}},"filter":".obj[.key] | . + 1","status":"compatible","expected":"ok"}
+{"name":"intercomputed-error-key-missing","input":{"obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-key-null","input":{"key":null,"obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-key-true","input":{"key":true,"obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-key-false","input":{"key":false,"obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-key-array","input":{"key":["a"],"obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-key-object","input":{"key":{"a":1},"obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-string-on-array","input":{"key":"0","obj":[5,6]},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-boolean-target","input":{"key":"a","obj":true},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-number-target","input":{"key":"a","obj":3},"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-scalar-after","input":{"key":"a","obj":{"a":3}},"filter":".obj[.key][]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-null-after","input":{"key":"a","obj":{"a":null}},"filter":".obj[.key][]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-optional-scalar-after","input":{"key":"a","obj":{"a":3}},"filter":".obj[.key][]?","status":"compatible","expected":"ok"}
+{"name":"intercomputed-error-dotted-selector","input":{"cfg":7,"obj":{"a":7}},"filter":".obj[.cfg.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-empty-iter-selector","input":{"cfg":7,"items":[]},"filter":".items[][.cfg.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-empty-iter-null-key","input":{"key":null,"items":[]},"filter":".items[][.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-error-root-null","input":null,"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-error-root-number","input":1,"filter":".obj[.key]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-indexed-null-optional","input":{"key":"a","obj":{}},"filter":".obj[.key][0][]?","status":"compatible","expected":"ok"}
+{"name":"intercomputed-indexed-null-strict","input":{"key":"a","obj":{}},"filter":".obj[.key][0][]","status":"compatible","expected":"runtime-error"}
+{"name":"intercomputed-control-original-root","input":{"key":"a","a":7},"filter":".[.key]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-control-quoted","input":{"items":[{"name":"A"}]},"filter":".[\"items\"][].name","status":"compatible","expected":"ok"}
+{"name":"intercomputed-control-numeric","input":{"items":[[1,2]]},"filter":".items[0][]","status":"compatible","expected":"ok"}
+{"name":"intercomputed-control-intermediate","input":{"items":[{"name":"A"}]},"filter":".items[].name","status":"compatible","expected":"ok"}
