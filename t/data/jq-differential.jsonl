@@ -1,0 +1,14 @@
+{"name":"identity","input":{"foo":1},"filter":".","status":"compatible","expected":"ok"}
+{"name":"field-access","input":{"a":3},"filter":".a","status":"compatible","expected":"ok"}
+{"name":"array-iteration","input":[1,2],"filter":".[]","status":"compatible","expected":"ok"}
+{"name":"numeric-addition","input":null,"filter":"1 + 2","status":"compatible","expected":"ok"}
+{"name":"missing-compares-to-null","input":{},"filter":".missing == null","status":"compatible","expected":"ok"}
+{"name":"boolean-arithmetic-error","input":true,"filter":". + 1","status":"compatible","expected":"runtime-error"}
+{"name":"contains-array","input":[1,2,3],"filter":"contains([1,3])","status":"planned","expected":"ok"}
+{"name":"false-fallback","input":false,"filter":". // 9","status":"planned","expected":"ok"}
+{"name":"missing-field","input":{},"filter":".missing","status":"planned","expected":"ok"}
+{"name":"numeric-object-index","input":{},"filter":".[5]","status":"planned","expected":"runtime-error"}
+{"name":"scalar-equality","input":null,"filter":"\"10\" == 10","status":"planned","expected":"ok"}
+{"name":"array-lexicographic-order","input":null,"filter":"[1,2] < [1,3]","status":"planned","expected":"ok"}
+{"name":"update-assignment","input":{"a":1},"filter":".a |= . + 1","status":"planned","expected":"ok"}
+{"name":"user-defined-functions","input":1,"filter":"def inc: . + 1; inc","status":"unsupported","expected":"ok"}
