@@ -927,7 +927,10 @@ sub _evaluate_value_expression {
             resolve_path  => sub {
                 my ($ctx, $path) = @_;
                 return $ctx if !defined $path || $path eq '';
-                my @values = _traverse($ctx, $path);
+                my @values = _traverse(
+                    $ctx, $path,
+                    { numeric_object_index_error => $path =~ /\[\d+\]/ ? 1 : 0 }
+                );
                 return @values ? $values[0] : undef;
             },
             coerce_number => \&_coerce_number_strict,
@@ -971,7 +974,10 @@ sub _evaluate_value_expression {
             return ([], 1) unless defined $context;
             return ([], 1) if $path eq '';
 
-            my @values = _traverse($context, $path);
+            my @values = _traverse(
+                $context, $path,
+                { numeric_object_index_error => $path =~ /\[\d+\]/ ? 1 : 0 }
+            );
             return (\@values, 1);
         }
     }
