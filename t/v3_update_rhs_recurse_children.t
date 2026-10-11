@@ -77,8 +77,8 @@ subtest 'nested array and object updates reuse streamed children' => sub {
 };
 
 subtest 'ordinary finite recurse queries preserve all of their outputs' => sub {
-    is_deeply(results('1', 'recurse(if . < 3 then . + 1 else empty end)'),
-        [1,2,3], 'public recurse results remain a complete finite stream');
+    is_deeply(results('[1,[2]]', 'recurse(.[])'),
+        [[1,[2]],1,[2],2], 'public recurse still emits every value for finite inputs');
 };
 
 done_testing;
