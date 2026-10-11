@@ -21,3 +21,12 @@
 {"name":"nested-numeric-object-index","input":{"a":{}},"filter":".a[5]","status":"compatible","expected":"runtime-error"}
 {"name":"root-array-index","input":[10,20],"filter":".[0]","status":"compatible","expected":"ok"}
 {"name":"nested-array-index","input":{"a":[10,20]},"filter":".a[1]","status":"compatible","expected":"ok"}
+{"name":"root-null-numeric-index","input":null,"filter":".[5]","status":"compatible","expected":"ok"}
+{"name":"null-field-numeric-index","input":{"a":null},"filter":".a[5]","status":"compatible","expected":"ok"}
+{"name":"null-numeric-index-chain","input":{"a":null},"filter":".a[5].b","status":"compatible","expected":"ok"}
+{"name":"missing-field-numeric-index","input":{},"filter":".missing[5]","status":"compatible","expected":"ok"}
+{"name":"null-array-element","input":[null],"filter":".[0]","status":"compatible","expected":"ok"}
+{"name":"array-index-out-of-bounds","input":[10],"filter":".[5]","status":"compatible","expected":"ok"}
+{"name":"empty-array-index","input":[],"filter":".[0]","status":"compatible","expected":"ok"}
+{"name":"nested-null-array-element","input":{"a":[null]},"filter":".a[0]","status":"compatible","expected":"ok"}
+{"name":"nested-array-index-out-of-bounds","input":{"a":[10]},"filter":".a[5]","status":"compatible","expected":"ok"}
