@@ -184,6 +184,7 @@ t/v3_update_iterator.t
 t/v3_update_object_iterator.t
 t/v3_update_nested_iterators.t
 t/v3_numeric_object_index.t
+t/v3_optional_iterator.t
 t/v3_recurse_iterator_errors.t
 t/v3_standalone_iterator_errors.t
 t/walk.t
