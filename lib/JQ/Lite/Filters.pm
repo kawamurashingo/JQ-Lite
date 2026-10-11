@@ -28,6 +28,16 @@ sub apply {
         return 0;
     }
 
+    # A computed selector following a literal field or iterator, as in
+    # .obj[.key] or .items[][.key], must be evaluated in the original
+    # filter context. Route only complete, scoped path expressions to the
+    # v3 visitor; arbitrary computed expressions keep the legacy path.
+    if ($normalized =~ /\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # Legacy filter shortcuts can mistake quoted-key iterator paths for
     # arithmetic, assignment, or a root bracket expression when the key
     # contains punctuation such as '=', '|=', or a literal dot.  Yield
