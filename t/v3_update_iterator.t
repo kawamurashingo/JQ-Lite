@@ -59,7 +59,6 @@ subtest 'no implicit iteration on missing or non-array values' => sub {
         ['{}', '.items[] |= . + 1', 'missing array'],
         ['{"items":null}', '.items[] |= . + 1', 'null array'],
         ['{"items":5}', '.items[] |= . + 1', 'number'],
-        ['{"items":{}}', '.items[] |= . + 1', 'object iteration not yet supported'],
         ['{"items":[1]}', '.items[].n |= . + 1', 'non-object member'],
     ) {
         my ($input, $filter, $label) = @$case;

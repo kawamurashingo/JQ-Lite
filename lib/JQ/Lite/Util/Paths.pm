@@ -11,11 +11,11 @@ use Scalar::Util qw(looks_like_number);
 sub _apply_update_assignment {
     my ($self, $input, $path, $rhs) = @_;
 
-    # A single array iterator expands into concrete update paths.  Its
-    # original indices are visited in reverse so '|= empty' can splice array
-    # elements without shifting the indices of paths not yet visited.
+    # A single array/object iterator expands into selected update paths.
+    # Array indices are visited in reverse so '|= empty' can splice elements
+    # without shifting lower original indices.
     if (defined($path) && index($path, '[]') >= 0) {
-        return _apply_array_iterator_update_assignment(
+        return _apply_container_iterator_update_assignment(
             $self, $input, $path, $rhs
         );
     }
@@ -136,10 +136,10 @@ sub _delete_update_assignment_path {
     }
 }
 
-# Evaluate exactly one iterator in a simple literal path.  The selected
-# values are array elements; object iteration and nested/compound iterator
-# path streams need a separate path-engine audit under #626.
-sub _apply_array_iterator_update_assignment {
+# Evaluate exactly one iterator in a simple literal path. Arrays and objects
+# are both supported; nested/compound iterators need a separate path-engine
+# audit under #626.
+sub _apply_container_iterator_update_assignment {
     my ($self, $input, $path, $rhs) = @_;
 
     my @parts = split /\[\]/, $path, -1;
@@ -157,10 +157,41 @@ sub _apply_array_iterator_update_assignment {
         ? _get_path_value($root, $prefix)
         : $root;
 
-    unless (ref($selected) eq 'ARRAY') {
+    unless (ref($selected) eq 'ARRAY' || ref($selected) eq 'HASH') {
         die JQ::Lite::Error::Evaluation->new(
-            message => 'Cannot iterate over non-array update target'
+            message => 'Cannot iterate over non-array/object update target'
         );
+    }
+
+    if (ref($selected) eq 'HASH') {
+        # Iterate the existing keys, not synthetic dotted paths: JSON object
+        # keys may contain dots, spaces, brackets, or be the empty string.
+        # Sort for deterministic execution; RHS filters which depend on key
+        # evaluation order are outside this scoped implementation.
+        my $relative = $suffix;
+        $relative =~ s/^\.//;
+        for my $key (sort keys %$selected) {
+            if (length $relative) {
+                # The suffix is a normal simple field/index path evaluated
+                # relative to the selected object's old member value.
+                $selected->{$key} = _apply_update_assignment(
+                    $self, $selected->{$key}, $relative, $rhs
+                );
+                next;
+            }
+
+            my $old = _clone_for_assignment($selected->{$key});
+            my @replacement = $self->run_query(_encode_json($old), $rhs);
+            if (@replacement) {
+                $selected->{$key} = _clone_for_assignment($replacement[0]);
+            }
+            else {
+                # No RHS values means deletion; unlike array deletion, this
+                # does not shift any other key's position.
+                delete $selected->{$key};
+            }
+        }
+        return $root;
     }
 
     # Starting from the highest original array index keeps lower index paths
