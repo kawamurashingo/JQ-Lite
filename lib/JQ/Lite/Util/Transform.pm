@@ -718,9 +718,10 @@ sub _evaluate_coalesce_operand {
 # [.parent["quoted.key"]], optionally ?. Quoted names stay literal.
 # Signed numeric array indices are accepted inside selector paths, e.g.
 # [.keys[0]] or [.cfg["names"][-1]].
-# Paths with an iterator, an audited computed selector, or at least one
-# optional literal numeric index/field are accepted. Strict-only paths
-# without these audited markers retain their older dispatch behavior.
+# Paths with an iterator, an audited computed selector, an optional
+# literal numeric index/field, or a strict negative literal numeric
+# index are accepted. Positive strict-only paths retain their previous
+# query-path dispatch behavior.
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
@@ -853,6 +854,7 @@ sub _parse_v3_literal_iterator_path {
     my $has_computed_key = 0;
     my $has_optional_numeric_index = 0;
     my $has_optional_field = 0;
+    my $has_strict_negative_index = 0;
     my $after_step = 0;
 
     while (length $rest) {
@@ -930,6 +932,7 @@ sub _parse_v3_literal_iterator_path {
             push @index_step, 1 if $optional;
             push @steps, \@index_step;
             $has_optional_numeric_index = 1 if $optional;
+            $has_strict_negative_index = 1 if $index < 0 && !$optional;
         }
         else {
             return undef;
@@ -943,8 +946,8 @@ sub _parse_v3_literal_iterator_path {
     }
 
     return ($has_iterator || $has_computed_key
-        || $has_optional_numeric_index || $has_optional_field)
-        ? \@steps : undef;
+        || $has_optional_numeric_index || $has_optional_field
+        || $has_strict_negative_index) ? \@steps : undef;
 }
 
 # The simple selector expression inside [.key] is evaluated against the

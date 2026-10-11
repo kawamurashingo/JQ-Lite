@@ -17,6 +17,17 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # Strict signed negative literal indices also need the scoped v3
+    # visitor even without an iterator or optional step. Legacy
+    # arithmetic/field shortcuts can mistake [-N] for subtraction or
+    # return null rather than an indexed value. Require a complete
+    # recognized path, not merely a bracket fragment.
+    if ($normalized =~ /\[-[1-9]\d*\]/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # Standalone optional literal named-field paths must reach the
     # scoped visitor before legacy path/value shortcuts. A full parser
     # match keeps arbitrary expressions and other '?' uses untouched.

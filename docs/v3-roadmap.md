@@ -390,12 +390,26 @@ and `.cfg.name?` still fails on an invalid strict `.cfg` lookup.
 Strict field steps keep `['field', name]`; optional steps use
 `['field', name, 1]`.
 
+**Standalone strict negative numeric indices** now share the ordered
+v3 path visitor even without an iterator, computed selector, or optional
+stage. For example, `.[-1]`, `.items[-1]`,
+`.items[-1].name`, and `.items[0][-1]` read signed positions
+from an array; a negative index counts from the end. Out-of-range
+arrays and JSON null yield **one null**; numeric lookup on an object
+(including an object with key `"-1"`), number, string or boolean
+raises the same structured runtime error as other strict numeric
+stages. An error in a later strict field/iterator is not suppressed,
+and optional `[-1]?` keeps the previously audited zero-output
+behavior for invalid target types. Positive strict-only paths
+without these scoped stages remain on the existing implementation,
+as do arbitrary expressions.
+
 For literal paths, unquoted names, JSON-quoted keys, and adjacent
 `[]`/`[]?`/`[integer]`/`[integer]?` steps are supported
 when there is an iterator, computed selector, **optional literal
-numeric index, or optional named field**. Standalone strict-only
-numeric and field paths (with none of those stages) continue using
-the existing query-path implementation.
+numeric index, optional named field, or strict negative numeric
+index**. Positive strict-only numeric and field paths (with none of
+those stages) continue using the existing query-path implementation.
 The compatibility-sensitive internal traversal helper, implicit array
 projection, slices, and arbitrary optional expressions remain unchanged.
 Existing object iteration order remains unchanged.
@@ -530,6 +544,7 @@ application logic. In particular:
 | selecting a key from an array in the input | use a literal numeric selector index, e.g. `.obj[.keys[0]]` or `.obj[.cfg["names"][-1]]`; out-of-range indices produce null, but invalid array target types raise an error even with `?` on the outer computed lookup |
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
+| a strict standalone negative array index is required | use `.[-1]` or `.items[-1].name`; negative positions count from the end, out-of-range/null produce JSON null, and wrong-type targets still raise errors; use `[-1]?` only to omit wrong-type index outputs |
 | a literal numeric index should skip invalid object/scalar targets | put `?` immediately after that index, e.g. `.[0]?`, `.items[0]?`, `.items[][0]?` or `.obj[.key][0]?`; null and out-of-range array indices still produce JSON null, and later strict operations may still fail |
 | a named field lookup should omit wrong-type values | append `?` immediately to that field, e.g. `.name?`, `.cfg?.name`, `.items[].name?` or `.items[]["a.b"]?`; this skips invalid types but keeps missing keys and JSON null as one null output, and does not suppress earlier/later strict lookup errors |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
