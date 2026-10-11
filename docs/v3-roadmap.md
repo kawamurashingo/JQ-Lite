@@ -157,12 +157,26 @@ that emits no values causes an update assignment to delete the selected
 path; a later comma alternative can still supply a replacement instead.
 The ordinary `range` query continues to emit its complete finite stream.
 
-Only `recurse` and `range` are demand-driven leaf generators at present.
-Each `recurse` child-filter invocation and **other leaf filters remain
-eager** under the existing engine; short-circuiting within arbitrary
-built-ins, generator argument expressions, and complex filter bodies is not
-yet guaranteed. Stateful filter effects and iterator update ordering require
-separate audits. This is not a general-purpose streaming evaluator.
+Custom `recurse(filter)` **child-filter streams** are now also consumed
+incrementally for `|=`, rather than evaluating every child before traversing
+any descendant. The first child is visited depth-first, and an accepted
+downstream result stops later child branches. For example,
+`.a |= (recurse((. + 1, 1 / 0)) | select(. > 1))` uses `2`
+without evaluating the unused division-by-zero branch, and a later
+match such as `select(. > 3)` visits the chain `1, 2, 3, 4`.
+An error from a branch that **must** be evaluated still propagates
+(`recurse((empty, 1 / 0)) | select(. > 1)`).
+The default `recurse` traversal remains iterative; custom child filters
+now use recursive visitor calls to maintain depth-first streaming, so very
+deeply nested custom recursion may need further stack-depth work.
+Ordinary `run_query` and its finite `recurse(filter)` streams are unchanged.
+
+Only `recurse` and `range` have demand-driven leaf output handling
+so far. **Other leaf filters remain eager** under the existing engine;
+short-circuiting within arbitrary built-ins, generator argument expressions,
+and complex filter bodies is not yet guaranteed. Stateful filter effects
+and iterator update ordering require separate audits. This is not a
+general-purpose streaming evaluator.
 **Array and object iterators** are supported in simple update paths:
 `.items[] |= . + 1` updates every array or object member value, and
 `.[] |= empty` removes every member of the root container. Each RHS runs
