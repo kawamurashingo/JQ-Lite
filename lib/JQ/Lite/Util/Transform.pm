@@ -902,12 +902,14 @@ sub _parse_v3_literal_iterator_path {
             $has_iterator = 1;
         }
         elsif ($rest =~ s/\A\[(-?\d+)\](\?)?//) {
+            # Capture both matches before checking the root path:
+            # a second regex on $path would clear $1 and $2.
+            my $index = 0 + $1;
+            my $optional = defined($2) ? 1 : 0;
             # Allow a leading .[N] only as part of a fully parsed
             # optional-index path; standalone strict .[N] still follows
             # the existing query path implementation.
             return undef unless @steps || $path =~ /\A\.\[/;
-            my $index = 0 + $1;
-            my $optional = defined($2) ? 1 : 0;
             my @index_step = ('index', $index);
             push @index_step, 1 if $optional;
             push @steps, \@index_step;
