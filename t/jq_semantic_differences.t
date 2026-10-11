@@ -137,6 +137,12 @@ subtest 'assignment and update semantics' => sub {
         [{items => [2,3,4]}], 'v3 iterator update returns the updated root');
     is_deeply(results_for('{"items":[1,2,3]}', '.items[] |= empty'),
         [{items => []}], 'v3 iterator update deletes every array element');
+    is_deeply(results_for('{"items":{"a":1,"b":2}}', '.items[] |= . + 1'),
+        [{items => {a => 2, b => 3}}],
+        'v3 object iterator updates values in the original object');
+    is_deeply(results_for('{"items":{"a":1,"b":2}}', '.items[] |= empty'),
+        [{items => {}}],
+        'v3 object iterator deletes member keys on empty RHS');
     is_deeply(results_for('{"a":0}', '.a = (1,2)'), [], 'multi-result assignment emits no result');
 };
 
