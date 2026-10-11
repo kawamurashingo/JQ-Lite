@@ -718,8 +718,9 @@ sub _evaluate_coalesce_operand {
 # [.parent["quoted.key"]], optionally ?. Quoted names stay literal.
 # Signed numeric array indices are accepted inside selector paths, e.g.
 # [.keys[0]] or [.cfg["names"][-1]].
-# Only paths containing an iterator or an audited computed selector are
-# accepted; all other paths retain their previous parsing behavior.
+# Paths with an iterator, an audited computed selector, or at least one
+# optional literal numeric index are accepted; strict-only literal
+# paths keep their existing parsing behavior.
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
@@ -850,6 +851,7 @@ sub _parse_v3_literal_iterator_path {
     my @steps;
     my $has_iterator = 0;
     my $has_computed_key = 0;
+    my $has_optional_numeric_index = 0;
     my $after_step = 0;
 
     while (length $rest) {
@@ -900,14 +902,16 @@ sub _parse_v3_literal_iterator_path {
             $has_iterator = 1;
         }
         elsif ($rest =~ s/\A\[(-?\d+)\](\?)?//) {
-            return undef unless @steps;
-            # Optionality belongs to this numeric lookup. Keep the
-            # previous ['index', N] shape for strict numeric steps.
+            # Allow a leading .[N] only as part of a fully parsed
+            # optional-index path; standalone strict .[N] still follows
+            # the existing query path implementation.
+            return undef unless @steps || $path =~ /\A\.\[/;
             my $index = 0 + $1;
             my $optional = defined($2) ? 1 : 0;
             my @index_step = ('index', $index);
             push @index_step, 1 if $optional;
             push @steps, \@index_step;
+            $has_optional_numeric_index = 1 if $optional;
         }
         else {
             return undef;
@@ -920,7 +924,8 @@ sub _parse_v3_literal_iterator_path {
             && $after_step;
     }
 
-    return ($has_iterator || $has_computed_key) ? \@steps : undef;
+    return ($has_iterator || $has_computed_key
+        || $has_optional_numeric_index) ? \@steps : undef;
 }
 
 # The simple selector expression inside [.key] is evaluated against the

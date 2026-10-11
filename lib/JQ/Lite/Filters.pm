@@ -17,6 +17,17 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # Standalone optional literal numeric paths are also scoped to the
+    # ordered v3 visitor. Without this guard, the legacy value-expression
+    # shortcut can convert .[0]? or .items[0]? into null instead of
+    # emitting no results on scalar/object index targets. Match only
+    # complete, audited paths, not arbitrary []-based expressions.
+    if ($normalized =~ /\[-?\d+\]\?/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # A root .[.key] selector is a computed *path*, not an ordinary
     # bracket expression.  Let the scoped v3 visitor resolve the selector
     # against each current input before the legacy expression shortcuts
