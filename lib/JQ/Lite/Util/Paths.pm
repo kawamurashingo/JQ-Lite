@@ -75,16 +75,60 @@ sub _apply_update_assignment {
 
     my $old = _clone_for_assignment(_get_path_value($root, $path));
     my @replacement = $self->run_query(_encode_json($old), $rhs);
+    if (!@replacement) {
+        # jq 1.7 deletes the selected path when the RHS emits no values.
+        # Do not materialize a missing intermediate just to delete it.
+        # In particular, a JSON null input remains null on deletion.
+        return undef unless defined $input;
+        _delete_update_assignment_path($root, \@segments);
+        return $root;
+    }
     if (@replacement != 1) {
-        # Deletion via '|= empty' and multi-result update streams require
-        # separate explicit semantics. Never silently pick a value.
+        # Multi-result RHS semantics are a separate 3.x decision. Reject
+        # them explicitly rather than picking an arbitrary replacement.
         die JQ::Lite::Error::Evaluation->new(
-            message => 'Update assignment requires exactly one RHS result'
+            message => 'Update assignment requires at most one RHS result'
         );
     }
 
     _set_path_value($root, $path, $replacement[0]);
     return $root;
+}
+
+# Delete only an existing leaf; do not create containers along the path.
+# Array deletion must splice (shifting later elements), not replace with null.
+sub _delete_update_assignment_path {
+    my ($root, $segments) = @_;
+
+    my $cursor = $root;
+    for my $i (0 .. $#$segments - 1) {
+        my $segment = $segments->[$i];
+        if ($segment->{type} eq 'key') {
+            return unless ref($cursor) eq 'HASH'
+                && exists $cursor->{$segment->{value}};
+            $cursor = $cursor->{$segment->{value}};
+        }
+        else {
+            return unless ref($cursor) eq 'ARRAY';
+            my $index = _normalize_path_array_index(
+                $segment->{value}, scalar @$cursor
+            );
+            return if $index < 0 || $index > $#$cursor;
+            $cursor = $cursor->[$index];
+        }
+        return unless defined $cursor;
+    }
+
+    my $last = $segments->[-1];
+    if ($last->{type} eq 'key') {
+        delete $cursor->{$last->{value}} if ref($cursor) eq 'HASH';
+    }
+    elsif (ref($cursor) eq 'ARRAY') {
+        my $index = _normalize_path_array_index(
+            $last->{value}, scalar @$cursor
+        );
+        splice(@$cursor, $index, 1) if $index >= 0 && $index <= $#$cursor;
+    }
 }
 
 sub _apply_assignment {
