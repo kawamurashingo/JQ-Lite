@@ -153,8 +153,10 @@ subtest 'parser representation and older behavior' => sub {
         '.obj[.key][0]'),
         [['field','obj'],['computed_context','.key'],['index',0]],
         'old strict numeric after computed key unchanged');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.items[0]?')), 'unaccompanied index remains outside scoped visitor');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.items[0]?'),
+        [['field','items'],['index',0,1]],
+        'standalone optional numeric index now enters scoped visitor');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.items[1+2]?[]')), 'numeric expression remains out of scope');
     is_deeply(results('{"items":[[1,2]]}', '.items[0][]'),
