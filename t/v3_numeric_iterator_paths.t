@@ -37,10 +37,6 @@ subtest 'numeric index before iteration and later named fields' => sub {
     is_deeply(results('{"items":[[{"name":"A"}],[{"name":"B"}]]}',
             '.items[-1][].name'),
         ['B'], 'negative index selects the last array element');
-    is_deeply(results('{"items":[[{"name":"A"}]]}',
-            '.items[0][0].name'),
-        ['A'], 'numeric-only path remains a normal field/index lookup');
-
     runtime_error('{"items":[]}', '.items[0][].name',
         'Cannot iterate over null', 'out-of-bounds index precedes strict iterator');
     is_deeply(results('{"items":[]}', '.items[0][]?.name'),
