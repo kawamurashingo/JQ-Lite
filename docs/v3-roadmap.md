@@ -242,13 +242,14 @@ literal period `.["a.b"][0][]`, and a quoted key after an iterator
 `.items[].["full name"]` each evaluate in jq 1.7's field/index/iterator
 order. A dot-quoted field such as `.items[]."full name"` is accepted as
 well. Quoted keys are decoded as JSON strings: empty keys, periods, spaces,
-brackets, arithmetic characters, escaped quotes/backslashes, and Unicode
-escapes remain **literal key text**, not path operators or separators.
-This also preserves error boundaries: `.["items"][]?` can drop a null
-field, but it does not suppress a bad field lookup, numeric index, or
-later field access. Paths beginning with a bracket-quoted root key bypass
-the legacy filter shortcut only when the parser recognizes a **complete
-literal iterator path**.
+brackets, arithmetic and assignment characters (including `|=`),
+escaped quotes/backslashes, and Unicode escapes remain **literal key text**,
+not path operators or separators. This also preserves error boundaries:
+`.["items"][]?` can drop a null field, but it does not suppress a bad
+field lookup, numeric index, or later field access. A **complete, recognized
+quoted literal iterator path** bypasses the legacy expression/assignment
+shortcut; arbitrary quoted expressions and standalone quoted key access
+keep their previous processing.
 
 Only unquoted literal names, JSON-quoted string keys, and adjacent
 `[]`/`[]?`/`[integer]` steps are included. In particular,
