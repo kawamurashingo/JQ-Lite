@@ -711,6 +711,50 @@ sub _evaluate_coalesce_operand {
     return _traverse($context, $path);
 }
 
+# v3: literal named-field paths ending with [] or []? have separate
+# index and iteration error semantics.  Only the *final iteration* is
+# optional: a bad field lookup along the path must still fail, including
+# when the final iterator has a question mark.
+#
+# This is kept separate from _traverse because that compatibility-sensitive
+# helper serves existing vectorised/internal path consumers and has not yet
+# had its general computed-path behavior audited against jq.
+sub _traverse_v3_field_iterator {
+    my ($input, $path) = @_;
+
+    my $optional = $path =~ s/\?\z//;
+    $path =~ s/\[\]\z//;
+    my @fields = split /\./, $path;
+    my $cursor = $input;
+
+    for my $field (@fields) {
+        # jq allows reading a field from JSON null, returning another null.
+        # The final [] then raises (or, for []?, drops) the null result.
+        next unless defined $cursor;
+
+        if (ref($cursor) eq 'HASH') {
+            $cursor = exists($cursor->{$field}) ? $cursor->{$field} : undef;
+            next;
+        }
+
+        my $type = JQ::Lite::Value::type_of($cursor);
+        die JQ::Lite::Error::Evaluation->new(
+            message => 'Cannot index ' . $type . ' with string "'
+                . $field . '"'
+        );
+    }
+
+    return @$cursor if ref($cursor) eq 'ARRAY';
+    return values %$cursor if ref($cursor) eq 'HASH';
+    return () if $optional;
+
+    my $type = JQ::Lite::Value::type_of($cursor);
+    die JQ::Lite::Error::Evaluation->new(
+        message => 'Cannot iterate over ' . $type . ' ('
+            . _encode_json($cursor) . ')'
+    );
+}
+
 sub _traverse {
     my ($data, $query, $options) = @_;
     my $numeric_object_index_error = $options && $options->{numeric_object_index_error};
