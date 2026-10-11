@@ -83,14 +83,10 @@ sub _apply_update_assignment {
         _delete_update_assignment_path($root, \@segments);
         return $root;
     }
-    if (@replacement != 1) {
-        # Multi-result RHS semantics are a separate 3.x decision. Reject
-        # them explicitly rather than picking an arbitrary replacement.
-        die JQ::Lite::Error::Evaluation->new(
-            message => 'Update assignment requires at most one RHS result'
-        );
-    }
-
+    # jq 1.7 update assignment consumes only the *first emitted value*
+    # from the RHS filter.  A defined null or JSON false is still a value;
+    # only a completely empty result stream deletes the target above.
+    # Do not loop over later values or emit multiple updated roots.
     _set_path_value($root, $path, $replacement[0]);
     return $root;
 }
