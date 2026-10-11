@@ -131,6 +131,20 @@ subtest 'iterator and pipeline semantics' => sub {
     ok(!$strict_recurse_ok, 'explicit recurse iterator rejects scalar leaves');
     isa_ok($@, 'JQ::Lite::Error::Evaluation')
         unless $strict_recurse_ok;
+
+    is_deeply(results_for('[1,2]', '.[]'), [1,2],
+        'standalone iterator still emits every array element');
+    is_deeply(results_for('{}', '.[]'), [],
+        'standalone iterator over empty object has no results');
+    for my $scalar (qw(null 1 true false)) {
+        my $ok = eval { results_for($scalar, '.[]'); 1 };
+        ok(!$ok, "v3 standalone iterator rejects $scalar");
+        isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $ok;
+    }
+    my $string_ok = eval { results_for('"abc"', '.[]'); 1 };
+    ok(!$string_ok, 'v3 standalone iterator rejects strings');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation')
+        unless $string_ok;
 };
 
 subtest 'assignment and update semantics' => sub {
