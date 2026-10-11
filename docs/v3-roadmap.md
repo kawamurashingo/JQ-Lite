@@ -313,7 +313,7 @@ Dot-quoted `."field name"` and bracket-quoted `["field name"]` field
 stages now share the same restricted computed-selector parser. Optional
 computed indexing is still available as `.obj[.cfg["full name"]]?`,
 without suppressing errors *inside* the selector. A balanced bracket
-scanner prevents `] `inside quoted key text from prematurely ending the
+scanner prevents `]` inside quoted key text from prematurely ending the
 computed selector. Numeric/index or iterator stages within selectors,
 generator-backed computed selectors, arithmetic and arbitrary computed
 expressions remain outside this scoped implementation. They need separately audited evaluation/streaming
