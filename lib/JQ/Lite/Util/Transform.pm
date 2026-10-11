@@ -712,7 +712,8 @@ sub _evaluate_coalesce_operand {
 }
 
 # Parse the subset of jq paths consisting of literal unquoted field names,
-# JSON-string bracket keys (or ."key"), signed numeric indices, []/[]?,
+# JSON-string bracket keys (or ."key"), signed numeric indices (with
+# optional [N]? in scoped ordered paths), []/[]?,
 # and simple computed selectors [.key] / [.parent."quoted.key"] /
 # [.parent["quoted.key"]], optionally ?. Quoted names stay literal.
 # Signed numeric array indices are accepted inside selector paths, e.g.
@@ -898,9 +899,15 @@ sub _parse_v3_literal_iterator_path {
             push @steps, ['iterator', defined($1) ? 1 : 0];
             $has_iterator = 1;
         }
-        elsif ($rest =~ s/\A\[(-?\d+)\]//) {
+        elsif ($rest =~ s/\A\[(-?\d+)\](\?)?//) {
             return undef unless @steps;
-            push @steps, ['index', 0 + $1];
+            # Optionality belongs to this numeric lookup. Keep the
+            # previous ['index', N] shape for strict numeric steps.
+            my $index = 0 + $1;
+            my $optional = defined($2) ? 1 : 0;
+            my @index_step = ('index', $index);
+            push @index_step, 1 if $optional;
+            push @steps, \@index_step;
         }
         else {
             return undef;
@@ -1089,6 +1096,8 @@ sub _traverse_v3_field_iterator {
 
             if ($step->[0] eq 'index') {
                 if (!defined $value) {
+                    # Numeric indexing null emits one JSON null, even
+                    # when this index has a trailing optional marker.
                     push @next, undef;
                 }
                 elsif (ref($value) eq 'ARRAY') {
@@ -1098,6 +1107,10 @@ sub _traverse_v3_field_iterator {
                         ? $value->[$index] : undef;
                 }
                 else {
+                    # [N]? drops precisely this invalid numeric lookup.
+                    # An earlier strict field/index/iterator error remains
+                    # visible, as does a later strict suffix error.
+                    next if $step->[2];
                     my $type = JQ::Lite::Value::type_of($value);
                     die JQ::Lite::Error::Evaluation->new(
                         message => 'Cannot index ' . $type . ' with number'
