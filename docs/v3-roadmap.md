@@ -48,6 +48,14 @@ one parser rewrite.
   missing field.
 - Reject a numeric index applied to an object instead of returning `null`.
 
+The direct-path missing-field correction is now implemented on the v3
+integration branch: `.missing` and `.missing.value` yield a JSON null result
+rather than an empty output stream. This applies to direct runtime paths only;
+internal traversal consumers retain their earlier behavior pending separate
+audits. A genuine empty iterator (`.[]` on `[]`) still produces no output.
+Numeric indices on objects and the broader invalid-path policy remain separate
+work items.
+
 The error policy for other invalid paths remains undecided and is not implied
 by these changes.
 
