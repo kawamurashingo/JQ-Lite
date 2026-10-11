@@ -165,9 +165,10 @@ subtest 'scoped parser and literal path compatibility' => sub {
         JQ::Lite::Util::_parse_v3_literal_iterator_path('.[.cfg.field][]?'),
         [['computed_root','.cfg.field'],['iterator',1]],
         'computed selector followed by optional iterator parses in order');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.obj[.key]')),
-        'computed selector after an earlier path stage is excluded');
+    is_deeply(
+        JQ::Lite::Util::_parse_v3_literal_iterator_path('.obj[.key]'),
+        [['field','obj'],['computed_context','.key']],
+        'simple computed selector after a literal field is now supported');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.[.keys[]]')),
         'generator-backed selector is excluded until separately audited');

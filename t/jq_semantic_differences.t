@@ -182,6 +182,29 @@ subtest 'iterator and pipeline semantics' => sub {
     is_deeply(results_for('{"items":[{"field":"x","x":2}]}',
             '.items[] | .[.field]'), [2],
         'each pipeline item evaluates its own computed selector');
+    is_deeply(results_for(
+            '{"key":"a","obj":{"key":"b","a":7,"b":8}}',
+            '.obj[.key]'), [7],
+        'intermediate computed selector reads original root rather than target');
+    is_deeply(results_for(
+            '{"key":"a","items":[{"key":"b","a":1,"b":9},{"a":2}]}',
+            '.items[][.key]'), [1,2],
+        'computed selector after iterator uses the filter input, not each item');
+    is_deeply(results_for(
+            '{"items":[{"key":"a","obj":{"a":1}},{"key":"b","obj":{"b":2}}]}',
+            '.items[] | .obj[.key]'), [1,2],
+        'new pipeline stage provides a new computed-selector context');
+    is_deeply(results_for(
+            '{"key":"a","obj":{"a":[3,4]}}',
+            '.obj[.key][]'), [3,4],
+        'computed intermediate key composes with strict array iteration');
+    my $bad_intermediate_selector = eval {
+        results_for('{"key":null,"obj":{}}', '.obj[.key]'); 1;
+    };
+    ok(!$bad_intermediate_selector,
+        'invalid computed selector is not swallowed by intermediate lookup');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation')
+        unless $bad_intermediate_selector;
     my $bad_dynamic_key = eval {
         results_for('{"key":null}', '.[.key]'); 1;
     };
