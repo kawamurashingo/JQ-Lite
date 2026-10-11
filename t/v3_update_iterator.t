@@ -66,9 +66,8 @@ subtest 'no implicit iteration on missing or non-array values' => sub {
         ok(!$ok, "$label: invalid target rejected");
         isa_ok($@, 'JQ::Lite::Error::Evaluation', "$label: structured runtime error") if !$ok;
     }
-    my $ok = eval { $jq->run_query('{"items":[[1]]}', '.items[][] |= . + 1'); 1 };
-    ok(!$ok, 'multiple iterator path syntax rejected until specified');
-    isa_ok($@, 'JQ::Lite::Error::Parse') if !$ok;
+    is_deeply(results('{"items":[[1]]}', '.items[][] |= . + 1'),
+        [{ items => [[2]] }], 'nested iterator paths are now supported');
 };
 
 done_testing;
