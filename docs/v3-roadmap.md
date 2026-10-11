@@ -282,9 +282,12 @@ Multiple simple selectors within one path, such as
 A selector is restricted to a **simple dotted field path** such as
 `.key`, `.cfg.selected`, `."key"`, or `.cfg."full name"`. Individual
 JSON-quoted field names may include literal periods, empty names,
-escaped quotes/backslashes or Unicode escapes; for example,
-`.obj[.cfg."a.b"]` reads the exact `a.b` field from the outer `cfg`
-object before using its value to index `obj`. All selector fields read
+escaped quotes/backslashes or Unicode escapes. A field inside a simple
+computed selector may use either dot-quoted `."a.b"` or bracket-quoted
+`["a.b"]` syntax. For example, `.obj[.cfg["a.b"]]` reads the exact
+`a.b` field from the outer `cfg` object before using its value to index
+`obj`. Bracket syntax can start the selector: `.[.["key"]]`, and can
+follow quoted stages: `.obj[.["cfg"]["selected"]]`. All selector fields read
 from the original filter input, not from an intermediate target.
 Its field lookups are evaluated
 before traversing the path stages, including when an earlier iterator
@@ -306,13 +309,14 @@ a number, including when `items` is empty. Later stages remain strict;
 `.obj[.key]?[]` may still fail if the selected value cannot be iterated.
 Each optional computed step applies independently within a path.
 
-This quoted-field support is deliberately limited to the dot-quoted
-syntax `."field name"` inside a computed selector, with optional indexing
-still supported: `.obj[.cfg."full name"]?`. Nested bracket-quoted
-selector paths (for example `.obj[.cfg["full name"]]`), generator-backed
-computed selectors, arbitrary computed expressions with arithmetic,
-and arbitrary filters within brackets remain outside this scoped
-implementation. They need separately audited evaluation/streaming
+Dot-quoted `."field name"` and bracket-quoted `["field name"]` field
+stages now share the same restricted computed-selector parser. Optional
+computed indexing is still available as `.obj[.cfg["full name"]]?`,
+without suppressing errors *inside* the selector. A balanced bracket
+scanner prevents `]` inside quoted key text from prematurely ending the
+computed selector. Numeric/index or iterator stages within selectors,
+generator-backed computed selectors, arithmetic and arbitrary computed
+expressions remain outside this scoped implementation. They need separately audited evaluation/streaming
 semantics rather than treating every expression as a field path.
 
 For literal paths, only unquoted names, JSON-quoted keys, and adjacent
@@ -448,7 +452,7 @@ application logic. In particular:
 | keys containing periods, spaces, quotes, or brackets used inside iterator paths | use literal bracket-quoted fields (e.g. `.["a.b"][].["full name"]`) instead of manually splitting dotted path text; the quoted keys retain their JSON meaning and each `[]?` applies only at its own stage |
 | a field's name is stored in another field (e.g. `{"key":"a","a":7}`) | use `.[.key]` to select dynamically, or `.items[] | .[.field]` per item; the selected key must be a JSON string, and `[]?` does not suppress a bad computed selector |
 | a computed selector after an intermediate path (e.g. `.obj[.key]`) was assumed to read `key` from `obj` | the selector `.key` reads from the **original filter input**, not `.obj`; use a pipeline `.obj | .[.key]` only when the key should come from the nested object itself |
-| selector field names containing periods/spaces previously being interpreted as dots or unsupported syntax | use `."quoted.name"` *inside the computed expression*, e.g. `.obj[.cfg."selected field"]`, to read one exact original-input field name; this is different from putting a quoted literal key *outside* the selector |
+| selector field names containing periods/spaces previously being interpreted as dots or unsupported syntax | use `."quoted.name"` or `["quoted.name"]` *inside the computed expression*, e.g. `.obj[.cfg["selected field"]]`, to read one exact original-input field name; this is different from putting a quoted literal key *outside* the selector |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed

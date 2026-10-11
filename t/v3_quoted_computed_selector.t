@@ -146,9 +146,10 @@ subtest 'scoped parser and earlier computed forms' => sub {
         '.obj[.cfg.selected]'),
         [['field','obj'],['computed_context','.cfg.selected']],
         'existing unquoted computed selector shape unchanged');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.obj[.cfg["selected"]]')),
-        'nested bracket-quoted selector is outside scope');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.obj[.cfg["selected"]]'),
+        [['field','obj'],['computed_context','.cfg["selected"]']],
+        'bracket-quoted selector now matches the scoped parser');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.obj[.cfg."selected" + 1]')),
         'arithmetic in a selector is outside scope');
