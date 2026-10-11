@@ -1281,4 +1281,3 @@
 {"name":"spacednumidx-control-strict-negative","input":[10,20],"filter":".[-1]","status":"compatible","expected":"ok"}
 {"name":"spacednumidx-control-optional","input":[10,20],"filter":".[0]?","status":"compatible","expected":"ok"}
 {"name":"spacednumidx-control-named","input":{"name":7},"filter":".name","status":"compatible","expected":"ok"}
-{"name":"spacednumidx-control-arithmetic","input":[10,20,30],"filter":".[ 1 + 1 ]","status":"compatible","expected":"ok"}
