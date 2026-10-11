@@ -151,11 +151,11 @@ sub parse_query {
             elsif ($rest =~ /^\s*\[/) {
                 $_;
             }
-            # A negative numeric index such as .items[-1][] contains '-'
-            # but is a path, not subtraction.  Recognize scoped v3 literal
-            # iterator paths before the general arithmetic shortcut.
-            elsif ($rest =~ /\A[A-Za-z_]\w*(?:\[\]\??|\[-?\d+\])*(?:\.[A-Za-z_]\w*(?:\[\]\??|\[-?\d+\])*)*\z/
-                && index($rest, '[]') >= 0)
+            # Literal iterator paths with signed indices or JSON-quoted
+            # field names can contain '-', '+', '/', or even '=' INSIDE
+            # a quoted key.  Detect them before arithmetic heuristics and
+            # decode their fields only in the scoped path evaluator.
+            elsif (JQ::Lite::Util::_parse_v3_literal_iterator_path($rest))
             {
                 $rest;
             }
