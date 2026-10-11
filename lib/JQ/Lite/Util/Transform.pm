@@ -719,8 +719,9 @@ sub _evaluate_coalesce_operand {
 # Signed numeric array indices are accepted inside selector paths, e.g.
 # [.keys[0]] or [.cfg["names"][-1]].
 # Paths with an iterator, an audited computed selector, or at least one
-# optional literal numeric index are accepted; strict-only literal
-# paths keep their existing parsing behavior.
+# optional literal numeric index are accepted, including optional named
+# field steps within those paths; standalone field-only paths keep
+# their existing parsing behavior.
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
@@ -860,9 +861,15 @@ sub _parse_v3_literal_iterator_path {
             $after_step = 0;
         }
 
-        if ($rest =~ s/\A([A-Za-z_]\w*)//) {
+        if ($rest =~ s/\A([A-Za-z_]\w*)(\?)?//) {
+            # An optional field is distinct from an optional index and
+            # suppresses only its own invalid lookup target type.
+            my $name = $1;
+            my $optional = defined($2) ? 1 : 0;
             return undef if $after_step;
-            push @steps, ['field', $1];
+            my @field_step = ('field', $name);
+            push @field_step, 1 if $optional;
+            push @steps, \@field_step;
         }
         # A simple computed selector [.key] can follow literal fields,
         # indices, or iterators. jq evaluates the selector against the
@@ -883,18 +890,24 @@ sub _parse_v3_literal_iterator_path {
             push @steps, \@computed_step;
             $has_computed_key = 1;
         }
-        elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\]//s) {
+        elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\](\?)?//s) {
             my $quoted = $1;
+            my $optional = defined($2) ? 1 : 0;
             my $name = eval { _decode_json($quoted) };
             return undef if $@ || !defined($name) || ref($name);
-            push @steps, ['field', $name];
+            my @field_step = ('field', $name);
+            push @field_step, 1 if $optional;
+            push @steps, \@field_step;
         }
-        elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")//s) {
-            return undef if $after_step;
+        elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")(\?)?//s) {
             my $quoted = $1;
+            my $optional = defined($2) ? 1 : 0;
+            return undef if $after_step;
             my $name = eval { _decode_json($quoted) };
             return undef if $@ || !defined($name) || ref($name);
-            push @steps, ['field', $name];
+            my @field_step = ('field', $name);
+            push @field_step, 1 if $optional;
+            push @steps, \@field_step;
         }
         elsif ($rest =~ s/\A\[\](\?)?//) {
             return undef unless @steps;
@@ -1092,6 +1105,10 @@ sub _traverse_v3_field_iterator {
                         ? $value->{$field} : undef;
                 }
                 else {
+                    # jq's field? omits only this invalid type lookup.
+                    # A missing object key and a null input still produce
+                    # one null; earlier or later strict steps may error.
+                    next if $step->[2];
                     my $type = JQ::Lite::Value::type_of($value);
                     die JQ::Lite::Error::Evaluation->new(
                         message => 'Cannot index ' . $type
