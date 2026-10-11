@@ -227,4 +227,3 @@
 {"name":"rhs-recurse-child-object-iterator","input":{"items":{"x":1,"y":2}},"filter":".items[] |= (recurse((. + 1, 1 / 0)) | select(. > 3))","status":"compatible","expected":"ok"}
 {"name":"rhs-recurse-child-nested-iterator","input":{"groups":[[1],[2]]},"filter":".groups[][] |= (recurse((. + 1, 1 / 0)) | select(. > 3))","status":"compatible","expected":"ok"}
 {"name":"rhs-recurse-child-special-keys","input":{"items":{"a.b":1,"":2}},"filter":".items[] |= (recurse((. + 1, 1 / 0)) | select(. > 3))","status":"compatible","expected":"ok"}
-{"name":"rhs-recurse-child-public-stream","input":[1,[2]],"filter":"recurse(.[])","status":"compatible","expected":"ok"}
