@@ -720,9 +720,9 @@ sub _evaluate_coalesce_operand {
 # [.keys[0]] or [.cfg["names"][-1]].
 # Paths with an iterator, an audited computed selector, an optional
 # literal numeric index/field, a strict negative literal numeric
-# index, or a strict bracket-quoted field are accepted. Strict-only
-# unquoted / dot-quoted / positive numeric paths otherwise keep their
-# legacy dispatch.
+# index, or a strict JSON-quoted field are accepted. Strict-only
+# unquoted / positive numeric paths otherwise keep their
+# legacy dispatch. A bare "string" must remain a JSON string literal.
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
@@ -857,6 +857,7 @@ sub _parse_v3_literal_iterator_path {
     my $has_optional_field = 0;
     my $has_strict_negative_index = 0;
     my $has_strict_bracket_quoted_field = 0;
+    my $has_strict_dot_quoted_field = 0;
     my $after_step = 0;
 
     while (length $rest) {
@@ -914,12 +915,18 @@ sub _parse_v3_literal_iterator_path {
             my $quoted = $1;
             my $optional = defined($2) ? 1 : 0;
             return undef if $after_step;
+            # Only ."...", or a quoted stage after another path
+            # step, can enable the strict visitor. A bare "..." is
+            # a JSON string literal, not a field lookup.
+            my $is_strict_dot_field = !$optional
+                && (@steps || $path =~ /\A\./);
             my $name = eval { _decode_json($quoted) };
             return undef if $@ || !defined($name) || ref($name);
             my @field_step = ('field', $name);
             push @field_step, 1 if $optional;
             push @steps, \@field_step;
             $has_optional_field = 1 if $optional;
+            $has_strict_dot_quoted_field = 1 if $is_strict_dot_field;
         }
         elsif ($rest =~ s/\A\[\](\?)?//) {
             return undef unless @steps;
@@ -954,8 +961,8 @@ sub _parse_v3_literal_iterator_path {
 
     return ($has_iterator || $has_computed_key
         || $has_optional_numeric_index || $has_optional_field
-        || $has_strict_negative_index || $has_strict_bracket_quoted_field)
-        ? \@steps : undef;
+        || $has_strict_negative_index || $has_strict_bracket_quoted_field
+        || $has_strict_dot_quoted_field) ? \@steps : undef;
 }
 
 # The simple selector expression inside [.key] is evaluated against the

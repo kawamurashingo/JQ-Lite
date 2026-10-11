@@ -165,8 +165,11 @@ subtest 'parser boundaries and legacy controls' => sub {
         '["a.b"]')), 'bare JSON array constructor is not a path');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.name')), 'bare unquoted strict field stays legacy');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '."a.b"'), [['field','a.b']],
+        'standalone strict dot-quoted field now uses scoped visitor');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '."a.b"')), 'standalone dot-quoted strict field stays legacy');
+        '"a.b"')), 'bare JSON string is never a standalone field path');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.obj.name')), 'strict unquoted chain stays legacy');
     is_deeply(results('{"a.b":7}', '["a.b"]'), [['a.b']],
