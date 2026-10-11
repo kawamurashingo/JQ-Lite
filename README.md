@@ -232,6 +232,7 @@ for compatibility guarantees.
 * [`docs/library-contract.md`](docs/library-contract.md) — **stable Library API compatibility contract**
 * [`docs/library-integration.md`](docs/library-integration.md) — examples for downstream Perl/CPAN users
 * [`docs/FUNCTIONS.md`](docs/FUNCTIONS.md) — supported jq functions
+* [`docs/jq-differential-testing.md`](docs/jq-differential-testing.md) — jq 1.7 differential test harness for 3.0 development
 * [`docs/jq-semantics-differences.md`](docs/jq-semantics-differences.md) — jq 1.7 semantic differences in the current 2.x series
 * [`docs/v3-roadmap.md`](docs/v3-roadmap.md) — compatibility policy, migration plan, and release criteria for JQ::Lite 3.0
 * [`docs/DESIGN.md`](docs/DESIGN.md) — design principles and scope
