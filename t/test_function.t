@@ -72,8 +72,12 @@ like(
     'test() surfaces regex compile errors with a helpful message'
 );
 
-my @default_chain = $jq->run_query($json, '.missing | test("foo") | default("fallback")');
-is($default_chain[0], 'fallback', 'test() preserves undef so default() can supply a fallback');
+my @null_default = $jq->run_query($json, '.missing? | default("fallback")');
+is($null_default[0], 'fallback', 'default() replaces optional missing null directly');
+
+my @default_chain = $jq->run_query($json, '.missing? | test("foo") | default("fallback")');
+ok(!$default_chain[0],
+    'test() returns false on null; default() does not replace defined false');
 
 my @multiline_flag = $jq->run_query($json, '.multiline | test("^beta"; "m")');
 ok($multiline_flag[0], 'test() honors multiline flag (m) for line anchors');
