@@ -157,8 +157,9 @@ subtest 'parser and dispatch boundaries' => sub {
         'prior strict bracket-quoted parsing unchanged');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.obj.name')), 'strict unquoted path remains outside scope');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.obj[1]')), 'strict positive path remains outside scope');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.obj[1]'), [['field','obj'],['index',1]],
+        'strict positive path now uses scoped visitor');
     my @unused;
     ok(!JQ::Lite::Filters::apply($jq, '."a.b"',
         [{'a.b' => 7}], \@unused),

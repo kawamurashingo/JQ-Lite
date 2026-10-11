@@ -139,12 +139,16 @@ subtest 'legacy strict paths and scoped visitor boundaries' => sub {
     is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.[0][1]?'), [['index',0],['index',1,1]],
         'strict root index before optional index');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.[0]')), 'standalone strict root index keeps old path');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.a[0]')), 'standalone strict nested index keeps old path');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.a[0].name')), 'strict-only composite keeps old path');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.[0]'), [['index',0]],
+        'standalone strict root index now enters scoped visitor');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.a[0]'), [['field','a'],['index',0]],
+        'standalone strict nested index now enters scoped visitor');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.a[0].name'),
+        [['field','a'],['index',0],['field','name']],
+        'strict-only composite now enters scoped visitor');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.a[0+1]?')), 'arithmetic index not intercepted');
     is_deeply(results('[10,20]', '.[0]'), [10],
