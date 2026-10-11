@@ -121,10 +121,9 @@ subtest 'optional lookup is restricted to its own stage' => sub {
         '.obj[.cfg.name]?',
         'Cannot index number with string "name"',
         'outer optional lookup does not suppress strict selector');
-    runtime_error('{"cfg":3,"obj":{"a":7}}',
-        '.obj[.cfg.name?[0]]',
-        'Cannot index number with number',
-        'valid selected number reaches strict numeric selector stage');
+    is_deeply(results('{"cfg":3,"obj":{"a":7}}',
+        '.obj[.cfg.name?[0]]'), [],
+        'empty optional field suppresses a later strict index');
     runtime_error('{"cfg":{"name":3},"obj":{"a":7}}',
         '.obj[.cfg.name?[0]]',
         'Cannot index number with number',
