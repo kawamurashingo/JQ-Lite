@@ -785,7 +785,7 @@ sub _traverse_v3_field_iterator {
     ) unless $steps;
 
     my @stream = ($input);
-    for my $step (@steps) {
+    for my $step (@{$steps}) {
         my @next;
 
         for my $value (@stream) {
