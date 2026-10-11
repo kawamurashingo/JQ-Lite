@@ -694,6 +694,8 @@ sub _evaluate_coalesce_operand {
 sub _traverse {
     my ($data, $query, $options) = @_;
     my $numeric_object_index_error = $options && $options->{numeric_object_index_error};
+    my $numeric_null_index = $options && $options->{numeric_null_index};
+    # Numeric null/index parity is opt-in for query paths, not helper traversals.
     # This option is enabled only for direct query-path evaluation in 3.x.
     # Internal callers (select, aggregates, assignment, etc.) retain their
     # established no-result semantics until independently audited.
@@ -710,7 +712,10 @@ sub _traverse {
                 # A chain of object-field reads through JSON null remains
                 # null in jq, rather than dropping its output stream.
                 push @next_stack, undef
-                    if $missing_object_null && $step !~ /\[/;
+                    if ($missing_object_null && $step !~ /\[/)
+                    || ($numeric_null_index && (
+                        $step =~ /\[\d+\]$/ || $step =~ /^[A-Za-z_]\w*$/
+                    ));
                 next;
             }
 
@@ -735,8 +740,10 @@ sub _traverse {
                         message => 'Cannot index object with number'
                     );
                 }
-                if (ref $item eq 'ARRAY' && defined $item->[$index]) {
-                    push @next_stack, $item->[$index];
+                if (ref $item eq 'ARRAY') {
+                    # jq emits null both for null-valued and out-of-range slots.
+                    push @next_stack, $item->[$index]
+                        if $numeric_null_index || defined $item->[$index];
                 }
             }
             # array expansion without key: []
@@ -758,8 +765,17 @@ sub _traverse {
                             message => 'Cannot index object with number'
                         );
                     }
-                    push @next_stack, $val->[$index]
-                        if ref $val eq 'ARRAY' && defined $val->[$index];
+                    if (ref $val eq 'ARRAY') {
+                        push @next_stack, $val->[$index]
+                            if $numeric_null_index || defined $val->[$index];
+                    }
+                    elsif ($numeric_null_index && !defined $val) {
+                        push @next_stack, undef;
+                    }
+                }
+                elsif ($numeric_null_index && ref $item eq 'HASH') {
+                    # Missing object key followed by an array index is null.
+                    push @next_stack, undef;
                 }
             }
             # array expansion: key[]
