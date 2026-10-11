@@ -77,8 +77,13 @@ subtest 'nested array and object updates reuse streamed children' => sub {
 };
 
 subtest 'ordinary finite recurse queries preserve all of their outputs' => sub {
-    is_deeply(results('[1,[2]]', 'recurse(.[])'),
-        [[1,[2]],1,[2],2], 'public recurse still emits every value for finite inputs');
+    is_deeply(results('[1,[2]]', 'recurse'),
+        [[1,[2]],1,[2],2],
+        'default recurse still emits every value including scalar leaves');
+
+    my $ok = eval { $jq->run_query('[1,[2]]', 'recurse(.[])'); 1 };
+    ok(!$ok, 'explicit recurse child iterator rejects numeric leaves');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $ok;
 };
 
 done_testing;
