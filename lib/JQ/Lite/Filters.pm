@@ -6,6 +6,7 @@ use warnings;
 use List::Util qw(sum min);
 use Scalar::Util qw(looks_like_number);
 use JQ::Lite::Util ();
+use JQ::Lite::Value ();
 use JQ::Lite::Builtin ();
 
 sub apply {
@@ -598,14 +599,29 @@ sub apply {
             return 1;
         }
 
-        # support for .[] iteration
+        # jq 1.7: bare .[] iterates only arrays and objects.  A scalar
+        # is an evaluation error, not an empty stream (and strings are not
+        # arrays of characters).  Keep this local to the standalone iterator
+        # until the wider optional/computed path semantics are audited.
         if ($part eq '.[]') {
-            @next_results = map {
-                ref $_ eq 'ARRAY' ? @$_
-              : ref $_ eq 'HASH'  ? values %$_
-              : JQ::Lite::Util::_is_string_scalar($_) ? split(//, "$_")
-              : ()
-            } @results;
+            @next_results = ();
+            for my $item (@results) {
+                if (ref($item) eq 'ARRAY') {
+                    push @next_results, @$item;
+                    next;
+                }
+                if (ref($item) eq 'HASH') {
+                    # Preserve the existing object-value traversal order.
+                    push @next_results, values %$item;
+                    next;
+                }
+
+                my $type = JQ::Lite::Value::type_of($item);
+                die JQ::Lite::Error::Evaluation->new(
+                    message => 'Cannot iterate over ' . $type
+                        . ' (' . JQ::Lite::Util::_encode_json($item) . ')'
+                );
+            }
             @$out_ref = @next_results;
             return 1;
         }
