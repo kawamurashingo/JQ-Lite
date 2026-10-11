@@ -201,15 +201,28 @@ results whereas `1 | .[]` raises an error. `[1,null,[2]] | .[]? | .[]?`
 emits `2`. Errors in other filters are not suppressed: `1 / 0 | .[]?`
 still fails, and `[1] | .[]? | .[]` still errors.
 
-The existing literal field suffix `.field[]?` continues to omit
-non-iterable or missing field values; standalone `.[]?` is additionally
-available in a pipeline (including `recurse(.[]?)`). Non-path array-result
-suffixes `keys[]?`, `split(",")[]?`, and `[4,5][]?` now lower to an
-optional iteration stage, with the same rule applied independently inside
-comma alternatives. jq-compatible strict errors from **upstream functions**
-are not converted to empty results. More complex computed paths and general
-optional expressions (other than the scoped iterator forms) still need
-separate audits.
+Literal **named-field paths ending in `[]` or `[]?`** now distinguish
+jq 1.7's field lookup from the terminal iteration. A field lookup through
+JSON null or a missing object key yields null. Therefore `{} | .a[]`
+raises `Cannot iterate over null`, while `{} | .a[]?` has no output.
+When the named field holds a number, boolean, or string, strict `[]`
+raises a type-specific iteration error and optional `[]?` suppresses
+only that final iteration error. But `1 | .a[]?` still fails with a
+**field indexing** error: the optional suffix does not forgive an invalid
+lookup. The same policy covers literal dotted chains such as
+`.a.b[]` and `.a.b[]?`; malformed intermediate lookups still raise
+even when the final iteration is optional. Array and object final fields
+emit every member, including null/false values. This scoped query path
+handling does not change the compatibility-sensitive internal traversal
+helper, computed paths, or implicit array projection.
+
+Standalone `.[]?` is also available in a pipeline (including
+`recurse(.[]?)`). Non-path array-result suffixes `keys[]?`,
+`split(",")[]?`, and `[4,5][]?` lower to an optional iteration stage,
+with the same rule independently applied inside comma alternatives.
+Errors from upstream functions are not converted to empty results.
+Computed/quoted path segments, mid-path iterators, and general optional
+expressions still require separate audits.
 
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
