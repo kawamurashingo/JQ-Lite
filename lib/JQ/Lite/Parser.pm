@@ -151,6 +151,15 @@ sub parse_query {
             elsif ($rest =~ /^\s*\[/) {
                 $_;
             }
+            # Strict root dot-quoted fields must retain their leading
+            # dot. Dropping it would turn ."a.b" into a JSON string
+            # literal "a.b", or accidentally let the literal parser
+            # treat that standalone string as a field path.
+            elsif ($rest =~ /\A"/
+                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
+            {
+                $_;
+            }
             # Literal iterator paths with signed indices or JSON-quoted
             # field names can contain '-', '+', '/', or even '=' INSIDE
             # a quoted key.  Detect them before arithmetic heuristics and
