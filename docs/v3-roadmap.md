@@ -89,7 +89,21 @@ undecided and is not changed by the arithmetic work.
 - Allow update assignment to create a missing target using the same input
   semantics as jq.
 
-Multi-result assignment remains undecided and requires a separate design.
+The supported `path |= filter` form now evaluates the right-hand filter against
+the **old target value** (JSON null for missing targets), writes that value to
+the target, and emits the entire updated root. The first implementation is
+intentionally restricted to simple dotted object keys and nonnegative literal
+array indices, including nested combinations. A null root can grow into the
+required object or array. Invalid intermediate container types raise structured
+runtime errors rather than silently dropping the update.
+
+An RHS that returns zero or multiple values currently raises an evaluation
+error: jq's `|= empty` deletion and multi-result update stream semantics
+are not covered by this scoped change. Iterator/computed update paths and
+the relationship with compound `+=` and other operators require separate
+audits under #626. Do not assume complete jq assignment compatibility.
+
+Multi-result **plain** assignment remains undecided and requires a separate design.
 
 ## Explicitly preserved scope
 
