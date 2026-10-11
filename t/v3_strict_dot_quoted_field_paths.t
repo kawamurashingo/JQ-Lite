@@ -100,7 +100,7 @@ subtest 'strict dot-quoted fields in composite paths' => sub {
         [undef], 'missing field through strict suffix');
     is_deeply(results('{}', '.obj."a.b".name'),
         [undef], 'missing strict prefix yields null');
-    runtime_error('{"obj":7', '.obj."a.b".name',
+    runtime_error('{"obj":7}', '.obj."a.b".name',
         'Cannot index number with string "a.b"',
         'bad quoted target fails');
     runtime_error('7', '.obj."a.b".name',
