@@ -42,10 +42,23 @@ sub evaluate_filter {
         return @outputs;
     }
 
+    # A v3 literal field path with a final iterator needs two distinct
+    # error policies: field indexing must succeed (except null/missing,
+    # which yield null), while only the terminal []? suppresses iteration
+    # errors. Do not impose these rules on the general legacy _traverse.
+    my $source = $filter->source;
+    if ($source =~ /\A(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*\[\]\??\z/) {
+        for my $input (@{$inputs}) {
+            push @outputs, JQ::Lite::Util::_traverse_v3_field_iterator(
+                $input, $source
+            );
+        }
+        return @outputs;
+    }
+
     # Only direct unquoted field paths have an approved v3 null-on-missing
     # contract. Do not reclassify unrecognized expressions/assignments as
     # missing object fields; their behavior has separate roadmap decisions.
-    my $source = $filter->source;
     my $is_direct_field_path = $source =~
         /\A[A-Za-z_][A-Za-z_0-9]*(?:\[\d+\]|\[\])*(?:\.[A-Za-z_][A-Za-z_0-9]*(?:\[\d+\]|\[\])*)*\z/;
 
