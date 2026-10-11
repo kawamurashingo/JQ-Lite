@@ -371,27 +371,31 @@ different from optional numeric **selector** indices inside
 The strict parser shape `['index', N]` is preserved; optional literal
 numeric index steps are `['index', N, 1]`.
 
-**Optional literal named fields in ordered paths** support `field?`,
-`."quoted field"?`, and `["quoted field"]?`, for example
-`.items[].name?`, `.items[]["a.b"]?`, and `.obj[.key].child?`.
+**Optional literal named fields** support `field?`,
+`."quoted field"?`, and `["quoted field"]?`, including standalone
+`.name?`, `."a.b"?`, `.["a.b"]?`, and `.cfg?.name`, as well as
+ordered paths such as `.items[].name?`, `.items[]["a.b"]?`,
+and `.obj[.key].child?`.
 The `?` suppresses only a named lookup on an incompatible non-object
 value, yielding **no result for that stream member**. Looking up a
 missing object field or a field on JSON null still emits one JSON null.
 Optionality does not extend to a subsequent strict stage:
 `.items[].name?.child` can still fail if a valid `name` is numeric.
-Field stages are handled by the scoped visitor when the complete path
-also has a recognized iterator, computed selector, or optional literal
-numeric index. Standalone field-only paths, including bare `.name?`,
-keep their existing behavior until separately audited. Strict field
-steps keep `['field', name]`; optional steps use
+Field stages are handled by the scoped visitor when the entire literal
+path has an optional named field, optional numeric index, recognized
+iterator, or computed selector. A strict-only named-field path retains
+the previous runtime behavior. For example, `.cfg?.name` still fails
+on an invalid strict `.name` lookup after a successful `.cfg?`,
+and `.cfg.name?` still fails on an invalid strict `.cfg` lookup.
+Strict field steps keep `['field', name]`; optional steps use
 `['field', name, 1]`.
 
 For literal paths, unquoted names, JSON-quoted keys, and adjacent
 `[]`/`[]?`/`[integer]`/`[integer]?` steps are supported
-when there is an iterator, computed selector, **or optional literal
-numeric index**. Standalone strict-only numeric and field paths
-(with no iterator, computed selector or optional numeric index)
-continue using the existing query-path implementation.
+when there is an iterator, computed selector, **optional literal
+numeric index, or optional named field**. Standalone strict-only
+numeric and field paths (with none of those stages) continue using
+the existing query-path implementation.
 The compatibility-sensitive internal traversal helper, implicit array
 projection, slices, and arbitrary optional expressions remain unchanged.
 Existing object iteration order remains unchanged.
@@ -527,7 +531,7 @@ application logic. In particular:
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | a literal numeric index should skip invalid object/scalar targets | put `?` immediately after that index, e.g. `.[0]?`, `.items[0]?`, `.items[][0]?` or `.obj[.key][0]?`; null and out-of-range array indices still produce JSON null, and later strict operations may still fail |
-| a named field in an iterator/computed/optional-index path should omit wrong-type members | append `?` to that field, e.g. `.items[].name?` or `.items[]["a.b"]?`; this skips invalid member types but keeps missing keys and JSON null as one null output, and does not suppress later strict lookup errors |
+| a named field lookup should omit wrong-type values | append `?` immediately to that field, e.g. `.name?`, `.cfg?.name`, `.items[].name?` or `.items[]["a.b"]?`; this skips invalid types but keeps missing keys and JSON null as one null output, and does not suppress earlier/later strict lookup errors |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
