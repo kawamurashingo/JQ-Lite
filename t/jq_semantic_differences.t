@@ -134,6 +134,16 @@ subtest 'iterator and pipeline semantics' => sub {
         [2], 'chained optional iterators drop scalar leaves');
     is_deeply(results_for('{"a":null}', '.a[]?'), [],
         'optional literal path suffix discards non-iterable field');
+    my $strict_field_ok = eval { results_for('{}', '.a[]'); 1 };
+    ok(!$strict_field_ok, 'missing field followed by strict [] raises an error');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $strict_field_ok;
+    is_deeply(results_for('{}', '.a[]?'), [],
+        'missing field followed by []? has no outputs');
+    my $bad_prefix_ok = eval { results_for('1', '.a[]?'); 1 };
+    ok(!$bad_prefix_ok, 'optional []? does not suppress invalid field lookup');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $bad_prefix_ok;
+    is_deeply(results_for('{"a":{"b":[1,2]}}', '.a.b[]?'), [1,2],
+        'nested named-field optional iterator preserves array contents');
     is_deeply(results_for('{"a":1}', 'keys[]?'), ['a'],
         'function-result optional suffix expands keys');
     is_deeply(results_for('null', 'recurse(.[]?)'), [undef],

@@ -321,3 +321,56 @@
 {"name":"optional-iterator-recurse-null","input":null,"filter":"recurse(.[]?)","status":"compatible","expected":"ok"}
 {"name":"optional-iterator-recurse-booleans","input":[null,false],"filter":"recurse(.[]?)","status":"compatible","expected":"ok"}
 {"name":"optional-iterator-strict-number-control","input":1,"filter":".[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-missing-strict","input":{},"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-null-strict","input":{"a":null},"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-zero-strict","input":{"a":0},"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-number-strict","input":{"a":2},"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-true-strict","input":{"a":true},"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-false-strict","input":{"a":false},"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-string-strict","input":{"a":"abc"},"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-empty-string-strict","input":{"a":""},"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-null-root-strict","input":null,"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-missing-optional","input":{},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-null-optional","input":{"a":null},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-zero-optional","input":{"a":0},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-number-optional","input":{"a":2},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-true-optional","input":{"a":true},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-false-optional","input":{"a":false},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-string-optional","input":{"a":"abc"},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-empty-string-optional","input":{"a":""},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-null-root-optional","input":null,"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-empty-array","input":{"a":[]},"filter":".a[]","status":"compatible","expected":"ok"}
+{"name":"field-iterator-empty-object","input":{"a":{}},"filter":".a[]","status":"compatible","expected":"ok"}
+{"name":"field-iterator-mixed-array","input":{"a":[1,null,false,{"x":2}]},"filter":".a[]","status":"compatible","expected":"ok"}
+{"name":"field-iterator-optional-mixed-array","input":{"a":[1,null,false]},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-object-strict","input":{"a":{"only":42}},"filter":".a[]","status":"compatible","expected":"ok"}
+{"name":"field-iterator-object-optional","input":{"a":{"only":42}},"filter":".a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-arrays","input":{"a":[[1,2],[]]},"filter":".a[] | .[]","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-arrays-optional","input":{"a":[[1,2],null]},"filter":".a[] | .[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-strict","input":{"a":{"b":[1,null,2]}},"filter":".a.b[]","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-optional","input":{"a":{"b":[1,null,2]}},"filter":".a.b[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-object-optional","input":{"a":{"b":{"only":3}}},"filter":".a.b[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-prefix-missing","input":{},"filter":".a.b[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-final-missing","input":{"a":{}},"filter":".a.b[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-null-prefix","input":{"a":null},"filter":".a.b[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-null-final","input":{"a":{"b":null}},"filter":".a.b[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-number-final","input":{"a":{"b":0}},"filter":".a.b[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-string-final","input":{"a":{"b":"x"}},"filter":".a.b[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-nested-strict-missing","input":{"a":{}},"filter":".a.b[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-nested-strict-null","input":{"a":null},"filter":".a.b[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-nested-strict-number","input":{"a":{"b":5}},"filter":".a.b[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-number-root-optional","input":1,"filter":".a[]?","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-bool-root-optional","input":true,"filter":".a[]?","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-string-root-optional","input":"abc","filter":".a[]?","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-array-root-optional","input":[],"filter":".a[]?","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-number-intermediate","input":{"a":1},"filter":".a.b[]?","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-bool-intermediate","input":{"a":true},"filter":".a.b[]?","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-string-intermediate","input":{"a":"abc"},"filter":".a.b[]?","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-array-intermediate","input":{"a":[]},"filter":".a.b[]?","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-number-root-strict","input":1,"filter":".a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-empty-upstream","input":null,"filter":"empty | .a[]","status":"compatible","expected":"ok"}
+{"name":"field-iterator-empty-upstream-optional","input":null,"filter":"empty | .a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-comma-valid","input":{"a":[1,2]},"filter":"0, .a[]","status":"compatible","expected":"ok"}
+{"name":"field-iterator-comma-error","input":{},"filter":"0, .a[]","status":"compatible","expected":"runtime-error"}
+{"name":"field-iterator-comma-optional","input":{},"filter":"0, .a[]?","status":"compatible","expected":"ok"}
+{"name":"field-iterator-double-pipe","input":{"a":[{"b":[2]},{"b":[3]}]},"filter":".a[] | .b[]","status":"compatible","expected":"ok"}
