@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Perl ${{ matrix.perl }}
+  perl-compat:
+    name: Ubuntu / Perl ${{ matrix.perl }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -31,3 +31,35 @@ jobs:
 
       - name: Run tests
         run: prove -lr t
+
+  platform-compat:
+    name: ${{ matrix.os }} / Perl latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: "5"
+
+      - name: Show Perl version
+        run: perl -V
+
+      - name: Run portability smoke tests
+        run: prove -lv t/portability.t
+
+      - name: Run full test suite
+        if: runner.os != 'Windows'
+        run: prove -lr t
+
+      - name: Run full test suite (Windows diagnostic)
+        if: runner.os == 'Windows'
+        timeout-minutes: 10
+        run: prove -lvr t
