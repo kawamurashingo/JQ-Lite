@@ -43,7 +43,9 @@ sub evaluate_filter {
     }
 
     for my $input (@{$inputs}) {
-        push @outputs, JQ::Lite::Util::_traverse($input, $filter->source);
+        push @outputs, JQ::Lite::Util::_traverse(
+            $input, $filter->source, { missing_object_null => 1 }
+        );
     }
 
     return @outputs;
