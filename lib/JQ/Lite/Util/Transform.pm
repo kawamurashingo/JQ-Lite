@@ -746,8 +746,12 @@ sub _parse_v3_literal_iterator_path {
         # with callers that inspect parsed paths.
         elsif ($rest =~ s/\A\[\s*(\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\]//)
         {
+            # Preserve $1 before testing the root-path shape: even a
+            # noncapturing subsequent Perl regex clears the $1 match.
+            my $selector = $1;
             return undef unless @steps || $path =~ /\A\.\[/;
-            push @steps, [@steps ? 'computed_context' : 'computed_root', $1];
+            push @steps, [@steps ? 'computed_context' : 'computed_root',
+                          $selector];
             $has_computed_key = 1;
         }
         elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\]//s) {
