@@ -711,38 +711,78 @@ sub _evaluate_coalesce_operand {
     return _traverse($context, $path);
 }
 
-# v3: evaluate simple literal named-field paths with []/[]? iterators
-# and numeric [index] accesses in expression order.  A field lookup from
-# null/missing keys yields null; numeric indexing of null or an out-of-range
-# array also yields null.  Indexing a mismatched scalar/container errors.
-# Each [] is strict; each []? drops only a non-container at that stage.
-#
-# Keep this separate from the compatibility-sensitive general _traverse,
-# which is also used by older/vectorised internal path consumers.
-sub _traverse_v3_field_iterator {
-    my ($input, $path) = @_;
+# Parse the subset of jq paths consisting of literal unquoted field names,
+# JSON-string bracket keys (or ."key"), signed numeric indices, and []/[]?.
+# Do not split on dots: periods, brackets, and quotes can be part of keys.
+# The presence of an iterator is required to preserve previously audited
+# behavior of non-iterator paths and other expression syntax.
+sub _parse_v3_literal_iterator_path {
+    my ($path) = @_;
+    return undef unless defined($path) && length($path);
+
+    my $rest = $path;
+    $rest =~ s/\A\.//;  # jq's leading dot is retained for bracket paths.
 
     my @steps;
-    for my $chunk (split /\./, $path) {
-        my ($field, $suffixes)
-            = $chunk =~ /\A([A-Za-z_]\w*)((?:\[\]\??|\[-?\d+\])*)\z/;
-        die JQ::Lite::Error::Parse->new(
-            message => 'Invalid literal iterator/index path'
-        ) unless defined $field;
+    my $has_iterator = 0;
+    my $after_step = 0;
 
-        push @steps, ['field', $field];
-
-        # Preserve each suffix's order: [0][] differs from [][0], and
-        # an optional iterator never suppresses an earlier index error.
-        while ($suffixes =~ /(\[\]\??|\[(-?\d+)\])/g) {
-            if (defined $2) {
-                push @steps, ['index', 0 + $2];
-            }
-            else {
-                push @steps, ['iterator', $1 eq '[]?' ? 1 : 0];
-            }
+    while (length $rest) {
+        if ($rest =~ s/\A\.//) {
+            return undef unless $after_step && length($rest);
+            $after_step = 0;
         }
+
+        if ($rest =~ s/\A([A-Za-z_]\w*)//) {
+            return undef if $after_step;
+            push @steps, ['field', $1];
+        }
+        elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\]//s) {
+            my $quoted = $1;
+            my $name = eval { _decode_json($quoted) };
+            return undef if $@ || !defined($name) || ref($name);
+            push @steps, ['field', $name];
+        }
+        elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")//s) {
+            return undef if $after_step;
+            my $quoted = $1;
+            my $name = eval { _decode_json($quoted) };
+            return undef if $@ || !defined($name) || ref($name);
+            push @steps, ['field', $name];
+        }
+        elsif ($rest =~ s/\A\[\](\?)?//) {
+            return undef unless @steps;
+            push @steps, ['iterator', defined($1) ? 1 : 0];
+            $has_iterator = 1;
+        }
+        elsif ($rest =~ s/\A\[(-?\d+)\]//) {
+            return undef unless @steps;
+            push @steps, ['index', 0 + $1];
+        }
+        else {
+            return undef;
+        }
+
+        $after_step = 1;
+        # A bare name or quoted name after a prior step must be separated
+        # by '.', except for bracket-form access, indices, and iterators.
+        return undef if $rest =~ /\A[A-Za-z_"']/
+            && $after_step;
     }
+
+    return $has_iterator ? \@steps : undef;
+}
+
+# Visit each literal field, numeric index, and strict/optional iterator
+# in source order.  Field lookup errors remain separate from iteration
+# errors. Quoted key strings are decoded once by the shared path parser.
+# The compatibility-sensitive general _traverse is deliberately unchanged.
+sub _traverse_v3_field_iterator {
+    my ($input, $path, $steps) = @_;
+    $steps ||= _parse_v3_literal_iterator_path($path);
+    die JQ::Lite::Error::Parse->new(
+        message => 'Invalid literal iterator/index path'
+    ) unless $steps;
 
     my @stream = ($input);
     for my $step (@steps) {
