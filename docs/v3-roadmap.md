@@ -60,6 +60,14 @@ nested `.a[5]` where `a` holds an object. Numeric indexing into arrays
 continues to work. This change is limited to numeric object indices; the
 broader invalid-path policy remains a separate work item.
 
+Numeric indexing on JSON null, null-valued array elements, and array
+out-of-bounds slots now produces one JSON null rather than an empty result
+stream in 3.x. This includes direct `null | .[5]`, nested
+`{"a":null} | .a[5]`, and `[10] | .[5]` queries. A true empty iterator
+(`[] | .[]`) continues to produce no output. The change is limited to
+numeric-index query paths; it does not imply a decision on other invalid
+path types or internal helper traversal.
+
 The error policy for other invalid paths remains undecided and is not implied
 by these changes.
 
