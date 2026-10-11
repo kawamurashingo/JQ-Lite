@@ -713,7 +713,7 @@ sub _evaluate_coalesce_operand {
 
 # Parse the subset of jq paths consisting of literal unquoted field names,
 # JSON-string bracket keys (or ."key"), signed numeric indices, []/[]?,
-# and simple computed selectors [.key] / [.parent.key]. Do not split on
+# and simple computed selectors [.key] / [.parent.key], optionally ?. Do not split on
 # dots: periods, brackets, and quotes can be part of literal key strings.
 # Only paths containing an iterator or an audited computed selector are
 # accepted; all other paths retain their previous parsing behavior.
@@ -744,14 +744,18 @@ sub _parse_v3_literal_iterator_path {
         # filter's ORIGINAL input, not against the intermediate value being
         # indexed. Keep the existing computed_root step for compatibility
         # with callers that inspect parsed paths.
-        elsif ($rest =~ s/\A\[\s*(\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\]//)
+        elsif ($rest =~ s/\A\[\s*(\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*\](\?)?//)
         {
-            # Preserve $1 before testing the root-path shape: even a
-            # noncapturing subsequent Perl regex clears the $1 match.
+            # Capture both values before the root-path regexp clears them.
+            # Optionality applies only to indexing, not selector evaluation.
             my $selector = $1;
+            my $optional = defined($2) ? 1 : 0;
             return undef unless @steps || $path =~ /\A\.\[/;
-            push @steps, [@steps ? 'computed_context' : 'computed_root',
-                          $selector];
+            my @computed_step = (
+                @steps ? 'computed_context' : 'computed_root', $selector
+            );
+            push @computed_step, 1 if $optional;
+            push @steps, \@computed_step;
             $has_computed_key = 1;
         }
         elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\]//s) {
@@ -871,6 +875,9 @@ sub _traverse_v3_field_iterator {
                     push @next, undef;
                 }
                 else {
+                    # jq's trailing ? suppresses this invalid index only.
+                    # Selector expressions have already been evaluated.
+                    next if $step->[2];
                     my $diagnostic = 'Cannot index ' . $input_type
                         . ' with ' . $key_type;
                     $diagnostic .= ' "' . $selected . '"'

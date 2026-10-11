@@ -290,10 +290,19 @@ and optional-iteration rules: missing target fields yield null,
 invalid key/index types raise structured errors, and a later
 `[]?` omits only non-container values at that final iterator stage.
 
+Simple computed selectors also support **optional indexing** with a trailing
+`?`: `.[.key]?`, `.obj[.key]?`, and `.items[][.key]?`. A mismatch between
+the selected key and target types suppresses that indexed output. Valid
+lookups, including a missing object field or indexing null with a valid key,
+still emit a value (possibly JSON null). Selector *evaluation* errors are
+not suppressed: `.items[][.cfg.key]?` still raises an error if `cfg` is
+a number, including when `items` is empty. Later stages remain strict;
+`.obj[.key]?[]` may still fail if the selected value cannot be iterated.
+Each optional computed step applies independently within a path.
+
 Generator-backed computed selectors, arbitrary computed expressions
-with arithmetic, computed selectors using optional syntax `?`,
-and arbitrary filters within brackets remain outside this scoped
-implementation. They need separately audited evaluation/streaming
+with arithmetic, and arbitrary filters within brackets remain outside
+this scoped implementation. They need separately audited evaluation/streaming
 semantics rather than treating every expression as a field path.
 
 For literal paths, only unquoted names, JSON-quoted keys, and adjacent
