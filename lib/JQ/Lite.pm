@@ -415,8 +415,9 @@ Example:
 =item * lhs // rhs
 
 Implements jq's alternative operator. The left-hand side is returned when it
-produces a defined value (including false or empty arrays); otherwise the
-right-hand expression is evaluated as a fallback.
+produces a value other than JSON null or JSON false (including zero, empty
+strings, and empty arrays); otherwise the right-hand expression is evaluated
+as a fallback.
 
 Example:
 
