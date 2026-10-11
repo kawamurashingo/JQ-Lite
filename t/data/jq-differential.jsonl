@@ -10,7 +10,7 @@
 {"name":"numeric-object-index","input":{},"filter":".[5]","status":"compatible","expected":"runtime-error"}
 {"name":"scalar-equality","input":null,"filter":"\"10\" == 10","status":"planned","expected":"ok"}
 {"name":"array-lexicographic-order","input":null,"filter":"[1,2] < [1,3]","status":"planned","expected":"ok"}
-{"name":"update-assignment","input":{"a":1},"filter":".a |= . + 1","status":"planned","expected":"ok"}
+{"name":"update-assignment","input":{"a":1},"filter":".a |= . + 1","status":"compatible","expected":"ok"}
 {"name":"user-defined-functions","input":1,"filter":"def inc: . + 1; inc","status":"unsupported","expected":"ok"}
 {"name":"missing-nested-field","input":{"a":{}},"filter":".a.missing","status":"compatible","expected":"ok"}
 {"name":"chained-missing-field","input":{},"filter":".missing.value","status":"compatible","expected":"ok"}
@@ -30,3 +30,13 @@
 {"name":"empty-array-index","input":[],"filter":".[0]","status":"compatible","expected":"ok"}
 {"name":"nested-null-array-element","input":{"a":[null]},"filter":".a[0]","status":"compatible","expected":"ok"}
 {"name":"nested-array-index-out-of-bounds","input":{"a":[10]},"filter":".a[5]","status":"compatible","expected":"ok"}
+{"name":"update-assignment-siblings","input":{"a":1,"b":10},"filter":".a |= . + 1","status":"compatible","expected":"ok"}
+{"name":"update-assignment-nested","input":{"a":{"b":2,"c":4}},"filter":".a.b |= . + 3","status":"compatible","expected":"ok"}
+{"name":"update-assignment-missing","input":{},"filter":".missing |= . + 1","status":"compatible","expected":"ok"}
+{"name":"update-assignment-null-leaf","input":{"a":null},"filter":".a |= . + 1","status":"compatible","expected":"ok"}
+{"name":"update-assignment-index","input":{"a":[1,2]},"filter":".a[1] |= . + 1","status":"compatible","expected":"ok"}
+{"name":"update-assignment-root-array","input":[2],"filter":".[0] |= . + 1","status":"compatible","expected":"ok"}
+{"name":"update-assignment-null-root","input":null,"filter":".x |= . + 1","status":"compatible","expected":"ok"}
+{"name":"update-assignment-old-target","input":{"a":{"b":2}},"filter":".a |= .b + 1","status":"compatible","expected":"ok"}
+{"name":"update-assignment-to-null","input":{"a":1},"filter":".a |= null","status":"compatible","expected":"ok"}
+{"name":"update-assignment-identity","input":{"a":1},"filter":".a |= .","status":"compatible","expected":"ok"}

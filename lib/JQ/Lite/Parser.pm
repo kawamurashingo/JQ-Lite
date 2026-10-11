@@ -141,7 +141,8 @@ sub parse_query {
             if ($rest eq 'count') {
                 $_;
             }
-            elsif ($rest =~ /,/) {
+            elsif ($rest =~ /,/ || $rest =~ /\|=/) {
+                # Keep the dot on update-assignment paths, including .a |= .
                 $_;
             }
             elsif ($rest =~ /^\s*\[/) {

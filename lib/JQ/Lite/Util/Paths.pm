@@ -6,6 +6,87 @@ use warnings;
 use JSON::PP ();
 use Scalar::Util qw(looks_like_number);
 
+# v3: a scoped jq-compatible update assignment for simple object/array paths.
+# RHS evaluation occurs on the *old leaf*, never on the original root.
+sub _apply_update_assignment {
+    my ($self, $input, $path, $rhs) = @_;
+
+    # Do not silently reinterpret unsupported iterator/computed paths as
+    # ordinary object keys. Their path streams need a separate design.
+    unless (defined($path)
+        && $path =~ /\A(?:[A-Za-z_]\w*|\[\d+\])(?:\.[A-Za-z_]\w*|\[\d+\])*\z/)
+    {
+        die JQ::Lite::Error::Parse->new(
+            message => 'Update assignment requires a simple field/index path'
+        );
+    }
+
+    my @segments = _parse_path_segments($path);
+    die JQ::Lite::Error::Parse->new(
+        message => 'Update assignment requires a target path'
+    ) unless @segments;
+
+    # Construct a new root on a null input as jq does. Copy other roots
+    # before mutation so the library does not modify its decoded inputs.
+    my $root = _clone_for_assignment($input);
+    if (!defined $root) {
+        $root = $segments[0]{type} eq 'index' ? [] : {};
+    }
+
+    # Validate the path types explicitly: the existing plain-assignment
+    # setter intentionally ignores invalid intermediates, but |= must not
+    # report a successful update where no mutation occurred.
+    my $cursor = $root;
+    for my $i (0 .. $#segments) {
+        my $segment = $segments[$i];
+        my $type = $segment->{type};
+
+        if ($type eq 'key') {
+            if (ref($cursor) ne 'HASH') {
+                die JQ::Lite::Error::Evaluation->new(
+                    message => 'Cannot index non-object with string key'
+                );
+            }
+            $cursor = $cursor->{$segment->{value}};
+        }
+        else {
+            if (ref($cursor) ne 'ARRAY') {
+                die JQ::Lite::Error::Evaluation->new(
+                    message => 'Cannot index non-array with number'
+                );
+            }
+            my $index = _normalize_path_array_index(
+                $segment->{value}, scalar @$cursor
+            );
+            if ($index < 0) {
+                die JQ::Lite::Error::Evaluation->new(
+                    message => 'Array update index is out of range'
+                );
+            }
+            $cursor = $cursor->[$index];
+        }
+
+        # A missing or null intermediate is created by _set_path_value.
+        # Model it here only to validate the remaining path's types.
+        if ($i < $#segments && !defined $cursor) {
+            $cursor = $segments[$i + 1]{type} eq 'index' ? [] : {};
+        }
+    }
+
+    my $old = _clone_for_assignment(_get_path_value($root, $path));
+    my @replacement = $self->run_query(_encode_json($old), $rhs);
+    if (@replacement != 1) {
+        # Deletion via '|= empty' and multi-result update streams require
+        # separate explicit semantics. Never silently pick a value.
+        die JQ::Lite::Error::Evaluation->new(
+            message => 'Update assignment requires exactly one RHS result'
+        );
+    }
+
+    _set_path_value($root, $path, $replacement[0]);
+    return $root;
+}
+
 sub _apply_assignment {
     my ($self, $item, $path, $value_spec, $operator) = @_;
 
