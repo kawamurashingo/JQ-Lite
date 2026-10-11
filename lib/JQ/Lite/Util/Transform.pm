@@ -719,9 +719,10 @@ sub _evaluate_coalesce_operand {
 # Signed numeric array indices are accepted inside selector paths, e.g.
 # [.keys[0]] or [.cfg["names"][-1]].
 # Paths with an iterator, an audited computed selector, an optional
-# literal numeric index/field, or a strict negative literal numeric
-# index are accepted. Positive strict-only paths retain their previous
-# query-path dispatch behavior.
+# literal numeric index/field, a strict negative literal numeric
+# index, or a strict bracket-quoted field are accepted. Strict-only
+# unquoted / dot-quoted / positive numeric paths otherwise keep their
+# legacy dispatch.
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
@@ -855,6 +856,7 @@ sub _parse_v3_literal_iterator_path {
     my $has_optional_numeric_index = 0;
     my $has_optional_field = 0;
     my $has_strict_negative_index = 0;
+    my $has_strict_bracket_quoted_field = 0;
     my $after_step = 0;
 
     while (length $rest) {
@@ -894,14 +896,19 @@ sub _parse_v3_literal_iterator_path {
             $has_computed_key = 1;
         }
         elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\](\?)?//s) {
+            # Bare ["key"] is a jq array constructor. Only a rooted
+            # .["key"] or a bracket stage after an existing path field
+            # can be treated as a literal field lookup.
             my $quoted = $1;
             my $optional = defined($2) ? 1 : 0;
+            return undef unless @steps || $path =~ /\A\.\[/;
             my $name = eval { _decode_json($quoted) };
             return undef if $@ || !defined($name) || ref($name);
             my @field_step = ('field', $name);
             push @field_step, 1 if $optional;
             push @steps, \@field_step;
             $has_optional_field = 1 if $optional;
+            $has_strict_bracket_quoted_field = 1 unless $optional;
         }
         elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")(\?)?//s) {
             my $quoted = $1;
@@ -947,7 +954,8 @@ sub _parse_v3_literal_iterator_path {
 
     return ($has_iterator || $has_computed_key
         || $has_optional_numeric_index || $has_optional_field
-        || $has_strict_negative_index) ? \@steps : undef;
+        || $has_strict_negative_index || $has_strict_bracket_quoted_field)
+        ? \@steps : undef;
 }
 
 # The simple selector expression inside [.key] is evaluated against the

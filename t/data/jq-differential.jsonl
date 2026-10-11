@@ -1103,3 +1103,48 @@
 {"name":"strictnegpath-control-opt-neg","input":{"items":[10,20]},"filter":".items[-1]?","status":"compatible","expected":"ok"}
 {"name":"strictnegpath-control-neg-iterator","input":{"items":[[1],[2]]},"filter":".items[-1][]","status":"compatible","expected":"ok"}
 {"name":"strictnegpath-control-selector","input":{"keys":["a"],"obj":{"a":7}},"filter":".obj[.keys[-1]]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-dot","input":{"a.b":7},"filter":".[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-space","input":{"full name":"Ada"},"filter":".[\"full name\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-empty","input":{"":8},"filter":".[\"\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-close","input":{"]":9},"filter":".[\"]\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-numeric-text","input":{"[0]":10},"filter":".[\"[0]\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-plus","input":{"a+b":11},"filter":".[\"a+b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-minus","input":{"a-b":12},"filter":".[\"a-b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-update","input":{"a|=b":13},"filter":".[\"a|=b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-comma","input":{"a,b":14},"filter":".[\"a,b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-quote","input":{"a\"b":15},"filter":".[\"a\\\"b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-backslash","input":{"a\\b":16},"filter":".[\"a\\\\b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-unicode","input":{"a.b":17},"filter":".[\"a\\u002eb\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-missing","input":{},"filter":".[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-null","input":null,"filter":".[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-false","input":{"a.b":false},"filter":".[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-root-bad-number","input":7,"filter":".[\"a.b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"strictbrquoted-root-bad-boolean","input":true,"filter":".[\"a.b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"strictbrquoted-root-bad-string","input":"abc","filter":".[\"a.b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"strictbrquoted-root-bad-array","input":[],"filter":".[\"a.b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"strictbrquoted-nested-field","input":{"obj":{"a.b":{"name":"A"}}},"filter":".obj[\"a.b\"].name","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-double","input":{"obj":{"a.b":{"name":"A"}}},"filter":".obj[\"a.b\"][\"name\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-double-special","input":{"obj":{"a.b":{"full name":"Ada"}}},"filter":".obj[\"a.b\"][\"full name\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-root-bracket","input":{"outer":{"a.b":7}},"filter":".[\"outer\"][\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-unquoted-suffix","input":{"obj":{"a.b":{"n":3}}},"filter":".obj[\"a.b\"].n","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-selected-null","input":{"obj":{"a.b":null}},"filter":".obj[\"a.b\"].name","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-missing-inner","input":{"obj":{}},"filter":".obj[\"a.b\"].name","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-missing-parent","input":{},"filter":".obj[\"a.b\"].name","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-null-parent","input":null,"filter":".obj[\"a.b\"].name","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-index","input":{"obj":{"a.b":[10,20]}},"filter":".obj[\"a.b\"][1]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-negative","input":{"obj":{"a.b":[10,20]}},"filter":".obj[\"a.b\"][-1]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-oob","input":{"obj":{"a.b":[10,20]}},"filter":".obj[\"a.b\"][9]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-nested-strict-suffix-error","input":{"obj":{"a.b":3}},"filter":".obj[\"a.b\"].name","status":"compatible","expected":"runtime-error"}
+{"name":"strictbrquoted-nested-bad-quoted","input":{"obj":3},"filter":".obj[\"a.b\"].name","status":"compatible","expected":"runtime-error"}
+{"name":"strictbrquoted-nested-bad-prefix","input":7,"filter":".obj[\"a.b\"].name","status":"compatible","expected":"runtime-error"}
+{"name":"strictbrquoted-nested-bad-numeric","input":{"obj":{"a.b":{}}},"filter":".obj[\"a.b\"][1]","status":"compatible","expected":"runtime-error"}
+{"name":"strictbrquoted-pipeline","input":{"a.b":3},"filter":".[\"a.b\"] | . + 1","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-comma-dual","input":{"a.b":3},"filter":".[\"a.b\"], .[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-comma-middle","input":{"a.b":3},"filter":"0, .[\"a.b\"], 9","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-comma-null","input":{"a.b":null},"filter":"0, .[\"a.b\"], 9","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-existing-iterator","input":{"a.b":[1,2]},"filter":".[\"a.b\"][]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-existing-optional-good","input":{"a.b":7},"filter":".[\"a.b\"]?","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-existing-optional-skip","input":7,"filter":".[\"a.b\"]?","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-legacy-array-constructor","input":{"a.b":7},"filter":"[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-legacy-dot-quoted","input":{"a b":2},"filter":".\"a b\"","status":"compatible","expected":"ok"}
+{"name":"strictbrquoted-legacy-unquoted","input":{"obj":{"name":"A"}},"filter":".obj.name","status":"compatible","expected":"ok"}

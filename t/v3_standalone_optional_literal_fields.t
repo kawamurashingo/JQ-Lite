@@ -167,8 +167,9 @@ subtest 'parser boundaries and strict compatibility' => sub {
         'strict prefix and optional suffix remain separate');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.name')), 'strict standalone field stays on legacy path');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.["a.b"]')), 'strict standalone quoted field stays on legacy path');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.["a.b"]'), [['field','a.b']],
+        'strict standalone bracket-quoted field uses scoped visitor');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.cfg.name')), 'strict field-only chain stays on legacy path');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
