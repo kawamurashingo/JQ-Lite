@@ -175,6 +175,7 @@ t/value_semantics.t
 t/v3_missing_paths.t
 t/v3_null_numeric_index.t
 t/v3_update_assignment.t
+t/v3_update_iterator.t
 t/v3_numeric_object_index.t
 t/walk.t
 t/yaml_cli.t

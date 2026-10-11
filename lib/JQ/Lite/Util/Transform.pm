@@ -857,6 +857,19 @@ sub _evaluate_condition {
         return 1;
     }
 
+    # A comparison of the current scalar (for example select(. > 1))
+    # has no named field path.  Treat '.' as the value itself, including
+    # JSON null and booleans, instead of looking up a nonexistent field.
+    if ($cond =~ /^\s*\.\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/s) {
+        my ($operator, $literal) = ($1, $2);
+        my ($right, $parsed);
+        {
+            local $@;
+            $parsed = eval { $right = _decode_json($literal); 1 };
+        }
+        return _compare_values($item, $operator, $right) if $parsed;
+    }
+
     # support for numeric expressions like: select(.a + 5 > 10)
     if ($cond =~ /^\s*(\.\w+)\s*([\+\-\*\/%])\s*(-?\d+(?:\.\d+)?)\s*(==|!=|>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/) {
         my ($path, $op1, $rhs1, $cmp, $rhs2) = ($1, $2, $3, $4, $5);
