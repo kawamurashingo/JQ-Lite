@@ -144,6 +144,27 @@ subtest 'iterator and pipeline semantics' => sub {
     isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $bad_prefix_ok;
     is_deeply(results_for('{"a":{"b":[1,2]}}', '.a.b[]?'), [1,2],
         'nested named-field optional iterator preserves array contents');
+    is_deeply(results_for('{"items":[{"name":"A"},{}]}',
+            '.items[].name'), ['A', undef],
+        'intermediate strict iterator followed by named-field lookup');
+    is_deeply(results_for('{"items":null}', '.items[]?.name'), [],
+        'optional intermediate iterator suppresses null iteration only');
+    is_deeply(results_for('{"items":[[1,2],[3]]}', '.items[][]'),
+        [1, 2, 3], 'two strict iterators flatten consecutive arrays');
+    is_deeply(results_for('{"items":[[1,2],null]}', '.items[][]?'),
+        [1, 2], 'optional second iterator drops null leaf');
+    my $bad_member_ok = eval {
+        results_for('{"items":[2]}', '.items[]?.name'); 1;
+    };
+    ok(!$bad_member_ok,
+        'optional intermediate iterator preserves later field-index error');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $bad_member_ok;
+    my $bad_second_iter_ok = eval {
+        results_for('{"items":[[1],null]}', '.items[][]'); 1;
+    };
+    ok(!$bad_second_iter_ok, 'strict second iterator rejects null element');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation')
+        unless $bad_second_iter_ok;
     is_deeply(results_for('{"a":1}', 'keys[]?'), ['a'],
         'function-result optional suffix expands keys');
     is_deeply(results_for('null', 'recurse(.[]?)'), [undef],

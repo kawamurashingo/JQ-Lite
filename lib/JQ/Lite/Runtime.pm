@@ -42,12 +42,14 @@ sub evaluate_filter {
         return @outputs;
     }
 
-    # A v3 literal field path with a final iterator needs two distinct
-    # error policies: field indexing must succeed (except null/missing,
-    # which yield null), while only the terminal []? suppresses iteration
-    # errors. Do not impose these rules on the general legacy _traverse.
+    # Scoped v3 literal field/iterator paths are evaluated step by step.
+    # An iterator can appear before a later field or iterator; [] is strict
+    # while []? suppresses only its own non-container iteration error.
+    # Other/general query paths keep the legacy _traverse contract.
     my $source = $filter->source;
-    if ($source =~ /\A(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*\[\]\??\z/) {
+    if ($source =~ /\A[A-Za-z_]\w*(?:\[\]\??)*(?:\.[A-Za-z_]\w*(?:\[\]\??)*)*\z/
+        && index($source, '[]') >= 0)
+    {
         for my $input (@{$inputs}) {
             push @outputs, JQ::Lite::Util::_traverse_v3_field_iterator(
                 $input, $source

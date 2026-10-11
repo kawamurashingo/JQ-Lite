@@ -201,28 +201,42 @@ results whereas `1 | .[]` raises an error. `[1,null,[2]] | .[]? | .[]?`
 emits `2`. Errors in other filters are not suppressed: `1 / 0 | .[]?`
 still fails, and `[1] | .[]? | .[]` still errors.
 
-Literal **named-field paths ending in `[]` or `[]?`** now distinguish
-jq 1.7's field lookup from the terminal iteration. A field lookup through
-JSON null or a missing object key yields null. Therefore `{} | .a[]`
-raises `Cannot iterate over null`, while `{} | .a[]?` has no output.
-When the named field holds a number, boolean, or string, strict `[]`
-raises a type-specific iteration error and optional `[]?` suppresses
-only that final iteration error. But `1 | .a[]?` still fails with a
-**field indexing** error: the optional suffix does not forgive an invalid
-lookup. The same policy covers literal dotted chains such as
-`.a.b[]` and `.a.b[]?`; malformed intermediate lookups still raise
-even when the final iteration is optional. Array and object final fields
-emit every member, including null/false values. This scoped query path
-handling does not change the compatibility-sensitive internal traversal
-helper, computed paths, or implicit array projection.
+Simple **literal named-field paths with `[]` and `[]?` at any
+position** now evaluate each field lookup and iteration stage in jq 1.7
+order. Field access on JSON null or a missing object key yields null, but
+indexing a number, string, boolean or array with a field name raises a
+structured evaluation error. Each strict `[]` raises a type-specific error
+if that stage receives null or a scalar; each optional `[]?` drops only
+that stage's non-container inputs. For example, `{} | .a[]` raises
+`Cannot iterate over null`, whereas `{} | .a[]?` has no output.
+However, `1 | .a[]?` fails with an **invalid field indexing** error,
+because the optional iterator does not forgive a bad earlier lookup.
+
+This now also covers intermediate iterators:
+`{"items":[{"name":"A"}]} | .items[].name` yields `"A"`; `{"items":null} | .items[]?.name`
+produces no results; and `{"items":[2]} | .items[]?.name` raises a
+field-indexing error at `.name`. Multi-step iteration treats each suffix
+independently. `{"items":[[1,2],null]} | .items[][]?` yields `1` and
+`2`, while `.items[][]` fails at the strict second iterator.
+`.items[]?.children[]?` likewise preserves the independent optional
+choice at each stage. Empty intermediate streams never evaluate later
+fields or iterators, and array/object members retain their original value
+types, including JSON null and false.
+
+Only simple unquoted name segments with zero or more adjacent `[]`/`[]?`
+suffixes are included. The compatibility-sensitive internal traversal helper,
+implicit array projection, numeric indices, quoted/computed path segments,
+and arbitrary optional expressions are **not** changed by this scoped query
+path implementation. Existing object iteration order remains unchanged.
 
 Standalone `.[]?` is also available in a pipeline (including
 `recurse(.[]?)`). Non-path array-result suffixes `keys[]?`,
 `split(",")[]?`, and `[4,5][]?` lower to an optional iteration stage,
 with the same rule independently applied inside comma alternatives.
 Errors from upstream functions are not converted to empty results.
-Computed/quoted path segments, mid-path iterators, and general optional
-expressions still require separate audits.
+Computed/quoted/numeric path segments, arbitrary optional
+expressions, and more general iterator compositions still require separate
+audits beyond the simple named-field paths described above.
 
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
@@ -335,6 +349,7 @@ application logic. In particular:
 | equality between numeric strings and numbers | normalize both sides explicitly with `tonumber` or `tostring` |
 | bare `.[]` on null, booleans, numbers, or strings expecting empty results or character splitting | validate or normalize values to arrays/objects before iterating; v3 raises a runtime error for scalar inputs, matching jq 1.7 |
 | `.field[]` on a missing, null, or scalar-valued field expecting no results | use `.field[]?` when dropping non-iterable final values is intended; ensure every preceding named-field lookup is valid, because `[]?` does not suppress an invalid prefix lookup |
+| intermediate `.items[].name` or nested `.items[][]` silently skipping malformed values | use `[]?` at precisely the iteration stage where skipping non-containers is intended; later named-field lookups can still fail, so validate those inputs separately |
 | `path |= filter` expecting only the updated leaf | no single appended filter preserves this result in both versions; keep the original filter on 2.x, and only after requiring 3.0 append the path projection or select the leaf in version-aware application code |
 
 Release notes must include concrete, executable examples for each committed
