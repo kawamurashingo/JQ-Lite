@@ -606,8 +606,8 @@
 {"name":"computed-pipe-arithmetic","input":{"key":"a","a":7},"filter":".[.key] | . + 1","status":"compatible","expected":"ok"}
 {"name":"computed-comma-leading","input":{"key":"a","a":7},"filter":"0, .[.key]","status":"compatible","expected":"ok"}
 {"name":"computed-comma-following","input":{"key":"a","a":7},"filter":".[.key], .a","status":"compatible","expected":"ok"}
-{"name":"computed-control-literal-key","input":{"key":"x","x":7},"filter":".[\"key\"]","status":"compatible","expected":"ok"}
-{"name":"computed-control-literal-other","input":{"key":"x","x":7},"filter":".[\"x\"]","status":"compatible","expected":"ok"}
+{"name":"computed-control-literal-key","input":{"key":"x","x":7},"filter":".\"key\"","status":"compatible","expected":"ok"}
+{"name":"computed-control-literal-other","input":{"key":"x","x":7},"filter":".\"x\"","status":"compatible","expected":"ok"}
 {"name":"computed-control-previous-quoted","input":{"items":[{"name":"A"}]},"filter":".[\"items\"][].name","status":"compatible","expected":"ok"}
 {"name":"computed-control-previous-numeric","input":{"items":[[1,2]]},"filter":".items[0][]","status":"compatible","expected":"ok"}
 {"name":"computed-control-previous-optional","input":{"a":null},"filter":".a[]?","status":"compatible","expected":"ok"}
