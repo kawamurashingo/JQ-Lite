@@ -86,6 +86,16 @@ subtest 'quoted fields after an intermediate iterator and index' => sub {
     is_deeply(results('{"items":[{"full name":["A"]},{"full name":[]}]}',
             '.items[].["full name"][]'), ['A'],
         'strict iterator after quoted intermediate field');
+    is_deeply(results('{"items":[{"a=b":21}]}',
+            '.items[].["a=b"]'), [21],
+        'equals sign in intermediate quoted key is not assignment');
+    is_deeply(results('{"items":[{"x-y":[22]}]}',
+            '.items[].["x-y"][]'), [22],
+        'hyphen in intermediate quoted key is not arithmetic');
+    is_deeply(results('{"items":[{"q|r":[23]}]}',
+            '.items[].["q|r"][]'), [23],
+        'pipe in intermediate quoted key is not pipeline syntax');
+
     is_deeply(results('{"items":[{"a.b":[4,5]},{"a.b":[6]}]}',
             '.items[].["a.b"][0]'), [4,6],
         'numeric index after quoted field inside intermediate iteration');
@@ -122,6 +132,8 @@ subtest 'JSON-escaped and special-character field names stay literal' => sub {
         'pipe inside quoted key is not a pipeline separator');
     is_deeply(results('{"a,b":[8]}', '.["a,b"][]'), [8],
         'comma inside quoted key is not a stream alternative');
+    is_deeply(results('{"a|=b":[24]}', '.["a|=b"][]'), [24],
+        'update-assignment tokens inside quoted key are literal text');
     is_deeply(results('{"a\\"b":[9]}', '.["a\\"b"][]'), [9],
         'JSON-escaped quote is decoded inside the key');
     is_deeply(results('{"a\\\\b":[10]}', '.["a\\\\b"][]'), [10],
