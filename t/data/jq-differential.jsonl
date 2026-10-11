@@ -1011,3 +1011,52 @@
 {"name":"optlitfield-control-strict","input":{"items":[{"name":"A"},{}]},"filter":".items[].name","status":"compatible","expected":"ok"}
 {"name":"optlitfield-control-computed","input":{"key":"a","obj":{"a":7}},"filter":".obj[.key]","status":"compatible","expected":"ok"}
 {"name":"optlitfield-control-optional-numeric","input":{"items":[[1,2],3]},"filter":".items[][0]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-value","input":{"name":"A"},"filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-missing","input":{},"filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-explicit-null","input":{"name":null},"filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-false","input":{"name":false},"filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-root-null","input":null,"filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-number","input":7,"filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-bool","input":true,"filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-string","input":"text","filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-array","input":[1,2],"filter":".name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-pipeline-success","input":{"name":5},"filter":".name? | . + 1","status":"compatible","expected":"ok"}
+{"name":"standoptfield-bare-pipeline-empty","input":7,"filter":".name? | . + 1","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-dot","input":{"a.b":7},"filter":".[\"a.b\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-dot-quote","input":{"a.b":7},"filter":".\"a.b\"?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-empty","input":{"":7},"filter":".[\"\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-close","input":{"]":7},"filter":".[\"]\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-escaped","input":{"a\"b":7},"filter":".[\"a\\\"b\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-unicode","input":{"a.b":7},"filter":".[\"a\\u002eb\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-missing","input":{},"filter":".[\"a.b\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-null","input":null,"filter":".[\"a.b\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-number","input":3,"filter":".[\"a.b\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-quote-array","input":[],"filter":".\"a.b\"?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-nested-quote","input":{"cfg":{"x.y":4}},"filter":".cfg[\"x.y\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-nested-quote-scalar","input":{"cfg":3},"filter":".cfg[\"x.y\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-prefix-success","input":{"cfg":{"name":"A"}},"filter":".cfg?.name","status":"compatible","expected":"ok"}
+{"name":"standoptfield-prefix-null","input":{"cfg":null},"filter":".cfg?.name","status":"compatible","expected":"ok"}
+{"name":"standoptfield-prefix-missing","input":{},"filter":".cfg?.name","status":"compatible","expected":"ok"}
+{"name":"standoptfield-prefix-root-bad","input":5,"filter":".cfg?.name","status":"compatible","expected":"ok"}
+{"name":"standoptfield-prefix-strict-child","input":{"cfg":3},"filter":".cfg?.name","status":"compatible","expected":"runtime-error"}
+{"name":"standoptfield-strict-prefix","input":5,"filter":".cfg.name?","status":"compatible","expected":"runtime-error"}
+{"name":"standoptfield-suffix-optional","input":{"cfg":3},"filter":".cfg.name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-both-optional-bad","input":{"cfg":3},"filter":".cfg?.name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-both-optional-good","input":{"cfg":{"name":3}},"filter":".cfg?.name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-triple-optional","input":{"cfg":{"name":3}},"filter":".cfg?.name?.child?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-triple-strict-last","input":{"cfg":{"name":3}},"filter":".cfg?.name?.child","status":"compatible","expected":"runtime-error"}
+{"name":"standoptfield-missing-chain","input":{"cfg":{}},"filter":".cfg?.name?.child","status":"compatible","expected":"ok"}
+{"name":"standoptfield-brquote-both","input":{"cfg":3},"filter":".cfg?[\"name\"]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-brquote-strict-last","input":{"cfg":3},"filter":".cfg?[\"name\"]","status":"compatible","expected":"runtime-error"}
+{"name":"standoptfield-index-success","input":{"a":[10,20]},"filter":".a?[1]","status":"compatible","expected":"ok"}
+{"name":"standoptfield-index-strict-error","input":{"a":3},"filter":".a?[0]","status":"compatible","expected":"runtime-error"}
+{"name":"standoptfield-index-optional-bad","input":{"a":3},"filter":".a?[0]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-index-optional-null","input":{"a":null},"filter":".a?[0]?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-index-field","input":{"a":[{"x":2}]},"filter":".a?[0]?.x?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-index-field-pipe","input":{"a":[{"x":2}]},"filter":".a?[0]?.x? | . + 1","status":"compatible","expected":"ok"}
+{"name":"standoptfield-comma-success","input":{"a":3},"filter":"0, .a?, 9","status":"compatible","expected":"ok"}
+{"name":"standoptfield-comma-empty","input":3,"filter":"0, .a?, 9","status":"compatible","expected":"ok"}
+{"name":"standoptfield-comma-null","input":null,"filter":"0, .a?, 9","status":"compatible","expected":"ok"}
+{"name":"standoptfield-control-iterator","input":{"items":[{"name":"A"},3]},"filter":".items[].name?","status":"compatible","expected":"ok"}
+{"name":"standoptfield-control-computed","input":{"keys":["a"],"obj":{"a":2}},"filter":".obj[.keys[0]?]","status":"compatible","expected":"ok"}
+{"name":"standoptfield-control-strict","input":{"name":"A"},"filter":".name","status":"compatible","expected":"ok"}

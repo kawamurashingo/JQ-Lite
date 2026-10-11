@@ -17,6 +17,15 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # Standalone optional literal named-field paths must reach the
+    # scoped visitor before legacy path/value shortcuts. A full parser
+    # match keeps arbitrary expressions and other '?' uses untouched.
+    if (index($normalized, '?') >= 0
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # Standalone optional literal numeric paths are also scoped to the
     # ordered v3 visitor. Without this guard, the legacy value-expression
     # shortcut can convert .[0]? or .items[0]? into null instead of

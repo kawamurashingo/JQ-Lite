@@ -719,9 +719,8 @@ sub _evaluate_coalesce_operand {
 # Signed numeric array indices are accepted inside selector paths, e.g.
 # [.keys[0]] or [.cfg["names"][-1]].
 # Paths with an iterator, an audited computed selector, or at least one
-# optional literal numeric index are accepted, including optional named
-# field steps within those paths; standalone field-only paths keep
-# their existing parsing behavior.
+# optional literal numeric index/field are accepted. Strict-only paths
+# without these audited markers retain their older dispatch behavior.
 # Decode a computed selector made only of dot-separated unquoted names or
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
@@ -853,6 +852,7 @@ sub _parse_v3_literal_iterator_path {
     my $has_iterator = 0;
     my $has_computed_key = 0;
     my $has_optional_numeric_index = 0;
+    my $has_optional_field = 0;
     my $after_step = 0;
 
     while (length $rest) {
@@ -870,6 +870,7 @@ sub _parse_v3_literal_iterator_path {
             my @field_step = ('field', $name);
             push @field_step, 1 if $optional;
             push @steps, \@field_step;
+            $has_optional_field = 1 if $optional;
         }
         # A simple computed selector [.key] can follow literal fields,
         # indices, or iterators. jq evaluates the selector against the
@@ -898,6 +899,7 @@ sub _parse_v3_literal_iterator_path {
             my @field_step = ('field', $name);
             push @field_step, 1 if $optional;
             push @steps, \@field_step;
+            $has_optional_field = 1 if $optional;
         }
         elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")(\?)?//s) {
             my $quoted = $1;
@@ -908,6 +910,7 @@ sub _parse_v3_literal_iterator_path {
             my @field_step = ('field', $name);
             push @field_step, 1 if $optional;
             push @steps, \@field_step;
+            $has_optional_field = 1 if $optional;
         }
         elsif ($rest =~ s/\A\[\](\?)?//) {
             return undef unless @steps;
@@ -940,7 +943,8 @@ sub _parse_v3_literal_iterator_path {
     }
 
     return ($has_iterator || $has_computed_key
-        || $has_optional_numeric_index) ? \@steps : undef;
+        || $has_optional_numeric_index || $has_optional_field)
+        ? \@steps : undef;
 }
 
 # The simple selector expression inside [.key] is evaluated against the

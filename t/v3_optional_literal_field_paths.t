@@ -150,10 +150,12 @@ subtest 'parser shape and existing regression controls' => sub {
         '.items[].name'),
         [['field','items'],['iterator',0],['field','name']],
         'strict field step shape remains unchanged');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.name?')), 'bare field-only optional remains a separate audit');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.["name"]?')), 'bare quoted optional remains separate audit');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.name?'), [['field','name',1]],
+        'standalone unquoted optional field now uses scoped visitor');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.["name"]?'), [['field','name',1]],
+        'standalone bracket-quoted optional field now uses scoped visitor');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.items[].name + 1')), 'expression is not a simple field path');
     is_deeply(results('{"items":[{"name":"A"},{}]}',
