@@ -115,9 +115,20 @@ RHS deletes the path.
 The current engine still eagerly evaluates the RHS before selecting its first
 result, unlike jq's streaming evaluation: a later result that raises an error
 may affect a query even when jq would have stopped at the first result.
-Iterator/computed update paths and the relationship with compound `+=` and
-other operators require separate audits under #626. Do not assume complete jq
-assignment compatibility.
+One **array iterator** is now supported in a simple update path:
+`.items[] |= . + 1` updates every array element, and `.[]
+|= empty` deletes them all. Each RHS is applied to the old selected leaf;
+when an element is deleted, remaining indices stay aligned with the initial
+selection. A literal field or numeric index can precede or follow the single
+iterator (for example `.groups[0][]` or `.items[].count`). An empty array
+produces one unchanged root. Missing/null/non-array iterator targets raise
+structured evaluation errors, rather than creating a container.
+
+Object iterators (`.[]` on an object), paths with multiple iterators,
+computed/quoted iterator paths, and jq's fully streamed update evaluation
+remain outside this scoped implementation. The relationship with compound
+`+=` and other operators requires a separate audit under #626. Do not
+assume complete jq assignment compatibility.
 
 Multi-result **plain** assignment remains undecided and requires a separate design.
 
