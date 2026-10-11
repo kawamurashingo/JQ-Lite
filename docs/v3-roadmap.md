@@ -212,8 +212,8 @@ that stage's non-container inputs. For example, `{} | .a[]` raises
 However, `1 | .a[]?` fails with an **invalid field indexing** error,
 because the optional iterator does not forgive a bad earlier lookup.
 
-This now also covers intermediate iterators: `{"items":[{"name":"A"}]}
-| .items[].name` yields `"A"`; `{"items":null} | .items[]?.name`
+This now also covers intermediate iterators:
+`{"items":[{"name":"A"}]} | .items[].name` yields `"A"`; `{"items":null} | .items[]?.name`
 produces no results; and `{"items":[2]} | .items[]?.name` raises a
 field-indexing error at `.name`. Multi-step iteration treats each suffix
 independently. `{"items":[[1,2],null]} | .items[][]?` yields `1` and
