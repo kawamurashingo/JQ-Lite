@@ -179,9 +179,20 @@ leaves, and optional child navigation such as `recurse(.children[]?)`
 remains non-throwing. For example, `[1,[2]] | recurse(.[])` fails
 when visiting `1`, whereas `[[],{}] | recurse(.[])` succeeds.
 The same scoped validation applies to `recurse(.[] | ...)` when the
-explicit iterator is the first child-filter stage. It does not change the
-legacy semantics of a standalone `.[]` or all computed/nested iterator
-expressions; those require a separate traversal audit.
+explicit iterator is the first child-filter stage.
+
+The ordinary, **standalone `.[]` filter** now enforces jq 1.7's
+container-only iteration as well: arrays and objects yield their members,
+while `null`, booleans, numbers, and strings raise a structured
+evaluation error instead of producing an empty stream or iterating over
+the characters of a string. For example, `"abc" | .[]` and
+`1 | .[]` are runtime errors; `[1,2] | .[]` emits `1` and `2`.
+The check also applies when `.[]` receives scalar values from a preceding
+pipeline stage, but does not run if an earlier stage emitted no inputs.
+Existing object traversal order is intentionally unchanged; JSON object
+insertion-order parity remains a separate concern. Optional `.[]?`,
+computed paths, and other implicit iterator suffixes need independent
+audits rather than inheriting this change automatically.
 
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
