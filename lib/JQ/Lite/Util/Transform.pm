@@ -723,8 +723,9 @@ sub _evaluate_coalesce_operand {
 # JSON-quoted field names.  Parsing rather than split /\./ preserves literal
 # periods, escaped quotes/backslashes, empty names and Unicode escapes.
 # Numeric index steps are represented as ['index', N] or
-# ['index', N, 1] for an optional lookup; existing string field steps
-# keep their previous scalar representation for compatibility.
+# ['index', N, 1] for an optional lookup; optional named fields use
+# ['field', NAME, 1]. Existing strict string field steps keep their
+# scalar representation for compatibility.
 # Dynamic expressions, iterator stages and generators remain separate audits.
 sub _parse_v3_computed_selector_fields {
     my ($selector) = @_;
@@ -734,18 +735,24 @@ sub _parse_v3_computed_selector_fields {
     my @fields;
     while (length $rest) {
         my $field;
-        if ($rest =~ s/\A([A-Za-z_]\w*)//) {
-            $field = $1;
+        if ($rest =~ s/\A([A-Za-z_]\w*)(\?)?//) {
+            my $name = $1;
+            my $optional = defined($2) ? 1 : 0;
+            $field = $optional ? ['field', $name, 1] : $name;
         }
-        elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")//s) {
+        elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")(\?)?//s) {
             my $json_name = $1;
-            $field = eval { _decode_json($json_name) };
-            return undef if $@ || !defined($field) || ref($field);
+            my $optional = defined($2) ? 1 : 0;
+            my $name = eval { _decode_json($json_name) };
+            return undef if $@ || !defined($name) || ref($name);
+            $field = $optional ? ['field', $name, 1] : $name;
         }
-        elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\]//s) {
+        elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\](\?)?//s) {
             my $json_name = $1;
-            $field = eval { _decode_json($json_name) };
-            return undef if $@ || !defined($field) || ref($field);
+            my $optional = defined($2) ? 1 : 0;
+            my $name = eval { _decode_json($json_name) };
+            return undef if $@ || !defined($name) || ref($name);
+            $field = $optional ? ['field', $name, 1] : $name;
         }
         elsif ($rest =~ s/\A\[\s*(-?\d+)\s*\](\?)?//) {
             # The '?' belongs to the selector's numeric index, not to
@@ -952,18 +959,29 @@ sub _resolve_v3_computed_key_selector {
             }
             next;
         }
+        my $optional_field = ref($field) eq 'ARRAY'
+            && $field->[0] eq 'field' && $field->[2];
+        my $name = $optional_field ? $field->[1] : $field;
         if (!defined $selected) {
             $selected = undef;
         }
         elsif (ref($selected) eq 'HASH') {
-            $selected = exists($selected->{$field})
-                ? $selected->{$field} : undef;
+            $selected = exists($selected->{$name})
+                ? $selected->{$name} : undef;
         }
         else {
+            # Optional named-field lookup suppresses its own type error,
+            # but a missing field/null source is still a JSON null result.
+            if ($optional_field) {
+                if ($no_output_ref) {
+                    $$no_output_ref = 1;
+                }
+                return undef;
+            }
             my $type = JQ::Lite::Value::type_of($selected);
             die JQ::Lite::Error::Evaluation->new(
                 message => 'Cannot index ' . $type
-                    . ' with string "' . $field . '"'
+                    . ' with string "' . $name . '"'
             );
         }
     }
