@@ -255,6 +255,8 @@ sub _split_top_level_pipes {
         }
 
         next unless $char eq '|';
+        # Update assignment is one operator, not a pipeline boundary.
+        next if substr($text, $i, 2) eq '|=';
         next if $in_try;
         if (substr($text, $i, 2) eq '||') {
             $i++;
@@ -1133,7 +1135,7 @@ sub _parse_assignment_expression {
 
     $expr //= '';
 
-    my ($lhs, $op, $rhs) = ($expr =~ /^(.*?)\s*([+\-*\/]?=)\s*(.*)$/);
+    my ($lhs, $op, $rhs) = ($expr =~ /^(.*?)\s*(\|=|[+\-*\/]?=)\s*(.*)$/s);
 
     $lhs //= '';
     $rhs //= '';
@@ -1146,7 +1148,7 @@ sub _parse_assignment_expression {
 
     my $value_spec = _parse_assignment_value($rhs);
 
-    return ($lhs, $value_spec, $op);
+    return ($lhs, $value_spec, $op, $rhs);
 }
 
 sub _parse_assignment_value {
