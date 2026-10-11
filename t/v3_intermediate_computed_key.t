@@ -74,9 +74,9 @@ subtest 'dotted selectors and literal/indexed prefixes' => sub {
     is_deeply(results('{"key":"a","items":[{"a":7},{"a":8}]}',
             '.items[-1][.key]'),
         [8], 'computed key after a negative numeric index');
-    is_deeply(results('{"key":"a","items":[{"a":7},{"a":8}]}',
+    is_deeply(results('{"key":"a","items":[{"a":{}}]}',
             '.items[0][.key].child'),
-        [undef], 'field access after selected scalar null lookup boundary');
+        [undef], 'field access after missing property on selected object');
     is_deeply(results('{"first":"a","second":"b","obj":{"a":{"b":8}}}',
             '.obj[.first][.second]'),
         [8], 'two computed stages independently select from original input');
@@ -180,9 +180,12 @@ subtest 'selector and target errors remain distinct' => sub {
     is_deeply(results('{"key":"a","obj":{"a":3}}',
         '.obj[.key][]?'), [],
         'optional suffix skips a selected scalar');
-    runtime_error('{"key":"a","obj":{}}', '.obj[.key][0][]?',
+    is_deeply(results('{"key":"a","obj":{}}',
+            '.obj[.key][0][]?'), [],
+        'optional iterator drops null produced by numeric index');
+    runtime_error('{"key":"a","obj":{}}', '.obj[.key][0][]',
         'Cannot iterate over null',
-        'optional iterator only skips last failed iteration');
+        'strict last iterator rejects null produced by numeric index');
     runtime_error('{"cfg":7,"obj":{"a":7}}', '.obj[.cfg.key]',
         'Cannot index number with string "key"',
         'dotted selector errors before targeting object');
