@@ -133,6 +133,10 @@ subtest 'assignment and update semantics' => sub {
         [{a => 3}], 'v3 update selects the first RHS result');
     is_deeply(results_for('{"a":1}', '.a |= empty'),
         [{}], 'v3 update deletes when the entire RHS is empty');
+    is_deeply(results_for('{"items":[1,2,3]}', '.items[] |= . + 1'),
+        [{items => [2,3,4]}], 'v3 iterator update returns the updated root');
+    is_deeply(results_for('{"items":[1,2,3]}', '.items[] |= empty'),
+        [{items => []}], 'v3 iterator update deletes every array element');
     is_deeply(results_for('{"a":0}', '.a = (1,2)'), [], 'multi-result assignment emits no result');
 };
 
