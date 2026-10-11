@@ -48,9 +48,43 @@ subtest 'right hand filter receives the old target only' => sub {
         [{ a => 7 }], 'constant replacement');
 };
 
+subtest 'zero-result update deletes the selected path' => sub {
+    is_deeply(results('{"a":1,"b":2}', '.a |= empty'),
+        [{ b => 2 }], 'delete object key and retain siblings');
+    is_deeply(results('{"a":{"b":1,"c":2}}', '.a.b |= empty'),
+        [{ a => { c => 2 } }], 'delete a nested key');
+    is_deeply(results('[10,20,30]', '.[1] |= empty'),
+        [[10,30]], 'splice array element rather than writing null');
+    is_deeply(results('{"a":[10,20]}', '.a[0] |= empty'),
+        [{ a => [20] }], 'splice nested array element');
+    is_deeply(results('{"a":1}', '.a |= (empty)'),
+        [{}], 'parenthesized empty expression deletes');
+};
+
+subtest 'deleting a missing target never creates a container' => sub {
+    is_deeply(results('{}', '.missing |= empty'),
+        [{}], 'missing object key remains missing');
+    is_deeply(results('{"a":{}}', '.a.b |= empty'),
+        [{ a => {} }], 'missing nested object key stays absent');
+    is_deeply(results('{"a":null}', '.a.b |= empty'),
+        [{ a => undef }], 'null intermediate remains null');
+    is_deeply(results('null', '.a |= empty'),
+        [undef], 'null root remains null');
+    is_deeply(results('null', '.[0] |= empty'),
+        [undef], 'null root index remains null');
+    is_deeply(results('[10,20]', '.[5] |= empty'),
+        [[10,20]], 'out-of-bounds array index is unchanged');
+    is_deeply(results('{"a":[10,20]}', '.a[5] |= empty'),
+        [{ a => [10,20] }], 'out-of-bounds nested array index is unchanged');
+};
+
+subtest 'other zero-result filters also delete' => sub {
+    is_deeply(results('{"a":1}', '.a |= select(false)'),
+        [{}], 'select(false) produces no value and deletes path');
+};
+
 subtest 'unsupported update streams and invalid target types are explicit errors' => sub {
     for my $case (
-        ['{"a":1}', '.a |= empty', 'empty RHS'],
         ['{"a":1}', '.a |= (1,2)', 'multiple RHS results'],
         ['{"a":2}', '.a[0] |= . + 1', 'index on numeric leaf'],
         ['{"a":{}}', '.a[0] |= . + 1', 'numeric index on object'],

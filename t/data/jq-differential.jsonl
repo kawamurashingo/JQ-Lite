@@ -40,3 +40,15 @@
 {"name":"update-assignment-old-target","input":{"a":{"b":2}},"filter":".a |= .b + 1","status":"compatible","expected":"ok"}
 {"name":"update-assignment-to-null","input":{"a":1},"filter":".a |= null","status":"compatible","expected":"ok"}
 {"name":"update-assignment-identity","input":{"a":1},"filter":".a |= .","status":"compatible","expected":"ok"}
+{"name":"update-delete-object","input":{"a":1,"b":2},"filter":".a |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-nested","input":{"a":{"b":1,"c":2}},"filter":".a.b |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-array","input":[10,20,30],"filter":".[1] |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-nested-array","input":{"a":[10,20]},"filter":".a[0] |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-missing","input":{},"filter":".missing |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-missing-nested","input":{"a":{}},"filter":".a.b |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-null-intermediate","input":{"a":null},"filter":".a.b |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-null-root","input":null,"filter":".a |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-null-root-index","input":null,"filter":".[0] |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-array-out-of-range","input":[10,20],"filter":".[5] |= empty","status":"compatible","expected":"ok"}
+{"name":"update-delete-filter-no-results","input":{"a":1},"filter":".a |= select(false)","status":"compatible","expected":"ok"}
+{"name":"update-delete-parenthesized","input":{"a":1},"filter":".a |= (empty)","status":"compatible","expected":"ok"}
