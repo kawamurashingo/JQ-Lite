@@ -11,7 +11,7 @@ use Scalar::Util qw(looks_like_number);
 sub _apply_update_assignment {
     my ($self, $input, $path, $rhs) = @_;
 
-    # A single array/object iterator expands into selected update paths.
+    # Expand array/object iterators recursively into selected update paths.
     # Array indices are visited in reverse so '|= empty' can splice elements
     # without shifting lower original indices.
     if (defined($path) && index($path, '[]') >= 0) {
@@ -136,21 +136,25 @@ sub _delete_update_assignment_path {
     }
 }
 
-# Evaluate exactly one iterator in a simple literal path. Arrays and objects
-# are both supported; nested/compound iterators need a separate path-engine
-# audit under #626.
+# Evaluate iterator steps recursively in a simple literal path. Both arrays
+# and objects may be visited at each step. Computed/quoted paths and streaming
+# path engines need a separate audit under #626.
 sub _apply_container_iterator_update_assignment {
     my ($self, $input, $path, $rhs) = @_;
 
     my @parts = split /\[\]/, $path, -1;
-    unless (@parts == 2
+    unless (@parts >= 2
         && $path =~ /\A(?:[A-Za-z_]\w*|\[\d+\]|\[\])(?:\.[A-Za-z_]\w*|\[\d+\]|\[\])*\z/)
     {
         die JQ::Lite::Error::Parse->new(
-            message => 'Update assignment supports exactly one array iterator in a simple path'
+            message => 'Update assignment requires simple field/index/iterator paths'
         );
     }
-    my ($prefix, $suffix) = @parts;
+    # Split at the first iterator only.  The remaining suffix keeps its
+    # iterators so _apply_update_assignment recursively handles the next one
+    # within each originally selected member (including special object keys).
+    my $prefix = shift @parts;
+    my $suffix = join '[]', @parts;
 
     my $root = _clone_for_assignment($input);
     my $selected = length($prefix)
@@ -166,6 +170,7 @@ sub _apply_container_iterator_update_assignment {
     if (ref($selected) eq 'HASH') {
         # Iterate the existing keys, not synthetic dotted paths: JSON object
         # keys may contain dots, spaces, brackets, or be the empty string.
+        # Each member recursively processes any remaining iterator suffix.
         # Sort for deterministic execution; RHS filters which depend on key
         # evaluation order are outside this scoped implementation.
         my $relative = $suffix;
