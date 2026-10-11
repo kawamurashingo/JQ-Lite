@@ -111,6 +111,8 @@ Unresolved items retain their 2.x behaviour in 3.0.
    arithmetic/comparison, and update-assignment changes in separate reviews.
 4. **Publish migration notes.** Provide before/after examples and replacements
    for filters whose output or failure mode changes.
+   Differential fixture format, compatibility statuses, and opt-in execution
+   are documented in [jq differential testing](jq-differential-testing.md).
 5. **Validate the release candidate.** Run the full Perl test suite on all
    supported Perl versions and differential tests against jq 1.7 for every
    committed compatibility case.
