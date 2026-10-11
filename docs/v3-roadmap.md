@@ -441,6 +441,17 @@ omits only that stage's wrong-type lookup. The strict
 field-only paths and compatibility-sensitive helper traversal remain
 outside this scope.
 
+**Whitespace-padded literal numeric indices** are accepted inside
+the audited v3 literal path visitor, for example `.[ 0 ]`,
+`.[ -1 ]`, `.items[ 0 ].name`, and `.items[ -1 ]?`.
+Optional `?` is outside the closing bracket and remains local to
+that numeric lookup. Whitespace does not change numeric indexing
+behavior: array bounds and JSON null produce one JSON null, while
+strict wrong-type lookups still error and optional wrong-type lookups
+emit no value. Spaces are permitted inside numeric brackets only
+in fully recognized literal paths. Arithmetic selectors, slices,
+and bare `[ 0 ]` array constructors are not reclassified as paths.
+
 For literal paths, unquoted names, JSON-quoted keys, and adjacent
 `[]`/`[]?`/`[integer]`/`[integer]?` steps are supported
 when there is an iterator, computed selector, **optional literal
@@ -584,6 +595,7 @@ application logic. In particular:
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | an object key with a literal dot, space, or operator-like punctuation must be read strictly | use bracket-quoted syntax `.["a.b"]` / `.obj["a.b"].name` or dot-quoted syntax `."a.b"` / `.obj."a.b".name`; an absent key/null yields JSON null but wrong-type inputs still raise structured errors; bare `["a.b"]` is an array constructor and bare `"a.b"` is a string literal |
+| spaces are present inside a literal numeric index | `.[ 0 ]`, `.items[ -1 ]`, and `.items[ 0 ]?` have the same v3 semantics as their unspaced forms; optional `?` stays outside `]`, and slices/computed expressions keep their separate handling |
 | a strict standalone nonnegative array index is required | use `.[0]` or `.items[0].name`; arrays and JSON null preserve one value (possibly null), but wrong-type numeric targets still raise errors; use `[0]?` only to omit wrong-type outputs |
 | a strict standalone negative array index is required | use `.[-1]` or `.items[-1].name`; negative positions count from the end, out-of-range/null produce JSON null, and wrong-type targets still raise errors; use `[-1]?` only to omit wrong-type index outputs |
 | a literal numeric index should skip invalid object/scalar targets | put `?` immediately after that index, e.g. `.[0]?`, `.items[0]?`, `.items[][0]?` or `.obj[.key][0]?`; null and out-of-range array indices still produce JSON null, and later strict operations may still fail |
