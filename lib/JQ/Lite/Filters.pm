@@ -88,7 +88,14 @@ sub apply {
                     $filter = JQ::Lite::Util::_strip_wrapping_parens($filter);
                     next if $filter eq '';
 
-                    if ($filter !~ /^\s*[\[{(]/) {
+                    # An audited ordered iterator/computed path must
+                    # run through the scoped path visitor, not the
+                    # legacy expression shortcut. In comma alternatives
+                    # that shortcut can return an incorrect null for
+                    # e.g. .items[][0]? before the visitor sees it.
+                    if ($filter !~ /^\s*[\[{(]/
+                        && !JQ::Lite::Util::_parse_v3_literal_iterator_path($filter))
+                    {
                         my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $filter);
                         if ($ok) {
                             if (@$values) {
