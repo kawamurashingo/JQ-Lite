@@ -32,16 +32,18 @@ subtest 'preserved 2.x compatibility semantics' => sub {
         'contains requires equality for nested object values',
     );
 
-    ok(
-        !result_for('false', '. // 9'),
-        'alternative preserves false instead of selecting its fallback',
-    );
-
     is_deeply(
         result_for('[[1,2],[3]]', 'transpose'),
         [[1, 3]],
         'transpose truncates jagged matrices to their shortest row',
     );
+};
+
+subtest 'v3 alternative semantics' => sub {
+    is(result_for('false', '. // 9'), 9,
+        'JSON false selects the fallback in v3');
+    is(result_for('null', '. // 9'), 9,
+        'null selects the fallback');
 };
 
 subtest 'strict arithmetic and preserved vectorised semantics' => sub {
