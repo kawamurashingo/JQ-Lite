@@ -607,8 +607,10 @@ This audit preserves only outputs from **completed comma branches**.
 A leading standalone `.[]` or `.[]?` iterator in a `try` pipeline
 now also preserves results from **completed earlier members** when a
 later member fails. For example, given `[{"name":"Ada"},3]`,
-`try (.[] | .name) catch 42` emits `"Ada"` then `42`,
-not just `42`. Processing stops at the failing member; subsequent
+`try (.[] | .["name"]) catch 42` emits `"Ada"` then `42`,
+not just `42`. The strict bracket-quoted `.["name"]` lookup raises on a numeric
+member; plain unquoted `.name` retains its separately documented
+legacy dispatch. Processing stops at the failing member; subsequent
 members are not evaluated. The optional head `.[]?` follows the same
 per-member rule, while a scalar input produces no values.
 
