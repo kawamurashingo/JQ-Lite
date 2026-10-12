@@ -377,7 +377,11 @@ sub apply {
                     next VALUE;
                 }
 
-                push @next_results, undef;
+                # jq 1.7 defines 'try f' as 'try f catch empty'.
+                # Without an explicit catch, an error drops only this
+                # input's results; do not turn it into JSON null.
+                # Explicit 'catch null' still emits a real null value.
+                next VALUE;
             }
 
             @$out_ref = @next_results;
