@@ -1084,6 +1084,21 @@ iteration. The change adds 52 jq 1.7 differential
 fixtures and a dedicated Perl regression file.
 General jq expressions and arbitrary selector depth
 remain outside the audited v3 compatibility scope.
+**Shared scoped-selector recognition.** The nested
+`try` recurse generator dispatcher and the visitor's
+null-node expansion guard now use the same audited
+computed-child grammar. Single computed selectors may
+include up to two signed literal numeric indices;
+two or three computed selector stages may each contain
+one, with optional final quoted literal fields.
+The supported runtime semantics are unchanged; this
+refactoring removes duplicated, diverging regex
+alternatives so a new selector form cannot accidentally
+be enabled for the dispatcher but omitted from the
+null-node guard. `t/v3_computed_recurse_matcher.t`
+tests both accepted cases and deliberately excluded
+arbitrary expressions, deeper paths and iterators.
+
 
 
 
