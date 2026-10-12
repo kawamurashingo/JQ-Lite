@@ -1588,3 +1588,6 @@
 {"name":"trynocatch-comma-inner","input":null,"filter":"0, try .[]","status":"compatible","expected":"ok"}
 {"name":"trynocatch-nested-success","input":{"items":[1,2]},"filter":"try .items[]","status":"compatible","expected":"ok"}
 {"name":"trynocatch-nested-explicit","input":{"items":null},"filter":"try .items[] catch null","status":"compatible","expected":"ok"}
+{"name":"catchhandler-error-propagates","input":null,"filter":"try (1 / 0) catch recurse(.[])","status":"compatible","expected":"runtime-error"}
+{"name":"catchhandler-error-comma-propagates","input":null,"filter":"0, try (1 / 0) catch recurse(.[]), 9","status":"compatible","expected":"runtime-error"}
+{"name":"catchhandler-success-skips-handler","input":null,"filter":"try 7 catch recurse(.[])","status":"compatible","expected":"ok"}
