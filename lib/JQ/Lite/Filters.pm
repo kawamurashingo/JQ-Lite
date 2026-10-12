@@ -576,17 +576,19 @@ sub apply {
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\.[A-Za-z_]\w*\[\s*\]\?\s*\|/s
                                     || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*"(?:\\.|[^"\\])*"\s*\]\[\s*\]\?\s*\|/s))
+                                    /\(\s*recurse\(\s*\.\[\s*"(?:\\.|[^"\\])*"\s*\]\[\s*\]\?\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\."(?:\\.|[^"\\])*"\s*\[\s*\]\?\s*\|/s))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
                                 # outputs before a later tail error.
                                 # Also cover custom child pipelines that
-                                # start with optional .[]?, .items[]?, or
-                                # .["items"][]? on a literal quoted field. Evaluate each emitted
-                                # child through the downstream tail before
-                                # requesting its next sibling. Other
-                                # custom recurse expressions remain outside
+                                # start with optional .[]?, .items[]?,
+                                # .["items"][]?, or ."items"[]? on a
+                                # literal field. Evaluate each completed
+                                # child before requesting its next sibling.
+                                # Other custom recurse expressions remain outside
                                 # this audited demand-driven dispatch.
                                 JQ::Lite::Util::_visit_update_rhs_results(
                                     $self, $value, $unwrapped, sub {
