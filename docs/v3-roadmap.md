@@ -719,10 +719,26 @@ errors suppress only the failing remainder.
 
 This is a scoped change for complete, literal `recurse` and
 `recurse(.[]?)` *heads with a downstream pipeline*; bare recurse
-queries are unchanged. Arbitrary custom child generators, recursive
-errors on strict `recurse(.[])`, object key visitation order and
-general streaming of partially failing leaf filters remain separate
-audits.
+queries are unchanged. Strict `recurse(.[])` is handled by the
+separate scoped visitor below; arbitrary custom child generators,
+object key visitation order and general streaming of partially
+failing leaf filters remain separate audits.
+
+**Strict `recurse(.[])` inside `try` now yields before expanding
+each node's children**, matching jq 1.7. Unlike `recurse(.[]?)`,
+a scalar, boolean or null leaf causes an error *after* its own
+value has been emitted. Given `[1,[2],3]`,
+`try recurse(.[]) catch 42` emits the original array, `1`,
+then `42`; the later `[2]` and `3` are never visited.
+`try (recurse(.[]) | type) catch 42` emits `"array"`,
+`"number"`, `42`. On input `null`, a bare strict recurse
+emits one real JSON null followed by the catch fallback.
+With `catch empty` or no catch, only completed earlier results
+remain. The same yield-before-expand semantics apply to bare and
+pipelined strict recurse, including comma alternatives.
+The implementation is limited to the literal `recurse(.[])`
+form; arbitrary child filters and object visitation order remain
+outside this audit.
 
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
@@ -848,6 +864,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| strict `try recurse(.[])` lost completed nodes or failed to catch a later leaf iteration error | each node is emitted first, then its strict `.[]` children are requested; an invalid leaf triggers catch after prior outputs, while `recurse(.[]?)` continues to skip invalid leaves |
 | `try (recurse | f)` or `try (recurse(.[]?) | f)` lost completed ancestor/sibling outputs on a later error | default and optional-child recurse heads now visit recursion values on demand, preserving completed output and stopping before unused descendants after an error |
 | `try (range(...) | f)` lost earlier generated numbers when a later tail value raised an error | a simple range head is now generated on demand; completed earlier tail outputs remain visible before catch, while later range values are not requested |
 | three or more simple `[]` / `[]?` stages in a `try` head lost earlier completed member results or returned null | literal root and named-field iterator chains now visit each nested stage in order, retain completed outputs, and let strict/optional semantics apply at each level; arbitrary computed paths/generators remain separately scoped |

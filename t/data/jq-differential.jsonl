@@ -1757,3 +1757,24 @@
 {"name":"tryrecurse-array-empty","input":[],"filter":"try (recurse | type) catch 42","status":"compatible","expected":"ok"}
 {"name":"tryrecurse-control-bare","input":[1,[2],3],"filter":"try recurse","status":"compatible","expected":"ok"}
 {"name":"tryrecurse-control-literal","input":null,"filter":"try []","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-bare-catch","input":[1,[2],3],"filter":"try recurse(.[]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-bare-no-catch","input":[1,[2],3],"filter":"try recurse(.[])","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-bare-null-catch","input":[1,[2],3],"filter":"try recurse(.[]) catch null","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-bare-empty-catch","input":[1,[2],3],"filter":"try recurse(.[]) catch empty","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-bare-type-catch","input":[1,[2],3],"filter":"try recurse(.[]) catch type","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-pipe-type","input":[1,[2],3],"filter":"try (recurse(.[]) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-pipe-type-null","input":[1,[2],3],"filter":"try (recurse(.[]) | type) catch null","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-pipe-type-empty","input":[1,[2],3],"filter":"try (recurse(.[]) | type) catch empty","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-pipe-type-type","input":[1,[2],3],"filter":"try (recurse(.[]) | type) catch type","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-pipe-multi","input":[1,[2],3],"filter":"try (recurse(.[]) | type) catch (42, 43)","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-null-root","input":null,"filter":"try recurse(.[]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-null-type","input":null,"filter":"try (recurse(.[]) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-false-root","input":false,"filter":"try (recurse(.[]) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-array-empty","input":[],"filter":"try recurse(.[]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-array-nested","input":[[1],3,[4]],"filter":"try recurse(.[]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-null-member","input":[null,7],"filter":"try (recurse(.[]) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-tail-error","input":[1,[2],3],"filter":"try (recurse(.[]) | if . == 1 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-comma-out","input":[1,[2],3],"filter":"0, (try (recurse(.[]) | type) catch 42), 9","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-comma-in","input":[1,[2],3],"filter":"try ((recurse(.[]) | type), 9) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-optional-control","input":[1,[2],3],"filter":"try (recurse(.[]?) | type)","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-bare-default","input":[1,[2],3],"filter":"try recurse","status":"compatible","expected":"ok"}
