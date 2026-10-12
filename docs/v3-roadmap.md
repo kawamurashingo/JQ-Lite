@@ -556,9 +556,11 @@ still emits exactly one JSON null, and valid `false` values
 are retained. `catch null` remains the explicit way to return
 null on an error; `catch 42`, `catch $error` and
 `catch empty` keep their existing handling.
-The change is confined to the **no-catch error branch** of the
-existing `try` evaluator, not a general rewrite of nested
-try/catch parsing or exceptions in unrelated filters.
+The parser also keeps `try .[]` and `try .items[]` intact
+instead of lowering their suffix iterators *outside* the `try`
+handler; otherwise the caught error could escape the handler.
+Top-level comma alternatives follow the same boundary.
+Other nested try/catch parsing and unrelated filters are unchanged.
 
 The parser now preserves **`try []` and `try [ ]` as
 empty-array constructor expressions** instead of lowering the

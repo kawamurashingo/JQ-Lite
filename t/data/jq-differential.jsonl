@@ -1584,3 +1584,7 @@
 {"name":"trynocatch-control-empty-array","input":null,"filter":"try []","status":"compatible","expected":"ok"}
 {"name":"trynocatch-control-spaced-array","input":null,"filter":"try [ ]","status":"compatible","expected":"ok"}
 {"name":"trynocatch-control-quoted-array","input":null,"filter":"try [\"catch me\"]","status":"compatible","expected":"ok"}
+{"name":"trynocatch-parenthesized","input":null,"filter":"try (.[])","status":"compatible","expected":"ok"}
+{"name":"trynocatch-comma-inner","input":null,"filter":"0, try .[]","status":"compatible","expected":"ok"}
+{"name":"trynocatch-nested-success","input":{"items":[1,2]},"filter":"try .items[]","status":"compatible","expected":"ok"}
+{"name":"trynocatch-nested-explicit","input":{"items":null},"filter":"try .items[] catch null","status":"compatible","expected":"ok"}

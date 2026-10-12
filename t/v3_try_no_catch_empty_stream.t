@@ -35,6 +35,25 @@ subtest 'unhandled try errors produce an empty stream' => sub {
         'comma branch preserves surrounding results');
 };
 
+subtest 'iterator suffix stays inside the try expression' => sub {
+    is_deeply([JQ::Lite::Parser::parse_query('try .[]')],
+        ['try .[]'], 'parser does not split strict iterator out of try');
+    is_deeply([JQ::Lite::Parser::parse_query('try .items[]')],
+        ['try .items[]'], 'parser preserves named iterator inside try');
+    is_deeply([JQ::Lite::Parser::parse_query('0, try .[]')],
+        ['0, try .[]'], 'comma alternative keeps iterator inside try');
+    is_deeply(results('null', 'try (.[])'), [],
+        'parenthesized strict iteration is caught');
+    is_deeply(results('null', '0, try .[]'), [0],
+        'failed later try branch does not erase prior result');
+    is_deeply(results('{"items":[1,2]}', 'try .items[]'), [1,2],
+        'valid nested iterator still expands under try');
+    is_deeply(results('{"items":null}', 'try .items[]'), [],
+        'failed nested strict iterator is caught');
+    is_deeply(results('{"items":null}', 'try .items[] catch null'),
+        [undef], 'explicit catch can still emit null after iteration');
+};
+
 subtest 'successful try values and explicit catches remain distinct' => sub {
     is_deeply(results('null', 'try null'), [undef],
         'successful null is a real value');
