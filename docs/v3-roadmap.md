@@ -891,6 +891,27 @@ Errors in non-iterator portions of the field access and
 other custom child expressions still follow their existing
 semantics.
 
+**Dotted computed-key selectors** beginning with a
+simple field path, such as `recurse(.[.cfg.key][]? | f)`
+or its strict `[]` variant, now retain completed ancestor
+and sibling outputs when used as the head of a nested
+parenthesized `try` pipeline. Each recursion node resolves
+the dotted selector against that node's input, so later
+children may use different computed field names.
+The selector is evaluated even on null or invalid inputs;
+a missing, null, or invalid intermediate selector value
+raises before the optional iterator can suppress anything.
+However, `[]?` skips a missing or null **selected array**,
+while strict `[]` raises after the current node has been
+emitted. Emission remains depth-first across downstream
+pipelines, comma alternatives and outer iterators.
+This is deliberately limited to **simple dot-separated
+identifier field paths** within one computed selector
+followed by literal `[]` or `[]?` and a child pipeline.
+Arbitrary computations, nested computed selectors and
+individual eager-leaf partial streams remain outside
+this change. The scoped Perl tests and 36 jq 1.7
+differential fixtures cover its compatibility boundary.
 **Simple computed-key strict child iterators**,
 such as `recurse(.[.field][] | f)`, are now handled
 by the same narrowly scoped nested `try` stream visitor.
