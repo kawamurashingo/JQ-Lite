@@ -363,6 +363,66 @@ sub apply {
                                 JQ::Lite::Util::_strip_wrapping_parens($branch);
                             my @stages =
                                 JQ::Lite::Util::_split_top_level_pipes($unwrapped);
+
+                            # A fully parenthesized final comma stage is a
+                            # stream, even when its second alternative
+                            # throws. Run the completed alternatives for
+                            # each upstream value before taking the next
+                            # value; preserve their results in @branch_outputs.
+                            # Prefix stages are still eagerly evaluated,
+                            # so partially failing prefix generators remain
+                            # part of the broader streaming audit.
+                            my @final_comma_parts;
+                            if (@stages > 1
+                                && $stages[-1] =~ /\A\s*\(/s)
+                            {
+                                my $final_inner =
+                                    JQ::Lite::Util::_strip_wrapping_parens(
+                                        $stages[-1]
+                                    );
+                                @final_comma_parts =
+                                    JQ::Lite::Util::_split_top_level_commas(
+                                        $final_inner
+                                    );
+                            }
+                            my $emit_tail = sub {
+                                my ($tail_json, $tail) = @_;
+                                my @parts =
+                                    JQ::Lite::Util::_split_top_level_pipes($tail);
+                                my @last_alternatives;
+                                if (@parts && $parts[-1] =~ /\A\s*\(/s) {
+                                    my $inner =
+                                        JQ::Lite::Util::_strip_wrapping_parens(
+                                            $parts[-1]
+                                        );
+                                    @last_alternatives =
+                                        JQ::Lite::Util::_split_top_level_commas(
+                                            $inner
+                                        );
+                                }
+                                if (@last_alternatives > 1) {
+                                    pop @parts;
+                                    my @inputs_json = @parts
+                                        ? map {
+                                            JQ::Lite::Util::_encode_json($_)
+                                        } $self->run_query(
+                                            $tail_json, join(' | ', @parts)
+                                        )
+                                        : ($tail_json);
+                                    for my $stage_json (@inputs_json) {
+                                        for my $alternative (@last_alternatives) {
+                                            push @branch_outputs,
+                                                $self->run_query(
+                                                    $stage_json, $alternative
+                                                );
+                                        }
+                                    }
+                                    return;
+                                }
+                                push @branch_outputs,
+                                    $self->run_query($tail_json, $tail);
+                            };
+
                             # A parenthesized comma expression can
                             # generate multiple inputs for one pipeline,
                             # for example (0, 1/0) | . + 1. Run its
@@ -419,7 +479,7 @@ sub apply {
                                         $json, $alternative
                                     );
                                     for my $head_value (@head_values) {
-                                        push @branch_outputs, $self->run_query(
+                                        $emit_tail->(
                                             JQ::Lite::Util::_encode_json(
                                                 $head_value
                                             ),
@@ -446,7 +506,7 @@ sub apply {
                                 JQ::Lite::Util::_visit_range_sequence(
                                     \@args, sub {
                                         my ($number) = @_;
-                                        push @branch_outputs, $self->run_query(
+                                        $emit_tail->(
                                             JQ::Lite::Util::_encode_json($number),
                                             $tail
                                         );
@@ -471,7 +531,7 @@ sub apply {
                                 JQ::Lite::Util::_visit_update_rhs_recurse(
                                     $self, $value, $child_filter, sub {
                                         my ($recur_value) = @_;
-                                        push @branch_outputs, $self->run_query(
+                                        $emit_tail->(
                                             JQ::Lite::Util::_encode_json($recur_value),
                                             $tail
                                         );
@@ -499,9 +559,7 @@ sub apply {
                                     my $node_json =
                                         JQ::Lite::Util::_encode_json($node);
                                     if (!$expand) {
-                                        push @branch_outputs, $self->run_query(
-                                            $node_json, $tail
-                                        );
+                                        $emit_tail->($node_json, $tail);
                                         push @pending, [$node, 1];
                                         next;
                                     }
@@ -532,7 +590,7 @@ sub apply {
                                 JQ::Lite::Util::_visit_update_rhs_recurse(
                                     $self, $value, $child_filter, sub {
                                         my ($node) = @_;
-                                        push @branch_outputs, $self->run_query(
+                                        $emit_tail->(
                                             JQ::Lite::Util::_encode_json($node),
                                             $tail
                                         );
@@ -559,9 +617,7 @@ sub apply {
                                     my $current_json =
                                         JQ::Lite::Util::_encode_json($current);
                                     if ($depth == @iterator_heads) {
-                                        push @branch_outputs, $self->run_query(
-                                            $current_json, $tail
-                                        );
+                                        $emit_tail->($current_json, $tail);
                                         next;
                                     }
                                     my @members = $self->run_query(
@@ -571,6 +627,21 @@ sub apply {
                                     push @pending, map {
                                         [$_, $depth + 1]
                                     } reverse @members;
+                                }
+                            }
+                            elsif (@final_comma_parts > 1) {
+                                # General non-generator heads, e.g.
+                                # . | (., 1/0), also need the final stage
+                                # evaluated one alternative at a time.
+                                my $last = pop @stages;
+                                my @head_values = $self->run_query(
+                                    $json, join(' | ', @stages)
+                                );
+                                for my $head_value (@head_values) {
+                                    $emit_tail->(
+                                        JQ::Lite::Util::_encode_json($head_value),
+                                        $last
+                                    );
                                 }
                             }
                             else {
