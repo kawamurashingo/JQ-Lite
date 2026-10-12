@@ -17,6 +17,16 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # A full literal numeric path can also contain whitespace before
+    # the bracket: . [0], .items [ 0 ], or .items[0] [1].
+    # Keep this check before legacy numeric/arithmetic shortcuts.
+    # Do not match bare array constructors or nonliteral bracket forms.
+    if ($normalized =~ /\s+\[\s*-?\d+\s*\]/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # jq allows spaces inside literal numeric brackets: [ 0 ], [-1 ],
     # and [ 0 ]?. Route only fully parsed literal paths to the
     # ordered visitor, before legacy index/value-expression shortcuts.
