@@ -1017,6 +1017,25 @@ emitted. Direct Perl regressions and 72 additional
 jq 1.7 differential fixtures cover depth-first order,
 catch variants, signed indices, invalid selectors,
 and unusual quoted names.
+**Two successive simple computed selector stages**,
+such as `recurse(.[.first][.second][]? | f)` or
+`recurse(.[.cfg.first][.cfg.second][] | f)`, are now
+recognized by the narrowly scoped nested `try`
+stream visitor. Both selector expressions read from
+the same current recursion node before descending
+into the selected child stream. This preserves
+completed ancestors and earlier siblings before
+a later selector, child filter, or downstream tail
+raises an error. An invalid computed key on a null
+node is still evaluated after that node is emitted;
+optional `[]?` only skips null/missing *selected*
+containers, whereas strict `[]` raises. The change
+is limited to two simple dot-separated identifier
+selector stages, not arbitrary expressions or three
+or more computed selectors. Direct Perl regression
+tests and 37 jq 1.7 differential fixtures cover
+these boundaries, catches and depth-first order.
+
 
 
 
