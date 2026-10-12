@@ -354,9 +354,10 @@ sub apply {
                             # source order; retain earlier completed
                             # results if a subsequent member fails.
                             # Simple range(...) and default/optional
-                            # recurse generators also reuse their existing
-                            # on-demand visitors below. Other paths and
-                            # partially failing leaf filters remain eager.
+                            # recurse generators reuse existing on-demand
+                            # visitors; strict recurse(.[]) also gets a
+                            # scoped yield-then-expand visitor. Other paths
+                            # and partially failing leaf filters stay eager.
                             my $unwrapped =
                                 JQ::Lite::Util::_strip_wrapping_parens($branch);
                             my @stages =
@@ -436,6 +437,40 @@ sub apply {
                                         return 0;
                                     }
                                 );
+                            }
+                            elsif (@stages && $stages[0] =~
+                                /\A\s*recurse\(\s*\.\[\s*\]\s*\)\s*\z/s)
+                            {
+                                # Strict recurse(.[]) yields the current
+                                # node before attempting its child iterator.
+                                # A scalar/null leaf therefore remains a
+                                # completed output, then triggers an error
+                                # when its strict .[] expansion is required.
+                                # An explicit iterative enter/expand stack
+                                # preserves that jq order and avoids adding
+                                # call-stack depth for nested arrays.
+                                shift @stages;
+                                my $tail = @stages
+                                    ? join(' | ', @stages) : '.';
+                                my @pending = ([$value, 0]);
+                                while (@pending) {
+                                    my ($node, $expand) = @{ pop @pending };
+                                    my $node_json =
+                                        JQ::Lite::Util::_encode_json($node);
+                                    if (!$expand) {
+                                        push @branch_outputs, $self->run_query(
+                                            $node_json, $tail
+                                        );
+                                        push @pending, [$node, 1];
+                                        next;
+                                    }
+                                    my @children = $self->run_query(
+                                        $node_json, '.[]'
+                                    );
+                                    push @pending, map {
+                                        [$_, 0]
+                                    } reverse @children;
+                                }
                             }
                             elsif (@iterator_heads) {
                                 shift @stages;
