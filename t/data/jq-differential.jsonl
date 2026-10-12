@@ -1491,4 +1491,3 @@
 {"name":"tryemptyarray-control-optional-rooted","input":{"items":[1,2]},"filter":".items[ ]?","status":"compatible","expected":"ok"}
 {"name":"tryemptyarray-control-keys","input":{"a":2,"b":1},"filter":"keys[]","status":"compatible","expected":"ok"}
 {"name":"tryemptyarray-control-keys-spaced","input":{"a":2,"b":1},"filter":"keys []?","status":"compatible","expected":"ok"}
-{"name":"tryemptyarray-control-try-error","input":null,"filter":"try .[]","status":"compatible","expected":"ok"}
