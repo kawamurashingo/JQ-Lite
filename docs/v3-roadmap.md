@@ -1000,6 +1000,24 @@ preservation, nested recursion, numeric signs, special
 quoted names, and earlier selector controls. This does
 not support arbitrary computed expressions or partially
 failing eager leaf streams.
+**One or two signed numeric indices after a quoted
+literal selector field** are now handled by the scoped
+nested `try` recurse stream visitor. This covers
+`recurse(.[.cfg["names"][0][0]][]? | f)` and
+`recurse(.[.cfg."names"[-1][-1]][] | f)` in addition
+to the existing single-index forms. Both bracket-quoted
+and dot-quoted literal selector fields work after a
+simple dotted-identifier prefix; arbitrarily nested
+computed expressions are not part of this extension.
+The ancestor node and any finished siblings remain
+visible if a selector or later child fails. Optional
+`[]?` still skips a null/missing selected container,
+while strict `[]` raises after the current node is
+emitted. Direct Perl regressions and 72 additional
+jq 1.7 differential fixtures cover depth-first order,
+catch variants, signed indices, invalid selectors,
+and unusual quoted names.
+
 
 
 
