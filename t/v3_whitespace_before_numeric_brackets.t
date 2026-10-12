@@ -166,8 +166,10 @@ subtest 'parser limits and regression controls' => sub {
         '.items [ 0:1 ]')), 'slices remain outside literal numeric scanner');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.items [ .key ]')), 'computed expressions remain separately audited');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.items [ "a.b" ]')), 'quoted bracket with preceding space stays out of scope');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.items [ "a.b" ]'),
+        [['field','items'],['field','a.b']],
+        'literal JSON-quoted bracket after a space now enters visitor');
     is_deeply(results('[10,20]', '.[0]'), [10],
         'previous unspaced root numeric unchanged');
     is_deeply(results('{"items":[10,20]}', '.items[ 0 ]'), [10],

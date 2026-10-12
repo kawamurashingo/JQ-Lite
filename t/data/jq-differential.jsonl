@@ -1330,3 +1330,48 @@
 {"name":"beforebracket-control-field","input":{"name":7},"filter":".name","status":"compatible","expected":"ok"}
 {"name":"beforebracket-control-quoted","input":{"a.b":5},"filter":".\"a.b\"","status":"compatible","expected":"ok"}
 {"name":"beforebracket-control-array-constructor","input":[10,20],"filter":"[0]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-simple","input":{"a.b":3},"filter":". [\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-inner","input":{"a.b":3},"filter":". [ \"a.b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-tab","input":{"a.b":3},"filter":".\t[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-space","input":{"full name":"Ada"},"filter":". [ \"full name\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-empty","input":{"":8},"filter":". [\"\"]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-indextext","input":{"[0]":9},"filter":". [ \"[0]\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-plus","input":{"a+b":10},"filter":". [ \"a+b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-update","input":{"a|=b":11},"filter":". [ \"a|=b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-comma","input":{"a,b":12},"filter":". [ \"a,b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-escapedquote","input":{"a\"b":13},"filter":". [ \"a\\\"b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-backslash","input":{"a\\b":14},"filter":". [ \"a\\\\b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-unicode","input":{"a.b":15},"filter":". [ \"a\\u002eb\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-missing","input":{},"filter":". [\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-null","input":null,"filter":". [\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-false","input":{"a.b":false},"filter":". [\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-root-bad-number","input":7,"filter":". [\"a.b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"spacedquotedbr-root-bad-boolean","input":true,"filter":". [\"a.b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"spacedquotedbr-root-bad-array","input":[],"filter":". [\"a.b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"spacedquotedbr-nested-simple","input":{"obj":{"a.b":5}},"filter":".obj [\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-inner","input":{"obj":{"a.b":5}},"filter":".obj [ \"a.b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-suffix","input":{"obj":{"a.b":{"name":"A"}}},"filter":".obj [ \"a.b\" ].name","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-double","input":{"outer":{"a.b":6}},"filter":". [\"outer\"] [ \"a.b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-numindex","input":{"obj":{"a.b":[3,4]}},"filter":".obj [ \"a.b\" ] [1]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-negindex","input":{"obj":{"a.b":[3,4]}},"filter":".obj [ \"a.b\" ][ -1 ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-null","input":{"obj":null},"filter":".obj [ \"a.b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-missing","input":{},"filter":".obj [ \"a.b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-missing-inner","input":{"obj":{}},"filter":".obj [ \"a.b\" ].name","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-nested-bad-parent","input":{"obj":7},"filter":".obj [ \"a.b\" ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacedquotedbr-nested-bad-prior","input":7,"filter":".obj [ \"a.b\" ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacedquotedbr-nested-bad-suffix","input":{"obj":{"a.b":7}},"filter":".obj [ \"a.b\" ].name","status":"compatible","expected":"runtime-error"}
+{"name":"spacedquotedbr-pipeline","input":{"obj":{"a.b":5}},"filter":".obj [ \"a.b\" ] | . + 1","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-comma","input":{"obj":{"a.b":5}},"filter":"0, .obj [ \"a.b\" ], 9","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-optional-root","input":{"a.b":5},"filter":". [ \"a.b\" ]?","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-optional-nested","input":{"obj":{"a.b":5}},"filter":".obj [ \"a.b\" ]?","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-optional-missing","input":{"obj":{}},"filter":".obj [ \"a.b\" ]?","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-optional-null","input":null,"filter":". [ \"a.b\" ]?","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-optional-bad-root","input":7,"filter":". [ \"a.b\" ]?","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-optional-bad-parent","input":{"obj":7},"filter":".obj [ \"a.b\" ]?","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-optional-later","input":{"obj":{"a.b":7}},"filter":".obj [ \"a.b\" ]?.name?","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-optional-later-error","input":{"obj":{"a.b":7}},"filter":".obj [ \"a.b\" ]?.name","status":"compatible","expected":"runtime-error"}
+{"name":"spacedquotedbr-optional-prior-error","input":7,"filter":".obj [ \"a.b\" ]?","status":"compatible","expected":"runtime-error"}
+{"name":"spacedquotedbr-constructor","input":{"a.b":5},"filter":"[ \"a.b\" ]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-old-bracket","input":{"a.b":5},"filter":".[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-old-spaced-numeric","input":{"items":[10,20]},"filter":".items [0]","status":"compatible","expected":"ok"}
+{"name":"spacedquotedbr-old-dotquoted","input":{"a.b":5},"filter":".\"a.b\"","status":"compatible","expected":"ok"}

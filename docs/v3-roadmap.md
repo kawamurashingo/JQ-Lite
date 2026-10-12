@@ -460,9 +460,22 @@ retain their existing strict/null/empty-output rules. The scanner
 consumes whitespace **only** when the next stage is a complete
 literal signed-integer bracket, including whitespace *inside* the
 bracket from the preceding change. It does not broaden arbitrary
-computed selectors, slice expressions or brackets containing JSON
-strings. Bare `[0]` and `[ 0 ]` remain array constructors, not
+computed selectors or slice expressions; whitespace before
+brackets containing literal JSON strings is audited separately below. Bare `[0]` and `[ 0 ]` remain array constructors, not
 rooted numeric lookups; a leading dot is required for root indexing.
+
+**Whitespace before JSON-quoted field brackets** now works in
+complete literal v3 paths: `. ["a.b"]`, `.obj [ "a.b" ]`,
+`.obj [ "a.b" ]?`, and `.obj ["a.b"] [0]`.
+JSON-quoted names are decoded as single literal keys; punctuation
+such as `.`, `|`, `,`, and `|=` inside a key is not an operator.
+Strict lookups keep their own wrong-type errors; stage-local
+optional `? ` (written immediately after `]`, as `["a.b"]?`)
+omits only invalid lookups while missing/null fields yield one
+JSON null. Only whitespace before a **complete literal
+JSON-quoted bracket** is consumed. Dynamic selectors and slices
+remain separate, and bare `["a.b"]` or `[ "a.b" ]` are
+array constructors, not object lookups.
 
 For literal paths, unquoted names, JSON-quoted keys, and adjacent
 `[]`/`[]?`/`[integer]`/`[integer]?` steps are supported
@@ -607,6 +620,7 @@ application logic. In particular:
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | an object key with a literal dot, space, or operator-like punctuation must be read strictly | use bracket-quoted syntax `.["a.b"]` / `.obj["a.b"].name` or dot-quoted syntax `."a.b"` / `.obj."a.b".name`; an absent key/null yields JSON null but wrong-type inputs still raise structured errors; bare `["a.b"]` is an array constructor and bare `"a.b"` is a string literal |
+| whitespace separates a path stage from a quoted field bracket | `. ["a.b"]`, `.obj [ "a.b" ]` and `.obj [ "a.b" ]?` now match unspaced bracket-quoted lookups; missing/null stay one null and strict wrong types remain errors, while bare `[ "a.b" ]` is still an array constructor |
 | whitespace separates a path stage from a numeric index | `. [0]`, `.items [ -1 ]` and `.items[0] [1]` now match their no-space equivalents; `[N]?` keeps stage-local optionality, while slices, computed brackets and bare array constructors remain separate |
 | spaces are present inside a literal numeric index | `.[ 0 ]`, `.items[ -1 ]`, and `.items[ 0 ]?` have the same v3 semantics as their unspaced forms; optional `?` stays outside `]`, and slices/computed expressions keep their separate handling |
 | a strict standalone nonnegative array index is required | use `.[0]` or `.items[0].name`; arrays and JSON null preserve one value (possibly null), but wrong-type numeric targets still raise errors; use `[0]?` only to omit wrong-type outputs |
