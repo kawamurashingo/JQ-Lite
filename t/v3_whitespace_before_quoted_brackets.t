@@ -163,6 +163,19 @@ subtest 'syntax and existing regression boundaries' => sub {
         '[ "a.b" ]')),
         'bare array constructor never interpreted as field');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        'try ["catch me"]')),
+        'try followed by array literal is not a rooted path');
+    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        'obj ["a.b"]')),
+        'unrooted whitespace-quoted stage cannot be a jq path');
+    is_deeply([JQ::Lite::Parser::parse_query('.obj [ "a.b" ]')],
+        ['.obj [ "a.b" ]'],
+        'parser retains explicit dot for whitespace-quoted field path');
+    is_deeply(results('null', 'try ["catch me"]'),
+        [['catch me']], 'try array literal remains an array');
+    is_deeply(results('null', 'try ["other"]'),
+        [['other']], 'additional try array literal regression');
+    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.obj [ 1:3 ]')),
         'slice bracket not reclassified as literal quoted field');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(

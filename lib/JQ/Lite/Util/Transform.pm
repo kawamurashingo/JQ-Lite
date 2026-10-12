@@ -874,7 +874,11 @@ sub _parse_v3_literal_iterator_path {
         # literal signed integer or quoted string. In particular do
         # not route slices, computed expressions or bare constructors.
         $rest =~ s/\A\s+(?=\[\s*-?\d+\s*\])//;
-        $rest =~ s/\A\s+(?=\[\s*"(?:[^"\\]|\\.)*"\s*\])//s;
+        # Require the explicit root dot for this new whitespace form:
+        # otherwise 'try ["catch me"]' would be mistaken for a
+        # dotless literal path rather than a try/array expression.
+        $rest =~ s/\A\s+(?=\[\s*"(?:[^"\\]|\\.)*"\s*\])//s
+            if $path =~ /\A\./;
 
         if ($rest =~ s/\A([A-Za-z_]\w*)(\?)?//) {
             # An optional field is distinct from an optional index and

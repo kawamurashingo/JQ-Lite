@@ -160,6 +160,15 @@ sub parse_query {
             {
                 $_;
             }
+            # Unlike older unspaced paths, a field followed by
+            # whitespace and a quoted bracket must retain its dot,
+            # or the scoped scanner cannot distinguish it from
+            # 'try ["literal"]' and other non-path filters.
+            elsif ($rest =~ /\s+\[\s*"/
+                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
+            {
+                $_;
+            }
             # Literal iterator paths with signed indices or JSON-quoted
             # field names can contain '-', '+', '/', or even '=' INSIDE
             # a quoted key.  Detect them before arithmetic heuristics and
