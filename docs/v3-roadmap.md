@@ -1126,6 +1126,24 @@ Four numeric stages or arbitrary arithmetic selectors
 remain outside the audited grammar. Direct Perl
 regressions and 41 jq 1.7 differential fixtures
 verify this bounded extension.
+**Optional numeric stages within computed child selectors**
+are supported in the existing scoped nested `try`
+recurse visitor. For example,
+`recurse(.[.keys[0]?][]? | f)` preserves prior
+completed nodes before a later child failure.
+An inner `[0]?` suppresses *invalid numeric-index
+target type* errors by yielding no selector output;
+it does not make a valid array's out-of-range null
+result into `empty`. The resulting computed null key
+still raises, even with an outer `[]?` child iterator.
+Strict `[]` on a null/missing selected container still
+raises after its recursion node has been emitted.
+Quoted selector fields and mixed strict/optional
+numeric stages retain their existing v3 semantics.
+The change adds 40 jq 1.7 differential fixtures and
+direct Perl tests, without enabling arithmetic
+selectors or arbitrary filter evaluation.
+
 
 
 
