@@ -347,8 +347,9 @@ sub apply {
                     {
                         local $@;
                         eval {
-                            # A leading standalone iterator can supply
-                            # several pipeline inputs. Evaluate its tail
+                            # A leading standalone iterator or simple named
+                            # field iterator can supply several pipeline
+                            # inputs. Evaluate its tail
                             # once per member, in source order, so results
                             # from earlier completed members survive a
                             # later member's evaluation error.
@@ -360,7 +361,8 @@ sub apply {
                             my @stages =
                                 JQ::Lite::Util::_split_top_level_pipes($unwrapped);
                             if (@stages > 1
-                                && $stages[0] =~ /\A\s*\.\[\s*\]\??\s*\z/s)
+                                && $stages[0] =~
+                                    /\A\s*\.(?:\[\s*\]|[A-Za-z_]\w*\[\s*\])\??\s*\z/s)
                             {
                                 my $head = shift @stages;
                                 my $tail = join(' | ', @stages);
