@@ -367,7 +367,10 @@ sub apply {
                         }
 
                         if ($catch_error) {
-                            push @next_results, undef;
+                            # A catch handler's own failure is not protected
+                            # by this try. Propagate it to the caller (or an
+                            # enclosing try) instead of emitting JSON null.
+                            die $catch_error;
                         }
                         else {
                             push @next_results, @catch_outputs;
