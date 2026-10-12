@@ -869,6 +869,22 @@ arbitrary custom children, or partially failing eager leaves.
 Direct regressions and 23 jq 1.7 differential fixtures
 cover the additional dot-quoted forms. Unwrapped recurse
 and the stable 2.x API are unchanged.
+**Strict named-field child iterators** such as
+`recurse(.items[] | f)`, `recurse(.["items"][] | f)` and
+`recurse(."items"[] | f)` now also preserve prior recursive
+nodes when a later child or downstream filter raises an error
+inside a parenthesized `try` pipeline. Unlike the optional
+forms, strict `[]` raises when the selected child field is
+missing or null; the node was already emitted, so a `catch`
+handler follows the completed output. Null roots therefore
+produce the root null *and then* the caught strict-iterator
+error. This uses the existing update-RHS demand-driven
+visitor, with a narrow null-node expansion correction for
+simple named/quoted strict child iterators. It does not add
+general streaming for arbitrary computed keys, and it does
+not change stable 2.x behavior. The scoped suite contains
+27 jq 1.7 differential fixtures and direct Perl regressions.
+
 This is a named-field **optional iterator followed by a
 custom child pipeline**, not general dynamic path support.
 Errors in non-iterator portions of the field access and
