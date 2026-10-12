@@ -1990,6 +1990,6 @@
 {"name":"trynestedstrictrec-inside-comma","input":[1,[2],3],"filter":"try ((. | (recurse(.[]) | type)), 99) catch 42","status":"compatible","expected":"ok"}
 {"name":"trynestedstrictrec-optional-control","input":[1,[2],3],"filter":"try (. | (recurse(.[]?) | type))","status":"compatible","expected":"ok"}
 {"name":"trynestedstrictrec-unwrapped-control","input":[1,[2],3],"filter":"try (recurse(.[]) | type) catch 42","status":"compatible","expected":"ok"}
-{"name":"trystrictrec-null-update-catch","input":null,"filter":"try (. |= (recurse(.[]) | empty)) catch 42","status":"compatible","expected":"ok"}
-{"name":"trystrictrec-null-update-accepted","input":null,"filter":"try (. |= (recurse(.[]) | type)) catch 42","status":"compatible","expected":"ok"}
-{"name":"trystrictrec-null-update-optional","input":null,"filter":"try (. |= (recurse(.[]?) | empty)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-null-update-catch","input":{"a":null},"filter":"try (.a |= (recurse(.[]) | empty)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-null-update-accepted","input":{"a":null},"filter":"try (.a |= (recurse(.[]) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-null-update-optional","input":{"a":null},"filter":"try (.a |= (recurse(.[]?) | empty)) catch 42","status":"compatible","expected":"ok"}

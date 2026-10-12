@@ -87,15 +87,15 @@ subtest 'ordinary finite recurse queries preserve all of their outputs' => sub {
 };
 
 subtest 'strict recurse null children are expanded only when needed' => sub {
-    is_deeply(results('null',
-        '. |= (recurse(.[]) | type)'),
-        ['null'], 'accepted root output stops before invalid strict child');
-    is_deeply(results('null',
-        'try (. |= (recurse(.[]) | empty)) catch 42'),
-        [42], 'no accepted RHS result requests strict null child and catches error');
-    is_deeply(results('null',
-        'try (. |= (recurse(.[]?) | empty)) catch 42'),
-        [undef], 'optional child iterator still treats null as empty');
+    is_deeply(results('{"a":null}',
+        '.a |= (recurse(.[]) | type)'),
+        [{ a => 'null' }], 'accepted output stops before invalid strict child');
+    is_deeply(results('{"a":null}',
+        'try (.a |= (recurse(.[]) | empty)) catch 42'),
+        [42], 'no accepted RHS result needs strict null child and catches error');
+    is_deeply(results('{"a":null}',
+        'try (.a |= (recurse(.[]?) | empty)) catch 42'),
+        [{}], 'optional child iterator still treats null as empty');
 };
 
 done_testing;
