@@ -237,7 +237,8 @@ sub _visit_update_rhs_recurse_filtered {
     my $strict_named_iterator = $child_filter =~
         /\A\.(?:[A-Za-z_]\w*|\[\s*"(?:\\.|[^"\\])*"\s*\]|"(?:\\.|[^"\\])*")\[\s*\]\s*(?:\||\z)/s;
     # .[.field][], .[.cfg.key][]?, .[.cfg["selected"]][]?,
-    # and .[.cfg."selected"][]? all evaluate on null. A null key
+    # .[.cfg."selected"][]?, and .[.keys[0]][]? all evaluate on
+    # null nodes. A null key
     # raises before the iterator can suppress or expand anything.
     # Keep strict and optional child iteration semantics unchanged.
     # Other optional/custom children keep their null short-circuit.
@@ -247,7 +248,9 @@ sub _visit_update_rhs_recurse_filtered {
         || $child_filter =~
             /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*\]\[\s*\]\??\s*(?:\||\z)/s
         || $child_filter =~
-            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*(?:\||\z)/s;
+            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*(?:\||\z)/s
+        || $child_filter =~
+            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*-?\d+\s*\]\s*\]\[\s*\]\??\s*(?:\||\z)/s;
     return 0 if !defined($current)
         && $child_filter !~ /\A\.\[\s*\]\z/
         && !$strict_named_iterator
