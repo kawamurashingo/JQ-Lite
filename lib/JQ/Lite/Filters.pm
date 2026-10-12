@@ -579,7 +579,7 @@ sub apply {
                                     /\(\s*recurse\(\s*\.\[\s*"(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*\|/s
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\."(?:\\.|[^"\\])*"\s*\[\s*\]\??\s*\|/s
-                                    || JQ::Lite::Util::_is_nested_scoped_computed_recurse($unwrapped))
+                                    || JQ::Lite::Util::_is_nested_scoped_computed_recurse($unwrapped)))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
