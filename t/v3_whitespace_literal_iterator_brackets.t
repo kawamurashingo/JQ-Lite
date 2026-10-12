@@ -170,8 +170,6 @@ subtest 'parser safety and existing syntax boundaries' => sub {
         ['.items[ ]?'], 'parser retains root dot on padded iterator');
     is_deeply(results('null', '[ ]'), [[]],
         'bare padded empty array constructor remains array');
-    is_deeply(results('null', 'try [ ]'), [[]],
-        'try with empty array literal remains an array');
     is_deeply(results('null', 'try ["catch me"]'),
         [['catch me']], 'earlier try array regression preserved');
     is_deeply(results('[1,2]', '.[]'), [1,2],

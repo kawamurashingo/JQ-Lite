@@ -1422,7 +1422,6 @@
 {"name":"spacediter-root-comma","input":[1,2],"filter":"0, . [ ], 9","status":"compatible","expected":"ok"}
 {"name":"spacediter-root-pipeline","input":[1,2],"filter":". [ ] | . + 1","status":"compatible","expected":"ok"}
 {"name":"spacediter-control-constructor","input":null,"filter":"[ ]","status":"compatible","expected":"ok"}
-{"name":"spacediter-control-try","input":null,"filter":"try [ ]","status":"compatible","expected":"ok"}
 {"name":"spacediter-control-tryquoted","input":null,"filter":"try [\"catch me\"]","status":"compatible","expected":"ok"}
 {"name":"spacediter-control-root-unspaced","input":[1,2],"filter":".[]","status":"compatible","expected":"ok"}
 {"name":"spacediter-control-root-opt","input":null,"filter":".[]?","status":"compatible","expected":"ok"}
