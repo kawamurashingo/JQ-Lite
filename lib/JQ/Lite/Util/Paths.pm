@@ -263,12 +263,13 @@ sub _visit_update_rhs_recurse_filtered {
     # expansion: jq raises an iteration error *after* emitting null.
     # |= short-circuits at the accepted first output before reaching
     # this expansion, so existing first-result semantics are retained.
-    # A strict named-field iterator must attempt expansion even after
+    # A strict named-field iterator, optionally followed by one literal
+    # numeric index, must attempt expansion even after
     # emitting a null node. Its field lookup produces null, and the
     # following strict [] then raises (unlike []?). Keep the optional
     # and other custom-filter null short-circuit unchanged.
     my $strict_named_iterator = $child_filter =~
-        /\A\.(?:[A-Za-z_]\w*|\[\s*"(?:\\.|[^"\\])*"\s*\]|"(?:\\.|[^"\\])*")\[\s*\]\s*(?:\||\z)/s;
+        /\A\.(?:[A-Za-z_]\w*|\[\s*"(?:\\.|[^"\\])*"\s*\]|"(?:\\.|[^"\\])*")(?:\[\s*-?\d+\s*\])?\[\s*\]\s*(?:\||\z)/s;
     # .[.field][], .[.cfg.key][]?, .[.cfg["selected"]][]?,
     # .[.cfg."selected"][]?, .[.keys[0]][]?, and
     # .[.cfg.names[0][0]][]?, and .[.cfg["names"][0][0]][]?
