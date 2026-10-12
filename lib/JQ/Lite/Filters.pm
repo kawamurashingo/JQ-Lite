@@ -17,6 +17,16 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # jq allows spaces inside literal numeric brackets: [ 0 ], [-1 ],
+    # and [ 0 ]?. Route only fully parsed literal paths to the
+    # ordered visitor, before legacy index/value-expression shortcuts.
+    # Bare [ 0 ] constructors and arithmetic/slice brackets are excluded.
+    if ($normalized =~ /\[(?:\s+-?\d+\s*|-?\d+\s+)\]/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # Standalone strict positive literal numeric stages use the ordered
     # v3 visitor for index type errors, null propagation and subsequent
     # strict suffixes. Require a fully parsed literal path rather than

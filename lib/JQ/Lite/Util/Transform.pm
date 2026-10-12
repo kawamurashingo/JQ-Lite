@@ -935,14 +935,15 @@ sub _parse_v3_literal_iterator_path {
             push @steps, ['iterator', defined($1) ? 1 : 0];
             $has_iterator = 1;
         }
-        elsif ($rest =~ s/\A\[(-?\d+)\](\?)?//) {
+        elsif ($rest =~ s/\A\[\s*(-?\d+)\s*\](\?)?//) {
+            # jq permits whitespace on either side of a literal numeric
+            # bracket index, including when the stage is optional.
             # Capture both matches before checking the root path:
             # a second regex on $path would clear $1 and $2.
             my $index = 0 + $1;
             my $optional = defined($2) ? 1 : 0;
-            # Allow a leading .[N] only as part of a fully parsed
-            # optional-index path; standalone strict .[N] still follows
-            # the existing query path implementation.
+            # A root bracket numeric lookup must start with an explicit
+            # dot; bare [ 0 ] is an array constructor, not a path.
             return undef unless @steps || $path =~ /\A\.\[/;
             my @index_step = ('index', $index);
             push @index_step, 1 if $optional;
