@@ -1749,7 +1749,7 @@
 {"name":"tryrecurse-comma-out","input":[1,[2],3],"filter":"0, (try (recurse | if . == 2 then (1 / 0) else . end) catch 42), 9","status":"compatible","expected":"ok"}
 {"name":"tryrecurse-multistage","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1 / 0) else . end | tostring) catch 42","status":"compatible","expected":"ok"}
 {"name":"tryrecurse-root-tail-fails","input":[1,[2],3],"filter":"try (recurse | if . == 1 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
-{"name":"tryrecurse-filter-numbers","input":[1,[2],3],"filter":"try (recurse | select(type == \"number\"))","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-filter-skip","input":[1,[2],3],"filter":"try (recurse | if . == 2 then empty else . end)","status":"compatible","expected":"ok"}
 {"name":"tryrecurse-optional-all","input":[1,[2],3],"filter":"try (recurse(.[]?) | .) catch 42","status":"compatible","expected":"ok"}
 {"name":"tryrecurse-type-all","input":[1,[2],3],"filter":"try (recurse(.[]?) | type) catch 42","status":"compatible","expected":"ok"}
 {"name":"tryrecurse-null-root","input":null,"filter":"try (recurse | type) catch 42","status":"compatible","expected":"ok"}

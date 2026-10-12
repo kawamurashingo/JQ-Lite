@@ -46,8 +46,9 @@ subtest 'branch boundaries and successful recursion controls' => sub {
         'try (recurse | if . == 1 then (1 / 0) else . end) catch 42'),
         [[1,[2],3],42], 'early error prevents later descendants');
     is_deeply(results($input,
-        'try (recurse | select(type == "number"))'),
-        [1,2,3], 'skipped values do not stop recursion');
+        'try (recurse | if . == 2 then empty else . end)'),
+        [[1,[2],3],1,[2],3],
+        'empty filter results do not stop later recursion');
     is_deeply(results($input, 'try (recurse(.[]?) | .) catch 42'),
         [[1,[2],3],1,[2],2,3],
         'fully successful optional recursion retains depth-first order');
