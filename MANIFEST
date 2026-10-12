@@ -177,6 +177,7 @@ t/v3_try_named_field_iterator_stream.t
 t/v3_try_nested_iterator_stream.t
 t/v3_try_bare_nested_iterator.t
 t/v3_try_deep_iterator_stream.t
+t/v3_try_range_pipeline_stream.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t

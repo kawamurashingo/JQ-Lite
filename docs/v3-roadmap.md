@@ -689,6 +689,20 @@ selector expressions `[.field]`, composite literal paths with no iterator,
 arbitrary optional expressions, and more general iterator compositions
 still require separate audits beyond the scoped support described above.
 
+**Simple `range(...)` heads inside `try` pipelines are now consumed
+one value at a time.** The existing update-RHS range visitor also
+supplies `try (range(0;5) | f)`, so a failing `f` cannot discard
+earlier completed outputs or force the rest of the range. For example,
+`try (range(0;5) | if . == 3 then (1 / 0) else . end) catch 42`
+emits `0`, `1`, `2`, `42`. Negative steps, empty ranges,
+multiple tail stages, `catch null` and `catch empty` follow the
+same ordering. Large ranges are not eagerly allocated if a downstream
+error stops generation. This is restricted to a complete, simple
+`range(...)` pipeline head with ordinary literal arguments.
+Nested generator arguments, non-literal argument expressions,
+general-purpose lazy filters, and errors within a single tail filter's
+partially produced stream remain outside scope.
+
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
 short-circuiting within arbitrary built-ins, generator argument expressions,
@@ -813,6 +827,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| `try (range(...) | f)` lost earlier generated numbers when a later tail value raised an error | a simple range head is now generated on demand; completed earlier tail outputs remain visible before catch, while later range values are not requested |
 | three or more simple `[]` / `[]?` stages in a `try` head lost earlier completed member results or returned null | literal root and named-field iterator chains now visit each nested stage in order, retain completed outputs, and let strict/optional semantics apply at each level; arbitrary computed paths/generators remain separately scoped |
 | bare `try .[][]` or `try .items[][]` yielded null or missed earlier completed nested members | bare two-level iterators now visit each member and emit it directly, preserving strict/optional errors and completed prior outputs before catch; arbitrary deeper paths still require audit |
 | a `try (.[][] | f)` or `try (.items[][] | f)` pipeline lost completed inner members on a later error | two-level iterator heads are visited member by member; a failing inner iterator or tail stops further members, preserving already completed outputs, with optional `[][]?` still skipping non-iterable members |

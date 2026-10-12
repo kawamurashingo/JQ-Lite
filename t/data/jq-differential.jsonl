@@ -1719,3 +1719,22 @@
 {"name":"trydeep-quadruple-error","input":[[[[1]]],[[2]],[[[3]]]],"filter":"try .[][][][] catch 42","status":"compatible","expected":"ok"}
 {"name":"trydeep-control-two","input":[[1],[2]],"filter":"try .[][]","status":"compatible","expected":"ok"}
 {"name":"trydeep-control-array","input":null,"filter":"try []","status":"compatible","expected":"ok"}
+{"name":"tryrange-constant-catch","input":null,"filter":"try (range(0;5) | if . == 3 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-no-catch","input":null,"filter":"try (range(0;5) | if . == 3 then (1 / 0) else . end)","status":"compatible","expected":"ok"}
+{"name":"tryrange-empty-catch","input":null,"filter":"try (range(0;5) | if . == 3 then (1 / 0) else . end) catch empty","status":"compatible","expected":"ok"}
+{"name":"tryrange-null-catch","input":null,"filter":"try (range(0;5) | if . == 3 then (1 / 0) else . end) catch null","status":"compatible","expected":"ok"}
+{"name":"tryrange-type-catch","input":null,"filter":"try (range(0;5) | if . == 3 then (1 / 0) else . end) catch type","status":"compatible","expected":"ok"}
+{"name":"tryrange-stepped","input":null,"filter":"try (range(1;9;2) | if . == 5 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-descending","input":null,"filter":"try (range(10;1;-3) | if . == 4 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-comma-in","input":null,"filter":"try ((range(0;5) | if . == 3 then (1 / 0) else . end), 99) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-comma-out","input":null,"filter":"0, (try (range(0;5) | if . == 3 then (1 / 0) else . end) catch 42), 9","status":"compatible","expected":"ok"}
+{"name":"tryrange-null-before-error","input":null,"filter":"try (range(0;5) | if . == 3 then (1 / 0) else null end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-false-before-error","input":null,"filter":"try (range(0;5) | if . == 2 then (1 / 0) else false end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-success","input":null,"filter":"try (range(0;3) | . + 1) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-empty","input":null,"filter":"try (range(0;0) | . + 1) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-select","input":null,"filter":"try (range(0;5) | select(. > 2)) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-multistage","input":null,"filter":"try (range(0;5) | . + 1 | if . == 4 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-invalid-bounds","input":null,"filter":"try (range(\"foo\") | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-strict-iterator","input":null,"filter":"try (range(0;3) | .[]) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-optional-iterator","input":null,"filter":"try (range(0;3) | .[]?) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrange-control-bare","input":null,"filter":"try range(0;3)","status":"compatible","expected":"ok"}

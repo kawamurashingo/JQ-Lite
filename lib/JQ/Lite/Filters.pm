@@ -353,6 +353,8 @@ sub apply {
                             # expression. Visit each member in depth-first
                             # source order; retain earlier completed
                             # results if a subsequent member fails.
+                            # A simple range(...) generator is handled
+                            # separately below via its on-demand visitor.
                             # Other path forms and partially failing leaf
                             # filters remain eager.
                             my $unwrapped =
@@ -384,7 +386,33 @@ sub apply {
                                     }
                                 }
                             }
-                            if (@iterator_heads) {
+                            if (@stages > 1 && $stages[0] =~
+                                /\A\s*range\(([^()]*)\)\s*\z/s)
+                            {
+                                # Reuse the update-RHS range visitor to
+                                # generate each number on demand. A later
+                                # tail error terminates this visitor before
+                                # generating unused numbers, while retaining
+                                # outputs from already completed numbers.
+                                # Scope this to simple range(...) heads;
+                                # more complex argument filters need their
+                                # own semantic audit.
+                                my @args =
+                                    JQ::Lite::Util::_parse_range_arguments($1);
+                                shift @stages;
+                                my $tail = join(' | ', @stages);
+                                JQ::Lite::Util::_visit_range_sequence(
+                                    \@args, sub {
+                                        my ($number) = @_;
+                                        push @branch_outputs, $self->run_query(
+                                            JQ::Lite::Util::_encode_json($number),
+                                            $tail
+                                        );
+                                        return 0;
+                                    }
+                                );
+                            }
+                            elsif (@iterator_heads) {
                                 shift @stages;
                                 # With no downstream pipeline, each nested
                                 # iterator value is itself the final result.
