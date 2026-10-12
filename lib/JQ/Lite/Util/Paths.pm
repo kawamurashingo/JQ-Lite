@@ -223,7 +223,7 @@ sub _v3_scoped_computed_recurse_pattern {
     my $quoted = qr/"(?:\\.|[^"\\])*"/s;
     my $prefix = qr/\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*/s;
     my $quoted_end = qr/(?:\[\s*$quoted\s*\]|\.$quoted)?/s;
-    my $numeric = qr/\[\s*-?\d+\s*\]\s*/s;
+    my $numeric = qr/\[\s*-?\d+\s*\]\??\s*/s;
     my $single = qr/$prefix$quoted_end\s*(?:$numeric){0,3}/s;
     my $paired = qr/$prefix$quoted_end\s*(?:$numeric)?/s;
 
