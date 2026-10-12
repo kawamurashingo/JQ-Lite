@@ -75,6 +75,10 @@ is_deeply(query_results('[]', '.name'), [],
     'existing empty array projection stays empty');
 
 subtest 'constructor values preserve empty streams' => sub {
+    is_deeply(query_results('{}', '[.missing]'), [[undef]],
+        'missing object field is one null array element');
+    is_deeply(query_results('{}', '{x: .missing}'), [{ x => undef }],
+        'missing object field is one null object value');
     is_deeply(query_results('null', '[empty | type]'), [[]],
         'array constructor skips an empty type stream');
     is_deeply(query_results('null', '[empty]'), [[]],
