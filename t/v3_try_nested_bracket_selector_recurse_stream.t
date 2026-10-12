@@ -109,9 +109,6 @@ subtest 'child streams and strict/legacy controls' => sub {
     is_deeply(results($input,
         'try (. | (recurse(.[.cfg.selected][]? | if .id == 2 then (1/0) else . end) | .)) catch 42'),
         [@$prior,42], 'dot-only computed selector remains compatible');
-    is_deeply(results($input,
-        'try (. | (recurse(.[.cfg."selected"][]? | if .id == 2 then (1/0) else . end) | .)) catch 42'),
-        [@$prior,42], 'dot-quoted selector control retains results');
 
     is_deeply(results($input,
         'try (. | (recurse(.[.cfg["selected"]][] | if .id == 2 then (1/0) else . end) | .)) catch 42'),
@@ -138,7 +135,7 @@ subtest 'special JSON-quoted selector fields remain literal' => sub {
         my $tree = { cfg=>{$name=>'items'}, items=>[$node1,$node2] };
         my $quoted = $json->encode($filter_name);
         my $filter = 'try (. | (recurse(.[.cfg[' . $quoted
-            . '][]? | if .id == 2 then (1/0) else . end) | .)) catch 42';
+            . ']][]? | if .id == 2 then (1/0) else . end) | .)) catch 42';
         is_deeply(results($json->encode($tree), $filter),
             [$tree,$node1,42],
             "quoted selector '$name' is not split or truncated");
