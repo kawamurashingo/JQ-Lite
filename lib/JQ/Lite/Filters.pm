@@ -349,8 +349,9 @@ sub apply {
                         eval {
                             # A leading root/named-field iterator (or
                             # a pair of nested iterators) can supply several
-                            # pipeline inputs. Visit each member in depth-
-                            # first source order; retain earlier completed
+                            # pipeline inputs or be a bare two-level try
+                            # expression. Visit each member in depth-first
+                            # source order; retain earlier completed
                             # results if a subsequent member fails.
                             # Other path forms and partially failing leaf
                             # filters remain eager.
@@ -359,9 +360,9 @@ sub apply {
                             my @stages =
                                 JQ::Lite::Util::_split_top_level_pipes($unwrapped);
                             my @iterator_heads;
-                            if (@stages > 1) {
+                            if (@stages) {
                                 my $head = $stages[0];
-                                if ($head =~
+                                if (@stages > 1 && $head =~
                                     /\A\s*\.(?:\[\s*\]|[A-Za-z_]\w*\[\s*\])\??\s*\z/s)
                                 {
                                     @iterator_heads = ($head);
@@ -380,7 +381,12 @@ sub apply {
                             }
                             if (@iterator_heads) {
                                 shift @stages;
-                                my $tail = join(' | ', @stages);
+                                # With no downstream pipeline, each nested
+                                # iterator value is itself the final result.
+                                # Evaluating .[][] eagerly in one run_query
+                                # used to yield synthetic null instead.
+                                my $tail = @stages
+                                    ? join(' | ', @stages) : '.';
                                 # Explicit DFS stack retains stream order
                                 # without a self-referential callback and
                                 # stops before visiting later members when

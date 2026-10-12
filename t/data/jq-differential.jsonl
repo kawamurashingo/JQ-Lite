@@ -1676,3 +1676,21 @@
 {"name":"trynested-named-null","input":{"items":null},"filter":"try (.items[]?[] | .) catch 42","status":"compatible","expected":"ok"}
 {"name":"trynested-success","input":[[1,2],[3]],"filter":"try (.[][] | . + 10)","status":"compatible","expected":"ok"}
 {"name":"trynested-empty","input":[],"filter":"try (.[][] | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trybare-root-success","input":[[1],[2]],"filter":"try .[][]","status":"compatible","expected":"ok"}
+{"name":"trybare-root-error","input":[[1],3,[2]],"filter":"try .[][]","status":"compatible","expected":"ok"}
+{"name":"trybare-root-catch","input":[[1],3,[2]],"filter":"try .[][] catch 42","status":"compatible","expected":"ok"}
+{"name":"trybare-root-catch-null","input":[[1],3,[2]],"filter":"try .[][] catch null","status":"compatible","expected":"ok"}
+{"name":"trybare-root-catch-empty","input":[[1],3,[2]],"filter":"try .[][] catch empty","status":"compatible","expected":"ok"}
+{"name":"trybare-root-catch-type","input":[[1],3,[2]],"filter":"try .[][] catch type","status":"compatible","expected":"ok"}
+{"name":"trybare-root-inner-optional","input":[[1],3,[2]],"filter":"try .[][]?","status":"compatible","expected":"ok"}
+{"name":"trybare-root-outer-optional","input":[[1],3,[2]],"filter":"try .[]?[] catch 42","status":"compatible","expected":"ok"}
+{"name":"trybare-root-null-false","input":[[null,false],3],"filter":"try .[][] catch 42","status":"compatible","expected":"ok"}
+{"name":"trybare-root-empty","input":[],"filter":"try .[][]","status":"compatible","expected":"ok"}
+{"name":"trybare-named-success","input":{"items":[[1],[2]]},"filter":"try .items[][]","status":"compatible","expected":"ok"}
+{"name":"trybare-named-error","input":{"items":[[1],3,[2]]},"filter":"try .items[][] catch 42","status":"compatible","expected":"ok"}
+{"name":"trybare-named-no-catch","input":{"items":[[1],3,[2]]},"filter":"try .items[][]","status":"compatible","expected":"ok"}
+{"name":"trybare-named-optional","input":{"items":[[1],3,[2]]},"filter":"try .items[][]?","status":"compatible","expected":"ok"}
+{"name":"trybare-named-outer-optional","input":{"items":null},"filter":"try .items[]?[] catch 42","status":"compatible","expected":"ok"}
+{"name":"trybare-comma-branch","input":[[1],3,[2]],"filter":"0, try .[][], 9","status":"compatible","expected":"ok"}
+{"name":"trybare-try-comma","input":[[1],3,[2]],"filter":"try (.[][], 9) catch 42","status":"compatible","expected":"ok"}
+{"name":"trybare-control-single","input":[1,2],"filter":"try .[]","status":"compatible","expected":"ok"}
