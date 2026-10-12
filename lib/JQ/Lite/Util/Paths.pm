@@ -215,6 +215,35 @@ sub _visit_update_rhs_recurse {
     return 0;
 }
 
+# Share the audited computed child-iterator grammar between the nested
+# try dispatcher and the recurse visitor's null-node expansion guard.
+# Single selectors may have two numeric indices; each of two/three
+# selectors may have one. No arbitrary computed expressions are admitted.
+sub _v3_scoped_computed_recurse_pattern {
+    my $quoted = qr/"(?:\\.|[^"\\])*"/s;
+    my $prefix = qr/\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*/s;
+    my $quoted_end = qr/(?:\[\s*$quoted\s*\]|\.$quoted)?/s;
+    my $numeric = qr/\[\s*-?\d+\s*\]\s*/s;
+    my $single = qr/$prefix$quoted_end\s*(?:$numeric){0,2}/s;
+    my $paired = qr/$prefix$quoted_end\s*(?:$numeric)?/s;
+
+    return qr/(?:\.\[\s*$single\s*\]\[\s*\]\??|\.(?:\[\s*$paired\s*\]\s*){2,3}\[\s*\]\??)/s;
+}
+
+sub _has_scoped_computed_recurse_child {
+    my ($child_filter) = @_;
+    return 0 unless defined $child_filter;
+    my $path = _v3_scoped_computed_recurse_pattern();
+    return $child_filter =~ /\A$path\s*(?:\||\z)/s ? 1 : 0;
+}
+
+sub _is_nested_scoped_computed_recurse {
+    my ($expression) = @_;
+    return 0 unless defined $expression;
+    my $path = _v3_scoped_computed_recurse_pattern();
+    return $expression =~ /\(\s*recurse\(\s*$path\s*\|/s ? 1 : 0;
+}
+
 # A custom recurse child filter may itself emit comma or pipeline streams.
 # Visit each child immediately, including its descendants, before requesting
 # the next sibling.  A successful downstream result propagates a stop signal
@@ -246,20 +275,7 @@ sub _visit_update_rhs_recurse_filtered {
     # Keep strict and optional child iteration semantics unchanged.
     # Other optional/custom children keep their null short-circuit.
     my $computed_child_iterator =
-        $child_filter =~
-            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]\[\s*\]\??\s*(?:\||\z)/s
-        || $child_filter =~
-            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*\]\[\s*\]\??\s*(?:\||\z)/s
-        || $child_filter =~
-            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*(?:\||\z)/s
-        || $child_filter =~
-            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\[\s*-?\d+\s*\]){1,2}\s*\]\[\s*\]\??\s*(?:\||\z)/s
-        || $child_filter =~
-            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*(?:\[\s*-?\d+\s*\]\s*){1,2}\]\[\s*\]\??\s*(?:\||\z)/s
-        || $child_filter =~
-            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*(?:\[\s*-?\d+\s*\]\s*){1,2}\]\[\s*\]\??\s*(?:\||\z)/s
-        || $child_filter =~
-            /\A\.(?:\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\[\s*"(?:\\.|[^"\\])*"\s*\]|\."(?:\\.|[^"\\])*")?(?:\[\s*-?\d+\s*\])?\s*\]\s*){2,3}\[\s*\]\??\s*(?:\||\z)/s;
+        _has_scoped_computed_recurse_child($child_filter);
     return 0 if !defined($current)
         && $child_filter !~ /\A\.\[\s*\]\z/
         && !$strict_named_iterator
