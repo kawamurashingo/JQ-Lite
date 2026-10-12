@@ -570,18 +570,17 @@ sub apply {
                             }
                             if (@stages > 1
                                 && $unwrapped =~
-                                    /\(\s*(?:range\([^()]*\)|recurse(?:\(\s*\.\[\s*\]\?\s*\))?)\s*\|/s)
+                                    /\(\s*(?:range\([^()]*\)|recurse(?:\(\s*\.\[\s*\]\??\s*\))?)\s*\|/s)
                             {
-                                # A nested, fully wrapped range, default
-                                # recurse or optional-child recurse pipeline
-                                # can emit completed outputs before its
-                                # tail fails. Reuse the update RHS demand-
-                                # driven visitor so the current node and
-                                # its successful predecessors reach try
-                                # before any later recursion error.
-                                # Strict recurse(.[]) and custom child
-                                # filters are deliberately not matched
-                                # by this narrow dispatch.
+                                # A nested, fully wrapped range or recurse
+                                # pipeline can emit completed results before
+                                # a later tail or child-expansion error.
+                                # Include literal strict recurse(.[]) as
+                                # well as default and optional recurse:
+                                # yield each node before requesting strict
+                                # children, preserving completed outputs.
+                                # Arbitrary custom recurse child filters
+                                # remain outside this narrow dispatch.
                                 JQ::Lite::Util::_visit_update_rhs_results(
                                     $self, $value, $unwrapped, sub {
                                         push @branch_outputs, $_[0];
