@@ -8,8 +8,8 @@
 {"name":"false-fallback","input":false,"filter":". // 9","status":"compatible","expected":"ok"}
 {"name":"missing-field","input":{},"filter":".missing","status":"compatible","expected":"ok"}
 {"name":"numeric-object-index","input":{},"filter":".[5]","status":"compatible","expected":"runtime-error"}
-{"name":"scalar-equality","input":null,"filter":"\"10\" == 10","status":"planned","expected":"ok"}
-{"name":"array-lexicographic-order","input":null,"filter":"[1,2] < [1,3]","status":"planned","expected":"ok"}
+{"name":"scalar-equality","input":null,"filter":"\"10\" == 10","status":"compatible","expected":"ok"}
+{"name":"array-lexicographic-order","input":null,"filter":"[1,2] < [1,3]","status":"compatible","expected":"ok"}
 {"name":"update-assignment","input":{"a":1},"filter":".a |= . + 1","status":"compatible","expected":"ok"}
 {"name":"user-defined-functions","input":1,"filter":"def inc: . + 1; inc","status":"unsupported","expected":"ok"}
 {"name":"missing-nested-field","input":{"a":{}},"filter":".a.missing","status":"compatible","expected":"ok"}
@@ -3081,3 +3081,40 @@
 {"name":"v3-contains-boolean-false-equal","input":false,"filter":"contains(false)","status":"compatible","expected":"ok"}
 {"name":"v3-contains-nested-boolean-mismatch","input":[true],"filter":"contains([false])","status":"compatible","expected":"ok"}
 {"name":"v3-contains-boolean-reverse-error","input":false,"filter":"contains(true)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-practical-string-number-distinct","input":null,"filter":"\"10\" == 10","status":"compatible","expected":"ok"}
+{"name":"v3-practical-string-number-inequality","input":null,"filter":"\"10\" != 10","status":"compatible","expected":"ok"}
+{"name":"v3-practical-string-lexical-order","input":null,"filter":"\"10\" < \"2\"","status":"compatible","expected":"ok"}
+{"name":"v3-practical-number-order","input":null,"filter":"10 < 2","status":"compatible","expected":"ok"}
+{"name":"v3-practical-boolean-number-distinct","input":null,"filter":"true == 1","status":"compatible","expected":"ok"}
+{"name":"v3-practical-null-false-distinct","input":null,"filter":"null == false","status":"compatible","expected":"ok"}
+{"name":"v3-practical-false-before-true","input":null,"filter":"false < true","status":"compatible","expected":"ok"}
+{"name":"v3-practical-true-before-number","input":null,"filter":"true < 0","status":"compatible","expected":"ok"}
+{"name":"v3-practical-number-before-string","input":null,"filter":"0 < \"\"","status":"compatible","expected":"ok"}
+{"name":"v3-practical-string-before-array","input":null,"filter":"\"\" < []","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-before-object","input":null,"filter":"[] < {}","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-lexical","input":null,"filter":"[1,2] < [1,3]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-prefix","input":null,"filter":"[1,2] < [1,2,0]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-prefix-reverse","input":null,"filter":"[1,2,0] > [1,2]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-prefix-equality","input":null,"filter":"[1,2] == [1,2,0]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-empty-order","input":null,"filter":"[] < [0]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-nested-type","input":null,"filter":"[\"1\"] == [1]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-number-order","input":null,"filter":"[2] < [10]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-array-compound-literals","input":null,"filter":"[\"a+b\",{}] == [\"a+b\",{}]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-object-equal","input":null,"filter":"{\"a\":1,\"b\":2} == {\"b\":2,\"a\":1}","status":"compatible","expected":"ok"}
+{"name":"v3-practical-object-nested-type","input":null,"filter":"{\"a\":\"1\"} == {\"a\":1}","status":"compatible","expected":"ok"}
+{"name":"v3-practical-object-key-order","input":null,"filter":"{\"a\":99} < {\"b\":0}","status":"compatible","expected":"ok"}
+{"name":"v3-practical-object-value-order","input":null,"filter":"{\"a\":2} < {\"a\":10}","status":"compatible","expected":"ok"}
+{"name":"v3-practical-object-empty-equality","input":null,"filter":"{} == {}","status":"compatible","expected":"ok"}
+{"name":"v3-practical-comparison-less-equal","input":null,"filter":"[1] <= [1]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-comparison-greater-equal","input":null,"filter":"[1] >= [1]","status":"compatible","expected":"ok"}
+{"name":"v3-practical-select-numeric-type","input":[{"x":"10"},{"x":10},{"x":null},{}],"filter":".[] | select(.x == 10)","status":"compatible","expected":"ok"}
+{"name":"v3-practical-select-string-type","input":[{"x":"10"},{"x":10}],"filter":".[] | select(.x == \"10\")","status":"compatible","expected":"ok"}
+{"name":"v3-practical-select-null-and-missing","input":[{"x":null},{}],"filter":".[] | select(.x == null)","status":"compatible","expected":"ok"}
+{"name":"v3-practical-select-object-value","input":[{"x":{"a":1}},{"x":{"a":"1"}}],"filter":".[] | select(.x == {\"a\":1})","status":"compatible","expected":"ok"}
+{"name":"v3-practical-select-array-order","input":[{"x":[2]},{"x":[10]},{"x":[11]}],"filter":".[] | select(.x < [10])","status":"compatible","expected":"ok"}
+{"name":"v3-practical-ordinary-path-comparison","input":{"x":"10","y":10},"filter":".x == .y","status":"compatible","expected":"ok"}
+{"name":"v3-practical-type-json-values","input":[null,false,true,0,"0",[],{}],"filter":".[] | type","status":"compatible","expected":"ok"}
+{"name":"v3-practical-type-literal-constructors","input":null,"filter":"[\"42\",42,true,false,null,[],{}] | map(type)","status":"compatible","expected":"ok"}
+{"name":"v3-practical-type-after-number-string-cache","input":10,"filter":"(tostring, .) | type","status":"compatible","expected":"ok"}
+{"name":"v3-type-empty-stream-difference","input":null,"filter":"empty | type","status":"known-difference","expected":"ok"}
+{"name":"v3-comparison-empty-operand-difference","input":null,"filter":"empty == null","status":"known-difference","expected":"ok"}

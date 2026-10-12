@@ -3,7 +3,7 @@ package JQ::Lite::Builtin::Type;
 use strict;
 use warnings;
 
-use B qw(SVp_IOK SVp_NOK);
+use JQ::Lite::Value ();
 
 sub register {
     my ($class, $register) = @_;
@@ -21,17 +21,8 @@ sub register {
 
     $register->(['type', 'type()'], sub {
         my ($owner, $inputs) = @_;
-        return [ map {
-            if (!defined $_) { 'null' }
-            elsif (ref($_) eq 'ARRAY') { 'array' }
-            elsif (ref($_) eq 'HASH') { 'object' }
-            elsif (ref($_) eq '') {
-                my $flags = B::svref_2object(\$_)->FLAGS;
-                ($flags & (SVp_IOK | SVp_NOK)) ? 'number' : 'string';
-            }
-            elsif (ref($_) eq 'JSON::PP::Boolean') { 'boolean' }
-            else { 'unknown' }
-        } (@{$inputs} ? @{$inputs} : (undef)) ];
+        return [ map { JQ::Lite::Value::type_of($_) }
+            (@{$inputs} ? @{$inputs} : (undef)) ];
     });
 
     $register->(['arrays', 'arrays()'], sub {

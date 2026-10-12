@@ -132,6 +132,30 @@ by these changes.
   not equal to a number.
 - Compare arrays lexicographically using jq-compatible value ordering.
 
+The practical v3 comparison correction is implemented for JSON values, literal
+operands, and simple named-field `select` predicates. Equality requires matching
+JSON types and recursively equal contents. Ordering follows
+`null < false < true < numbers < strings < arrays < objects`; arrays compare
+lexicographically, and objects compare sorted key sets before their values.
+All six comparison operators share the existing internal `JQ::Lite::Value`
+implementation. `type` uses that same JSON classifier. JSON array/object
+literals are decoded before expression/path handling, preserving empty arrays
+and operator characters inside literal strings.
+
+Migration examples: `"10" == 10` now returns false, `[1,2] < [1,3]` returns
+true, and `select(.age == "30")` no longer selects a numeric age of 30.
+Use a numeric literal when comparing numeric data, or normalize explicitly
+before comparison, e.g. `"10" | tonumber | . == 10` and
+`10 | tostring | . == "10"`. Existing convenience-function comparisons are
+not silently changed by this operator correction.
+
+Empty-stream behavior is kept separate under #625: `empty | type` retains
+v2's one `"null"` output, and comparison operands that emit no values are
+still normalized to null (`empty == null` yields true). jq emits no output
+in those examples. These are documented differences, not jq-compatible
+fixtures. This correction does not add variable arithmetic, general filter
+stream semantics, new syntax, or a public API.
+
 Numeric-looking strings are now rejected by numeric arithmetic in the 3.x
 developer-release series; callers that intend conversion should use
 `tonumber()` or `to_number()` explicitly. Regex scalar coercion remains

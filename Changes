@@ -1,5 +1,7 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Make comparison operators and simple select() predicates use shared JSON-type-sensitive equality and jq value ordering.
+    - Preserve compound JSON comparison literals and share type() classification; document empty-stream differences and migration.
     - Make contains() use jq-style recursive containment for literal arrays and objects, with JSON type identity.
     - Preserve contains_subset(), inside(), and the infix contains extension; document migration for membership/key lookups.
     - Evaluate contains() predicates in select() and validate the corrected scope against jq 1.7.

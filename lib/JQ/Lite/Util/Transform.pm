@@ -1495,44 +1495,10 @@ sub _evaluate_condition {
     if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
         my ($path, $op, $value_raw) = ($1, $2, $3);
 
-        my $value;
-        if ($value_raw =~ /^"(.*)"$/) {
-            $value = $1;
-        } elsif ($value_raw eq 'true') {
-            $value = JSON::PP::true;
-        } elsif ($value_raw eq 'false') {
-            $value = JSON::PP::false;
-        } elsif ($value_raw =~ /^-?\d+(?:\.\d+)?$/) {
-            $value = 0 + $value_raw;
-        } else {
-            $value = $value_raw;
-        }
-
-        my @values = _traverse($item, $path);
-        return 0 unless @values;
-
+        my $value = _parse_literal_argument($value_raw);
+        my @values = _traverse($item, $path, { missing_object_null => 1 });
         for my $field_val (@values) {
-            next unless defined $field_val;
-
-            my $is_number = (!ref($field_val) && $field_val =~ /^-?\d+(?:\.\d+)?$/)
-                         && (!ref($value)     && $value     =~ /^-?\d+(?:\.\d+)?$/);
-
-            if ($op eq '==') {
-                return 1 if $is_number ? ($field_val == $value) : ($field_val eq $value);
-            } elsif ($op eq '!=') {
-                return 1 if $is_number ? ($field_val != $value) : ($field_val ne $value);
-            } elsif ($is_number) {
-                # perform numeric comparisons only when applicable
-                if ($op eq '>') {
-                    return 1 if $field_val > $value;
-                } elsif ($op eq '>=') {
-                    return 1 if $field_val >= $value;
-                } elsif ($op eq '<') {
-                    return 1 if $field_val < $value;
-                } elsif ($op eq '<=') {
-                    return 1 if $field_val <= $value;
-                }
-            }
+            return 1 if _compare_values($field_val, $op, $value);
         }
     }
 
@@ -1569,56 +1535,15 @@ sub _compare_numeric_values {
 
 sub _compare_values {
     my ($left, $operator, $right) = @_;
+    my $ordering = JQ::Lite::Value::compare($left, $right);
 
-    my $both_numeric = defined($left) && defined($right)
-        && !ref($left) && !ref($right)
-        && looks_like_number($left) && looks_like_number($right);
-
-    if ($operator eq '==') {
-        return $both_numeric ? $left == $right : _values_equal($left, $right);
-    }
-    if ($operator eq '!=') {
-        return $both_numeric ? $left != $right : !_values_equal($left, $right);
-    }
-
-    my $ordering = _jq_order_compare($left, $right);
+    return $ordering == 0 if $operator eq '==';
+    return $ordering != 0 if $operator eq '!=';
     return $ordering >= 0 if $operator eq '>=';
     return $ordering <= 0 if $operator eq '<=';
     return $ordering >  0 if $operator eq '>';
     return $ordering <  0 if $operator eq '<';
     return 0;
-}
-
-sub _jq_order_compare {
-    my ($left, $right) = @_;
-
-    my $left_rank  = _jq_type_rank($left);
-    my $right_rank = _jq_type_rank($right);
-    return $left_rank <=> $right_rank if $left_rank != $right_rank;
-
-    return 0 if $left_rank == 0;    # null
-    return (!!$left) <=> (!!$right) if $left_rank == 1;    # boolean
-    return $left <=> $right if $left_rank == 2;            # number
-    return "$left" cmp "$right" if $left_rank == 3;        # string
-
-    # Keep ordering deterministic for compound values.  Cross-type ordering,
-    # including null versus numbers, follows jq's documented type order.
-    return _encode_json($left) cmp _encode_json($right);
-}
-
-sub _jq_type_rank {
-    my ($value) = @_;
-
-    return 0 if !defined $value;
-    return 1 if JSON::PP::is_bool($value);
-    if (!ref $value) {
-        return 3 if _is_string_scalar($value);
-        return 2 if looks_like_number($value);
-        return 3;
-    }
-    return 4 if ref $value eq 'ARRAY';
-    return 5 if ref $value eq 'HASH';
-    return 6;
 }
 
 sub _smart_cmp {
