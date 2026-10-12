@@ -891,6 +891,24 @@ Errors in non-iterator portions of the field access and
 other custom child expressions still follow their existing
 semantics.
 
+**Simple computed-key strict child iterators**,
+such as `recurse(.[.field][] | f)`, are now handled
+by the same narrowly scoped nested `try` stream visitor.
+The current node and any fully evaluated earlier siblings
+remain visible before a later strict child iterator or
+child-filter raises an error. Unlike `[]?`, strict `[]`
+raises when a computed field is missing or null, after
+its containing node has been emitted; an empty array
+ends normally. The computed `.[.field]` selector is
+still evaluated on a null root, where a null selector
+key raises before iteration. Multiple catch outputs,
+nested recursion, comma stages, outer iterators and
+literal unusual field names retain their jq 1.7 order.
+This is only one simple computed field selector plus
+strict `[]` and a child pipeline; general dynamic
+selectors and partially failing eager leaf filters
+remain separate audits. The scoped regression suite
+includes 34 jq 1.7 differential fixtures.
 **Simple computed-key optional child iterators**,
 such as `recurse(.[.field][]? | f)` inside a parenthesized
 `try` pipeline, now preserve ancestor and prior sibling
