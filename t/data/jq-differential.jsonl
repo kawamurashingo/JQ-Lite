@@ -1375,3 +1375,55 @@
 {"name":"spacedquotedbr-old-bracket","input":{"a.b":5},"filter":".[\"a.b\"]","status":"compatible","expected":"ok"}
 {"name":"spacedquotedbr-old-spaced-numeric","input":{"items":[10,20]},"filter":".items [0]","status":"compatible","expected":"ok"}
 {"name":"spacedquotedbr-old-dotquoted","input":{"a.b":5},"filter":".\"a.b\"","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-gap","input":{"items":[1,2]},"filter":".items [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-inner","input":{"items":[1,2]},"filter":".items[ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-before","input":{"items":[1,2]},"filter":".items []","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-multi","input":{"items":[1,2]},"filter":".items [   ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-types","input":{"items":[null,false,3]},"filter":".items [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-empty","input":{"items":[]},"filter":".items [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-object","input":{"items":{"only":3}},"filter":".items [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-objempty","input":{"items":{}},"filter":".items [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-suffix","input":{"items":[{"name":"A"},{}]},"filter":".items [ ].name","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-double","input":{"items":[[1,2],[3]]},"filter":".items [ ] [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-after-index","input":{"items":[[1,2],[3]]},"filter":".items[0] [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-brquoted","input":{"a.b":[3,4]},"filter":".[\"a.b\"] [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-named-dotquoted","input":{"a.b":[3,4]},"filter":".\"a.b\" [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-strict-null","input":{"items":null},"filter":".items [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-strict-number","input":{"items":3},"filter":".items [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-strict-boolean","input":{"items":true},"filter":".items [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-strict-string","input":{"items":"abc"},"filter":".items [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-strict-prior","input":7,"filter":".items [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-strict-later","input":{"items":[2]},"filter":".items [ ].name","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-opt-gap","input":{"items":[1,2]},"filter":".items [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-inner","input":{"items":[1,2]},"filter":".items[ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-before","input":{"items":[1,2]},"filter":".items []?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-members","input":{"items":[null,false]},"filter":".items [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-null","input":{"items":null},"filter":".items [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-number","input":{"items":3},"filter":".items [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-emptyobj","input":{"items":{}},"filter":".items [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-missing","input":{},"filter":".items [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-nested","input":{"items":[[1,2],null]},"filter":".items [ ] [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-twostage","input":{"items":[[1,2],null]},"filter":".items [ ]? [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-opt-later-strict","input":{"items":[null]},"filter":".items [ ]? [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-opt-prior-strict","input":7,"filter":".items [ ]?","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-opt-later-field","input":{"items":[2]},"filter":".items [ ]?.name","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-root-spaces","input":[1,2],"filter":". [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-inner","input":[1,2],"filter":".[ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-before","input":[1,2],"filter":". []","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-members","input":[null,false],"filter":". [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-empty","input":[],"filter":". [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-object","input":{"one":9},"filter":". [ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-strict-null","input":null,"filter":". [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-root-strict-number","input":3,"filter":". [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"spacediter-root-opt-null","input":null,"filter":". [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-opt-number","input":3,"filter":". [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-opt-array","input":[1,2],"filter":". [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-opt-object","input":{"one":9},"filter":". [ ]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-comma","input":[1,2],"filter":"0, . [ ], 9","status":"compatible","expected":"ok"}
+{"name":"spacediter-root-pipeline","input":[1,2],"filter":". [ ] | . + 1","status":"compatible","expected":"ok"}
+{"name":"spacediter-control-constructor","input":null,"filter":"[ ]","status":"compatible","expected":"ok"}
+{"name":"spacediter-control-tryquoted","input":null,"filter":"try [\"catch me\"]","status":"compatible","expected":"ok"}
+{"name":"spacediter-control-root-unspaced","input":[1,2],"filter":".[]","status":"compatible","expected":"ok"}
+{"name":"spacediter-control-root-opt","input":null,"filter":".[]?","status":"compatible","expected":"ok"}
+{"name":"spacediter-control-nested","input":{"items":[1,2]},"filter":".items[]","status":"compatible","expected":"ok"}
+{"name":"spacediter-control-field","input":{"name":3},"filter":".name","status":"compatible","expected":"ok"}

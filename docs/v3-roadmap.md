@@ -477,6 +477,21 @@ JSON-quoted bracket** is consumed. Dynamic selectors and slices
 remain separate, and bare `["a.b"]` or `[ "a.b" ]` are
 array constructors, not object lookups.
 
+**Whitespace-padded literal iterators** are now supported in the
+ordered v3 path visitor. For example, `.items [ ]`,
+`.items[ ]?`, `. [ ]`, and `.groups [ ] [ ]` all use the same
+strict or optional iteration stages as `[]` and `[]?`.
+An array or object yields its members in the established library
+order; strict iteration of a scalar or JSON null raises a structured
+evaluation error. The optional form drops only invalid iterator
+targets and never masks earlier/later strict field or numeric errors.
+The scanner recognizes brackets containing whitespace only in a
+**rooted literal path**; a space before `[]` is treated likewise.
+Bare `[ ]` remains an empty array constructor, and expressions such
+as `try [ ]` are not misidentified as path traversals. This support
+does not widen arbitrary computed selectors, slices, or non-path
+constructor iteration.
+
 For literal paths, unquoted names, JSON-quoted keys, and adjacent
 `[]`/`[]?`/`[integer]`/`[integer]?` steps are supported
 when there is an iterator, computed selector, **optional literal
@@ -620,6 +635,7 @@ application logic. In particular:
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | an object key with a literal dot, space, or operator-like punctuation must be read strictly | use bracket-quoted syntax `.["a.b"]` / `.obj["a.b"].name` or dot-quoted syntax `."a.b"` / `.obj."a.b".name`; an absent key/null yields JSON null but wrong-type inputs still raise structured errors; bare `["a.b"]` is an array constructor and bare `"a.b"` is a string literal |
+| spaces appear inside or before an iterator bracket | `.items [ ]`, `.items [ ]?`, and `. [ ]` use the same strict/optional iteration as `[]`/`[]?`; bare `[ ]` still constructs an empty array and `try [ ]` is not a path |
 | whitespace separates a path stage from a quoted field bracket | `. ["a.b"]`, `.obj [ "a.b" ]` and `.obj [ "a.b" ]?` now match unspaced bracket-quoted lookups; missing/null stay one null and strict wrong types remain errors, while bare `[ "a.b" ]` is still an array constructor |
 | whitespace separates a path stage from a numeric index | `. [0]`, `.items [ -1 ]` and `.items[0] [1]` now match their no-space equivalents; `[N]?` keeps stage-local optionality, while slices, computed brackets and bare array constructors remain separate |
 | spaces are present inside a literal numeric index | `.[ 0 ]`, `.items[ -1 ]`, and `.items[ 0 ]?` have the same v3 semantics as their unspaced forms; optional `?` stays outside `]`, and slices/computed expressions keep their separate handling |
