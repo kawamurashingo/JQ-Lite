@@ -110,13 +110,13 @@ sub parse_query {
                     my ($filter, $optional) = ($1, $2);
                     $filter =~ s/\s+$//;
                     my $iterator = defined $optional ? '.[]?' : '.[]';
-                    # Bare try [] / try [ ] is an empty-array expression,
-                    # not iteration of the preceding try keyword. Keep
-                    # this guard local to the constructor spelling;
-                    # ordinary keys[] and other filter suffixes still
-                    # expand through the established iterator lowering.
+                    # Keep a try expression's iterator suffix INSIDE
+                    # its error handler. Moving try .[] into
+                    # '(try . | .[])' exposes the strict iterator error
+                    # outside try. This also preserves try [] and
+                    # try [ ] array constructors from the prior audit.
                     $sequence_part = "($filter | $iterator)"
-                        if $filter =~ /\S/ && $filter !~ /\Atry\z/;
+                        if $filter =~ /\S/ && $filter !~ /\Atry\b/;
                 }
             }
             push @iterator_expanded, join(', ', @sequence_parts);
@@ -126,14 +126,15 @@ sub parse_query {
         if ($part !~ /^\s*\./s && $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s) {
             my ($filter, $optional) = ($1, $2);
             $filter =~ s/\s+$//;
-            if ($filter =~ /\S/ && $filter !~ /\Atry\z/) {
+            if ($filter =~ /\S/ && $filter !~ /\Atry\b/) {
                 push @iterator_expanded, $filter,
                     (defined $optional ? '.[]?' : '.[]');
             }
             else {
-                # jq's try [] is an empty array constructor. Splitting
-                # it into 'try' and '.[]' first invokes a strict null
-                # iterator and turns the valid array into an error.
+                # try .[] must retain the strict iterator inside try's
+                # error handling, and try [] must remain an array
+                # constructor. Both are distinct from keys[] or
+                # other value-producing iterator suffixes.
                 push @iterator_expanded, $part;
             }
         }

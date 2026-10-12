@@ -42,8 +42,8 @@ my $fallback = run($fail_json, 'try (.num / .den)');
 
 is_deeply(
     $fallback,
-    [undef],
-    'try falls back to null when an error is thrown'
+    [],
+    'try without catch drops an error instead of returning null'
 );
 
 my $pipeline = run('{"a": {"b": 2}}', 'try .a.b | . + 1 catch 0');
