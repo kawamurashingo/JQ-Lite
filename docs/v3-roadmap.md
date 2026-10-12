@@ -1179,6 +1179,20 @@ parser and null-node visitor are reused, with
 Perl regression file. Arbitrary computed arithmetic
 still requires separate auditing.
 
+**Four literal signed numeric stages in one computed selector**,
+for example `recurse(.[.cfg.names[0][0][0][0]][]? | f)` or
+`recurse(.[.cfg["names"][-1][-1][-1][-1]][] | f)`, now share the
+same demand-driven nested `try` visitor. Previously this valid v3
+selector shape fell outside the narrow recurse matcher, allowing a
+later child error to discard already completed nodes. Inner numeric
+`?`, outer computed-lookup `?`, and final `[]?` remain independent;
+invalid selector operations are not hidden by optional child iteration.
+This change extends only the single-selector depth bound from three
+to four, retains the existing four-computed-selector breadth limit,
+and adds direct Perl and jq 1.7 differential coverage. Arithmetic,
+slices, and general computed expressions remain outside this audit.
+
+
 
 
 
