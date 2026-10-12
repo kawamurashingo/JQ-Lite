@@ -112,9 +112,9 @@ subtest 'iterator, quoted, and composite audited prefixes' => sub {
     is_deeply(results('{"obj":{"a.b":{"name":"V"}}}',
         '.obj."a.b" .name'), ['V'],
         'dot-quoted strict stage then spaced suffix');
-    is_deeply(results('{"items":[{"name":"A"},{"name":"B"}]}',
-        '.[0] .name'), [undef],
-        'root array index on object is not silently projected');
+    runtime_error('{"items":[{"name":"A"},{"name":"B"}]}',
+        '.[0] .name', 'Cannot index object with number',
+        'root numeric index on object remains strict');
     is_deeply(results('[{"name":"A"},{"name":"B"}]',
         '.[0] .name'), ['A'],
         'root positive index then spaced suffix');
