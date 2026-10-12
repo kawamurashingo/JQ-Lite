@@ -336,15 +336,33 @@ sub apply {
                 my @outputs;
                 my $error;
 
-                {
-                    local $@;
-                    eval { @outputs = $self->run_query($json, $try_expr); 1 } or $error = $@;
+                # jq retains the outputs of completed comma branches
+                # before a later branch fails inside try. The evaluator
+                # returns eagerly, so evaluate each top-level alternative
+                # independently and retain its completed output stream.
+                # This does not preserve partial output from a failure
+                # within one branch (general streaming is a separate audit).
+                for my $branch (JQ::Lite::Util::_split_top_level_commas($try_expr)) {
+                    my @branch_outputs;
+                    {
+                        local $@;
+                        eval {
+                            @branch_outputs = $self->run_query($json, $branch);
+                            1;
+                        } or $error = $@;
+                    }
+                    last if $error;
+                    push @outputs, @branch_outputs;
                 }
 
                 if (!$error) {
                     push @next_results, @outputs;
                     next VALUE;
                 }
+
+                # Successful branches remain visible before a later
+                # failure is dropped or replaced by a catch handler.
+                push @next_results, @outputs;
 
                 # Structured evaluation errors are blessed references.
                 # Explicitly stringify before passing their diagnostics

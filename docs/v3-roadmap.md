@@ -596,6 +596,18 @@ extension for existing callers, though jq 1.7 itself does not
 predefine `$error`. A `catch` handler that raises a new error
 still propagates it, and `catch empty` still returns no values.
 
+**Successful top-level comma branches inside a `try` are retained
+even when a later branch fails.** For example,
+`try (0, (1 / 0), 9)` emits `0`, and
+`try (0, (1 / 0), 9) catch 42` emits `0` then `42`.
+A failing branch stops later alternatives and runs the explicit
+handler only once; `catch null` emits one null after prior outputs,
+while no `catch` and `catch empty` leave prior outputs alone.
+This audit preserves only outputs from **completed comma branches**.
+Partial streams produced within a single failing generator, path or
+pipeline branch remain subject to the existing eager-evaluation
+limitation.
+
 The parser now preserves **`try []` and `try [ ]` as
 empty-array constructor expressions** instead of lowering the
 brackets into a standalone iterator. Both forms emit one empty
@@ -742,6 +754,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| earlier results inside a `try` comma expression disappeared after a later error | completed earlier comma branches now retain their output, and a `catch` fallback follows them; partial results inside an individual failing branch still need a separate streaming audit |
 | a `catch` handler assumed the original JSON input | `catch` now evaluates on the error message string, like jq 1.7; bind the original value first with `. as $original | try ... catch $original.field` when needed; the legacy `$error` alias is retained as an extension |
 | a `catch` handler deliberately emits no results | the handler now preserves an empty stream instead of synthesizing JSON null; use `catch null` to emit a visible null |
 | an explicit `catch` handler error was replaced with JSON null | a failing handler now raises a runtime error; use an outer `try` when intentional suppression or a fallback is needed |
