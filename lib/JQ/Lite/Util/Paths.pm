@@ -239,7 +239,8 @@ sub _visit_update_rhs_recurse_filtered {
     # .[.field][], .[.cfg.key][]?, .[.cfg["selected"]][]?,
     # .[.cfg."selected"][]?, .[.keys[0]][]?, and
     # .[.cfg.names[0][0]][]?, and .[.cfg["names"][0][0]][]?
-    # and .[.first][.second][]? evaluate on null nodes. A null
+    # and two simple or quoted computed stages like
+    # .[.cfg["first"]][.cfg."second"][]? evaluate on null nodes. A null
     # computed key raises before optional child iteration can run.
     # Keep strict and optional child iteration semantics unchanged.
     # Other optional/custom children keep their null short-circuit.
@@ -257,7 +258,7 @@ sub _visit_update_rhs_recurse_filtered {
         || $child_filter =~
             /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*(?:\[\s*-?\d+\s*\]\s*){1,2}\]\[\s*\]\??\s*(?:\||\z)/s
         || $child_filter =~
-            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]\s*\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]\[\s*\]\??\s*(?:\||\z)/s;
+            /\A\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\[\s*"(?:\\.|[^"\\])*"\s*\]|\."(?:\\.|[^"\\])*")?\s*\]\s*\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\[\s*"(?:\\.|[^"\\])*"\s*\]|\."(?:\\.|[^"\\])*")?\s*\]\[\s*\]\??\s*(?:\||\z)/s;
     return 0 if !defined($current)
         && $child_filter !~ /\A\.\[\s*\]\z/
         && !$strict_named_iterator

@@ -1035,6 +1035,24 @@ selector stages, not arbitrary expressions or three
 or more computed selectors. Direct Perl regression
 tests and 37 jq 1.7 differential fixtures cover
 these boundaries, catches and depth-first order.
+**Paired computed selectors with quoted literal suffixes**
+are now recognized in nested `try` recurse streams:
+`recurse(.[.cfg["first"]][.cfg.second][]? | f)` and
+`recurse(.[.cfg.first][.cfg."second"][] | f)`.
+Either or both simple selector stages may end in a
+JSON-quoted bracket or dot field. Both selectors are
+resolved from the current recursion node, preserving
+earlier depth-first outputs if a later child or selector
+fails. On null recursion nodes, selector errors follow
+the completed node rather than being swallowed by
+optional `[]?`; strict `[]` continues to reject a
+missing/null selected array. This limited extension
+keeps the previously audited two-identifier form,
+without enabling arbitrary computed expressions or
+three or more computed selector stages. New direct
+Perl regressions and 100 jq 1.7 differential fixtures
+cover the bracket/dot combinations and controls.
+
 
 
 
