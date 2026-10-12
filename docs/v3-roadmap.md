@@ -22,6 +22,12 @@ selectors and try/recurse combinations are not required release criteria;
 review existing support before removing it rather than expanding it further.
 Keep Perl 5.14 support, existing dependencies, and stable 2.x unchanged.
 
+The public API remains `new` and `run_query`. A compiled-query API (#627)
+is deferred beyond the current 3.0 scope and is not a release requirement.
+Semantic changes are developed on `v3-dev`; `main` remains the stable 2.x
+baseline. Freeze the practical subset, fix its selected semantic differences,
+verify the existing contracts, and document migration before releasing 3.0.
+
 An initial size measurement of tracked `lib/**/*.pm` files at stable/main
 `6880c30` and v3-dev `40c05db` gives:
 
@@ -71,6 +77,23 @@ one parser rewrite.
   objects.
 - Keep 2.x `contains_subset(value)` unchanged until its **undecided** status is
   resolved. It must not be presented as an exact alias for the new `contains`.
+
+The 3.x literal-argument `contains` correction is implemented. Arrays and
+objects use recursive containment; repeated array needles may reuse one input
+match. Strings use substring containment, while numbers, booleans and null use
+JSON-type-sensitive equality. Root type mismatches, including true versus
+false, raise structured evaluation errors; mismatched nested values simply do not match. This includes the normal
+`select(contains(...))` and `map(contains(...))` forms. Arbitrary filter-valued
+arguments are outside this scoped correction.
+
+Migration examples: `[1,2,3] | contains([1,3])` now returns true; nested object
+needles may match a larger nested object. For the v2 array-element membership
+meaning, use `index(value) != null`; for object key existence, use `has(key)`.
+Callers needing exact nested object equality should compare the projected
+value explicitly in their application. `contains_subset`, `inside`, and the
+infix `contains` extension retain their v2 meanings. In particular,
+`contains_subset` still counts duplicate needles and coerces scalar strings;
+`inside` is not advertised as the inverse of 3.x `contains`.
 
 ### Null, fallback, and paths
 

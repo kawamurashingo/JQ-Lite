@@ -18,18 +18,18 @@ sub results_for {
     return [$jq->run_query($json, $query)];
 }
 
-subtest 'preserved 2.x compatibility semantics' => sub {
+subtest 'v3 containment and preserved transpose semantics' => sub {
     ok(
-        !result_for('[1,2,3]', 'contains([1,3])'),
-        'contains does not treat its array argument as a jq-style subset',
+        result_for('[1,2,3]', 'contains([1,3])'),
+        'contains uses jq-style recursive array containment',
     );
 
     ok(
-        !result_for(
+        result_for(
             '{"a":{"b":1,"c":2}}',
             'contains({"a":{"b":1}})',
         ),
-        'contains requires equality for nested object values',
+        'contains supports nested partial object containment',
     );
 
     is_deeply(

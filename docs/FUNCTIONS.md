@@ -42,7 +42,7 @@ Functions are grouped by purpose for easier lookup.
 | `ascii_upcase()`, `ascii_downcase()` | ASCII-only case conversion           |
 | `trim()`, `ltrimstr()`, `rtrimstr()` | Trim whitespace or prefixes/suffixes |
 | `startswith()`, `endswith()`         | Prefix/suffix test                   |
-| `contains(value)`                    | Substring or array inclusion (legacy array semantics) |
+| `contains(value)`                    | jq-style recursive containment in 3.x |
 | `contains_subset(value)`             | Recursive, order-insensitive multiset inclusion for arrays |
 | `inside(container)`                  | Whether input is inside container    |
 | `split(sep)`, `join(sep)`            | Split and join                       |
@@ -54,10 +54,20 @@ Functions are grouped by purpose for easier lookup.
 
 **Array containment semantics**
 
-- `contains(value)`: keeps the legacy behavior for arrays—it searches for an
-  element equal to the provided value. Nested arrays must match exactly (order
-  and length) to satisfy equality. Objects still use subset semantics and
-  strings still use substring matching.
+- In 3.x, `contains(value)` uses jq-style recursive containment for literal
+  arguments. Each element of the argument array must be contained in an input
+  element; the same input element can satisfy repeated needles. Objects match
+  recursively by their argument keys, strings use substring matching, and
+  other scalars use type-sensitive equality. Different types at the root raise
+  an evaluation error (including true versus false); nested mismatches are false. For example,
+  `[1,2,3] | contains([1,3])` and `[1] | contains([1,1])` are true, while
+  `["1"] | contains([1])` is false. `select(contains(...))` and
+  `map(contains(...))` use this same literal-argument behavior.
+- To migrate v2's exact array-element lookup, use `index(value) != null`.
+  Replace object key lookup such as `contains("lang")` with `has("lang")`.
+  `inside(container)` retains its existing v2 membership behavior pending a
+  separate audit; it is not an exact inverse of the new 3.x `contains`.
+  The infix `select(.tags contains "perl")` extension also remains unchanged.
 - `contains_subset(value)`: recursive subset matching for arrays. The
   right-hand array is satisfied when every element can be matched anywhere in
   the left-hand array (order-insensitive) with multiset counting. Nested arrays

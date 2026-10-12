@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use JSON::PP ();
+use JQ::Lite::Value ();
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 use MIME::Base64 qw(encode_base64 decode_base64);
@@ -2744,7 +2745,14 @@ sub _coerce_range_number {
 sub _apply_contains {
     my ($value, $needle) = @_;
 
-    return _deep_contains($value, $needle, 'legacy') ? JSON::PP::true : JSON::PP::false;
+    my $type = JQ::Lite::Value::type_of($value);
+    my $needle_type = JQ::Lite::Value::type_of($needle);
+    die JQ::Lite::Error::Evaluation->new(
+        message => "Cannot check whether $type contains $needle_type"
+    ) if $type ne $needle_type
+        || ($type eq 'boolean' && !JQ::Lite::Value::equal($value, $needle));
+
+    return _deep_contains($value, $needle, 'jq') ? JSON::PP::true : JSON::PP::false;
 }
 
 sub _apply_contains_subset {
@@ -2756,7 +2764,8 @@ sub _apply_contains_subset {
 sub _apply_inside {
     my ($value, $container) = @_;
 
-    return _apply_contains($container, $value);
+    # Keep inside()'s v2 membership behavior pending its own compatibility audit.
+    return _deep_contains($container, $value, 'legacy') ? JSON::PP::true : JSON::PP::false;
 }
 
 sub _apply_indices {
@@ -2863,6 +2872,14 @@ sub _deep_contains {
 
     $mode ||= 'legacy';
 
+    if ($mode eq 'jq') {
+        my $type = JQ::Lite::Value::type_of($value);
+        return 0 if $type ne JQ::Lite::Value::type_of($needle);
+        return _scalar_contains($value, $needle) if $type eq 'string';
+        return JQ::Lite::Value::equal($value, $needle)
+            unless $type eq 'array' || $type eq 'object';
+    }
+
     return 1 if !defined $value && !defined $needle;
     return 0 if !defined $value;
 
@@ -2880,13 +2897,13 @@ sub _deep_contains {
 sub _array_contains {
     my ($haystack, $needle, $mode) = @_;
 
-    if ($mode eq 'subset' && ref $needle eq 'ARRAY') {
+    if (($mode eq 'subset' || $mode eq 'jq') && ref $needle eq 'ARRAY') {
         my @used;
         NEEDLE: for my $expected (@$needle) {
             for my $i (0 .. $#$haystack) {
-                next if $used[$i];
+                next if $mode eq 'subset' && $used[$i];
                 if (_deep_contains($haystack->[$i], $expected, $mode)) {
-                    $used[$i] = 1;
+                    $used[$i] = 1 if $mode eq 'subset';
                     next NEEDLE;
                 }
             }
