@@ -164,8 +164,10 @@ subtest 'parser limits and regression controls' => sub {
         '[ 0 ]')), 'bare array constructor is not a rooted path');
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.items [ 0:1 ]')), 'slices remain outside literal numeric scanner');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.items [ .key ]')), 'computed expressions remain separately audited');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.items [ .key ]'),
+        [['field','items'],['computed_context','.key']],
+        'simple computed field with preceding whitespace now audited');
     is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.items [ "a.b" ]'),
         [['field','items'],['field','a.b']],

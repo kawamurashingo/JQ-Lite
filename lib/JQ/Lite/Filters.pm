@@ -98,6 +98,17 @@ sub apply {
         return 0;
     }
 
+    # Root and intermediate simple computed selectors also allow
+    # whitespace before the bracket: . [.key], .obj [ .key ].
+    # Require the *complete rooted literal path* before bypassing
+    # expression handling. In particular, try [.key] and bare [.key]
+    # are array constructors and not computed path selectors.
+    if ($normalized =~ /\s+\[\s*\./
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # A root .[.key] selector is a computed *path*, not an ordinary
     # bracket expression.  Let the scoped v3 visitor resolve the selector
     # against each current input before the legacy expression shortcuts

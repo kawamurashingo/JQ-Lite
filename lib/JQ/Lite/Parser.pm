@@ -188,6 +188,15 @@ sub parse_query {
             {
                 $_;
             }
+            # Scoped computed selectors preceded by whitespace must
+            # retain the explicit leading dot, including .obj [.key].
+            # This keeps dotless try [.key] and array constructors on
+            # their existing expression paths.
+            elsif ($rest =~ /\s+\[\s*\./
+                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
+            {
+                $_;
+            }
             # Brackets containing only whitespace, or iterator
             # brackets separated from a field by whitespace, require
             # the leading dot. Do not reinterpret 'try [ ]' as a
