@@ -814,8 +814,9 @@ This is also consistent with `|=` first-result short-circuiting:
 an accepted root value suppresses unused child errors, whereas
 an empty RHS after `recurse(.[])` propagates the required
 null-iteration error. The update RHS regression uses a simple
-`.a |=` path (rather than unsupported root `. |=`) on a
-null-valued field. Optional `.[]?` still skips null. Other
+`.a |=` path on a null-valued field directly, without a
+surrounding `try` (update expressions inside `try` require
+a separate parser audit). Optional `.[]?` still skips null. Other
 arbitrary custom child filters, unusual argument nesting,
 and partially emitting individual eager leaf filters remain
 separate audits. Previously supported unwrapped recurse
