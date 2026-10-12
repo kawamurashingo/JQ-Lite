@@ -1098,6 +1098,20 @@ be enabled for the dispatcher but omitted from the
 null-node guard. `t/v3_computed_recurse_matcher.t`
 tests both accepted cases and deliberately excluded
 arbitrary expressions, deeper paths and iterators.
+**Four successive scoped computed selector stages**
+are supported for streaming nested `try`/`recurse`
+child pipelines. For example, the filter
+`recurse(.[.a][.b][.c][.d][]? | f)` preserves
+previously completed outputs before later errors.
+Each stage still consists of a simple dotted-identifier
+selector with, at most, a single quoted literal field
+and/or a signed numeric index. The fourth selector
+uses the existing path parser and shared matcher;
+five stages and arbitrary computed expressions remain
+unaudited. Optional/strict iteration, depth-first
+ordering and error handling are covered by direct
+Perl assertions and 42 jq 1.7 differential fixtures.
+
 
 
 
