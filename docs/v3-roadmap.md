@@ -562,6 +562,16 @@ handler; otherwise the caught error could escape the handler.
 Top-level comma alternatives follow the same boundary.
 Other nested try/catch parsing and unrelated filters are unchanged.
 
+**Errors raised by an explicit `catch` handler now propagate** rather
+than being replaced with a synthetic JSON null. For example, in
+`try (1 / 0) catch recurse(.[])`, the division error is handled,
+but a strict iterator failure inside the handler is a new runtime
+error. An enclosing `try` can handle that subsequent failure.
+Successful `try` results still bypass the handler, and `catch null`
+and `catch empty` continue to emit null and no values respectively.
+This is limited to propagating handler failures; the existing catch
+handler input context and broader streaming behavior are not changed.
+
 The parser now preserves **`try []` and `try [ ]` as
 empty-array constructor expressions** instead of lowering the
 brackets into a standalone iterator. Both forms emit one empty
@@ -708,6 +718,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| an explicit `catch` handler error was replaced with JSON null | a failing handler now raises a runtime error; use an outer `try` when intentional suppression or a fallback is needed |
 | an unhandled `try` error used to appear as JSON null | `try f` now emits nothing when `f` fails, equivalent to `try f catch empty`; use `try f catch null` when a visible JSON null is intended, while successful `try null` still emits one null |
 | a `try` expression directly constructs an empty array | `try []` and `try [ ]` now emit one `[]` instead of triggering a synthetic `.[]` iterator; this includes comma branches, without changing `.[]` or `keys[]` suffixes |
 | spaces appear inside or before an iterator bracket | `.items [ ]`, `.items [ ]?`, and `. [ ]` use the same strict/optional iteration as `[]`/`[]?`; bare `[ ]` still constructs an empty array and `try [ ]` is not a path |
