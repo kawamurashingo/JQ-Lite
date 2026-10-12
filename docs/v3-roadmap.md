@@ -1067,6 +1067,24 @@ whereas strict `[]` raises. 97 jq 1.7 differential
 fixtures and direct Perl assertions check depth-first
 output, catches, negative indices, missing keys, and
 the prior unindexed selector forms.
+**Three successive simple computed selector stages**
+may also be used inside a nested `try` recurse stream:
+`recurse(.[.first][.second][.third][]? | f)` and
+`recurse(.[.cfg["first"][0]][.cfg."second"[0]][.cfg.third[-1]][] | f)`.
+This adds only a third selector stage to the existing
+narrow literal-path dispatch. Each stage is a simple
+dotted identifier path with an optional literal quoted
+field and/or one signed numeric index, all evaluated
+on the current recursion node by the existing parser.
+Ancestors and earlier siblings remain visible when
+a later selector, child filter, or tail raises. Null
+selector errors are not suppressed by `[]?`; a missing
+selected container is skipped only with optional
+iteration. The change adds 52 jq 1.7 differential
+fixtures and a dedicated Perl regression file.
+General jq expressions and arbitrary selector depth
+remain outside the audited v3 compatibility scope.
+
 
 
 
