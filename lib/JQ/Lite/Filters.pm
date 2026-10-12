@@ -569,18 +569,21 @@ sub apply {
                                 }
                             }
                             if (@stages > 1
-                                && $unwrapped =~
-                                    /\(\s*(?:range\([^()]*\)|recurse(?:\(\s*\.\[\s*\]\??\s*\))?)\s*\|/s)
+                                && ($unwrapped =~
+                                    /\(\s*(?:range\([^()]*\)|recurse(?:\(\s*\.\[\s*\]\??\s*\))?)\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\.\[\s*\]\?\s*\|/s))
                             {
-                                # A nested, fully wrapped range or recurse
-                                # pipeline can emit completed results before
-                                # a later tail or child-expansion error.
-                                # Include literal strict recurse(.[]) as
-                                # well as default and optional recurse:
-                                # yield each node before requesting strict
-                                # children, preserving completed outputs.
-                                # Arbitrary custom recurse child filters
-                                # remain outside this narrow dispatch.
+                                # Nested default, optional, strict, and
+                                # literal range generators can complete
+                                # outputs before a later tail error.
+                                # Also cover a custom child pipeline that
+                                # starts with optional .[]?; its children
+                                # may emit values and fail later.
+                                # Delegate only these scoped forms to the
+                                # demand-driven update-RHS visitor.
+                                # Other custom recurse child expressions
+                                # remain outside the audited dispatch.
                                 JQ::Lite::Util::_visit_update_rhs_results(
                                     $self, $value, $unwrapped, sub {
                                         push @branch_outputs, $_[0];
