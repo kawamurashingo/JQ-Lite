@@ -868,11 +868,13 @@ sub _parse_v3_literal_iterator_path {
             $after_step = 0;
         }
 
-        # jq accepts whitespace between a path stage (or a root dot)
-        # and a following literal numeric bracket: . [0], .a [ -1 ],
-        # .a[0] [1]. Do not eat whitespace before other expressions,
-        # slices, quoted keys, or bare array constructors.
+        # jq permits whitespace between a literal path stage (or
+        # root dot) and a following numeric/JSON-quoted bracket.
+        # Only consume this gap when the next *entire bracket* is a
+        # literal signed integer or quoted string. In particular do
+        # not route slices, computed expressions or bare constructors.
         $rest =~ s/\A\s+(?=\[\s*-?\d+\s*\])//;
+        $rest =~ s/\A\s+(?=\[\s*"(?:[^"\\]|\\.)*"\s*\])//s;
 
         if ($rest =~ s/\A([A-Za-z_]\w*)(\?)?//) {
             # An optional field is distinct from an optional index and
@@ -910,7 +912,7 @@ sub _parse_v3_literal_iterator_path {
             # can be treated as a literal field lookup.
             my $quoted = $1;
             my $optional = defined($2) ? 1 : 0;
-            return undef unless @steps || $path =~ /\A\.\[/;
+            return undef unless @steps || $path =~ /\A\.\s*\[/;
             my $name = eval { _decode_json($quoted) };
             return undef if $@ || !defined($name) || ref($name);
             my @field_step = ('field', $name);
