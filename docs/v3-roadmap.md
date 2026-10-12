@@ -614,6 +614,16 @@ legacy dispatch. Processing stops at the failing member; subsequent
 members are not evaluated. The optional head `.[]?` follows the same
 per-member rule, while a scalar input produces no values.
 
+The same completed-member preservation now applies to a `try`
+pipeline starting with a **simple named field iterator** such as
+`.items[]` or `.items[]?`, not just root `.[]`. For example,
+`{"items":[{"name":"Ada"},3]}` with
+`try (.items[] | .["name"]) catch 42` emits `"Ada"` then `42`.
+A valid empty array produces no results. A null/scalar `.items`
+is an error for strict `.items[]`, but is skipped by `.items[]?`.
+The strict or optional boundary is evaluated by the existing path
+visitor; only the completed member outputs of the tail are retained.
+
 This is an intentionally scoped streaming correction. Partial values
 produced *within one failing member* or inside other generator/path
 forms are still subject to the eager-evaluation limitation; this does
@@ -765,6 +775,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| a `try (.items[] | f)` pipeline lost completed named-field iterator results after a later error | simple named-field `[]` / `[]?` heads now retain completed element outputs and preserve strict versus optional head errors; nested iterators and generators remain separately scoped |
 | a `try (.[] | f)` pipeline lost completed earlier element results when a later element failed | completed elements now retain their output before the error fallback; later elements are skipped, while partially failing individual members and other iterator forms remain outside the scoped change |
 | earlier results inside a `try` comma expression disappeared after a later error | completed earlier comma branches now retain their output, and a `catch` fallback follows them; partial results inside an individual failing branch still need a separate streaming audit |
 | a `catch` handler assumed the original JSON input | `catch` now evaluates on the error message string, like jq 1.7; bind the original value first with `. as $original | try ... catch $original.field` when needed; the legacy `$error` alias is retained as an extension |

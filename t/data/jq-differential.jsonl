@@ -1644,3 +1644,17 @@
 {"name":"trypipe-catch-type","input":[{"name":"Ada"},3],"filter":"try (.[] | .[\"name\"]) catch type","status":"compatible","expected":"ok"}
 {"name":"trypipe-successful-elements","input":[{"name":"Ada"},{"name":"Bob"}],"filter":"try (.[] | .[\"name\"])","status":"compatible","expected":"ok"}
 {"name":"trypipe-control-bare-try","input":[1,2],"filter":"try .[]","status":"compatible","expected":"ok"}
+{"name":"trynamed-no-catch","input":{"items":[{"name":"Ada"},3,{"name":"Later"}]},"filter":"try (.items[] | .[\"name\"])","status":"compatible","expected":"ok"}
+{"name":"trynamed-catch","input":{"items":[{"name":"Ada"},3,{"name":"Later"}]},"filter":"try (.items[] | .[\"name\"]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynamed-catch-null","input":{"items":[{"name":"Ada"},3,{"name":"Later"}]},"filter":"try (.items[] | .[\"name\"]) catch null","status":"compatible","expected":"ok"}
+{"name":"trynamed-catch-empty","input":{"items":[{"name":"Ada"},3,{"name":"Later"}]},"filter":"try (.items[] | .[\"name\"]) catch empty","status":"compatible","expected":"ok"}
+{"name":"trynamed-head-optional","input":{"items":[{"name":"Ada"},3,{"name":"Later"}]},"filter":"try (.items[]? | .[\"name\"]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynamed-null-optional","input":{"items":null},"filter":"try (.items[]? | .[\"name\"]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynamed-null-strict","input":{"items":null},"filter":"try (.items[] | .[\"name\"]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynamed-success","input":{"items":[{"name":"Ada"},{"name":"Bea"}]},"filter":"try (.items[] | .[\"name\"])","status":"compatible","expected":"ok"}
+{"name":"trynamed-preserve-false-null","input":{"items":[{"name":false},{"name":null},3]},"filter":"try (.items[] | .[\"name\"]) catch 8","status":"compatible","expected":"ok"}
+{"name":"trynamed-empty-array","input":{"items":[]},"filter":"try (.items[] | .[\"name\"]) catch 8","status":"compatible","expected":"ok"}
+{"name":"trynamed-parenthesized-comma","input":{"items":[{"name":"Ada"},3]},"filter":"try ((.items[] | .[\"name\"]), 99) catch 8","status":"compatible","expected":"ok"}
+{"name":"trynamed-multistage","input":{"items":[{"name":"Ada"},3]},"filter":"try (.items[] | .[\"name\"] | tostring) catch 8","status":"compatible","expected":"ok"}
+{"name":"trynamed-scalar-optional","input":{"items":3},"filter":"try (.items[]? | .[\"name\"]) catch 8","status":"compatible","expected":"ok"}
+{"name":"trynamed-catch-type","input":{"items":[{"name":"Ada"},3]},"filter":"try (.items[] | .[\"name\"]) catch type","status":"compatible","expected":"ok"}
