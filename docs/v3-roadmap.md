@@ -980,6 +980,27 @@ container raises after the node has been emitted.
 37 jq 1.7 differential fixtures and a standalone Perl
 regression suite cover recursion order, multiple
 outputs, catches, nested descendants and bad selectors.
+**A quoted literal field followed by one signed numeric
+index in a computed child selector** now retains prior
+recursive nodes when nested within parenthesized `try`:
+`recurse(.[.cfg["names"][0]][]? | f)` and
+`recurse(.[.cfg."names"[-1]][] | f)`. The extension
+matches one bracket-quoted or dot-quoted field after
+a simple dotted identifier prefix, followed by exactly
+one signed literal index and strict/optional child
+iteration. Both spellings reuse the existing demand-
+driven recurse visitor and do not change path parsing.
+Computed selector failures (including null nodes and
+out-of-range numeric indices that yield invalid keys)
+occur after the current node has been emitted. Optional
+`[]?` skips a missing/null *selected container*, whereas
+strict `[]` raises. Direct Perl regressions and 72 jq
+1.7 differential fixtures cover catch order, ancestor
+preservation, nested recursion, numeric signs, special
+quoted names, and earlier selector controls. This does
+not support arbitrary computed expressions or partially
+failing eager leaf streams.
+
 
 
 
