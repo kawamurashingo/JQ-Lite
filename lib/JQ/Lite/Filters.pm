@@ -347,31 +347,63 @@ sub apply {
                     {
                         local $@;
                         eval {
-                            # A leading standalone iterator or simple named
-                            # field iterator can supply several pipeline
-                            # inputs. Evaluate its tail
-                            # once per member, in source order, so results
-                            # from earlier completed members survive a
-                            # later member's evaluation error.
-                            #
-                            # Other generator/path forms and partially
-                            # failing individual members remain eager.
+                            # A leading root/named-field iterator (or
+                            # a pair of nested iterators) can supply several
+                            # pipeline inputs. Visit each member in depth-
+                            # first source order; retain earlier completed
+                            # results if a subsequent member fails.
+                            # Other path forms and partially failing leaf
+                            # filters remain eager.
                             my $unwrapped =
                                 JQ::Lite::Util::_strip_wrapping_parens($branch);
                             my @stages =
                                 JQ::Lite::Util::_split_top_level_pipes($unwrapped);
-                            if (@stages > 1
-                                && $stages[0] =~
+                            my @iterator_heads;
+                            if (@stages > 1) {
+                                my $head = $stages[0];
+                                if ($head =~
                                     /\A\s*\.(?:\[\s*\]|[A-Za-z_]\w*\[\s*\])\??\s*\z/s)
-                            {
-                                my $head = shift @stages;
+                                {
+                                    @iterator_heads = ($head);
+                                }
+                                elsif ($head =~
+                                    /\A\s*(\.(?:\[\s*\]|[A-Za-z_]\w*\[\s*\])\??)(\[\s*\]\??)\s*\z/s)
+                                {
+                                    # Nested root or named-field iterator,
+                                    # e.g. .[][], .[][]?, .items[][].
+                                    # Each stage must run on one member at
+                                    # a time; evaluating the entire head
+                                    # eagerly would discard earlier output
+                                    # if a later inner iterator fails.
+                                    @iterator_heads = ($1, '.' . $2);
+                                }
+                            }
+                            if (@iterator_heads) {
+                                shift @stages;
                                 my $tail = join(' | ', @stages);
-                                my @members = $self->run_query($json, $head);
-                                for my $member (@members) {
-                                    push @branch_outputs, $self->run_query(
-                                        JQ::Lite::Util::_encode_json($member),
-                                        $tail
+                                # Explicit DFS stack retains stream order
+                                # without a self-referential callback and
+                                # stops before visiting later members when
+                                # an inner iterator or tail raises an error.
+                                my @pending = ([$value, 0]);
+                                while (@pending) {
+                                    my ($current, $depth) =
+                                        @{ pop @pending };
+                                    my $current_json =
+                                        JQ::Lite::Util::_encode_json($current);
+                                    if ($depth == @iterator_heads) {
+                                        push @branch_outputs, $self->run_query(
+                                            $current_json, $tail
+                                        );
+                                        next;
+                                    }
+                                    my @members = $self->run_query(
+                                        $current_json,
+                                        $iterator_heads[$depth]
                                     );
+                                    push @pending, map {
+                                        [$_, $depth + 1]
+                                    } reverse @members;
                                 }
                             }
                             else {

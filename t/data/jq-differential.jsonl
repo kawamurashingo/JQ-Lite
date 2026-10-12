@@ -1658,3 +1658,21 @@
 {"name":"trynamed-multistage","input":{"items":[{"name":"Ada"},3]},"filter":"try (.items[] | .[\"name\"] | tostring) catch 8","status":"compatible","expected":"ok"}
 {"name":"trynamed-scalar-optional","input":{"items":3},"filter":"try (.items[]? | .[\"name\"]) catch 8","status":"compatible","expected":"ok"}
 {"name":"trynamed-catch-type","input":{"items":[{"name":"Ada"},3]},"filter":"try (.items[] | .[\"name\"]) catch type","status":"compatible","expected":"ok"}
+{"name":"trynested-root-catch","input":[[{"name":"Ada"}],[3],[{"name":"Later"}]],"filter":"try (.[][] | .[\"name\"]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-root-no-catch","input":[[{"name":"Ada"}],[3],[{"name":"Later"}]],"filter":"try (.[][] | .[\"name\"])","status":"compatible","expected":"ok"}
+{"name":"trynested-root-null","input":[[{"name":"Ada"}],[3]],"filter":"try (.[][] | .[\"name\"]) catch null","status":"compatible","expected":"ok"}
+{"name":"trynested-root-empty","input":[[{"name":"Ada"}],[3]],"filter":"try (.[][] | .[\"name\"]) catch empty","status":"compatible","expected":"ok"}
+{"name":"trynested-root-type","input":[[{"name":"Ada"}],[3]],"filter":"try (.[][] | .[\"name\"]) catch type","status":"compatible","expected":"ok"}
+{"name":"trynested-root-pipeline","input":[[{"name":"Ada"}],[3]],"filter":"try (.[][] | .[\"name\"] | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-root-comma","input":[[{"name":"Ada"}],[3]],"filter":"try ((.[][] | .[\"name\"]), 99) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-inner-fails","input":[[1],3,[2]],"filter":"try (.[][] | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-inner-no-catch","input":[[1],3,[2]],"filter":"try (.[][] | .)","status":"compatible","expected":"ok"}
+{"name":"trynested-inner-optional","input":[[1],3,[2]],"filter":"try (.[][]? | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-root-optional","input":[[1],3,[2]],"filter":"try (.[]?[] | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-preserve-false-null","input":[[null,false],3],"filter":"try (.[][] | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-named-catch","input":{"items":[[{"name":"Ada"}],[3],[{"name":"Later"}]]},"filter":"try (.items[][] | .[\"name\"]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-named-inner-fails","input":{"items":[[1],3,[2]]},"filter":"try (.items[][] | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-named-optional","input":{"items":[[1],3,[2]]},"filter":"try (.items[][]? | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-named-null","input":{"items":null},"filter":"try (.items[]?[] | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynested-success","input":[[1,2],[3]],"filter":"try (.[][] | . + 10)","status":"compatible","expected":"ok"}
+{"name":"trynested-empty","input":[],"filter":"try (.[][] | .) catch 42","status":"compatible","expected":"ok"}

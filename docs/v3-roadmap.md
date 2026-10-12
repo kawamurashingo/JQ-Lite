@@ -624,9 +624,22 @@ is an error for strict `.items[]`, but is skipped by `.items[]?`.
 The strict or optional boundary is evaluated by the existing path
 visitor; only the completed member outputs of the tail are retained.
 
-This is an intentionally scoped streaming correction. Partial values
+**Two-level iterator heads** such as `.[][]` and `.items[][]`
+inside a `try` pipeline now visit outer and inner members in
+depth-first output order. If a later inner iterator or the tail filter
+fails, output from completed earlier members remains visible before
+the `catch` handler runs. For example,
+`[[{"name":"Ada"}],[3]] | try (.[][] | .["name"]) catch 42`
+emits `"Ada"` followed by `42`. A non-array inner member
+still raises on strict `[]`, whereas an optional second iterator
+`[][]?` drops that member. The scope also includes the two-level
+named-head `.items[][]`, without changing ordinary paths.
+
+This is an intentionally scoped streaming correction. Bare nested
+`try .[][]` without a pipeline tail is not changed by this visitor;
+it remains part of the separate iterator parsing audit. Partial values
 produced *within one failing member* or inside other generator/path
-forms are still subject to the eager-evaluation limitation; this does
+forms remain subject to the eager-evaluation limitation; this does
 not introduce a general-purpose streaming evaluator.
 
 The parser now preserves **`try []` and `try [ ]` as
@@ -775,6 +788,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| a `try (.[][] | f)` or `try (.items[][] | f)` pipeline lost completed inner members on a later error | two-level iterator heads are visited member by member; a failing inner iterator or tail stops further members, preserving already completed outputs, with optional `[][]?` still skipping non-iterable members |
 | a `try (.items[] | f)` pipeline lost completed named-field iterator results after a later error | simple named-field `[]` / `[]?` heads now retain completed element outputs and preserve strict versus optional head errors; nested iterators and generators remain separately scoped |
 | a `try (.[] | f)` pipeline lost completed earlier element results when a later element failed | completed elements now retain their output before the error fallback; later elements are skipped, while partially failing individual members and other iterator forms remain outside the scoped change |
 | earlier results inside a `try` comma expression disappeared after a later error | completed earlier comma branches now retain their output, and a `catch` fallback follows them; partial results inside an individual failing branch still need a separate streaming audit |
