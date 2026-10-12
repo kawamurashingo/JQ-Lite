@@ -931,6 +931,22 @@ field following a simple dotted-identifier selector prefix,
 not arbitrary dynamic expressions or general lazy leaf
 streaming. The direct regressions and 39 jq 1.7 differential
 fixtures cover this scoped change.
+**Dot-quoted computed selector stages** within the same
+nested `try` shape now also preserve completed outputs:
+`recurse(.[.cfg."selected"][]? | f)` and the corresponding
+strict `[]` form are dispatched through the existing
+demand-driven recurse visitor. The selector still reads
+from each current node; a selector lookup error happens
+after that node is emitted and is not hidden by `[]?`.
+Selected null/missing arrays remain optional or strict
+according to the explicit iterator suffix. Quoted names
+containing spaces, dots, and closing brackets are treated
+literally. This is limited to one final dot-quoted literal
+field after a simple dotted identifier selector prefix,
+not arbitrary expression evaluation or eager-leaf partial
+streaming. The regression suite adds 39 jq 1.7 differential
+fixtures and a separate Perl test file for this form.
+
 
 **Simple computed-key strict child iterators**,
 such as `recurse(.[.field][] | f)`, are now handled
