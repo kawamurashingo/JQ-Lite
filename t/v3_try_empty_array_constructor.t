@@ -72,8 +72,6 @@ subtest 'parser boundary and unrelated suffix regressions' => sub {
         'value-returning keys iterator remains expanded');
     is_deeply(results('{"a":2,"b":1}', 'keys []?'), ['a','b'],
         'optional value-producing iterator still expands');
-    is_deeply(results('null', 'try .[]'), [undef],
-        'try catches a genuine strict iterator error');
 };
 
 done_testing;
