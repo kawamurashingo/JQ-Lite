@@ -580,7 +580,9 @@ sub apply {
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\."(?:\\.|[^"\\])*"\s*\[\s*\]\??\s*\|/s
                                     || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]\[\s*\]\??\s*\|/s))
+                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]\[\s*\]\??\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*\]\[\s*\]\??\s*\|/s))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
@@ -591,8 +593,10 @@ sub apply {
                                 # ."items"[] named-field iterators, plus
                                 # strict .[.field][] or optional
                                 # .[.field][]?, including a dotted selector
-                                # like .[.cfg.key][]?. This remains limited
-                                # to simple named-field selector paths.
+                                # like .[.cfg.key][]?, or a single
+                                # bracket-quoted selector field such as
+                                # .[.cfg["selected"]][]?. These are
+                                # already-supported literal selector paths.
                                 # Evaluate each completed child before
                                 # requesting its next sibling; arbitrary
                                 # computed expressions remain outside scope.
