@@ -588,9 +588,9 @@ sub apply {
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\[\s*-?\d+\s*\]){1,2}\s*\]\[\s*\]\??\s*\|/s
                                     || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*\[\s*-?\d+\s*\]\s*\]\[\s*\]\??\s*\|/s
+                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*(?:\[\s*-?\d+\s*\]\s*){1,2}\]\[\s*\]\??\s*\|/s
                                     || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*\[\s*-?\d+\s*\]\s*\]\[\s*\]\??\s*\|/s))
+                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*(?:\[\s*-?\d+\s*\]\s*){1,2}\]\[\s*\]\??\s*\|/s))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
@@ -609,8 +609,8 @@ sub apply {
                                 # .[.keys[0]][]? or .[.cfg.names[0][0]][].
                                 # Also allow a bracket-quoted or
                                 # dot-quoted literal selector field followed
-                                # by one signed numeric stage, e.g.
-                                # .[.cfg["names"][0]][]?.
+                                # by one or two signed numeric stages, e.g.
+                                # .[.cfg["names"][0][0]][]?.
                                 # These reuse existing computed path parsing.
                                 # Evaluate each completed child before
                                 # requesting its next sibling; arbitrary
