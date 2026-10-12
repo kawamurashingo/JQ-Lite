@@ -410,10 +410,10 @@ sub apply {
                                 }
                                 # Iterative continuation stack keeps
                                 # outputs in jq's depth-first stream order
-                                # across multiple comma stages. Each stage
-                                # is evaluated only after the preceding
-                                # alternative's entire suffix completes.
-                                # This also avoids a self-capturing closure.
+                                # across multiple comma stages, including
+                                # fully parenthesized nested alternatives.
+                                # Each stage completes its suffix before
+                                # the next alternative. No closure cycle.
                                 my @pending = (
                                     ['pipeline', $tail_json, $tail]
                                 );
@@ -422,6 +422,35 @@ sub apply {
                                     if ($task->[0] eq 'alternative') {
                                         my ($kind, $stage_json, $alternative,
                                             $suffix) = @$task;
+                                        # A single comma alternative may
+                                        # itself contain a fully wrapped
+                                        # comma expression: ((0, 1/0), 9).
+                                        # Expand the nested expression into
+                                        # continuation tasks, not one eager
+                                        # run_query, or its completed first
+                                        # output would be lost on error.
+                                        if ($alternative =~ /\A\s*\(/s) {
+                                            my $inner =
+                                                JQ::Lite::Util::_strip_wrapping_parens(
+                                                    $alternative
+                                                );
+                                            my $trimmed = $alternative;
+                                            $trimmed =~ s/^\s+|\s+$//g;
+                                            if ($inner ne $trimmed) {
+                                                my @nested =
+                                                    JQ::Lite::Util::_split_top_level_commas(
+                                                        $inner
+                                                    );
+                                                if (@nested > 1) {
+                                                    push @pending, map {
+                                                        ['alternative',
+                                                            $stage_json,
+                                                            $_, $suffix]
+                                                    } reverse @nested;
+                                                    next;
+                                                }
+                                            }
+                                        }
                                         my @values = $self->run_query(
                                             $stage_json, $alternative
                                         );
