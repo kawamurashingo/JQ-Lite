@@ -1111,6 +1111,22 @@ five stages and arbitrary computed expressions remain
 unaudited. Optional/strict iteration, depth-first
 ordering and error handling are covered by direct
 Perl assertions and 42 jq 1.7 differential fixtures.
+**A third signed literal numeric stage** is now
+recognized within a single computed selector in
+nested `try` recurse streams. The scoped visitor
+covers `recurse(.[.cfg.names[0][0][0]][]? | f)`
+and `recurse(.[.cfg["names"][-1][-1][-1]][] | f)`.
+The existing v3 path parser already evaluates
+those stages; only the common dispatch and null
+expansion grammar changes. The earlier node and
+completed siblings remain visible before a later
+child or selector error; optional iteration skips
+missing/null selected arrays, strict iteration raises.
+Four numeric stages or arbitrary arithmetic selectors
+remain outside the audited grammar. Direct Perl
+regressions and 41 jq 1.7 differential fixtures
+verify this bounded extension.
+
 
 
 
