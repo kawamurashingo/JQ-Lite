@@ -230,8 +230,15 @@ sub _visit_update_rhs_recurse_filtered {
     # expansion: jq raises an iteration error *after* emitting null.
     # |= short-circuits at the accepted first output before reaching
     # this expansion, so existing first-result semantics are retained.
+    # A strict named-field iterator must attempt expansion even after
+    # emitting a null node. Its field lookup produces null, and the
+    # following strict [] then raises (unlike []?). Keep the optional
+    # and other custom-filter null short-circuit unchanged.
+    my $strict_named_iterator = $child_filter =~
+        /\A\.(?:[A-Za-z_]\w*|\[\s*"(?:\\.|[^"\\])*"\s*\]|"(?:\\.|[^"\\])*")\[\s*\]\s*(?:\||\z)/s;
     return 0 if !defined($current)
-        && $child_filter !~ /\A\.\[\s*\]\z/;
+        && $child_filter !~ /\A\.\[\s*\]\z/
+        && !$strict_named_iterator;
 
     return _visit_update_rhs_results($self, $current, $child_filter, sub {
         my ($child) = @_;

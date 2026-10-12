@@ -194,6 +194,7 @@ t/v3_try_nested_custom_recurse_stream.t
 t/v3_try_nested_named_custom_recurse.t
 t/v3_recurse_dynamic_child_audit.t
 t/v3_try_nested_dot_quoted_recurse_stream.t
+t/v3_try_nested_strict_named_recurse_stream.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t
