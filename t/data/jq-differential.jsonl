@@ -1946,3 +1946,26 @@
 {"name":"trynestpipe-twice-range","input":null,"filter":"try (range(0;2) | (range(0;4) | if . == 2 then (1/0) else . end)) catch 42","status":"compatible","expected":"ok"}
 {"name":"trynestpipe-prior-comma","input":null,"filter":"try (. | ((range(0;4) | if . == 2 then (1/0) else . end),99)) catch 42","status":"compatible","expected":"ok"}
 {"name":"trynestpipe-prior-outer","input":null,"filter":"try (range(0;4) | if . == 2 then (1/0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-default","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-optional","input":[1,[2],3],"filter":"try (. | (recurse(.[]?) | if . == 2 then (1/0) else . end)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-no-catch","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end))","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-catch-null","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end)) catch null","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-catch-empty","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end)) catch empty","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-catch-type","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end)) catch type","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-catch-multi","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end)) catch (42,43)","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-suffix-type","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-inner-comma","input":[1,[2],3],"filter":"try (. | ((recurse | if . == 2 then (1/0) else . end), 99)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-inner-comma-optional","input":[1,[2],3],"filter":"try (. | ((recurse(.[]?) | if . == 2 then (1/0) else . end), 99)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-suffix-comma","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end) | (.,0)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-suffix-comma-type","input":[1,[2],3],"filter":"try (. | (recurse | if . == 2 then (1/0) else . end) | (.,0) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-outer-comma","input":[1,[2],3],"filter":"0,(try (. | (recurse | if . == 2 then (1/0) else . end)) catch 42),9","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-try-comma","input":[1,[2],3],"filter":"try ((. | (recurse | if . == 2 then (1/0) else . end)),9) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-root-iterator","input":[[1,[2],3],[4]],"filter":"try (.[] | (recurse | if . == 2 then (1/0) else . end)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-named-iterator","input":{"items":[[1,[2],3],[4]]},"filter":"try (.items[] | (recurse | if . == 2 then (1/0) else . end)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-index","input":[1,[2],3],"filter":"try (.[0] | (recurse | if . == 2 then (1/0) else . end)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-extra-parentheses","input":[1,[2],3],"filter":"try (. | ((recurse | if . == 2 then (1/0) else . end))) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-null-root","input":null,"filter":"try (. | (recurse | type))","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-false-root","input":false,"filter":"try (. | (recurse | type))","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-empty-array","input":[],"filter":"try (. | (recurse | type))","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-all-success","input":[1,[2],3],"filter":"try (. | (recurse | type))","status":"compatible","expected":"ok"}
+{"name":"trynestedrec-control-unwrapped","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1/0) else . end) catch 42","status":"compatible","expected":"ok"}

@@ -781,6 +781,27 @@ Other arbitrary generators, dynamic `range` arguments,
 eagerly failing single leaf filters, and unrelated path
 semantics remain separate audits.
 
+**Parenthesized nested default `recurse` and
+`recurse(.[]?)` pipelines** now retain completed outputs
+before a later tail error as well. For example,
+`[1,[2],3] | try (. | (recurse | if . == 2 then
+1/0 else . end)) catch 42` emits the original array,
+`1`, `[2]`, then `42`. The same ordering holds
+with optional-child recursion, nested comma alternatives,
+and trailing `type` or parenthesized comma stages.
+Successful recursion visits the root before its descendants.
+JSON null and false roots and empty containers remain
+ordinary outputs; handlers still receive the error string.
+
+This reuses the demand-driven update-RHS visitor only for
+complete `try` pipelines containing an explicitly
+parenthesized **default or optional-child recurse head**
+followed by a tail. Strict `recurse(.[])`, custom
+`recurse(f)` child filters, unusual nesting in custom
+arguments, and partially emitting single leaf filters
+remain separate audits. Existing unwrapped recurse heads
+retain their earlier visitor behavior.
+
 This remains a scoped correction for **fully parenthesized
 comma alternatives inside a pipeline stage**. An individual
 failing eager leaf filter may still lose its earlier output,
@@ -1015,6 +1036,7 @@ application logic. In particular:
 | bare `try .[][]` or `try .items[][]` yielded null or missed earlier completed nested members | bare two-level iterators now visit each member and emit it directly, preserving strict/optional errors and completed prior outputs before catch; arbitrary deeper paths still require audit |
 | a `try (.[][] | f)` or `try (.items[][] | f)` pipeline lost completed inner members on a later error | two-level iterator heads are visited member by member; a failing inner iterator or tail stops further members, preserving already completed outputs, with optional `[][]?` still skipping non-iterable members |
 | a `try (.items[] | f)` pipeline lost completed named-field iterator results after a later error | simple named-field `[]` / `[]?` heads now retain completed element outputs and preserve strict versus optional head errors; nested iterators and generators remain separately scoped |
+| `try (source | (recurse | f))` and optional-child forms dropped earlier nodes after a later tail error | parenthesized default and optional-child recurse pipelines now use the demand-driven visitor, preserving ancestor and sibling outputs before catch |
 | `try (source | (range(...) | f))` discarded earlier completed nested generator values when a later `f` input failed | the existing demand-driven visitor now covers fully parenthesized nested literal range pipelines with or without comma alternatives; earlier values remain before catch |
 | `try (source | ((range(...) | f), fallback))` lost completed generator outputs when a later element of `f` failed | nested literal range pipelines in parenthesized comma alternatives now stream their completed results before the catch handler and do not evaluate later siblings after error |
 | `try (source | ((a, b), c))` lost output from completed nested comma alternatives when a later inner alternative errored | the continuation stack now expands fully parenthesized nested alternatives, preserving completed inner output and downstream suffixes before catch |
