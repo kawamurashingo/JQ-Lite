@@ -1491,3 +1491,37 @@
 {"name":"tryemptyarray-control-optional-rooted","input":{"items":[1,2]},"filter":".items[ ]?","status":"compatible","expected":"ok"}
 {"name":"tryemptyarray-control-keys","input":{"a":2,"b":1},"filter":"keys[]","status":"compatible","expected":"ok"}
 {"name":"tryemptyarray-control-keys-spaced","input":{"a":2,"b":1},"filter":"keys []?","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-both","input":{"items":[[2,3],[4,5]]},"filter":".items[0] . [1]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-afterdot","input":{"items":[[2,3],[4,5]]},"filter":".items[0]. [1]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-inspaces","input":{"items":[[2,3],[4,5]]},"filter":".items[0] . [ 0 ]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-prevnegative","input":{"items":[[2,3],[4,5]]},"filter":".items[-1] . [0]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-negative","input":{"items":[[2,3],[4,5]]},"filter":".items[1] . [-1]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-oob","input":{"items":[[2,3],[4,5]]},"filter":".items[0] . [8]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-null","input":{"items":[null]},"filter":".items[0] . [0]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-after-null","input":{"items":[[1]]},"filter":".items[0] . [2] . [0]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-object-error","input":{"items":[{}]},"filter":".items[0] . [0]","status":"compatible","expected":"runtime-error"}
+{"name":"dotbrgap-numeric-number-error","input":{"items":[7]},"filter":".items[0] . [0]","status":"compatible","expected":"runtime-error"}
+{"name":"dotbrgap-numeric-prior-error","input":7,"filter":".items[0] . [1]","status":"compatible","expected":"runtime-error"}
+{"name":"dotbrgap-numeric-optional-bad","input":{"items":[7]},"filter":".items[0] . [0]?","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-optional-good","input":{"items":[[1,2]]},"filter":".items[0] . [0]?","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-numeric-optional-oob","input":{"items":[[]]},"filter":".items[0] . [0]?","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-quote-simple","input":{"items":[{"a.b":7}]},"filter":".items[0] . [\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-quote-padding","input":{"items":[{"a.b":7}]},"filter":".items[0]. [ \"a.b\" ]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-quote-suffix","input":{"items":[{"a.b":[2,4]}]},"filter":".items[0] . [\"a.b\"][1]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-quote-assignment-name","input":{"items":[{"a|=b":3}]},"filter":".items[0] . [\"a|=b\"]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-quote-comma-name","input":{"items":[{"a,b":4}]},"filter":".items[0] . [\"a,b\"]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-quote-missing","input":{"items":[{}]},"filter":".items[0] . [\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-quote-null","input":{"items":[null]},"filter":".items[0] . [\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-quote-bad","input":{"items":[8]},"filter":".items[0] . [\"a.b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"dotbrgap-quote-optional-bad","input":{"items":[8]},"filter":".items[0] . [\"a.b\"]?","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-iterator","input":{"items":[[3,4]]},"filter":".items[0] . [ ]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-iterator-optional","input":{"items":[[3,4]]},"filter":".items[0] . [ ]?","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-iterator-optional-null","input":{"items":[null]},"filter":".items[0] . [ ]?","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-iterator-strict-null","input":{"items":[null]},"filter":".items[0] . [ ]","status":"compatible","expected":"runtime-error"}
+{"name":"dotbrgap-pipeline","input":{"items":[[1,2]]},"filter":".items[0] . [1] | . + 1","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-comma","input":{"items":[[1,2]]},"filter":"0, .items[0] . [1], 9","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-control-compact","input":{"items":[[2,3]]},"filter":".items[0][1]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-control-predot","input":{"items":[[2,3]]},"filter":".items[0] .[1]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-control-constructor","input":{"a.b":5},"filter":"[\"a.b\"]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-control-tryquoted","input":null,"filter":"try [\"catch me\"]","status":"compatible","expected":"ok"}
+{"name":"dotbrgap-control-tryempty","input":null,"filter":"try [ ]","status":"compatible","expected":"ok"}

@@ -507,9 +507,16 @@ and an unquoted field-only chain keep their existing dispatch.
 jq 1.7 does **not** allow whitespace immediately *after* the dot
 before an unquoted name (for example `.items[0]. name`), so that
 invalid syntax is not newly accepted by the scoped visitor.
-Additional whitespace after the dot before a bracket (for example
-`.items[0] . [0]`) has separate dispatch constraints and is not
-included in this narrowly scoped compatibility change.
+The parser now also preserves the rooted form when the dotted
+suffix is followed by spaces before a **literal bracket**:
+`.items[0] . [0]`, `.items[0]. [1]`,
+`.items[0] . ["a.b"]`, and `.items[0] . [ ]?`.
+This ensures the already audited v3 numeric-index, quoted-field and
+iterator stages receive the original complete path instead of a
+dotless fragment. Stage-local strict and optional error handling
+is unchanged; bare `[0]` or `["a.b"]` remain constructors.
+Arbitrary computed selectors, slices, and whitespace before an
+unquoted name *after* a dot are not widened by this change.
 Non-path expressions and constructor/try syntax remain unchanged.
 
 For literal paths, unquoted names, JSON-quoted keys, and adjacent
@@ -667,6 +674,7 @@ application logic. In particular:
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | an object key with a literal dot, space, or operator-like punctuation must be read strictly | use bracket-quoted syntax `.["a.b"]` / `.obj["a.b"].name` or dot-quoted syntax `."a.b"` / `.obj."a.b".name`; an absent key/null yields JSON null but wrong-type inputs still raise structured errors; bare `["a.b"]` is an array constructor and bare `"a.b"` is a string literal |
+| whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
 | a `try` expression directly constructs an empty array | `try []` and `try [ ]` now emit one `[]` instead of triggering a synthetic `.[]` iterator; this includes comma branches, without changing `.[]` or `keys[]` suffixes |
 | spaces appear inside or before an iterator bracket | `.items [ ]`, `.items [ ]?`, and `. [ ]` use the same strict/optional iteration as `[]`/`[]?`; bare `[ ]` still constructs an empty array and `try [ ]` is not a path |
