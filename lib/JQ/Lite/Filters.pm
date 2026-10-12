@@ -931,42 +931,16 @@ sub apply {
                 my $json = JQ::Lite::Util::_encode_json($value);
                 my @items = $self->run_query($json, $foreach->{generator});
 
-                my ($init_values, $init_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $foreach->{init_expr});
-                my $acc;
-                if ($init_ok) {
-                    $acc = @$init_values ? $init_values->[0] : undef;
-                }
-                else {
-                    my @init_outputs = $self->run_query(JQ::Lite::Util::_encode_json($value), $foreach->{init_expr});
-                    $acc = @init_outputs ? $init_outputs[0] : undef;
-                }
+                my $acc = _evaluate_scalar_expression($self, $value, $foreach->{init_expr});
 
                 for my $element (@items) {
                     my %existing = %{ $self->{_vars} || {} };
                     local $self->{_vars} = { %existing, $foreach->{var_name} => $element };
 
-                    my ($updated_values, $updated_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $foreach->{update_expr});
-                    my $next;
-                    if ($updated_ok) {
-                        $next = @$updated_values ? $updated_values->[0] : undef;
-                    }
-                    else {
-                        my @outputs = $self->run_query(JQ::Lite::Util::_encode_json($acc), $foreach->{update_expr});
-                        $next = @outputs ? $outputs[0] : undef;
-                    }
-
-                    $acc = $next;
+                    $acc = _evaluate_scalar_expression($self, $acc, $foreach->{update_expr});
 
                     if (defined $foreach->{extract_expr} && length $foreach->{extract_expr}) {
-                        my ($extract_values, $extract_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $foreach->{extract_expr});
-                        my $output;
-                        if ($extract_ok) {
-                            $output = @$extract_values ? $extract_values->[0] : undef;
-                        }
-                        else {
-                            my @extracted = $self->run_query(JQ::Lite::Util::_encode_json($acc), $foreach->{extract_expr});
-                            $output = @extracted ? $extracted[0] : undef;
-                        }
+                        my $output = _evaluate_scalar_expression($self, $acc, $foreach->{extract_expr});
 
                         push @next_results, $output;
                     }
@@ -1044,31 +1018,13 @@ sub apply {
                 my $json = JQ::Lite::Util::_encode_json($value);
                 my @items = $self->run_query($json, $reduce->{generator});
 
-                my ($init_values, $init_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $reduce->{init_expr});
-                my $acc;
-                if ($init_ok) {
-                    $acc = @$init_values ? $init_values->[0] : undef;
-                }
-                else {
-                    my @init_outputs = $self->run_query(JQ::Lite::Util::_encode_json($value), $reduce->{init_expr});
-                    $acc = @init_outputs ? $init_outputs[0] : undef;
-                }
+                my $acc = _evaluate_scalar_expression($self, $value, $reduce->{init_expr});
 
                 for my $element (@items) {
                     my %existing = %{ $self->{_vars} || {} };
                     local $self->{_vars} = { %existing, $reduce->{var_name} => $element };
 
-                    my ($updated_values, $updated_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $reduce->{update_expr});
-                    my $next;
-                    if ($updated_ok) {
-                        $next = @$updated_values ? $updated_values->[0] : undef;
-                    }
-                    else {
-                        my @outputs = $self->run_query(JQ::Lite::Util::_encode_json($acc), $reduce->{update_expr});
-                        $next = @outputs ? $outputs[0] : undef;
-                    }
-
-                    $acc = $next;
+                    $acc = _evaluate_scalar_expression($self, $acc, $reduce->{update_expr});
                 }
 
                 push @next_results, $acc;
@@ -2215,6 +2171,18 @@ sub apply {
         }
 
     return 0;
+}
+
+# Preserve reduce/foreach's existing scalar evaluation: use the first
+# value, or undef for no output. Fallback filters are fully evaluated so
+# errors in later outputs still propagate; this is not a lazy visitor.
+sub _evaluate_scalar_expression {
+    my ($self, $context, $expr) = @_;
+    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $expr);
+    return @$values ? $values->[0] : undef if $ok;
+
+    my @outputs = $self->run_query(JQ::Lite::Util::_encode_json($context), $expr);
+    return @outputs ? $outputs[0] : undef;
 }
 
 1;

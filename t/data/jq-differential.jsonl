@@ -3026,3 +3026,23 @@
 {"name":"tryquadnumeric-unwrapped","input":{"cfg":{"names":[[[["items"]]]]},"items":[{"cfg":{"names":[[[["items"]]]]},"id":1,"items":[]},{"cfg":{"names":[[[["items"]]]]},"id":2,"items":[]},{"cfg":{"names":[[[["items"]]]]},"id":3,"items":[]}]},"filter":"try (recurse(.[.cfg.names[0][0][0][0]][]? | if .id == 2 then (1/0) else . end) | type) catch 42","status":"compatible","expected":"ok"}
 {"name":"tryquadnumeric-outer-array","input":[{"cfg":{"names":[[[["items"]]]]},"items":[{"cfg":{"names":[[[["items"]]]]},"id":1,"items":[]},{"cfg":{"names":[[[["items"]]]]},"id":2,"items":[]},{"cfg":{"names":[[[["items"]]]]},"id":3,"items":[]}]},{"cfg":{"names":[[[["items"]]]]},"items":[]}],"filter":"try (.[] | (recurse(.[.cfg.names[0][0][0][0]][]? | if .id == 2 then (1/0) else . end) | type)) catch 42","status":"compatible","expected":"ok"}
 {"name":"tryquadnumeric-outer-named","input":{"groups":[{"cfg":{"names":[[[["items"]]]]},"items":[{"cfg":{"names":[[[["items"]]]]},"id":1,"items":[]},{"cfg":{"names":[[[["items"]]]]},"id":2,"items":[]},{"cfg":{"names":[[[["items"]]]]},"id":3,"items":[]}]},{"cfg":{"names":[[[["items"]]]]},"items":[]}]},"filter":"try (.groups[] | (recurse(.[.cfg.names[0][0][0][0]][]? | if .id == 2 then (1/0) else . end) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-sum","input":[1,2,3,4],"filter":"reduce .[] as $n (0; . + $n)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-init-filter","input":[1,2,3],"filter":"reduce .[] as $n (length; . + $n)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-variable-path","input":{"items":[{"value":2},{"value":3}]},"filter":"reduce .items[] as $item (0; . + $item.value)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-empty-generator","input":[],"filter":"reduce .[] as $n (false; $n)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-false","input":[1,false],"filter":"reduce .[] as $n (null; $n)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-zero","input":[1,0],"filter":"reduce .[] as $n (null; $n)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-null","input":[1,null],"filter":"reduce .[] as $n (0; $n)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-update-filter","input":[1],"filter":"reduce .[] as $n (\"abcd\"; length)","status":"compatible","expected":"ok"}
+{"name":"foreach-practical-running-totals","input":[1,2,3],"filter":"foreach .[] as $n (0; . + $n)","status":"compatible","expected":"ok"}
+{"name":"foreach-practical-init-filter","input":[1,2,3],"filter":"foreach .[] as $n (length; . + $n)","status":"compatible","expected":"ok"}
+{"name":"foreach-practical-extract-variable","input":[1,2,3],"filter":"foreach .[] as $n (0; . + $n; $n)","status":"compatible","expected":"ok"}
+{"name":"foreach-practical-update-extract-filters","input":[1],"filter":"foreach .[] as $n (\"abcd\"; length; type)","status":"compatible","expected":"ok"}
+{"name":"foreach-practical-extract-filter","input":["a","bb"],"filter":"foreach .[] as $n (null; $n; length)","status":"compatible","expected":"ok"}
+{"name":"foreach-practical-false-zero-null","input":[false,0,null],"filter":"foreach .[] as $n (null; $n; .)","status":"compatible","expected":"ok"}
+{"name":"foreach-practical-empty-generator","input":[],"filter":"foreach .[] as $n (0; . + $n)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-empty-update","input":[1,2],"filter":"reduce .[] as $n (0; empty)","status":"compatible","expected":"ok"}
+{"name":"reduce-practical-update-error","input":[1],"filter":"reduce .[] as $n (1; . / 0)","status":"compatible","expected":"runtime-error"}
+{"name":"foreach-practical-update-error","input":[1],"filter":"foreach .[] as $n (1; . / 0)","status":"compatible","expected":"runtime-error"}
+{"name":"reduce-practical-later-error","input":[1],"filter":"reduce .[] as $n (0; (7, 1 / 0))","status":"compatible","expected":"runtime-error"}
+{"name":"foreach-practical-later-extract-error","input":[1],"filter":"foreach .[] as $n (0; . + $n; (7, 1 / 0))","status":"compatible","expected":"runtime-error"}
