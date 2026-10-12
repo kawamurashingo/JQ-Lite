@@ -1052,6 +1052,22 @@ without enabling arbitrary computed expressions or
 three or more computed selector stages. New direct
 Perl regressions and 100 jq 1.7 differential fixtures
 cover the bracket/dot combinations and controls.
+**Paired computed selectors with one numeric stage each**
+now retain jq 1.7 demand-driven recursion order under
+`try`, including `recurse(.[.first[0]][.second[-1]][]? | f)`
+and `recurse(.[.cfg["first"][0]][.cfg."second"[0]][] | f)`.
+Each selector may finish with one signed literal
+numeric index, optionally following one quoted field,
+while the preceding dotted-identifier path stays
+literal and simple. No new parser or arbitrary
+computed-expression behavior is introduced.
+The previous node is emitted before selector or child
+errors; `[]?` skips null/missing selected children,
+whereas strict `[]` raises. 97 jq 1.7 differential
+fixtures and direct Perl assertions check depth-first
+output, catches, negative indices, missing keys, and
+the prior unindexed selector forms.
+
 
 
 
