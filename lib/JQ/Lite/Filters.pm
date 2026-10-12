@@ -347,12 +347,42 @@ sub apply {
                     {
                         local $@;
                         eval {
-                            @branch_outputs = $self->run_query($json, $branch);
+                            # A leading standalone iterator can supply
+                            # several pipeline inputs. Evaluate its tail
+                            # once per member, in source order, so results
+                            # from earlier completed members survive a
+                            # later member's evaluation error.
+                            #
+                            # Other generator/path forms and partially
+                            # failing individual members remain eager.
+                            my $unwrapped =
+                                JQ::Lite::Util::_strip_wrapping_parens($branch);
+                            my @stages =
+                                JQ::Lite::Util::_split_top_level_pipes($unwrapped);
+                            if (@stages > 1
+                                && $stages[0] =~ /\A\s*\.\[\s*\]\??\s*\z/s)
+                            {
+                                my $head = shift @stages;
+                                my $tail = join(' | ', @stages);
+                                my @members = $self->run_query($json, $head);
+                                for my $member (@members) {
+                                    push @branch_outputs, $self->run_query(
+                                        JQ::Lite::Util::_encode_json($member),
+                                        $tail
+                                    );
+                                }
+                            }
+                            else {
+                                @branch_outputs = $self->run_query($json, $branch);
+                            }
                             1;
                         } or $error = $@;
                     }
-                    last if $error;
+                    # A failed member leaves its preceding, already
+                    # completed member results intact; do not discard
+                    # those just because the branch later threw.
                     push @outputs, @branch_outputs;
+                    last if $error;
                 }
 
                 if (!$error) {

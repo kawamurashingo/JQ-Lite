@@ -172,6 +172,7 @@ t/v3_try_catch_handler_error_propagation.t
 t/v3_try_comma_partial_output.t
 t/v3_try_empty_array_constructor.t
 t/v3_try_no_catch_empty_stream.t
+t/v3_try_pipeline_element_stream.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t

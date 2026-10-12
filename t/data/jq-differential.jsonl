@@ -1628,3 +1628,19 @@
 {"name":"trycomma-explicit-empty","input":null,"filter":"try (0, (1 / 0)) catch empty","status":"compatible","expected":"ok"}
 {"name":"trycomma-catch-pipeline","input":null,"filter":"try (0, (1 / 0)) catch (. | type)","status":"compatible","expected":"ok"}
 {"name":"trycomma-array-constructor","input":null,"filter":"try ([0, 1], (1 / 0)) catch 8","status":"compatible","expected":"ok"}
+{"name":"trypipe-field-no-catch","input":[{"name":"Ada"},3,{"name":"Later"}],"filter":"try (.[] | .[\"name\"])","status":"compatible","expected":"ok"}
+{"name":"trypipe-field-catch","input":[{"name":"Ada"},3,{"name":"Later"}],"filter":"try (.[] | .[\"name\"]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trypipe-field-catch-null","input":[{"name":"Ada"},3,{"name":"Later"}],"filter":"try (.[] | .[\"name\"]) catch null","status":"compatible","expected":"ok"}
+{"name":"trypipe-field-catch-empty","input":[{"name":"Ada"},3,{"name":"Later"}],"filter":"try (.[] | .[\"name\"]) catch empty","status":"compatible","expected":"ok"}
+{"name":"trypipe-double-iterator","input":[[1],[2],3,[4]],"filter":"try (.[] | .[]) catch 9","status":"compatible","expected":"ok"}
+{"name":"trypipe-double-iterator-no-catch","input":[[1],[2],3,[4]],"filter":"try (.[] | .[])","status":"compatible","expected":"ok"}
+{"name":"trypipe-arithmetic","input":[1,2,"bad",4],"filter":"try (.[] | . + 1) catch 42","status":"compatible","expected":"ok"}
+{"name":"trypipe-head-optional","input":[{"name":"Ada"},3,{"name":"Later"}],"filter":"try (.[]? | .[\"name\"]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trypipe-success-null","input":[{"name":null},{"name":"Jane"}],"filter":"try (.[] | .[\"name\"])","status":"compatible","expected":"ok"}
+{"name":"trypipe-empty-root","input":[],"filter":"try (.[] | .[\"name\"]) catch 9","status":"compatible","expected":"ok"}
+{"name":"trypipe-scalar-root","input":3,"filter":"try (.[] | .[\"name\"]) catch 9","status":"compatible","expected":"ok"}
+{"name":"trypipe-multistage","input":[{"name":"Ada"},3],"filter":"try (.[] | .[\"name\"] | tostring) catch 9","status":"compatible","expected":"ok"}
+{"name":"trypipe-parenthesized-comma","input":[{"name":"Ada"},3],"filter":"try ((.[] | .[\"name\"]), 88) catch 9","status":"compatible","expected":"ok"}
+{"name":"trypipe-catch-type","input":[{"name":"Ada"},3],"filter":"try (.[] | .[\"name\"]) catch type","status":"compatible","expected":"ok"}
+{"name":"trypipe-successful-elements","input":[{"name":"Ada"},{"name":"Bob"}],"filter":"try (.[] | .[\"name\"])","status":"compatible","expected":"ok"}
+{"name":"trypipe-control-bare-try","input":[1,2],"filter":"try .[]","status":"compatible","expected":"ok"}

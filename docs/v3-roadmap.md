@@ -604,9 +604,20 @@ A failing branch stops later alternatives and runs the explicit
 handler only once; `catch null` emits one null after prior outputs,
 while no `catch` and `catch empty` leave prior outputs alone.
 This audit preserves only outputs from **completed comma branches**.
-Partial streams produced within a single failing generator, path or
-pipeline branch remain subject to the existing eager-evaluation
-limitation.
+A leading standalone `.[]` or `.[]?` iterator in a `try` pipeline
+now also preserves results from **completed earlier members** when a
+later member fails. For example, given `[{"name":"Ada"},3]`,
+`try (.[] | .["name"]) catch 42` emits `"Ada"` then `42`,
+not just `42`. The strict bracket-quoted `.["name"]` lookup raises on a numeric
+member; plain unquoted `.name` retains its separately documented
+legacy dispatch. Processing stops at the failing member; subsequent
+members are not evaluated. The optional head `.[]?` follows the same
+per-member rule, while a scalar input produces no values.
+
+This is an intentionally scoped streaming correction. Partial values
+produced *within one failing member* or inside other generator/path
+forms are still subject to the eager-evaluation limitation; this does
+not introduce a general-purpose streaming evaluator.
 
 The parser now preserves **`try []` and `try [ ]` as
 empty-array constructor expressions** instead of lowering the
@@ -754,6 +765,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| a `try (.[] | f)` pipeline lost completed earlier element results when a later element failed | completed elements now retain their output before the error fallback; later elements are skipped, while partially failing individual members and other iterator forms remain outside the scoped change |
 | earlier results inside a `try` comma expression disappeared after a later error | completed earlier comma branches now retain their output, and a `catch` fallback follows them; partial results inside an individual failing branch still need a separate streaming audit |
 | a `catch` handler assumed the original JSON input | `catch` now evaluates on the error message string, like jq 1.7; bind the original value first with `. as $original | try ... catch $original.field` when needed; the legacy `$error` alias is retained as an extension |
 | a `catch` handler deliberately emits no results | the handler now preserves an empty stream instead of synthesizing JSON null; use `catch null` to emit a visible null |
