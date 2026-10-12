@@ -635,7 +635,9 @@ still raises on strict `[]`, whereas an optional second iterator
 `[][]?` drops that member. The scope also includes the two-level
 named-head `.items[][]`, without changing ordinary paths.
 
-This is an intentionally scoped streaming correction. Partial values
+This is an intentionally scoped streaming correction. Bare nested
+`try .[][]` without a pipeline tail is not changed by this visitor;
+it remains part of the separate iterator parsing audit. Partial values
 produced *within one failing member* or inside other generator/path
 forms remain subject to the eager-evaluation limitation; this does
 not introduce a general-purpose streaming evaluator.

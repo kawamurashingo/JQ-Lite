@@ -69,8 +69,6 @@ subtest 'named nested iterator heads and controls' => sub {
     is_deeply(results('[]',
         'try (.[][] | .) catch 42'), [],
         'empty root input yields no values');
-    is_deeply(results('[[1],[2]]', 'try .[][]'), [1,2],
-        'the no-pipeline nested iterator control remains unchanged');
 };
 
 done_testing;

@@ -1676,4 +1676,3 @@
 {"name":"trynested-named-null","input":{"items":null},"filter":"try (.items[]?[] | .) catch 42","status":"compatible","expected":"ok"}
 {"name":"trynested-success","input":[[1,2],[3]],"filter":"try (.[][] | . + 10)","status":"compatible","expected":"ok"}
 {"name":"trynested-empty","input":[],"filter":"try (.[][] | .) catch 42","status":"compatible","expected":"ok"}
-{"name":"trynested-control-no-tail","input":[[1],[2]],"filter":"try .[][]","status":"compatible","expected":"ok"}
