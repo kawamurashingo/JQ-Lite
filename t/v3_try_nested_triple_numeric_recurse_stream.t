@@ -70,7 +70,7 @@ subtest 'invalid selectors and strict vs optional child iterators' => sub {
         [{cfg=>{names=>[]}},42], 'out of range first index gives invalid key');
     is_deeply(results('{"cfg":{"names":[[[]]]}}',
         "try (. | ($child | .)) catch 42"),
-        [{cfg=>{names=>[[]]}},42], 'out of range second index gives invalid key');
+        [{cfg=>{names=>[[[]]]}},42], 'out of range third index gives invalid key');
     is_deeply(results('{"cfg":{"names":3}}',
         "try (. | ($child | .)) catch 42"),
         [{cfg=>{names=>3}},42], 'number selector container errors');
