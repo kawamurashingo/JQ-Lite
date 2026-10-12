@@ -236,12 +236,12 @@ sub _visit_update_rhs_recurse_filtered {
     # and other custom-filter null short-circuit unchanged.
     my $strict_named_iterator = $child_filter =~
         /\A\.(?:[A-Za-z_]\w*|\[\s*"(?:\\.|[^"\\])*"\s*\]|"(?:\\.|[^"\\])*")\[\s*\]\s*(?:\||\z)/s;
-    # A simple computed key such as .[.field][]? must also be evaluated
-    # on null. The selector yields null, which is an invalid key; []?
-    # cannot suppress an error in its preceding selector. Do not expand
-    # other optional child forms on null.
+    # Both .[.field][] and .[.field][]? must evaluate the computed
+    # selector on null. That selector yields a null key and raises
+    # before either strict or optional child iteration can take place.
+    # Other optional/custom children keep their null short-circuit.
     my $computed_child_iterator = $child_filter =~
-        /\A\.\[\s*\.[A-Za-z_]\w*\s*\]\[\s*\]\?\s*(?:\||\z)/s;
+        /\A\.\[\s*\.[A-Za-z_]\w*\s*\]\[\s*\]\??\s*(?:\||\z)/s;
     return 0 if !defined($current)
         && $child_filter !~ /\A\.\[\s*\]\z/
         && !$strict_named_iterator
