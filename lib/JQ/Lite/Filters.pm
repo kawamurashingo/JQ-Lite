@@ -364,13 +364,11 @@ sub apply {
                             my @stages =
                                 JQ::Lite::Util::_split_top_level_pipes($unwrapped);
 
-                            # A fully parenthesized comma stage, even one
-                            # followed by other pipeline stages, is a stream.
-                            # Keep its completed alternatives and evaluate
-                            # their downstream suffix before moving to the
-                            # next alternative or generator input. Prefixes
-                            # and individual alternatives still use their
-                            # existing eager evaluator.
+                            # Fully parenthesized comma stages, including
+                            # consecutive stages, retain each completed
+                            # alternative's downstream output before trying
+                            # the next one. Prefixes and individual filter
+                            # leaves retain their existing eager evaluator.
                             my @pipeline_comma_parts;
                             if (@stages > 1) {
                                 for (my $i = 1; $i < @stages; $i++) {
@@ -410,44 +408,92 @@ sub apply {
                                         last;
                                     }
                                 }
-                                if (defined $comma_index) {
+                                # Iterative continuation stack keeps
+                                # outputs in jq's depth-first stream order
+                                # across multiple comma stages. Each stage
+                                # is evaluated only after the preceding
+                                # alternative's entire suffix completes.
+                                # This also avoids a self-capturing closure.
+                                my @pending = (
+                                    ['pipeline', $tail_json, $tail]
+                                );
+                                while (@pending) {
+                                    my $task = pop @pending;
+                                    if ($task->[0] eq 'alternative') {
+                                        my ($kind, $stage_json, $alternative,
+                                            $suffix) = @$task;
+                                        my @values = $self->run_query(
+                                            $stage_json, $alternative
+                                        );
+                                        if (length $suffix) {
+                                            push @pending, map {
+                                                ['pipeline',
+                                                    JQ::Lite::Util::_encode_json($_),
+                                                    $suffix]
+                                            } reverse @values;
+                                        }
+                                        else {
+                                            push @branch_outputs, @values;
+                                        }
+                                        next;
+                                    }
+
+                                    my ($kind, $input_json, $remaining) = @$task;
+                                    my @parts =
+                                        JQ::Lite::Util::_split_top_level_pipes(
+                                            $remaining
+                                        );
+                                    my ($comma_index, @alternatives);
+                                    for (my $i = 0; $i < @parts; $i++) {
+                                        next unless $parts[$i] =~ /\A\s*\(/s;
+                                        my $inner =
+                                            JQ::Lite::Util::_strip_wrapping_parens(
+                                                $parts[$i]
+                                            );
+                                        my @candidates =
+                                            JQ::Lite::Util::_split_top_level_commas(
+                                                $inner
+                                            );
+                                        if (@candidates > 1) {
+                                            $comma_index = $i;
+                                            @alternatives = @candidates;
+                                            last;
+                                        }
+                                    }
+                                    if (!defined $comma_index) {
+                                        push @branch_outputs,
+                                            $self->run_query(
+                                                $input_json, $remaining
+                                            );
+                                        next;
+                                    }
+
                                     my @prefix = $comma_index > 0
                                         ? @parts[0 .. $comma_index - 1] : ();
                                     my @suffix = $comma_index < $#parts
                                         ? @parts[$comma_index + 1 .. $#parts]
                                         : ();
-                                    my @inputs_json = @prefix
+                                    my @prefix_values = @prefix
+                                        ? $self->run_query(
+                                            $input_json, join(' | ', @prefix)
+                                        )
+                                        : ();
+                                    my @input_jsons = @prefix
                                         ? map {
                                             JQ::Lite::Util::_encode_json($_)
-                                        } $self->run_query(
-                                            $tail_json, join(' | ', @prefix)
-                                        )
-                                        : ($tail_json);
+                                        } @prefix_values
+                                        : ($input_json);
                                     my $suffix = join(' | ', @suffix);
-                                    for my $stage_json (@inputs_json) {
-                                        for my $alternative (@alternatives) {
-                                            my @values = $self->run_query(
-                                                $stage_json, $alternative
-                                            );
-                                            for my $result (@values) {
-                                                if (@suffix) {
-                                                    push @branch_outputs,
-                                                        $self->run_query(
-                                                            JQ::Lite::Util::_encode_json($result),
-                                                            $suffix
-                                                        );
-                                                }
-                                                else {
-                                                    push @branch_outputs,
-                                                        $result;
-                                                }
-                                            }
-                                        }
+                                    # LIFO: push inputs and alternatives
+                                    # in reverse, but evaluate them in
+                                    # original left-to-right order.
+                                    for my $stage_json (reverse @input_jsons) {
+                                        push @pending, map {
+                                            ['alternative',
+                                                $stage_json, $_, $suffix]
+                                        } reverse @alternatives;
                                     }
-                                    return;
                                 }
-                                push @branch_outputs,
-                                    $self->run_query($tail_json, $tail);
                             };
 
                             # A parenthesized comma expression can

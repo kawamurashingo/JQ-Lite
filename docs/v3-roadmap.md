@@ -710,11 +710,26 @@ emits `1`, `11`, `2`, `12`.
 Output filtering, empty alternatives, JSON null and false,
 multi-value handlers and no-catch semantics remain distinct.
 
-The scope is still limited to **one fully parenthesized comma
-stage** after the head. Failures in an eagerly evaluated
-prefix or inside a single failing alternative/suffix leaf
-can still lose partial output; further independently nested
-comma stages and nonliteral generators remain separate
+**Multiple fully parenthesized comma stages** in a `try` pipeline
+are now evaluated in source-order depth-first stream order.
+For example, `try (range(0;2) | (., . + 10) |
+(., . + 100))` produces `0, 100, 10, 110, 1, 101, 11, 111`.
+When a later alternative fails,
+`try (range(0;2) | (., . + 10) | (., 1/0)) catch 42`
+emits `0, 42` and does not visit any remaining alternatives,
+sibling values or later range items. Comma stages followed by
+`tostring` or other simple suffix filters are handled in the
+same order. The implementation uses an explicit continuation
+stack rather than recursive closures, and reuses the existing
+range, recurse and iterator source visitors. Valid JSON null
+and false outputs remain visible before a later error, and
+explicit catch values are appended only once.
+
+The scope remains fully parenthesized comma stages with simple
+pipeline tails. Prefixes that themselves partially emit then
+throw, individually failing comma alternatives and other eager
+leaf filters may still lose earlier output; arbitrary nested
+subexpressions and nonliteral generators require separate
 audits.
 
 This is an intentionally scoped streaming correction. Partial values
@@ -946,6 +961,7 @@ application logic. In particular:
 | bare `try .[][]` or `try .items[][]` yielded null or missed earlier completed nested members | bare two-level iterators now visit each member and emit it directly, preserving strict/optional errors and completed prior outputs before catch; arbitrary deeper paths still require audit |
 | a `try (.[][] | f)` or `try (.items[][] | f)` pipeline lost completed inner members on a later error | two-level iterator heads are visited member by member; a failing inner iterator or tail stops further members, preserving already completed outputs, with optional `[][]?` still skipping non-iterable members |
 | a `try (.items[] | f)` pipeline lost completed named-field iterator results after a later error | simple named-field `[]` / `[]?` heads now retain completed element outputs and preserve strict versus optional head errors; nested iterators and generators remain separately scoped |
+| `try (source | (a, b) | (c, d))` lost completed results when the second comma stage failed | multiple parenthesized comma stages now execute in depth-first order with completed suffix output preserved before the first error |
 | a `try (source | (a, b) | f)` pipeline lost completed middle-stage results if a later comma alternative failed | fully parenthesized middle comma alternatives now feed the downstream suffix in source order, before proceeding to the next alternative or generator input |
 | a `try (source | (a, b, c))` pipeline lost outputs from earlier completed final-stage comma alternatives after a later error | parenthesized final comma alternatives now run in order for each preceding input; the first error stops later alternatives and generator inputs, preserving completed output before catch |
 | a `try ((a, b, c) | f)` pipeline lost output from completed head alternatives when a later alternative or tail raised an error | parenthesized comma-head alternatives now feed the pipeline one at a time; earlier completed outputs remain visible before catch |
