@@ -966,6 +966,21 @@ and 40 jq 1.7 differential fixtures. Arbitrary arithmetic
 inside selectors, multiple computed brackets, and
 partially failing eager leaves remain separate #625 audits.
 
+**Two consecutive signed numeric selector indices**,
+such as `recurse(.[.cfg.names[0][0]][]? | f)` and
+`recurse(.[.cfg.names[-1][-1]][] | f)`, also preserve
+prior completed nodes under parenthesized `try`.
+The extension is deliberately limited to one or two
+literal signed numeric indices after a simple dotted
+identifier selector prefix; earlier path parsing and
+jq 1.7 error semantics remain unchanged. Selector
+errors are not suppressed by optional child iteration,
+while strict iteration on a null or missing selected
+container raises after the node has been emitted.
+37 jq 1.7 differential fixtures and a standalone Perl
+regression suite cover recursion order, multiple
+outputs, catches, nested descendants and bad selectors.
+
 
 
 **Simple computed-key strict child iterators**,
