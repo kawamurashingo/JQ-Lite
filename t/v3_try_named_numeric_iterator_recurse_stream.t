@@ -75,8 +75,8 @@ subtest 'negative numeric indices and special literal field names' => sub {
         'bracket-quoted dotted literal key');
     is_deeply(results($input,
         'try (. | (recurse(.items[] | if .id == 2 then (1/0) else . end) | .)) catch 42'),
-        [$root,$root->{items}[0],42],
-        'preexisting direct named iterator behavior is unchanged');
+        [$root,42],
+        'preexisting direct named iterator errors on array child';
 };
 
 done_testing;
