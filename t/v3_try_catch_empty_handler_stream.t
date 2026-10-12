@@ -32,8 +32,8 @@ subtest 'successful try and real catch values are unchanged' => sub {
     is_deeply(results('null', 'try (1 / 0) catch empty'), [],
         'explicit catch empty continues returning no values');
     is_deeply(results('{"num":1,"den":0}',
-        'try (.num / .den) catch (.den // 1)'), [0],
-        'catch still evaluates a fallback filter against its input');
+        '. as $original | try (.num / .den) catch $original.den'), [0],
+        'bound original input remains available in a catch handler');
 };
 
 done_testing;

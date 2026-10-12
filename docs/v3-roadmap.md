@@ -569,8 +569,9 @@ but a strict iterator failure inside the handler is a new runtime
 error. An enclosing `try` can handle that subsequent failure.
 Successful `try` results still bypass the handler, and `catch null`
 and `catch empty` continue to emit null and no values respectively.
-This is limited to propagating handler failures; the existing catch
-handler input context and broader streaming behavior are not changed.
+This handler-error change is limited to propagation. The catch input
+context is audited separately below; broader streaming semantics remain
+unchanged.
 
 **Explicit `catch` handlers preserve empty output streams** rather
 than generating JSON null when an expression shortcut yields no values.
@@ -579,8 +580,21 @@ The handler is now evaluated once as a full filter, so for example
 `try (1 / 0) catch (empty | 9)` emit no results.
 Comma alternatives retain their successful surrounding outputs.
 An explicit `catch null` still emits one null; a successful `try`
-still bypasses its handler. The broader catch-handler input context
-remains a separate v3 compatibility audit.
+still bypasses its handler.
+
+**A `catch` handler now runs on its error message as a JSON string,**
+matching jq 1.7, rather than reusing the original input value.
+Thus `try (1 / 0) catch type` produces `"string"` and
+`try (1 / 0) catch .` returns a diagnostic string. The precise
+wording of error messages may differ from jq, but the handler
+receives a string and may inspect it or emit its own outputs.
+If a handler must access the original document, bind it before
+the `try`, for example
+`. as $original | try (.num / .den) catch $original.den`.
+The preexisting `$error` variable is retained as a JQ::Lite
+extension for existing callers, though jq 1.7 itself does not
+predefine `$error`. A `catch` handler that raises a new error
+still propagates it, and `catch empty` still returns no values.
 
 The parser now preserves **`try []` and `try [ ]` as
 empty-array constructor expressions** instead of lowering the
@@ -728,6 +742,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| a `catch` handler assumed the original JSON input | `catch` now evaluates on the error message string, like jq 1.7; bind the original value first with `. as $original | try ... catch $original.field` when needed; the legacy `$error` alias is retained as an extension |
 | a `catch` handler deliberately emits no results | the handler now preserves an empty stream instead of synthesizing JSON null; use `catch null` to emit a visible null |
 | an explicit `catch` handler error was replaced with JSON null | a failing handler now raises a runtime error; use an outer `try` when intentional suppression or a fallback is needed |
 | an unhandled `try` error used to appear as JSON null | `try f` now emits nothing when `f` fails, equivalent to `try f catch empty`; use `try f catch null` when a visible JSON null is intended, while successful `try null` still emits one null |

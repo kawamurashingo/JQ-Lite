@@ -358,7 +358,12 @@ sub apply {
                     # turned a legitimate empty result into JSON null.
                     # Running the filter directly preserves empty/null/false
                     # outputs and lets errors propagate to an enclosing try.
-                    my @catch_outputs = $self->run_query($json, $catch_expr);
+                    # jq evaluates a catch handler on the error message,
+                    # not on the input which caused the failure. Preserve
+                    # the historical $error variable as a compatibility
+                    # alias, but use the message as the filter input.
+                    my $error_json = JQ::Lite::Util::_encode_json($message);
+                    my @catch_outputs = $self->run_query($error_json, $catch_expr);
                     push @next_results, @catch_outputs;
 
                     next VALUE;

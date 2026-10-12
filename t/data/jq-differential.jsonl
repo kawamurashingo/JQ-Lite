@@ -1601,3 +1601,16 @@
 {"name":"catchstream-success-control","input":null,"filter":"try 5 catch .[]?","status":"compatible","expected":"ok"}
 {"name":"catchstream-catch-null","input":null,"filter":"try (1 / 0) catch null","status":"compatible","expected":"ok"}
 {"name":"catchstream-catch-empty","input":null,"filter":"try (1 / 0) catch empty","status":"compatible","expected":"ok"}
+{"name":"catchinput-basic-type","input":null,"filter":"try (1 / 0) catch type","status":"compatible","expected":"ok"}
+{"name":"catchinput-object-type","input":{"num":1,"den":0},"filter":"try (.num / .den) catch type","status":"compatible","expected":"ok"}
+{"name":"catchinput-number-type","input":3,"filter":"try (1 / 0) catch type","status":"compatible","expected":"ok"}
+{"name":"catchinput-false-type","input":false,"filter":"try (1 / 0) catch type","status":"compatible","expected":"ok"}
+{"name":"catchinput-compare-string","input":null,"filter":"try (1 / 0) catch (type == \"string\")","status":"compatible","expected":"ok"}
+{"name":"catchinput-nonempty-error","input":null,"filter":"try (1 / 0) catch (length > 0)","status":"compatible","expected":"ok"}
+{"name":"catchinput-pipeline","input":null,"filter":"try (1 / 0) catch (. | type)","status":"compatible","expected":"ok"}
+{"name":"catchinput-comma","input":null,"filter":"0, (try (1 / 0) catch type), 9","status":"compatible","expected":"ok"}
+{"name":"catchinput-success","input":null,"filter":"try 5 catch type","status":"compatible","expected":"ok"}
+{"name":"catchinput-invalid-field","input":null,"filter":"try (1 / 0) catch .[\"den\"]","status":"compatible","expected":"runtime-error"}
+{"name":"catchinput-optional-field","input":null,"filter":"try (1 / 0) catch .den?","status":"compatible","expected":"ok"}
+{"name":"catchinput-nested-catch","input":null,"filter":"try (try (1 / 0) catch .[\"den\"]) catch type","status":"compatible","expected":"ok"}
+{"name":"catchinput-original-binding","input":{"num":1,"den":0},"filter":". as $original | try (.num / .den) catch $original.den","status":"compatible","expected":"ok"}

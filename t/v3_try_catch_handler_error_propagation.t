@@ -19,7 +19,7 @@ sub assert_handler_error {
     if (!$ok) {
         isa_ok($error, 'JQ::Lite::Error::Evaluation',
             "$description: structured runtime error");
-        like("$error", qr/Cannot iterate over null/i,
+        like("$error", qr/Cannot iterate over string/i,
             "$description: secondary strict iterator error is visible");
     }
 }

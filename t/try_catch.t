@@ -70,12 +70,21 @@ like(
     'catch receives the error message via $error'
 );
 
-my $catch_filter = run($fail_json, 'try (.num / .den) catch (.den // 1)');
+my $catch_filter = run($fail_json, 'try (.num / .den) catch type');
 
 is_deeply(
     $catch_filter,
+    ['string'],
+    'catch handler receives the error as its filter input'
+);
+
+my $original_input = run($fail_json,
+    '. as $original | try (.num / .den) catch $original.den');
+
+is_deeply(
+    $original_input,
     [0],
-    'catch expression is evaluated as a filter on the original input'
+    'the original input can be explicitly bound before try'
 );
 
 my $field_access = run('{"catch": 5}', 'try .catch + 1 catch 0');
