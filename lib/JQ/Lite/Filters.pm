@@ -579,51 +579,19 @@ sub apply {
                                     /\(\s*recurse\(\s*\.\[\s*"(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*\|/s
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\."(?:\\.|[^"\\])*"\s*\[\s*\]\??\s*\|/s
-                                    || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\s*\]\[\s*\]\??\s*\|/s
-                                    || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*\]\[\s*\]\??\s*\|/s
-                                    || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*\|/s
-                                    || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\[\s*-?\d+\s*\]){1,2}\s*\]\[\s*\]\??\s*\|/s
-                                    || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*(?:\[\s*-?\d+\s*\]\s*){1,2}\]\[\s*\]\??\s*\|/s
-                                    || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*(?:\[\s*-?\d+\s*\]\s*){1,2}\]\[\s*\]\??\s*\|/s
-                                    || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.(?:\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\[\s*"(?:\\.|[^"\\])*"\s*\]|\."(?:\\.|[^"\\])*")?(?:\[\s*-?\d+\s*\])?\s*\]\s*){2,3}\[\s*\]\??\s*\|/s))
+                                    || JQ::Lite::Util::_is_nested_scoped_computed_recurse($unwrapped))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
                                 # outputs before a later tail error.
-                                # Also cover custom child pipelines that
-                                # start with .[]?, or with the strict
-                                # or optional .items[], .["items"][], or
-                                # ."items"[] named-field iterators, plus
-                                # strict .[.field][] or optional
-                                # .[.field][]?, including a dotted selector
-                                # like .[.cfg.key][]?, or a single
-                                # bracket-quoted .[.cfg["selected"]][]?
-                                # or dot-quoted .[.cfg."selected"][]?
-                                # selector field, or a signed literal
-                                # numeric selector indices such as
-                                # .[.keys[0]][]? or .[.cfg.names[0][0]][].
-                                # Also allow a bracket-quoted or
-                                # dot-quoted literal selector field followed
-                                # by one or two signed numeric stages, e.g.
-                                # .[.cfg["names"][0][0]][]?.
-                                # Also allow two successive simple computed
-                                # field selectors, including quoted suffixes like
-                                # .[.cfg["first"]][.cfg."second"][]?, or one
-                                # signed numeric index per computed selector
-                                # like .[.cfg["first"][0]][.cfg.second[-1]][]?.
-                                # Two or three selectors use the same current
-                                # recursion node for their computed keys.
-                                # These reuse existing computed path parsing.
-                                # Evaluate each completed child before
-                                # requesting its next sibling; arbitrary
-                                # computed expressions remain outside scope.
+                                # Reuse the shared audited computed-child
+                                # matcher for nested custom recurse pipelines.
+                                # This keeps routing and the null-node error
+                                # guard in sync for one to three simple
+                                # computed selectors, literal quoted fields,
+                                # and bounded signed numeric indices.
+                                # Other expressions remain on the original
+                                # evaluation path.
                                 JQ::Lite::Util::_visit_update_rhs_results(
                                     $self, $value, $unwrapped, sub {
                                         push @branch_outputs, $_[0];
