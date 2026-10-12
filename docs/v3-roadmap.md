@@ -807,7 +807,13 @@ retain the same ordering.
 
 The nested literal generator dispatch now recognizes default,
 optional-child `recurse(.[]?)`, **and strict `recurse(.[])`**
-via the existing demand-driven update-RHS visitor. Other
+via the existing demand-driven update-RHS visitor. The shared
+visitor now attempts strict `.[]` expansion of a null node
+if downstream filters have not already accepted an output.
+This is also consistent with `|=` first-result short-circuiting:
+an accepted root value suppresses unused child errors, whereas
+an empty RHS after `recurse(.[])` propagates the required
+null-iteration error. Optional `.[]?` still skips null. Other
 arbitrary custom child filters, unusual argument nesting,
 and partially emitting individual eager leaf filters remain
 separate audits. Previously supported unwrapped recurse
