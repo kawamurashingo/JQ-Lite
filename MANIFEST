@@ -184,6 +184,7 @@ t/v3_try_custom_recurse_stream.t
 t/v3_try_comma_head_pipeline_stream.t
 t/v3_try_final_comma_tail_stream.t
 t/v3_try_middle_comma_stage_stream.t
+t/v3_try_multiple_comma_stages.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t
