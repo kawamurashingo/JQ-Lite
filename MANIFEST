@@ -213,6 +213,7 @@ t/v3_try_nested_triple_numeric_recurse_stream.t
 t/v3_try_optional_numeric_computed_recurse_stream.t
 t/v3_try_optional_field_computed_recurse_stream.t
 t/v3_try_optional_computed_lookup_recurse_stream.t
+t/v3_try_named_numeric_iterator_recurse_stream.t
 t/v3_computed_recurse_matcher.t
 t/tsv_format.t
 t/uri_format.t
