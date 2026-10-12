@@ -1525,3 +1525,36 @@
 {"name":"dotbrgap-control-constructor","input":{"a.b":5},"filter":"[\"a.b\"]","status":"compatible","expected":"ok"}
 {"name":"dotbrgap-control-tryquoted","input":null,"filter":"try [\"catch me\"]","status":"compatible","expected":"ok"}
 {"name":"dotbrgap-control-tryempty","input":null,"filter":"try [ ]","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-simple","input":{"key":"name","name":"Ada"},"filter":". [.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-inner","input":{"key":"name","name":"Ada"},"filter":". [ .key ]","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-tab","input":{"key":"name","name":"Ada"},"filter":".\t[.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-missing","input":{"key":"missing"},"filter":". [ .key ]","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-punctuation","input":{"key":"a.b","a.b":7},"filter":". [ .key ]","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-false","input":{"key":"name","name":false},"filter":". [.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-null","input":{"key":"name","name":null},"filter":". [.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-optional","input":{"key":"name","name":8},"filter":". [.key]?","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-optional-invalid","input":{"key":null},"filter":". [.key]?","status":"compatible","expected":"ok"}
+{"name":"computedgap-root-error-null","input":{"key":null},"filter":". [.key]","status":"compatible","expected":"runtime-error"}
+{"name":"computedgap-root-error-number","input":{"key":1},"filter":". [.key]","status":"compatible","expected":"runtime-error"}
+{"name":"computedgap-nested","input":{"obj":{"name":42},"key":"name"},"filter":".obj [.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-nested-inner","input":{"obj":{"name":42},"key":"name"},"filter":".obj [ .key ]","status":"compatible","expected":"ok"}
+{"name":"computedgap-nested-optional","input":{"obj":{"name":42},"key":"name"},"filter":".obj [.key]?","status":"compatible","expected":"ok"}
+{"name":"computedgap-nested-suffix","input":{"obj":{"a":{"n":4}},"key":"a"},"filter":".obj [ .key ].n","status":"compatible","expected":"ok"}
+{"name":"computedgap-nested-dotted","input":{"obj":{"a":{"n":4}},"cfg":{"chosen":"a"}},"filter":".obj [ .cfg.chosen ].n","status":"compatible","expected":"ok"}
+{"name":"computedgap-nested-dotted-gap","input":{"obj":{"a":4},"key":"a"},"filter":".obj . [.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-nested-quoted-prefix","input":{"outer":{"name":"X"},"key":"name"},"filter":".[\"outer\"] [.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-array-index","input":{"arr":[10,20],"idx":1},"filter":".arr [.idx]","status":"compatible","expected":"ok"}
+{"name":"computedgap-array-negative","input":{"arr":[10,20],"idx":-1},"filter":".arr [ .idx ]","status":"compatible","expected":"ok"}
+{"name":"computedgap-array-oob","input":{"arr":[10,20],"idx":9},"filter":".arr [.idx]","status":"compatible","expected":"ok"}
+{"name":"computedgap-null-intermediate","input":{"obj":null,"key":"a"},"filter":".obj [.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-nested-invalid","input":{"obj":7,"key":"name"},"filter":".obj [.key]","status":"compatible","expected":"runtime-error"}
+{"name":"computedgap-nested-optional-invalid","input":{"obj":7,"key":"name"},"filter":".obj [.key]?","status":"compatible","expected":"ok"}
+{"name":"computedgap-array-invalid","input":{"arr":[10],"idx":"0"},"filter":".arr [.idx]","status":"compatible","expected":"runtime-error"}
+{"name":"computedgap-earlier-invalid","input":7,"filter":".obj [.key]?","status":"compatible","expected":"runtime-error"}
+{"name":"computedgap-comma","input":{"obj":{"name":42},"key":"name"},"filter":"0, .obj [.key], 9","status":"compatible","expected":"ok"}
+{"name":"computedgap-pipeline","input":{"obj":{"name":42},"key":"name"},"filter":".obj [.key] | . + 1","status":"compatible","expected":"ok"}
+{"name":"computedgap-control-bare","input":{"key":"name","name":"Ada"},"filter":"[.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-control-try","input":{"key":"name","name":"Ada"},"filter":"try [.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-control-root","input":{"key":"name","name":"Ada"},"filter":".[.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-control-nested","input":{"obj":{"name":42},"key":"name"},"filter":".obj[.key]","status":"compatible","expected":"ok"}
+{"name":"computedgap-control-iterator","input":{"items":[1,2]},"filter":".items [ ]","status":"compatible","expected":"ok"}

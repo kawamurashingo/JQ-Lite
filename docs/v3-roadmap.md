@@ -519,6 +519,21 @@ Arbitrary computed selectors, slices, and whitespace before an
 unquoted name *after* a dot are not widened by this change.
 Non-path expressions and constructor/try syntax remain unchanged.
 
+**Whitespace before a simple computed selector bracket** is now
+supported by the same audited visitor as adjacent `[.key]`.
+For instance `. [.key]`, `.obj [.key]`,
+`.obj [ .key ]?`, `.arr [ .idx ]`, and
+`.obj [ .cfg.chosen ].name` resolve the selector against the
+original filter input, then index the current intermediate value.
+The selector itself must still be the already supported simple dotted
+field expression; arbitrary selector expressions and slices are not
+newly accepted. A missing object field yields one null; invalid key or
+container types raise a structured error at the relevant strict stage,
+while `[.key]?` only suppresses errors from its own lookup.
+Whitespace changes no result ordering or optional behavior.
+A bare `[.key]` or `try [.key]` remains an array-construction
+expression; the new gap recognition requires a rooted literal path.
+
 For literal paths, unquoted names, JSON-quoted keys, and adjacent
 `[]`/`[]?`/`[integer]`/`[integer]?` steps are supported
 when there is an iterator, computed selector, **optional literal
@@ -675,6 +690,7 @@ application logic. In particular:
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | an object key with a literal dot, space, or operator-like punctuation must be read strictly | use bracket-quoted syntax `.["a.b"]` / `.obj["a.b"].name` or dot-quoted syntax `."a.b"` / `.obj."a.b".name`; an absent key/null yields JSON null but wrong-type inputs still raise structured errors; bare `["a.b"]` is an array constructor and bare `"a.b"` is a string literal |
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
+| whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
 | a `try` expression directly constructs an empty array | `try []` and `try [ ]` now emit one `[]` instead of triggering a synthetic `.[]` iterator; this includes comma branches, without changing `.[]` or `keys[]` suffixes |
 | spaces appear inside or before an iterator bracket | `.items [ ]`, `.items [ ]?`, and `. [ ]` use the same strict/optional iteration as `[]`/`[]?`; bare `[ ]` still constructs an empty array and `try [ ]` is not a path |

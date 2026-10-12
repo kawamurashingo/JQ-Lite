@@ -882,6 +882,13 @@ sub _parse_v3_literal_iterator_path {
         # literal signed integer or quoted string. In particular do
         # not route slices, computed expressions or bare constructors.
         $rest =~ s/\A\s+(?=\[\s*-?\d+\s*\])//;
+        # A simple computed selector may follow whitespace after a
+        # rooted literal stage: .obj [.key] and . [.key]. Do not
+        # interpret dotless expressions such as try [.key] as paths.
+        # _parse_v3_computed_selector_prefix performs the full
+        # restricted selector validation after this lexical gap.
+        $rest =~ s/\A\s+(?=\[\s*\.)//
+            if $path =~ /\A\./;
         # Spaced iterator syntax also requires the explicit root dot.
         # Otherwise 'try [ ]' could be misread as a field and iterator.
         $rest =~ s/\A\s+(?=\[\s*\])//
@@ -913,7 +920,7 @@ sub _parse_v3_literal_iterator_path {
             # Keep previous computed_root / computed_context step shapes.
             # A balanced prefix is consumed only after restricted validation.
             my ($selector, $optional, $consumed) = @{$computed};
-            return undef unless @steps || $path =~ /\A\.\[/;
+            return undef unless @steps || $path =~ /\A\.\s*\[/;
             substr($rest, 0, $consumed, '');
             my @computed_step = (
                 @steps ? 'computed_context' : 'computed_root', $selector
