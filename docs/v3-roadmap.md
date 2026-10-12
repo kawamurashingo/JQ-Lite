@@ -1143,6 +1143,25 @@ numeric stages retain their existing v3 semantics.
 The change adds 40 jq 1.7 differential fixtures and
 direct Perl tests, without enabling arithmetic
 selectors or arbitrary filter evaluation.
+**Optional field stages inside computed selectors**
+are now also routed through the shared nested
+`try`/`recurse` visitor. Examples include
+`recurse(.[.key?][]? | f)`,
+`recurse(.[.cfg["name"]?][] | f)`, and
+`recurse(.[.cfg?.name?][]? | f)`.
+An optional `.field?` or quoted-field `?`
+suppresses an invalid *field lookup target type*
+by yielding no selector results. A missing field
+or JSON null still yields an actual null value,
+which is an invalid computed key and can raise
+after emitting the recursion node. Outer `[]?`
+only skips null/missing *selected* values;
+strict `[]` still errors on those values.
+Only simple parser-supported optional field
+stages are added, without arbitrary expressions.
+Direct Perl tests and 40 jq 1.7 differential
+fixtures cover the independent error boundaries.
+
 
 
 
