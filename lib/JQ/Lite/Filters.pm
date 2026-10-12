@@ -17,6 +17,16 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # Whitespace immediately before an audited dotted suffix belongs
+    # to the same literal path, e.g. .items[0] .name or .items[] .name.
+    # Only complete rooted paths use the ordered v3 visitor; a bare
+    # ". name" remains outside this syntax.
+    if ($normalized =~ /\s+\.(?:[A-Za-z_]|"|\[)/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # New whitespace forms of [] / []? must enter the ordered v3
     # path visitor, not legacy arithmetic/array-expression shortcuts.
     # The entire rooted path must parse: 'try [ ]' and bare [ ] are

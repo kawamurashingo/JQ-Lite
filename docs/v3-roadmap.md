@@ -492,6 +492,26 @@ as `try [ ]` are not misidentified as path traversals. This support
 does not widen arbitrary computed selectors, slices, or non-path
 constructor iteration.
 
+**Whitespace before a dotted literal suffix** is accepted by the
+ordered v3 path visitor, for example `.items[0] .name`,
+`.items[] .name`, `.obj["a.b"] .name`, and
+`.items[0] .["a.b"]`. This applies only when the *entire rooted
+path* already has an audited stage (numeric index, iterator,
+JSON-quoted field, computed selector or optional named field).
+A whitespace-separated dot is a stage separator, not a pipeline
+or a request for implicit array projection; the visitor keeps
+source-ordered strict/optional errors, missing/null behavior and
+per-member iterator results. Quoted names remain literal keys,
+including punctuation that resembles operators. A bare `.name`
+and an unquoted field-only chain keep their existing dispatch.
+jq 1.7 does **not** allow whitespace immediately *after* the dot
+before an unquoted name (for example `.items[0]. name`), so that
+invalid syntax is not newly accepted by the scoped visitor.
+Additional whitespace after the dot before a bracket (for example
+`.items[0] . [0]`) has separate dispatch constraints and is not
+included in this narrowly scoped compatibility change.
+Non-path expressions and constructor/try syntax remain unchanged.
+
 For literal paths, unquoted names, JSON-quoted keys, and adjacent
 `[]`/`[]?`/`[integer]`/`[integer]?` steps are supported
 when there is an iterator, computed selector, **optional literal
@@ -635,6 +655,7 @@ application logic. In particular:
 | a numeric *selector stage* must silently skip an object/scalar instead of raising | use `.obj[.keys[0]?]`; this skips invalid numeric index targets but does **not** suppress null selector keys or errors earlier in the selector; add another `?` as `.obj[.keys[0]?]?` to suppress an invalid *outer* lookup |
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | an object key with a literal dot, space, or operator-like punctuation must be read strictly | use bracket-quoted syntax `.["a.b"]` / `.obj["a.b"].name` or dot-quoted syntax `."a.b"` / `.obj."a.b".name`; an absent key/null yields JSON null but wrong-type inputs still raise structured errors; bare `["a.b"]` is an array constructor and bare `"a.b"` is a string literal |
+| whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
 | spaces appear inside or before an iterator bracket | `.items [ ]`, `.items [ ]?`, and `. [ ]` use the same strict/optional iteration as `[]`/`[]?`; bare `[ ]` still constructs an empty array and `try [ ]` is not a path |
 | whitespace separates a path stage from a quoted field bracket | `. ["a.b"]`, `.obj [ "a.b" ]` and `.obj [ "a.b" ]?` now match unspaced bracket-quoted lookups; missing/null stay one null and strict wrong types remain errors, while bare `[ "a.b" ]` is still an array constructor |
 | whitespace separates a path stage from a numeric index | `. [0]`, `.items [ -1 ]` and `.items[0] [1]` now match their no-space equivalents; `[N]?` keeps stage-local optionality, while slices, computed brackets and bare array constructors remain separate |
