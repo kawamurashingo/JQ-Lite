@@ -346,7 +346,10 @@ sub apply {
                     next VALUE;
                 }
 
-                my $message = $error;
+                # Structured evaluation errors are blessed references.
+                # Explicitly stringify before passing their diagnostics
+                # as jq catch input or storing the legacy $error variable.
+                my $message = "$error";
                 $message =~ s/\s+$// if defined $message;
 
                 if (defined $catch_expr && length $catch_expr) {
