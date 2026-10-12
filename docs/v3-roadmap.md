@@ -891,10 +891,29 @@ Errors in non-iterator portions of the field access and
 other custom child expressions still follow their existing
 semantics.
 
-Custom child expressions that do not begin with `.[]?`
-or a simple named-field optional iterator, and partially
-failing individual eager leaf filters, remain part of the
-separate #625 streaming audit.
+**Simple computed-key optional child iterators**,
+such as `recurse(.[.field][]? | f)` inside a parenthesized
+`try` pipeline, now preserve ancestor and prior sibling
+outputs when later children fail. Each recursion node
+evaluates `.field` against its own input, selects that
+object field, and optionally iterates the selected value.
+The selector itself is not optional: missing or null
+selector keys still raise after the current node has
+been emitted, including when the current node is null.
+Likewise, a non-object field lookup failure occurs before
+the `[]?` suffix can suppress iteration. Zero/multiple
+child outputs retain depth-first order and catch handlers
+follow completed outputs. This is limited to a **single
+simple `.field` computed selector** plus `[]?` and a
+custom child pipeline, not arbitrary computed expressions
+or eager-leaf partial streaming. A dependency-free Perl
+regression suite and 29 jq 1.7 differential fixtures
+cover the scoped behavior.
+
+Remaining arbitrary dynamic selector expressions,
+computed-key forms without this exact optional iterator,
+and individual failing eager leaves remain subject to
+separate #625 audits.
 
 This remains a scoped correction for **fully parenthesized
 comma alternatives inside a pipeline stage**. An individual
