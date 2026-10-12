@@ -364,57 +364,84 @@ sub apply {
                             my @stages =
                                 JQ::Lite::Util::_split_top_level_pipes($unwrapped);
 
-                            # A fully parenthesized final comma stage is a
-                            # stream, even when its second alternative
-                            # throws. Run the completed alternatives for
-                            # each upstream value before taking the next
-                            # value; preserve their results in @branch_outputs.
-                            # Prefix stages are still eagerly evaluated,
-                            # so partially failing prefix generators remain
-                            # part of the broader streaming audit.
-                            my @final_comma_parts;
-                            if (@stages > 1
-                                && $stages[-1] =~ /\A\s*\(/s)
-                            {
-                                my $final_inner =
-                                    JQ::Lite::Util::_strip_wrapping_parens(
-                                        $stages[-1]
-                                    );
-                                @final_comma_parts =
-                                    JQ::Lite::Util::_split_top_level_commas(
-                                        $final_inner
-                                    );
+                            # A fully parenthesized comma stage, even one
+                            # followed by other pipeline stages, is a stream.
+                            # Keep its completed alternatives and evaluate
+                            # their downstream suffix before moving to the
+                            # next alternative or generator input. Prefixes
+                            # and individual alternatives still use their
+                            # existing eager evaluator.
+                            my @pipeline_comma_parts;
+                            if (@stages > 1) {
+                                for (my $i = 1; $i < @stages; $i++) {
+                                    next unless $stages[$i] =~ /\A\s*\(/s;
+                                    my $inner =
+                                        JQ::Lite::Util::_strip_wrapping_parens(
+                                            $stages[$i]
+                                        );
+                                    my @alternatives =
+                                        JQ::Lite::Util::_split_top_level_commas(
+                                            $inner
+                                        );
+                                    if (@alternatives > 1) {
+                                        @pipeline_comma_parts = @alternatives;
+                                        last;
+                                    }
+                                }
                             }
                             my $emit_tail = sub {
                                 my ($tail_json, $tail) = @_;
                                 my @parts =
                                     JQ::Lite::Util::_split_top_level_pipes($tail);
-                                my @last_alternatives;
-                                if (@parts && $parts[-1] =~ /\A\s*\(/s) {
+                                my ($comma_index, @alternatives);
+                                for (my $i = 0; $i < @parts; $i++) {
+                                    next unless $parts[$i] =~ /\A\s*\(/s;
                                     my $inner =
                                         JQ::Lite::Util::_strip_wrapping_parens(
-                                            $parts[-1]
+                                            $parts[$i]
                                         );
-                                    @last_alternatives =
+                                    my @candidates =
                                         JQ::Lite::Util::_split_top_level_commas(
                                             $inner
                                         );
+                                    if (@candidates > 1) {
+                                        $comma_index = $i;
+                                        @alternatives = @candidates;
+                                        last;
+                                    }
                                 }
-                                if (@last_alternatives > 1) {
-                                    pop @parts;
-                                    my @inputs_json = @parts
+                                if (defined $comma_index) {
+                                    my @prefix = $comma_index > 0
+                                        ? @parts[0 .. $comma_index - 1] : ();
+                                    my @suffix = $comma_index < $#parts
+                                        ? @parts[$comma_index + 1 .. $#parts]
+                                        : ();
+                                    my @inputs_json = @prefix
                                         ? map {
                                             JQ::Lite::Util::_encode_json($_)
                                         } $self->run_query(
-                                            $tail_json, join(' | ', @parts)
+                                            $tail_json, join(' | ', @prefix)
                                         )
                                         : ($tail_json);
+                                    my $suffix = join(' | ', @suffix);
                                     for my $stage_json (@inputs_json) {
-                                        for my $alternative (@last_alternatives) {
-                                            push @branch_outputs,
-                                                $self->run_query(
-                                                    $stage_json, $alternative
-                                                );
+                                        for my $alternative (@alternatives) {
+                                            my @values = $self->run_query(
+                                                $stage_json, $alternative
+                                            );
+                                            for my $result (@values) {
+                                                if (@suffix) {
+                                                    push @branch_outputs,
+                                                        $self->run_query(
+                                                            JQ::Lite::Util::_encode_json($result),
+                                                            $suffix
+                                                        );
+                                                }
+                                                else {
+                                                    push @branch_outputs,
+                                                        $result;
+                                                }
+                                            }
                                         }
                                     }
                                     return;
@@ -629,18 +656,19 @@ sub apply {
                                     } reverse @members;
                                 }
                             }
-                            elsif (@final_comma_parts > 1) {
-                                # General non-generator heads, e.g.
-                                # . | (., 1/0), also need the final stage
-                                # evaluated one alternative at a time.
-                                my $last = pop @stages;
+                            elsif (@pipeline_comma_parts > 1) {
+                                # For a general non-generator head, feed
+                                # its values to the streaming comma stage
+                                # and its remaining downstream stages.
+                                my $head = shift @stages;
                                 my @head_values = $self->run_query(
-                                    $json, join(' | ', @stages)
+                                    $json, $head
                                 );
+                                my $tail = join(' | ', @stages);
                                 for my $head_value (@head_values) {
                                     $emit_tail->(
                                         JQ::Lite::Util::_encode_json($head_value),
-                                        $last
+                                        $tail
                                     );
                                 }
                             }

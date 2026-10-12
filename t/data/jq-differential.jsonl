@@ -1838,3 +1838,24 @@
 {"name":"trytail-outside-comma","input":null,"filter":"0, (try (range(0;3) | (., 1/0)) catch 42), 9","status":"compatible","expected":"ok"}
 {"name":"trytail-inside-comma","input":null,"filter":"try ((range(0;3) | (., 1/0)), 99) catch 42","status":"compatible","expected":"ok"}
 {"name":"trytail-original-bare","input":null,"filter":"try (0, (1/0), 9) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-range-string","input":null,"filter":"try (range(0;3) | (., 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-range-no-catch","input":null,"filter":"try (range(0;3) | (., 1/0) | tostring)","status":"compatible","expected":"ok"}
+{"name":"trymid-range-empty-catch","input":null,"filter":"try (range(0;3) | (., 1/0) | tostring) catch empty","status":"compatible","expected":"ok"}
+{"name":"trymid-range-null-catch","input":null,"filter":"try (range(0;3) | (., 1/0) | tostring) catch null","status":"compatible","expected":"ok"}
+{"name":"trymid-range-type-catch","input":null,"filter":"try (range(0;3) | (., 1/0) | tostring) catch type","status":"compatible","expected":"ok"}
+{"name":"trymid-range-multi-catch","input":null,"filter":"try (range(0;3) | (., 1/0) | tostring) catch (42,43)","status":"compatible","expected":"ok"}
+{"name":"trymid-range-add","input":null,"filter":"try (range(0;3) | (. + 1, 1/0) | . + 10) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-range-null-false","input":null,"filter":"try (range(0;3) | (null, false, 1/0) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-range-empty-part","input":null,"filter":"try (range(0;3) | (., empty, 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-range-success","input":null,"filter":"try (range(0;2) | (., . + 10) | . + 1) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-range-prefix","input":null,"filter":"try (range(0;3) | . + 1 | (., 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-iterator","input":[7,8],"filter":"try (.[] | (., 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-named","input":{"items":[7,8]},"filter":"try (.items[] | (., 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-nested","input":[[1],[2]],"filter":"try (.[][] | (., 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-comma-head","input":null,"filter":"try ((0,1,2) | (., 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-recurse","input":[1,[2]],"filter":"try (recurse | (., 1/0) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-strict-recurse","input":[1,[2]],"filter":"try (recurse(.[]) | (., 1/0) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-generic","input":7,"filter":"try (. | (., 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-outside-comma","input":null,"filter":"0, (try (range(0;3) | (.,1/0) | tostring) catch 42), 9","status":"compatible","expected":"ok"}
+{"name":"trymid-inside-comma","input":null,"filter":"try ((range(0;3) | (.,1/0) | tostring), 9) catch 42","status":"compatible","expected":"ok"}
+{"name":"trymid-control-end","input":null,"filter":"try (range(0;3) | (., 1/0)) catch 42","status":"compatible","expected":"ok"}
