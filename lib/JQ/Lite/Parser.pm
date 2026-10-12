@@ -160,6 +160,15 @@ sub parse_query {
             {
                 $_;
             }
+            # Brackets containing only whitespace, or iterator
+            # brackets separated from a field by whitespace, require
+            # the leading dot. Do not reinterpret 'try [ ]' as a
+            # dotless field traversal or interfere with bare [ ].
+            elsif ($rest =~ /\[\s+\]|\s+\[\s*\]/
+                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
+            {
+                $_;
+            }
             # Unlike older unspaced paths, a field followed by
             # whitespace and a quoted bracket must retain its dot,
             # or the scoped scanner cannot distinguish it from

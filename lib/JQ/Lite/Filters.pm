@@ -17,6 +17,16 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
+    # New whitespace forms of [] / []? must enter the ordered v3
+    # path visitor, not legacy arithmetic/array-expression shortcuts.
+    # The entire rooted path must parse: 'try [ ]' and bare [ ] are
+    # array expressions, not literal iterator paths.
+    if ($normalized =~ /\[\s+\]|\s+\[\s*\]/
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
     # A full literal numeric path can also contain whitespace before
     # the bracket: . [0], .items [ 0 ], or .items[0] [1].
     # Keep this check before legacy numeric/arithmetic shortcuts.

@@ -874,6 +874,10 @@ sub _parse_v3_literal_iterator_path {
         # literal signed integer or quoted string. In particular do
         # not route slices, computed expressions or bare constructors.
         $rest =~ s/\A\s+(?=\[\s*-?\d+\s*\])//;
+        # Spaced iterator syntax also requires the explicit root dot.
+        # Otherwise 'try [ ]' could be misread as a field and iterator.
+        $rest =~ s/\A\s+(?=\[\s*\])//
+            if $path =~ /\A\./;
         # Require the explicit root dot for this new whitespace form:
         # otherwise 'try ["catch me"]' would be mistaken for a
         # dotless literal path rather than a try/array expression.
@@ -942,9 +946,18 @@ sub _parse_v3_literal_iterator_path {
             $has_optional_field = 1 if $optional;
             $has_strict_dot_quoted_field = 1 if $is_strict_dot_field;
         }
-        elsif ($rest =~ s/\A\[\](\?)?//) {
-            return undef unless @steps;
-            push @steps, ['iterator', defined($1) ? 1 : 0];
+        elsif ($rest =~ s/\A\[(\s*)\](\?)?//) {
+            # A bracket containing only whitespace is the same jq
+            # iterator as []; optional ? belongs to this stage.
+            # Rooted . [ ] and .[ ] are valid, but bare [ ] constructs
+            # an empty array, and try [ ] is not a field path.
+            my $inner_space = $1;
+            my $optional = defined($2) ? 1 : 0;
+            return undef unless @steps || $path =~ /\A\.\s*\[/;
+            # Legacy dotless .name[] normalizations still work as
+            # before, but new whitespace forms must retain the dot.
+            return undef if length($inner_space) && $path !~ /\A\./;
+            push @steps, ['iterator', $optional];
             $has_iterator = 1;
         }
         elsif ($rest =~ s/\A\[\s*(-?\d+)\s*\](\?)?//) {
