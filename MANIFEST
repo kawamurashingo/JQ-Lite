@@ -208,6 +208,7 @@ t/v3_try_nested_two_computed_stage_recurse_stream.t
 t/v3_try_two_quoted_computed_stage_recurse.t
 t/v3_try_paired_numeric_computed_recurse.t
 t/v3_try_three_computed_selector_recurse.t
+t/v3_computed_recurse_matcher.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t
