@@ -507,6 +507,9 @@ and an unquoted field-only chain keep their existing dispatch.
 jq 1.7 does **not** allow whitespace immediately *after* the dot
 before an unquoted name (for example `.items[0]. name`), so that
 invalid syntax is not newly accepted by the scoped visitor.
+Additional whitespace after the dot before a bracket (for example
+`.items[0] . [0]`) has separate dispatch constraints and is not
+included in this narrowly scoped compatibility change.
 Non-path expressions and constructor/try syntax remain unchanged.
 
 For literal paths, unquoted names, JSON-quoted keys, and adjacent

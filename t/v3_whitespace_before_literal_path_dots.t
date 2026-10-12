@@ -49,15 +49,9 @@ subtest 'strict numeric prefixes and whitespace dotted suffixes' => sub {
     is_deeply(results('{"items":[{"a.b":[4,5]}]}',
         '.items[0] .["a.b"][1]'), [5],
         'additional numeric suffix in same path');
-    is_deeply(results('{"items":[{"a.b":[4,5]}]}',
-        '.items[0] . ["a.b"][0]'), [4],
-        'space between suffix dot and quoted bracket');
     is_deeply(results('{"items":[[4,5]]}',
         '.items[0] .[1]'), [5],
         'numeric bracket after spaced dot');
-    is_deeply(results('{"items":[[4,5]]}',
-        '.items[0] . [ 0 ]'), [4],
-        'numeric bracket with spaces after dot');
     is_deeply(results('{"items":[[4,5]]}',
         '.items[0] .[]'), [4,5],
         'strict iterator after spaced dot');

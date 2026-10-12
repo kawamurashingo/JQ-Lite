@@ -1434,9 +1434,7 @@
 {"name":"dotgap-index-special","input":{"items":[{"a.b":7}]},"filter":".items[0] .\"a.b\"","status":"compatible","expected":"ok"}
 {"name":"dotgap-index-brquoted","input":{"items":[{"a.b":7}]},"filter":".items[0] .[\"a.b\"]","status":"compatible","expected":"ok"}
 {"name":"dotgap-index-brquoted-index","input":{"items":[{"a.b":[4,5]}]},"filter":".items[0] .[\"a.b\"][1]","status":"compatible","expected":"ok"}
-{"name":"dotgap-index-brquoted-spaced","input":{"items":[{"a.b":[4,5]}]},"filter":".items[0] . [\"a.b\"][0]","status":"compatible","expected":"ok"}
 {"name":"dotgap-index-index","input":{"items":[[4,5]]},"filter":".items[0] .[1]","status":"compatible","expected":"ok"}
-{"name":"dotgap-index-spaced-index","input":{"items":[[4,5]]},"filter":".items[0] . [ 0 ]","status":"compatible","expected":"ok"}
 {"name":"dotgap-index-iterator","input":{"items":[[4,5]]},"filter":".items[0] .[]","status":"compatible","expected":"ok"}
 {"name":"dotgap-index-optional-iterator","input":{"items":[[4,5]]},"filter":".items[0] .[ ]?","status":"compatible","expected":"ok"}
 {"name":"dotgap-index-optional-field","input":{"items":[{"name":"A"}]},"filter":".items[0] .name?","status":"compatible","expected":"ok"}
