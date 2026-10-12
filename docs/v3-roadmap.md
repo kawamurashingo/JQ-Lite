@@ -851,14 +851,24 @@ depth-first. Child filters that emit zero or multiple values
 retain source order, and their successfully transformed
 outputs remain visible before `catch`.
 Literal **bracket-quoted child iterators** such as
-`recurse(.["items"][]? | f)` now have the same nested
-`try` streaming behavior. The previously exploratory
-`t/v3_recurse_dynamic_child_audit.t` has been converted to
-jq 1.7-backed regression assertions. This extension accepts
-a JSON-quoted literal field name followed by `[]?` and a
-child pipeline; it does not imply support for arbitrary
-computed-key selectors or custom expressions.
+`recurse(.["items"][]? | f)` have the same nested
+`try` streaming behavior. The exploratory
+`t/v3_recurse_dynamic_child_audit.t` test is now a
+jq 1.7-backed regression suite. This accepts a literal
+JSON-quoted field followed by `[]?` and a child pipeline;
+it does not imply support for arbitrary computed selectors.
 
+Literal **dot-quoted child iterators**, such as
+`recurse(."items"[]? | f)`, now use that same scoped
+demand-driven dispatch when nested in `try`.
+Field names containing periods or spaces remain literal
+keys. Earlier completed outputs remain visible before a
+later child error and its `catch` handler. This change
+does not generalize streaming to computed selectors,
+arbitrary custom children, or partially failing eager leaves.
+Direct regressions and 23 jq 1.7 differential fixtures
+cover the additional dot-quoted forms. Unwrapped recurse
+and the stable 2.x API are unchanged.
 This is a named-field **optional iterator followed by a
 custom child pipeline**, not general dynamic path support.
 Errors in non-iterator portions of the field access and
