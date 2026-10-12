@@ -574,14 +574,16 @@ sub apply {
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\.\[\s*\]\?\s*\|/s
                                     || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.[A-Za-z_]\w*\[\s*\]\?\s*\|/s))
+                                    /\(\s*recurse\(\s*\.[A-Za-z_]\w*\[\s*\]\?\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\.\[\s*"(?:\\.|[^"\\])*"\s*\]\[\s*\]\?\s*\|/s))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
                                 # outputs before a later tail error.
                                 # Also cover custom child pipelines that
-                                # start with optional .[]? or .items[]?
-                                # on a named field. Evaluate each emitted
+                                # start with optional .[]?, .items[]?, or
+                                # .["items"][]? on a literal quoted field. Evaluate each emitted
                                 # child through the downstream tail before
                                 # requesting its next sibling. Other
                                 # custom recurse expressions remain outside
