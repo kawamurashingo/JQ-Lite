@@ -822,6 +822,28 @@ and partially emitting individual eager leaf filters remain
 separate audits. Previously supported unwrapped recurse
 heads keep their existing behavior.
 
+**Nested custom-child `recurse(.[]? | f)` inside `try`**
+now streams completed nodes before a later child-filter or
+downstream error. On `[1,[2],3,4]`,
+`try (. | (recurse(.[]? | if . == 3 then
+1/0 else . end) | type)) catch 42`
+emits `"array", "number", "array", "number", 42`.
+A complete node and its downstream transformation are
+delivered before the next child is requested, so neither the
+failed child nor later siblings are emitted. The same
+ordering is preserved with nested comma alternatives,
+outer iterators, multi-stage suffixes and custom filters
+that emit zero or multiple child results. JSON null, false
+and empty-container roots remain regular outputs.
+
+This narrowly expands the nested-generator routing to
+a parenthesized `recurse(.[]? | f)` head. It reuses the
+existing update-RHS demand-driven visitor without changing
+the semantics of standalone `recurse(f)`.
+Custom child expressions that do not begin with `.[]?`,
+and partially failing individual eager leaf filters,
+remain part of the separate #625 streaming audit.
+
 This remains a scoped correction for **fully parenthesized
 comma alternatives inside a pipeline stage**. An individual
 failing eager leaf filter may still lose its earlier output,
@@ -1056,6 +1078,7 @@ application logic. In particular:
 | bare `try .[][]` or `try .items[][]` yielded null or missed earlier completed nested members | bare two-level iterators now visit each member and emit it directly, preserving strict/optional errors and completed prior outputs before catch; arbitrary deeper paths still require audit |
 | a `try (.[][] | f)` or `try (.items[][] | f)` pipeline lost completed inner members on a later error | two-level iterator heads are visited member by member; a failing inner iterator or tail stops further members, preserving already completed outputs, with optional `[][]?` still skipping non-iterable members |
 | a `try (.items[] | f)` pipeline lost completed named-field iterator results after a later error | simple named-field `[]` / `[]?` heads now retain completed element outputs and preserve strict versus optional head errors; nested iterators and generators remain separately scoped |
+| `try (source | (recurse(.[]? | child_filter) | tail))` discarded previously completed recursive nodes on a later child-filter error | parenthesized optional-iterator custom child pipelines now reuse the existing streamed recurse visitor; completed nodes survive errors before catch |
 | `try (source | (recurse(.[]) | f))` lost an already yielded scalar/null node before a strict child-expansion error | nested literal strict recurse now emits each value and completes its tail before strict child expansion, preserving completed outputs before catch |
 | `try (source | (recurse | f))` and optional-child forms dropped earlier nodes after a later tail error | parenthesized default and optional-child recurse pipelines now use the demand-driven visitor, preserving ancestor and sibling outputs before catch |
 | `try (source | (range(...) | f))` discarded earlier completed nested generator values when a later `f` input failed | the existing demand-driven visitor now covers fully parenthesized nested literal range pipelines with or without comma alternatives; earlier values remain before catch |

@@ -1993,3 +1993,27 @@
 {"name":"trystrictrec-null-update-catch","input":{"a":null},"filter":".a |= (recurse(.[]) | empty)","status":"compatible","expected":"runtime-error"}
 {"name":"trystrictrec-null-update-accepted","input":{"a":null},"filter":".a |= (recurse(.[]) | type)","status":"compatible","expected":"ok"}
 {"name":"trystrictrec-null-update-optional","input":{"a":null},"filter":".a |= (recurse(.[]?) | empty)","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-catch","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-no-catch","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .))","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-null-catch","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch null","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-empty-catch","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch empty","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-type-catch","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch type","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-multi-catch","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch (42,43)","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-type-tail","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-type-string","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | type | tostring)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-suffix-comma","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | (.,0))) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-nested-comma","input":[1,[2],3,4],"filter":"try (. | ((recurse(.[]? | if . == 3 then (1/0) else . end) | type),99)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-extra-wrap","input":[1,[2],3,4],"filter":"try (. | ((recurse(.[]? | if . == 3 then (1/0) else . end) | .))) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-outer-array","input":[[1,[2],3,4],[4]],"filter":"try (.[] | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-named","input":{"items":[[1,[2],3,4],[4]]},"filter":"try (.items[] | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-field","input":{"items":[1,[2],3,4]},"filter":"try (.items | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-null-root","input":null,"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-false-root","input":false,"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-empty-root","input":[],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-skip","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then empty else . end) | .)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-child-empty","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | empty) | .)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-child-double","input":[1,2],"filter":"try (. | (recurse(.[]? | (., .)) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-early-tail","input":[1,[2],3,4],"filter":"try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | if . == 2 then (1/0) else . end)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-outer-comma","input":[1,[2],3,4],"filter":"0,(try (. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)) catch 42),9","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-inner-comma","input":[1,[2],3,4],"filter":"try ((. | (recurse(.[]? | if . == 3 then (1/0) else . end) | .)),9) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedcustom-unwrapped-control","input":[1,[2],3,4],"filter":"try (recurse(.[]? | if . == 3 then (1/0) else . end) | .) catch 42","status":"compatible","expected":"ok"}
