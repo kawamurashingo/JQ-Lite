@@ -863,13 +863,13 @@ sub _parse_v3_literal_iterator_path {
     my $after_step = 0;
 
     while (length $rest) {
-        # jq permits spaces *before* a dotted suffix when there is
+        # jq permits spaces before a dotted suffix when there is
         # already a literal path stage: .items[0] .name, .items[]
-        # ."field", and .obj["key"] .[0]. Dot + bare unquoted name
-        # cannot have spaces *after* the dot. Require a rooted path
-        # so dotless expressions (including try/array constructors)
-        # are never reclassified as literal paths.
-        $rest =~ s/\A\s+(?=\.(?:[A-Za-z_]|"|\[))//
+        # ."field", and .obj["key"] .[0]. A bracket may also follow
+        # whitespace AFTER the dot: .items[0] . [1]. A dot followed
+        # by whitespace and a bare unquoted name is still invalid.
+        # Require a rooted path, and parse the full next stage below.
+        $rest =~ s/\A\s+(?=\.(?:[A-Za-z_]|"|\[|\s+\[))//
             if @steps && $path =~ /\A\./;
         if ($rest =~ s/\A\.//) {
             return undef unless $after_step && length($rest);
