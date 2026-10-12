@@ -584,7 +584,9 @@ sub apply {
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*"(?:\\.|[^"\\])*"\s*\]\s*\]\[\s*\]\??\s*\|/s
                                     || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*\|/s))
+                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*-?\d+\s*\]\s*\]\[\s*\]\??\s*\|/s))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
@@ -598,8 +600,10 @@ sub apply {
                                 # like .[.cfg.key][]?, or a single
                                 # bracket-quoted .[.cfg["selected"]][]?
                                 # or dot-quoted .[.cfg."selected"][]?
-                                # selector field. These reuse existing
-                                # literal computed-selector parsing.
+                                # selector field, or a signed literal
+                                # numeric selector index such as
+                                # .[.keys[0]][]? or .[.keys[-1]][].
+                                # These reuse existing computed path parsing.
                                 # Evaluate each completed child before
                                 # requesting its next sibling; arbitrary
                                 # computed expressions remain outside scope.
