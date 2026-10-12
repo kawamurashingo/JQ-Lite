@@ -1799,3 +1799,21 @@
 {"name":"trycustom-unmodified-default","input":[1,[2],3,4],"filter":"try recurse","status":"compatible","expected":"ok"}
 {"name":"trycustom-unmodified-strict","input":[1,[2],3,4],"filter":"try recurse(.[]) catch 42","status":"compatible","expected":"ok"}
 {"name":"trycustom-unmodified-optional","input":[1,[2],3,4],"filter":"try (recurse(.[]?) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-error","input":null,"filter":"try ((0, (1 / 0), 9) | . + 1) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-no-catch","input":null,"filter":"try ((0, (1 / 0), 9) | . + 1)","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-null-catch","input":null,"filter":"try ((0, (1 / 0), 9) | . + 1) catch null","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-empty-catch","input":null,"filter":"try ((0, (1 / 0), 9) | . + 1) catch empty","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-type-catch","input":null,"filter":"try ((0, (1 / 0), 9) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-multi-catch","input":null,"filter":"try ((0, (1 / 0), 9) | . + 1) catch (42,43)","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-empty-alt","input":null,"filter":"try ((0, empty, 1, (1 / 0)) | . + 10) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-null-false","input":null,"filter":"try ((null, false, (1 / 0), 9) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-all-success","input":null,"filter":"try ((0, 1, 2) | . + 1)","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-tail-error","input":null,"filter":"try ((0, 1, 2) | if . == 1 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-numeric-invalid","input":null,"filter":"try ((0, 1, 2) | .[]) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-nested-alt","input":null,"filter":"try ((0, (1 / 0), 9) | . + 1 | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-outer","input":null,"filter":"0, (try ((0, (1 / 0), 9) | . + 1) catch 42), 9","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-inner","input":null,"filter":"try (((0, (1 / 0), 9) | . + 1), 8) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-succeed-null","input":null,"filter":"try ((null, 2) | .)","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-succeed-empty","input":null,"filter":"try ((empty, 2) | . + 1)","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-filter-string","input":null,"filter":"try ((\"a,b\", \"c\") | .)","status":"compatible","expected":"ok"}
+{"name":"tryhead-comma-bare-control","input":null,"filter":"try (0, (1 / 0), 9) catch 42","status":"compatible","expected":"ok"}
