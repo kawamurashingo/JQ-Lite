@@ -217,8 +217,8 @@ sub _visit_update_rhs_recurse {
 
 # Share the audited computed child-iterator grammar between the nested
 # try dispatcher and the recurse visitor's null-node expansion guard.
-# Single selectors may have two numeric indices; each of two/three
-# selectors may have one. No arbitrary computed expressions are admitted.
+# Single selectors may have up to four literal numeric indices; each of
+# two to four selectors may have one. No arbitrary computed expressions.
 sub _v3_scoped_computed_recurse_pattern {
     # Each named/quoted stage may be independently optional.
     # The optional flag applies to that stage, not to the outer []?.
@@ -228,7 +228,7 @@ sub _v3_scoped_computed_recurse_pattern {
     my $prefix = qr/\.[A-Za-z_]\w*\??(?:\.[A-Za-z_]\w*\??)*/s;
     my $quoted_end = qr/(?:\[\s*$quoted\s*\]\??|\.$quoted\??)?/s;
     my $numeric = qr/\[\s*-?\d+\s*\]\??\s*/s;
-    my $single = qr/$prefix$quoted_end\s*(?:$numeric){0,3}/s;
+    my $single = qr/$prefix$quoted_end\s*(?:$numeric){0,4}/s;
     my $paired = qr/$prefix$quoted_end\s*(?:$numeric)?/s;
 
     return qr/(?:\.\[\s*$single\s*\]\??\[\s*\]\??|\.(?:\[\s*$paired\s*\]\??\s*){2,4}\[\s*\]\??)/s;
