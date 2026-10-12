@@ -662,6 +662,25 @@ Arrays with no members emit nothing; valid JSON `null` and
 `false` remain values. Single-stage iterators and `try []`
 array constructors retain their prior behavior.
 
+**A parenthesized comma-expression head in a `try` pipeline now
+retains earlier completed outputs**, even if a later alternative
+or downstream tail fails. For example,
+`try ((0, (1 / 0), 9) | . + 1) catch 42` emits `1`
+followed by `42`. The first completed `0` passes through
+`. + 1`, then the second alternative fails; `9` is never
+evaluated. `try ((0,1,2) | if . == 1 then (1 / 0) else . end)
+catch 42` similarly emits `0` and `42`, since the tail
+fails before another head value is requested. Empty alternatives
+remain empty, while JSON `null` and `false` are preserved.
+With `catch empty` or no handler, only the preceding successful
+values remain, and outer comma expressions continue normally.
+
+This is deliberately limited to a *parenthesized, top-level comma
+head followed by a pipeline*. Partially emitted results within a
+single failing alternative or tail leaf are still eager and subject
+to separate audits; ordinary comma expressions and prior generator
+visitors are unchanged.
+
 This is an intentionally scoped streaming correction. Partial values
 produced *within one failing member* or inside other generator/path
 forms remain subject to the eager-evaluation limitation; this does
@@ -891,6 +910,7 @@ application logic. In particular:
 | bare `try .[][]` or `try .items[][]` yielded null or missed earlier completed nested members | bare two-level iterators now visit each member and emit it directly, preserving strict/optional errors and completed prior outputs before catch; arbitrary deeper paths still require audit |
 | a `try (.[][] | f)` or `try (.items[][] | f)` pipeline lost completed inner members on a later error | two-level iterator heads are visited member by member; a failing inner iterator or tail stops further members, preserving already completed outputs, with optional `[][]?` still skipping non-iterable members |
 | a `try (.items[] | f)` pipeline lost completed named-field iterator results after a later error | simple named-field `[]` / `[]?` heads now retain completed element outputs and preserve strict versus optional head errors; nested iterators and generators remain separately scoped |
+| a `try ((a, b, c) | f)` pipeline lost output from completed head alternatives when a later alternative or tail raised an error | parenthesized comma-head alternatives now feed the pipeline one at a time; earlier completed outputs remain visible before catch |
 | a `try (.[] | f)` pipeline lost completed earlier element results when a later element failed | completed elements now retain their output before the error fallback; later elements are skipped, while partially failing individual members and other iterator forms remain outside the scoped change |
 | earlier results inside a `try` comma expression disappeared after a later error | completed earlier comma branches now retain their output, and a `catch` fallback follows them; partial results inside an individual failing branch still need a separate streaming audit |
 | a `catch` handler assumed the original JSON input | `catch` now evaluates on the error message string, like jq 1.7; bind the original value first with `. as $original | try ... catch $original.field` when needed; the legacy `$error` alias is retained as an extension |

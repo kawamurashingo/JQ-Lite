@@ -363,6 +363,24 @@ sub apply {
                                 JQ::Lite::Util::_strip_wrapping_parens($branch);
                             my @stages =
                                 JQ::Lite::Util::_split_top_level_pipes($unwrapped);
+                            # A parenthesized comma expression can
+                            # generate multiple inputs for one pipeline,
+                            # for example (0, 1/0) | . + 1. Run its
+                            # alternatives in source order so a later
+                            # failing alternative cannot erase outputs
+                            # from earlier completed alternatives.
+                            my @comma_head_parts;
+                            if (@stages > 1) {
+                                my $head = $stages[0];
+                                my $inner =
+                                    JQ::Lite::Util::_strip_wrapping_parens($head);
+                                if ($inner ne $head) {
+                                    @comma_head_parts =
+                                        JQ::Lite::Util::_split_top_level_commas(
+                                            $inner
+                                        );
+                                }
+                            }
                             my @iterator_heads;
                             if (@stages) {
                                 my $head = $stages[0];
@@ -388,7 +406,29 @@ sub apply {
                                     }
                                 }
                             }
-                            if (@stages > 1 && $stages[0] =~
+                            if (@comma_head_parts > 1) {
+                                shift @stages;
+                                my $tail = join(' | ', @stages);
+                                for my $alternative (@comma_head_parts) {
+                                    # A completed alternative is a stream.
+                                    # Feed each emitted value through the
+                                    # tail immediately, before attempting
+                                    # the next alternative. Exceptions
+                                    # propagate to the surrounding try.
+                                    my @head_values = $self->run_query(
+                                        $json, $alternative
+                                    );
+                                    for my $head_value (@head_values) {
+                                        push @branch_outputs, $self->run_query(
+                                            JQ::Lite::Util::_encode_json(
+                                                $head_value
+                                            ),
+                                            $tail
+                                        );
+                                    }
+                                }
+                            }
+                            elsif (@stages > 1 && $stages[0] =~
                                 /\A\s*range\(([^()]*)\)\s*\z/s)
                             {
                                 # Reuse the update-RHS range visitor to
