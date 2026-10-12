@@ -1074,7 +1074,7 @@ sub apply {
             my $use_streaming_eval = $has_wildcard_array || !$has_comparison;
 
             # allow built-in filters like match() and test() to run so their errors surface
-            $use_streaming_eval ||= ($cond =~ /^\s*(match|test)\s*\(/);
+            $use_streaming_eval ||= ($cond =~ /^\s*(match|test|contains)\s*\(/);
 
             VALUE: for my $value (@results) {
                 my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;

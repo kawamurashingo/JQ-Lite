@@ -4,7 +4,7 @@
 {"name":"numeric-addition","input":null,"filter":"1 + 2","status":"compatible","expected":"ok"}
 {"name":"missing-compares-to-null","input":{},"filter":".missing == null","status":"compatible","expected":"ok"}
 {"name":"boolean-arithmetic-error","input":true,"filter":". + 1","status":"compatible","expected":"runtime-error"}
-{"name":"contains-array","input":[1,2,3],"filter":"contains([1,3])","status":"planned","expected":"ok"}
+{"name":"contains-array","input":[1,2,3],"filter":"contains([1,3])","status":"compatible","expected":"ok"}
 {"name":"false-fallback","input":false,"filter":". // 9","status":"compatible","expected":"ok"}
 {"name":"missing-field","input":{},"filter":".missing","status":"compatible","expected":"ok"}
 {"name":"numeric-object-index","input":{},"filter":".[5]","status":"compatible","expected":"runtime-error"}
@@ -3046,3 +3046,38 @@
 {"name":"foreach-practical-update-error","input":[1],"filter":"foreach .[] as $n (1; . / 0)","status":"compatible","expected":"runtime-error"}
 {"name":"reduce-practical-later-error","input":[1],"filter":"reduce .[] as $n (0; (7, 1 / 0))","status":"compatible","expected":"runtime-error"}
 {"name":"foreach-practical-later-extract-error","input":[1],"filter":"foreach .[] as $n (0; . + $n; (7, 1 / 0))","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-array-subset","input":[1,2,3],"filter":"contains([1,3])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-missing","input":[1,2],"filter":"contains([3])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-empty","input":[1,2],"filter":"contains([])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-empty-haystack","input":[],"filter":"contains([1])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-repeated","input":[1],"filter":"contains([1,1])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-nested-array","input":[[1,2,3]],"filter":"contains([[1,3]])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-object-partial","input":{"a":{"b":1,"c":2}},"filter":"contains({\"a\":{\"b\":1}})","status":"compatible","expected":"ok"}
+{"name":"v3-contains-object-missing","input":{"a":null},"filter":"contains({\"b\":null})","status":"compatible","expected":"ok"}
+{"name":"v3-contains-object-null","input":{"a":null},"filter":"contains({\"a\":null})","status":"compatible","expected":"ok"}
+{"name":"v3-contains-object-empty","input":{"a":1},"filter":"contains({})","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-object","input":[{"id":1,"name":"A"}],"filter":"contains([{\"id\":1}])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-string-number","input":["1"],"filter":"contains([1])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-boolean-number","input":[true],"filter":"contains([1])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-object-string-number","input":{"a":1},"filter":"contains({\"a\":\"1\"})","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-substring","input":["foobar"],"filter":"contains([\"bar\"])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-unicode","input":"\u65e5\u672c\u8a9e\u306eJSON","filter":"contains(\"\u65e5\u672c\u8a9e\")","status":"compatible","expected":"ok"}
+{"name":"v3-contains-number-exact","input":100,"filter":"contains(100)","status":"compatible","expected":"ok"}
+{"name":"v3-contains-number-not-substring","input":100,"filter":"contains(1)","status":"compatible","expected":"ok"}
+{"name":"v3-contains-boolean-equal","input":true,"filter":"contains(true)","status":"compatible","expected":"ok"}
+{"name":"v3-contains-boolean-different","input":true,"filter":"contains(false)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-null","input":null,"filter":"contains(null)","status":"compatible","expected":"ok"}
+{"name":"v3-contains-select-true","input":[1,2],"filter":"select(contains([2]))","status":"compatible","expected":"ok"}
+{"name":"v3-contains-select-false","input":[1,2],"filter":"select(contains([3]))","status":"compatible","expected":"ok"}
+{"name":"v3-contains-map","input":[1,2,3],"filter":"map(contains(1))","status":"compatible","expected":"ok"}
+{"name":"v3-contains-array-scalar-error","input":[1,2],"filter":"contains(1)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-object-key-error","input":{"lang":"perl"},"filter":"contains(\"lang\")","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-null-string-error","input":null,"filter":"contains(\"x\")","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-string-null-error","input":"abc","filter":"contains(null)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-string-number-error","input":"1","filter":"contains(1)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-number-string-error","input":1,"filter":"contains(\"1\")","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-boolean-number-error","input":true,"filter":"contains(1)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-select-type-error","input":[1,2],"filter":"select(contains(2))","status":"compatible","expected":"runtime-error"}
+{"name":"v3-contains-boolean-false-equal","input":false,"filter":"contains(false)","status":"compatible","expected":"ok"}
+{"name":"v3-contains-nested-boolean-mismatch","input":[true],"filter":"contains([false])","status":"compatible","expected":"ok"}
+{"name":"v3-contains-boolean-reverse-error","input":false,"filter":"contains(true)","status":"compatible","expected":"runtime-error"}
