@@ -646,6 +646,22 @@ error-string input contract. Single-stage `try .[]` and
 `try .items[]`, plus array constructors `try []` and
 `try [ ]`, keep their existing behavior.
 
+**Three or more simple nested iterator stages** in a `try` head
+now follow the same member-by-member traversal as two-level paths.
+Both bare `try .[][][]` and pipeline forms such as
+`try (.[][][] | . + 10)` preserve outputs from finished members
+when a later inner iterator or tail expression fails. The same
+behavior applies to a named first field, for example
+`try .items[][][]`, and to longer simple literal chains.
+Optional `[]?` applies only at the stage where it appears:
+`.[][]?[]` skips a scalar at the middle stage, whereas
+`.[][][]?` skips a scalar at the deepest stage.
+The first error terminates the remaining traversal and invokes
+the explicit `catch` (if any) once, after earlier results.
+Arrays with no members emit nothing; valid JSON `null` and
+`false` remain values. Single-stage iterators and `try []`
+array constructors retain their prior behavior.
+
 This is an intentionally scoped streaming correction. Partial values
 produced *within one failing member* or inside other generator/path
 forms remain subject to the eager-evaluation limitation; this does
@@ -797,6 +813,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| three or more simple `[]` / `[]?` stages in a `try` head lost earlier completed member results or returned null | literal root and named-field iterator chains now visit each nested stage in order, retain completed outputs, and let strict/optional semantics apply at each level; arbitrary computed paths/generators remain separately scoped |
 | bare `try .[][]` or `try .items[][]` yielded null or missed earlier completed nested members | bare two-level iterators now visit each member and emit it directly, preserving strict/optional errors and completed prior outputs before catch; arbitrary deeper paths still require audit |
 | a `try (.[][] | f)` or `try (.items[][] | f)` pipeline lost completed inner members on a later error | two-level iterator heads are visited member by member; a failing inner iterator or tail stops further members, preserving already completed outputs, with optional `[][]?` still skipping non-iterable members |
 | a `try (.items[] | f)` pipeline lost completed named-field iterator results after a later error | simple named-field `[]` / `[]?` heads now retain completed element outputs and preserve strict versus optional head errors; nested iterators and generators remain separately scoped |
