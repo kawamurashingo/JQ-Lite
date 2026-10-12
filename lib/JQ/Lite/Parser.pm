@@ -160,6 +160,14 @@ sub parse_query {
             {
                 $_;
             }
+            # A dotted suffix with preceding whitespace must keep
+            # its leading root dot; otherwise a dotless path could
+            # collide with non-path literal/try expression handling.
+            elsif ($rest =~ /\s+\.(?:[A-Za-z_]|"|\[)/
+                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
+            {
+                $_;
+            }
             # Brackets containing only whitespace, or iterator
             # brackets separated from a field by whitespace, require
             # the leading dot. Do not reinterpret 'try [ ]' as a

@@ -206,6 +206,7 @@ t/v3_whitespace_literal_numeric_indices.t
 t/v3_whitespace_before_numeric_brackets.t
 t/v3_whitespace_before_quoted_brackets.t
 t/v3_whitespace_literal_iterator_brackets.t
+t/v3_whitespace_before_literal_path_dots.t
 t/v3_optional_iterator.t
 t/v3_field_iterator_errors.t
 t/v3_intermediate_field_iterators.t
