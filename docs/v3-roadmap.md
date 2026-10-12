@@ -1178,6 +1178,25 @@ parser and null-node visitor are reused, with
 40 jq 1.7 differential fixtures and a direct
 Perl regression file. Arbitrary computed arithmetic
 still requires separate auditing.
+**Named-field child paths followed by one signed
+literal numeric index** now preserve finished output
+when nested inside `try` recurse pipelines. Examples:
+`recurse(.items[0][]? | f)`,
+`recurse(.["items"][-1][] | f)`, and
+`recurse(."items"[0][]? | f)`.
+The field is a literal name, the numeric index is
+a single signed integer, and the final child iterator
+remains independently optional or strict. An earlier
+invalid field/index type still errors before `[]?`;
+strict `[]` on a missing or null selected array raises
+after the containing node is emitted, including on
+null roots. Optional child `[]?` skips null containers.
+This uses the existing demand-driven recurse visitor
+without changing general expression parsing.
+Direct Perl regressions and 69 jq 1.7 differential
+fixtures cover output order, catches, nested depth-first
+recursion, negative indices and quoted literal keys.
+
 
 
 
