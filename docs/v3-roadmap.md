@@ -1161,6 +1161,24 @@ Only simple parser-supported optional field
 stages are added, without arbitrary expressions.
 Direct Perl tests and 40 jq 1.7 differential
 fixtures cover the independent error boundaries.
+**Optional computed lookup steps themselves**,
+such as `recurse(.[.key]?[]? | f)` or
+`recurse(.[.cfg.name]?[] | f)`, now participate
+in the same nested `try` stream handling. The
+`?` attached to `[.selector]` suppresses an invalid
+computed index operation and yields no children,
+unlike a strict computed lookup where a null key
+raises. A separate invalid operation *within* the
+selector expression, such as `.cfg.name` on a
+numeric `.cfg`, continues to raise before the
+optional outer lookup is reached. Optional child
+`[]?` and strict `[]` retain their own distinct
+null/missing-container behavior. The scoped
+parser and null-node visitor are reused, with
+40 jq 1.7 differential fixtures and a direct
+Perl regression file. Arbitrary computed arithmetic
+still requires separate auditing.
+
 
 
 

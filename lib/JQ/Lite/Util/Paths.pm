@@ -222,6 +222,8 @@ sub _visit_update_rhs_recurse {
 sub _v3_scoped_computed_recurse_pattern {
     # Each named/quoted stage may be independently optional.
     # The optional flag applies to that stage, not to the outer []?.
+    # A separate ? after the outer [selector] suppresses only
+    # errors from that computed-index lookup, not selector evaluation.
     my $quoted = qr/"(?:\\.|[^"\\])*"/s;
     my $prefix = qr/\.[A-Za-z_]\w*\??(?:\.[A-Za-z_]\w*\??)*/s;
     my $quoted_end = qr/(?:\[\s*$quoted\s*\]\??|\.$quoted\??)?/s;
@@ -229,7 +231,7 @@ sub _v3_scoped_computed_recurse_pattern {
     my $single = qr/$prefix$quoted_end\s*(?:$numeric){0,3}/s;
     my $paired = qr/$prefix$quoted_end\s*(?:$numeric)?/s;
 
-    return qr/(?:\.\[\s*$single\s*\]\[\s*\]\??|\.(?:\[\s*$paired\s*\]\s*){2,4}\[\s*\]\??)/s;
+    return qr/(?:\.\[\s*$single\s*\]\??\[\s*\]\??|\.(?:\[\s*$paired\s*\]\??\s*){2,4}\[\s*\]\??)/s;
 }
 
 sub _has_scoped_computed_recurse_child {
