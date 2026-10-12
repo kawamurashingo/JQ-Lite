@@ -178,9 +178,10 @@ subtest 'syntax and existing regression boundaries' => sub {
     ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
         '.obj [ 1:3 ]')),
         'slice bracket not reclassified as literal quoted field');
-    ok(!defined(JQ::Lite::Util::_parse_v3_literal_iterator_path(
-        '.obj [ .key ]')),
-        'computed bracket with gap remains separate');
+    is_deeply(JQ::Lite::Util::_parse_v3_literal_iterator_path(
+        '.obj [ .key ]'),
+        [['field','obj'],['computed_context','.key']],
+        'spaced simple computed bracket uses the audited visitor');
     is_deeply(results('{"a.b":5}', '[ "a.b" ]'),
         [['a.b']], 'bare quoted array constructor retained');
     is_deeply(results('{"a.b":5}', '.["a.b"]'), [5],

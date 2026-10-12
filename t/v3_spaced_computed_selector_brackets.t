@@ -83,8 +83,8 @@ subtest 'nested selector uses the original input, not intermediate value' => sub
         '.arr [.idx]', 'Cannot index array with string "0"',
         'array rejects computed string index');
     runtime_error('7', '.obj [.key]?',
-        'Cannot index number with string "obj"',
-        'optional computed stage does not hide earlier error');
+        'Cannot index number with string "key"',
+        'computed selector on original input fails before target indexing');
     is_deeply(results('{"obj":{"name":42},"key":"name"}',
         '0, .obj [.key], 9'), [0,42,9],
         'comma branches preserve order');
