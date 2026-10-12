@@ -912,6 +912,26 @@ Arbitrary computations, nested computed selectors and
 individual eager-leaf partial streams remain outside
 this change. The scoped Perl tests and 36 jq 1.7
 differential fixtures cover its compatibility boundary.
+
+**Bracket-quoted literal stages inside a computed selector**
+such as `recurse(.[.cfg["selected"]][]? | f)`, and the
+strict `[]` counterpart, now preserve finished recursive
+nodes within a parenthesized `try` pipeline before a
+later child or tail error. This uses the same demand-driven
+visitor as simple `.[.cfg.key][]?` selectors; only the
+literal bracket-quoted selector field and existing optional
+or strict iterator are added to the routing and null-node
+error guard. JSON-quoted selector names containing spaces,
+periods or bracket characters remain literal keys.
+The selector is still evaluated on null nodes and can
+raise before optional iteration, while a missing or null
+*selected container* is skipped by `[]?` and rejected
+by strict `[]`. This is a single bracket-quoted literal
+field following a simple dotted-identifier selector prefix,
+not arbitrary dynamic expressions or general lazy leaf
+streaming. The direct regressions and 39 jq 1.7 differential
+fixtures cover this scoped change.
+
 **Simple computed-key strict child iterators**,
 such as `recurse(.[.field][] | f)`, are now handled
 by the same narrowly scoped nested `try` stream visitor.
