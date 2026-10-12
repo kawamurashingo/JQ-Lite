@@ -1969,3 +1969,27 @@
 {"name":"trynestedrec-empty-array","input":[],"filter":"try (. | (recurse | type))","status":"compatible","expected":"ok"}
 {"name":"trynestedrec-all-success","input":[1,[2],3],"filter":"try (. | (recurse | type))","status":"compatible","expected":"ok"}
 {"name":"trynestedrec-control-unwrapped","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1/0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-catch","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-no-catch","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | type))","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-catch-null","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | type)) catch null","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-catch-empty","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | type)) catch empty","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-catch-type","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | type)) catch type","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-catch-multiple","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | type)) catch (42,43)","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-identity","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | .)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-suffix","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | type) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-inner-comma","input":[1,[2],3],"filter":"try (. | ((recurse(.[]) | type), 99)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-trailing-comma","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | (.,99))) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-tail-error","input":[1,[2],3],"filter":"try (. | (recurse(.[]) | if . == 1 then (1/0) else . end)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-extra-parentheses","input":[1,[2],3],"filter":"try (. | ((recurse(.[]) | type))) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-null-root","input":null,"filter":"try (. | (recurse(.[]) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-false-root","input":false,"filter":"try (. | (recurse(.[]) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-empty-root","input":[],"filter":"try (. | (recurse(.[]) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-array-iterator","input":[[1,[2],3],[4]],"filter":"try (.[] | (recurse(.[]) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-named-iterator","input":{"items":[[1,[2],3],[4]]},"filter":"try (.items[] | (recurse(.[]) | type)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-outside-comma","input":[1,[2],3],"filter":"0,(try (. | (recurse(.[]) | type)) catch 42),9","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-inside-comma","input":[1,[2],3],"filter":"try ((. | (recurse(.[]) | type)), 99) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-optional-control","input":[1,[2],3],"filter":"try (. | (recurse(.[]?) | type))","status":"compatible","expected":"ok"}
+{"name":"trynestedstrictrec-unwrapped-control","input":[1,[2],3],"filter":"try (recurse(.[]) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-null-update-catch","input":{"a":null},"filter":".a |= (recurse(.[]) | empty)","status":"compatible","expected":"runtime-error"}
+{"name":"trystrictrec-null-update-accepted","input":{"a":null},"filter":".a |= (recurse(.[]) | type)","status":"compatible","expected":"ok"}
+{"name":"trystrictrec-null-update-optional","input":{"a":null},"filter":".a |= (recurse(.[]?) | empty)","status":"compatible","expected":"ok"}

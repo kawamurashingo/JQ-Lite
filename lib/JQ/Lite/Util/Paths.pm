@@ -224,7 +224,14 @@ sub _visit_update_rhs_recurse_filtered {
     my ($self, $current, $child_filter, $accept) = @_;
 
     return 1 if $accept->($current);
-    return 0 unless defined $current;
+
+    # A null node is already emitted above. Optional/custom child
+    # filters may stop at null, but strict .[] must still attempt
+    # expansion: jq raises an iteration error *after* emitting null.
+    # |= short-circuits at the accepted first output before reaching
+    # this expansion, so existing first-result semantics are retained.
+    return 0 if !defined($current)
+        && $child_filter !~ /\A\.\[\s*\]\z/;
 
     return _visit_update_rhs_results($self, $current, $child_filter, sub {
         my ($child) = @_;

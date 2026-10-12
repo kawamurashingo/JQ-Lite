@@ -189,6 +189,7 @@ t/v3_try_nested_comma_alternatives.t
 t/v3_try_nested_range_alternative_stream.t
 t/v3_try_nested_range_pipeline_stream.t
 t/v3_try_nested_recurse_pipeline_stream.t
+t/v3_try_nested_strict_recurse_stream.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t

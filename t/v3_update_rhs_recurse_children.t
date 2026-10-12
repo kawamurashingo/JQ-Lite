@@ -86,4 +86,20 @@ subtest 'ordinary finite recurse queries preserve all of their outputs' => sub {
     isa_ok($@, 'JQ::Lite::Error::Evaluation') unless $ok;
 };
 
+subtest 'strict recurse null children are expanded only when needed' => sub {
+    is_deeply(results('{"a":null}',
+        '.a |= (recurse(.[]) | type)'),
+        [{ a => 'null' }], 'accepted output stops before invalid strict child');
+    my $ok = eval {
+        $jq->run_query('{"a":null}', '.a |= (recurse(.[]) | empty)');
+        1;
+    };
+    ok(!$ok, 'no accepted RHS result requires strict null child expansion');
+    isa_ok($@, 'JQ::Lite::Error::Evaluation')
+        unless $ok;
+    is_deeply(results('{"a":null}',
+        '.a |= (recurse(.[]?) | empty)'),
+        [{}], 'optional child iterator still treats null as empty');
+};
+
 done_testing;
