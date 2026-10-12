@@ -580,7 +580,7 @@ sub apply {
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\."(?:\\.|[^"\\])*"\s*\[\s*\]\??\s*\|/s
                                     || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*\s*\]\[\s*\]\?\s*\|/s))
+                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*\s*\]\[\s*\]\??\s*\|/s))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
@@ -589,6 +589,7 @@ sub apply {
                                 # start with .[]?, or with the strict
                                 # or optional .items[], .["items"][], or
                                 # ."items"[] named-field iterators, plus
+                                # strict .[.field][] or optional
                                 # .[.field][]? with a simple computed key.
                                 # Evaluate each completed child before
                                 # requesting its next sibling; arbitrary
