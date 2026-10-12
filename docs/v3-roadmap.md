@@ -703,6 +703,27 @@ Nested generator arguments, non-literal argument expressions,
 general-purpose lazy filters, and errors within a single tail filter's
 partially produced stream remain outside scope.
 
+**Default `recurse` and `recurse(.[]?)` inside a `try` pipeline**
+now use the existing depth-first, demand-driven update-RHS recurse
+visitor. Each successfully produced recursion value is evaluated
+through the downstream pipeline before any further descendants are
+visited. For `[1,[2],3]`,
+`try (recurse | if . == 2 then (1 / 0) else . end) catch 42`
+emits the original array, `1`, `[2]`, and then `42`.
+Earlier completed outputs survive the error; later siblings
+are not visited. `catch empty` leaves the earlier outputs intact,
+while `catch null` appends one actual JSON null. The optional-child
+form `recurse(.[]?)` follows the same ordering.
+A successful recursion still emits every visited value; no-catch
+errors suppress only the failing remainder.
+
+This is a scoped change for complete, literal `recurse` and
+`recurse(.[]?)` *heads with a downstream pipeline*; bare recurse
+queries are unchanged. Arbitrary custom child generators, recursive
+errors on strict `recurse(.[])`, object key visitation order and
+general streaming of partially failing leaf filters remain separate
+audits.
+
 Only `recurse` and `range` have demand-driven leaf output handling
 so far. **Other leaf filters remain eager** under the existing engine;
 short-circuiting within arbitrary built-ins, generator argument expressions,
@@ -827,6 +848,7 @@ application logic. In particular:
 | whitespace is present after an audited dotted separator before a literal bracket | `.items[0] . [1]` and `.items[0] . ["a.b"]` now keep their explicit rooted path; numeric/quoted/iterator suffix semantics and strict/optional error boundaries are unchanged |
 | whitespace separates a rooted path stage from a computed selector | `. [.key]`, `.obj [ .key ]` and `.arr [ .idx ]?` use the original input for the simple dotted selector, preserve strict/optional lookup boundaries, and never reclassify bare `[.key]` or `try [.key]` constructors |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| `try (recurse | f)` or `try (recurse(.[]?) | f)` lost completed ancestor/sibling outputs on a later error | default and optional-child recurse heads now visit recursion values on demand, preserving completed output and stopping before unused descendants after an error |
 | `try (range(...) | f)` lost earlier generated numbers when a later tail value raised an error | a simple range head is now generated on demand; completed earlier tail outputs remain visible before catch, while later range values are not requested |
 | three or more simple `[]` / `[]?` stages in a `try` head lost earlier completed member results or returned null | literal root and named-field iterator chains now visit each nested stage in order, retain completed outputs, and let strict/optional semantics apply at each level; arbitrary computed paths/generators remain separately scoped |
 | bare `try .[][]` or `try .items[][]` yielded null or missed earlier completed nested members | bare two-level iterators now visit each member and emit it directly, preserving strict/optional errors and completed prior outputs before catch; arbitrary deeper paths still require audit |
