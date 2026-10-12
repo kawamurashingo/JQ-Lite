@@ -211,6 +211,7 @@ t/v3_try_three_computed_selector_recurse.t
 t/v3_try_four_computed_selector_recurse.t
 t/v3_try_nested_triple_numeric_recurse_stream.t
 t/v3_try_optional_numeric_computed_recurse_stream.t
+t/v3_try_optional_field_computed_recurse_stream.t
 t/v3_computed_recurse_matcher.t
 t/tsv_format.t
 t/uri_format.t
