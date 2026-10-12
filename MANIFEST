@@ -200,6 +200,7 @@ t/v3_try_nested_strict_computed_recurse_stream.t
 t/v3_try_nested_dotted_computed_recurse_stream.t
 t/v3_try_nested_bracket_selector_recurse_stream.t
 t/v3_try_nested_dot_quoted_selector_recurse_stream.t
+t/v3_try_nested_numeric_computed_recurse_stream.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t
