@@ -586,7 +586,7 @@ sub apply {
                                     || $unwrapped =~
                                     /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\."(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*\|/s
                                     || $unwrapped =~
-                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*-?\d+\s*\]\s*\]\[\s*\]\??\s*\|/s))
+                                    /\(\s*recurse\(\s*\.\[\s*\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*(?:\[\s*-?\d+\s*\]){1,2}\s*\]\[\s*\]\??\s*\|/s))
                             {
                                 # Nested default, optional, strict, and
                                 # literal range generators can complete
@@ -601,8 +601,10 @@ sub apply {
                                 # bracket-quoted .[.cfg["selected"]][]?
                                 # or dot-quoted .[.cfg."selected"][]?
                                 # selector field, or a signed literal
-                                # numeric selector index such as
-                                # .[.keys[0]][]? or .[.keys[-1]][].
+                                # numeric selector indices such as
+                                # .[.keys[0]][]? or .[.cfg.names[0][0]][].
+                                # At most two signed literal numeric
+                                # stages are routed here.
                                 # These reuse existing computed path parsing.
                                 # Evaluate each completed child before
                                 # requesting its next sibling; arbitrary
