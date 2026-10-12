@@ -3116,5 +3116,40 @@
 {"name":"v3-practical-type-json-values","input":[null,false,true,0,"0",[],{}],"filter":".[] | type","status":"compatible","expected":"ok"}
 {"name":"v3-practical-type-literal-constructors","input":null,"filter":"[\"42\",42,true,false,null,[],{}] | map(type)","status":"compatible","expected":"ok"}
 {"name":"v3-practical-type-after-number-string-cache","input":10,"filter":"(tostring, .) | type","status":"compatible","expected":"ok"}
-{"name":"v3-type-empty-stream-difference","input":null,"filter":"empty | type","status":"known-difference","expected":"ok"}
+{"name":"v3-type-empty-stream","input":null,"filter":"empty | type","status":"compatible","expected":"ok"}
 {"name":"v3-comparison-empty-operand-difference","input":null,"filter":"empty == null","status":"known-difference","expected":"ok"}
+{"name":"v3-basic-field-type","input":{"type":"vm"},"filter":".type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-length","input":{"length":99},"filter":".length","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-empty","input":{"empty":null},"filter":".empty","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-null","input":{"null":7},"filter":".null","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-true","input":{"true":false},"filter":".true","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-false","input":{"false":1},"filter":".false","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-keys","input":{"keys":["a","b"]},"filter":".keys","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-values","input":{"values":false},"filter":".values","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-sum","input":{"sum":4},"filter":".sum","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-if","input":{"if":5},"filter":".if","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-nested-type","input":{"config":{"type":"vm"}},"filter":".config.type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-missing-type","input":{},"filter":".type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-null-context","input":null,"filter":".type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-then-type","input":{"type":99},"filter":".type | type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-null-then-type","input":{"empty":null},"filter":".empty | type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-empty-iterator-then-type","input":[],"filter":".[] | type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-filtered-empty-then-type","input":null,"filter":"select(false) | type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-optional-empty-then-type","input":{},"filter":".missing[]? | type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-empty-then-field","input":null,"filter":"empty | .type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-bare-type","input":{"type":"vm"},"filter":"type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-bare-length","input":{"length":99},"filter":"length","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-comma","input":{"type":"vm","length":99},"filter":".type, .length","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-after-iteration","input":[{"type":"vm"},{"type":"k8s"}],"filter":".[] | .type","status":"compatible","expected":"ok"}
+{"name":"v3-basic-field-shorthand","input":{"type":"vm","length":99,"empty":null},"filter":"{type,length,empty}","status":"compatible","expected":"ok"}
+{"name":"v3-basic-array-field-projection-difference","input":[{"type":"vm"}],"filter":".type","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-empty-type-array-constructor","input":null,"filter":"[empty | type]","status":"compatible","expected":"ok"}
+{"name":"v3-empty-array-constructor","input":null,"filter":"[empty]","status":"compatible","expected":"ok"}
+{"name":"v3-empty-type-array-neighbors","input":null,"filter":"[1, (empty | type), 2]","status":"compatible","expected":"ok"}
+{"name":"v3-empty-type-object-constructor","input":null,"filter":"{x: (empty | type)}","status":"compatible","expected":"ok"}
+{"name":"v3-empty-object-constructor","input":null,"filter":"{x: empty}","status":"compatible","expected":"ok"}
+{"name":"v3-empty-type-object-neighbor","input":null,"filter":"{x: (empty | type), y: 1}","status":"compatible","expected":"ok"}
+{"name":"v3-null-type-array-constructor","input":null,"filter":"[null | type]","status":"compatible","expected":"ok"}
+{"name":"v3-null-type-object-constructor","input":null,"filter":"{x: (null | type)}","status":"compatible","expected":"ok"}
+{"name":"v3-missing-field-array-constructor","input":{},"filter":"[.missing]","status":"compatible","expected":"ok"}
+{"name":"v3-missing-field-object-constructor","input":{},"filter":"{x: .missing}","status":"compatible","expected":"ok"}

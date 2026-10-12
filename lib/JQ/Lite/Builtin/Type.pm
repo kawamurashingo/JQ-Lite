@@ -21,8 +21,7 @@ sub register {
 
     $register->(['type', 'type()'], sub {
         my ($owner, $inputs) = @_;
-        return [ map { JQ::Lite::Value::type_of($_) }
-            (@{$inputs} ? @{$inputs} : (undef)) ];
+        return [ map { JQ::Lite::Value::type_of($_) } @{$inputs} ];
     });
 
     $register->(['arrays', 'arrays()'], sub {

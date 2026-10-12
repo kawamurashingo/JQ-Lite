@@ -32,8 +32,8 @@ is(scalar @filters, 2, 'parser creates one AST filter per pipeline stage');
 isa_ok($filters[0], 'JQ::Lite::AST::Filter');
 is_deeply(
     [ map { $_->source } @filters ],
-    [qw(users[] name)],
-    'AST retains the compatibility-normalized filter representation',
+    [qw(users[] .name)],
+    'AST retains the dot on ordinary field names to distinguish them from builtins',
 );
 
 my $jq = JQ::Lite->new;

@@ -988,13 +988,18 @@ sub _evaluate_value_expression {
         if (($path !~ /\s/ || $is_bracket_slice) && $path !~ /[+\-*\/]/) {
             return ([], 1) if $path eq '';
             my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
-            return ($numeric_path ? [undef] : [], 1) unless defined $context;
+            # A missing named object field is one JSON null, not an empty
+            # stream. Keep iterator/projection paths' existing empty behavior.
+            my $named_path = $path =~ /\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\z/ ? 1 : 0;
+            return (($numeric_path || $named_path) ? [undef] : [], 1)
+                unless defined $context;
 
             my @values = _traverse(
                 $context, $path,
                 {
                     numeric_object_index_error => $numeric_path,
                     numeric_null_index => $numeric_path,
+                    missing_object_null => $named_path,
                 }
             );
             return (\@values, 1);

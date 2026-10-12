@@ -35,6 +35,14 @@ sub evaluate_filter {
     my ($self, $filter, $inputs) = @_;
 
     my @outputs;
+    my $source = $filter->source;
+    if ($source =~ /\A\.([A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)\z/) {
+        my $path = $1;
+        return map {
+            JQ::Lite::Util::_traverse($_, $path, { missing_object_null => 1 })
+        } @{$inputs};
+    }
+
     if (JQ::Lite::Filters::apply(
             $self->{owner}, $filter->source, $inputs, \@outputs
         ))
@@ -46,7 +54,6 @@ sub evaluate_filter {
     # literal JSON-quoted keys without splitting on the dots inside them.
     # Only paths containing [] or []? are intercepted; existing bare
     # field/index and compatibility-sensitive computed-path behavior stays.
-    my $source = $filter->source;
     my $path_steps = JQ::Lite::Util::_parse_v3_literal_iterator_path(
         $source
     );
