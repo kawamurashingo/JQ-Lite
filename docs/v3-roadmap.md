@@ -524,6 +524,18 @@ The compatibility-sensitive internal traversal helper, implicit array
 projection, slices, and arbitrary optional expressions remain unchanged.
 Existing object iteration order remains unchanged.
 
+The parser now preserves **`try []` and `try [ ]` as
+empty-array constructor expressions** instead of lowering the
+brackets into a standalone iterator. Both forms emit one empty
+array, including in comma branches (`0, try [ ]` emits `0`
+then `[]`). `try [ ] | length` emits `0`, and piping that
+empty array into `.[]` emits no values without a scalar
+iteration error. This is deliberately restricted to the literal
+`try` keyword directly followed by an empty array bracket;
+ordinary value-producing suffixes such as `keys[]?` and rooted
+literal `.items [ ]` are unchanged. Other `try` expression
+semantics remain separately scoped.
+
 Standalone `.[]?` is also available in a pipeline (including
 `recurse(.[]?)`). Non-path array-result suffixes `keys[]?`,
 `split(",")[]?`, and `[4,5][]?` lower to an optional iteration stage,
@@ -656,6 +668,7 @@ application logic. In particular:
 | a named *selector field stage* must skip invalid non-object values | use `.obj[.cfg.name?]` or `.obj[.cfg["name"]?]`; placing `?` on an earlier field (`.cfg?.name`) does not suppress the later named lookup, and missing/null fields still yield null, not an empty stream |
 | an object key with a literal dot, space, or operator-like punctuation must be read strictly | use bracket-quoted syntax `.["a.b"]` / `.obj["a.b"].name` or dot-quoted syntax `."a.b"` / `.obj."a.b".name`; an absent key/null yields JSON null but wrong-type inputs still raise structured errors; bare `["a.b"]` is an array constructor and bare `"a.b"` is a string literal |
 | whitespace appears before a dot separating audited path stages | `.items[0] .name` and `.obj["a.b"] .name` follow the same strict/optional stages as unspaced paths; `.items[0]. name` is not jq syntax and pure unquoted field-only paths retain existing handling |
+| a `try` expression directly constructs an empty array | `try []` and `try [ ]` now emit one `[]` instead of triggering a synthetic `.[]` iterator; this includes comma branches, without changing `.[]` or `keys[]` suffixes |
 | spaces appear inside or before an iterator bracket | `.items [ ]`, `.items [ ]?`, and `. [ ]` use the same strict/optional iteration as `[]`/`[]?`; bare `[ ]` still constructs an empty array and `try [ ]` is not a path |
 | whitespace separates a path stage from a quoted field bracket | `. ["a.b"]`, `.obj [ "a.b" ]` and `.obj [ "a.b" ]?` now match unspaced bracket-quoted lookups; missing/null stay one null and strict wrong types remain errors, while bare `[ "a.b" ]` is still an array constructor |
 | whitespace separates a path stage from a numeric index | `. [0]`, `.items [ -1 ]` and `.items[0] [1]` now match their no-space equivalents; `[N]?` keeps stage-local optionality, while slices, computed brackets and bare array constructors remain separate |

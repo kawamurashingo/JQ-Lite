@@ -166,6 +166,7 @@ t/transpose.t
 t/trim.t
 t/trimstr.t
 t/try_catch.t
+t/v3_try_empty_array_constructor.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t
