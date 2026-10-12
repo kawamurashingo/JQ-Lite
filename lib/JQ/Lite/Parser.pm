@@ -168,6 +168,18 @@ sub parse_query {
             {
                 $_;
             }
+            # After a dotted suffix the jq grammar also allows
+            # whitespace before a literal bracket:
+            #   .items[0] . [1] / .items[0] . ["a.b"]
+            # Retain the explicit root dot before attempting the
+            # dotless-path normalization. Otherwise the ordered
+            # visitor never sees the full rooted path; its literal
+            # numeric/quoted index stages already handle this spacing.
+            elsif ($rest =~ /\.\s+\[/
+                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
+            {
+                $_;
+            }
             # A dotted suffix with preceding whitespace must keep
             # its leading root dot; otherwise a dotless path could
             # collide with non-path literal/try expression handling.
