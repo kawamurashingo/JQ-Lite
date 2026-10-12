@@ -1591,3 +1591,13 @@
 {"name":"catchhandler-error-propagates","input":null,"filter":"try (1 / 0) catch recurse(.[])","status":"compatible","expected":"runtime-error"}
 {"name":"catchhandler-error-comma-propagates","input":null,"filter":"0, try (1 / 0) catch recurse(.[]), 9","status":"compatible","expected":"runtime-error"}
 {"name":"catchhandler-success-skips-handler","input":null,"filter":"try 7 catch recurse(.[])","status":"compatible","expected":"ok"}
+{"name":"catchstream-optional-iterator-null","input":null,"filter":"try (1 / 0) catch .[]?","status":"compatible","expected":"ok"}
+{"name":"catchstream-optional-iterator-number","input":3,"filter":"try (1 / 0) catch .[]?","status":"compatible","expected":"ok"}
+{"name":"catchstream-optional-iterator-boolean","input":true,"filter":"try (1 / 0) catch .[]?","status":"compatible","expected":"ok"}
+{"name":"catchstream-optional-iterator-string","input":"hello","filter":"try (1 / 0) catch .[]?","status":"compatible","expected":"ok"}
+{"name":"catchstream-parenthesized-optional","input":null,"filter":"try (1 / 0) catch (.[]?)","status":"compatible","expected":"ok"}
+{"name":"catchstream-pipeline-empty","input":null,"filter":"try (1 / 0) catch (empty | 9)","status":"compatible","expected":"ok"}
+{"name":"catchstream-comma","input":null,"filter":"0, (try (1 / 0) catch .[]?), 9","status":"compatible","expected":"ok"}
+{"name":"catchstream-success-control","input":null,"filter":"try 5 catch .[]?","status":"compatible","expected":"ok"}
+{"name":"catchstream-catch-null","input":null,"filter":"try (1 / 0) catch null","status":"compatible","expected":"ok"}
+{"name":"catchstream-catch-empty","input":null,"filter":"try (1 / 0) catch empty","status":"compatible","expected":"ok"}
