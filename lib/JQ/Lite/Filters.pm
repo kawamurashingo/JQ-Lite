@@ -568,18 +568,18 @@ sub apply {
                                     }
                                 }
                             }
-                            if (@pipeline_comma_parts > 1
+                            if (@stages > 1
                                 && $unwrapped =~
                                     /\(\s*range\([^()]*\)\s*\|/s)
                             {
-                                # A nested comma alternative can contain
-                                # its own range pipeline. Evaluating that
-                                # whole alternative eagerly discards range
-                                # outputs before a later tail error.
+                                # A nested, fully wrapped range pipeline
+                                # need not be a comma alternative: . |
+                                # (range(0;4) | f) likewise has completed
+                                # results before a later error from f.
                                 # Reuse the existing demand-driven update
-                                # RHS visitor only for this scoped form;
-                                # stream each completed result into the
-                                # same try output buffer before continuing.
+                                # RHS visitor for either scoped form;
+                                # stream every completed result into the
+                                # try output buffer before continuing.
                                 JQ::Lite::Util::_visit_update_rhs_results(
                                     $self, $value, $unwrapped, sub {
                                         push @branch_outputs, $_[0];
