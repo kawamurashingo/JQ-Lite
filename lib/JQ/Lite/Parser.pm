@@ -116,7 +116,8 @@ sub parse_query {
                     # outside try. This also preserves try [] and
                     # try [ ] array constructors from the prior audit.
                     $sequence_part = "($filter | $iterator)"
-                        if $filter =~ /\S/ && $filter !~ /\Atry\b/;
+                        if $filter =~ /\S/ && $filter !~ /\Atry\b/
+                        && $filter !~ /[=!<>]\z/;
                 }
             }
             push @iterator_expanded, join(', ', @sequence_parts);
@@ -126,7 +127,10 @@ sub parse_query {
         if ($part !~ /^\s*\./s && $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s) {
             my ($filter, $optional) = ($1, $2);
             $filter =~ s/\s+$//;
-            if ($filter =~ /\S/ && $filter !~ /\Atry\b/) {
+            # A comparison ending in [] has an empty-array operand,
+            # not an iterator suffix: stripping [] leaves an operator.
+            if ($filter =~ /\S/ && $filter !~ /\Atry\b/
+                && $filter !~ /[=!<>]\z/) {
                 push @iterator_expanded, $filter,
                     (defined $optional ? '.[]?' : '.[]');
             }

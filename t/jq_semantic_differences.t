@@ -93,9 +93,9 @@ subtest 'contains_subset extension limitations' => sub {
 };
 
 subtest 'comparison semantics' => sub {
-    ok(result_for('{}', '"10" == 10'), 'numeric string equals number');
+    ok(!result_for('{}', '"10" == 10'), 'numeric string remains distinct from number in v3');
     ok(result_for('{}', 'false < 0'), 'cross-type ordering matches jq here');
-    ok(!result_for('{}', '[1,2] < [1,3]'), 'arrays are not ordered lexicographically');
+    ok(result_for('{}', '[1,2] < [1,3]'), 'arrays are ordered lexicographically in v3');
     ok(result_for('{}', '.missing == null'), 'missing compares equal to null');
 };
 

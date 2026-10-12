@@ -886,6 +886,8 @@ sub _evaluate_variable_reference {
 
     my $expr = $suffix;
     $expr =~ s/^\s+//;
+    # Variable bracket suffixes are paths, not compound JSON literals.
+    $expr = ".$expr" if $expr =~ /\A\[/;
 
     my ($values, $ok) = _evaluate_value_expression($self, $value, $expr);
     return $ok ? @$values : ();
@@ -899,6 +901,13 @@ sub _evaluate_value_expression {
     my $copy = _strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
+
+    # Decode compound JSON literals before inspecting expression operators
+    # or treating brackets as paths. Nonliteral constructors retain fallback.
+    if ($copy =~ /\A[\[\{]/) {
+        my $decoded = eval { _decode_json($copy) };
+        return ([ $decoded ], 1) unless $@;
+    }
 
     if (_looks_like_expression($copy)) {
         my %builtins = (
