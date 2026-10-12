@@ -97,6 +97,21 @@ infix `contains` extension retain their v2 meanings. In particular,
 
 ### Null, fallback, and paths
 
+Ordinary unquoted field paths retain their leading dot and are evaluated as
+paths before builtin dispatch. `.type`, `.length`, `.empty`, `.null` and other
+legal names therefore read fields rather than invoking functions/literals.
+Nested named paths use the same existing traversal. Missing/null object reads
+still emit null, while truly empty upstream input remains empty. Existing
+array-projection and invalid-target policies are preserved; this change does
+not promise full jq path error semantics.
+
+Migration: use bare `type`, `length` or `empty` to invoke the builtin; use
+`.type`, `.length` or `.empty` to read a field. For example,
+`{"type":"vm","length":99,"empty":null}` yields `"vm"`, `99` and JSON null
+for those field paths; `.empty | type` emits `"null"`, while `empty | type`
+emits nothing. To deliberately construct that former empty-stream fallback,
+use `null | type`. No additional function or public API is introduced.
+
 - Treat both `false` and `null` as absent for the `//` alternative operator.
 - Emit `null` for a missing object field and for continued traversal through a
   missing field.
@@ -149,12 +164,12 @@ before comparison, e.g. `"10" | tonumber | . == 10` and
 `10 | tostring | . == "10"`. Existing convenience-function comparisons are
 not silently changed by this operator correction.
 
-Empty-stream behavior is kept separate under #625: `empty | type` retains
-v2's one `"null"` output, and comparison operands that emit no values are
-still normalized to null (`empty == null` yields true). jq emits no output
-in those examples. These are documented differences, not jq-compatible
-fixtures. This correction does not add variable arithmetic, general filter
-stream semantics, new syntax, or a public API.
+`type` now preserves empty input streams: `empty | type` emits no output,
+while `null | type` emits one `"null"` string. Comparison operands that emit
+no values are still normalized to null (`empty == null` yields true); jq emits
+no output in that case. The latter remains a documented difference under
+#625. This correction does not add variable arithmetic, general filter stream
+semantics, new syntax, or a public API.
 
 Numeric-looking strings are now rejected by numeric arithmetic in the 3.x
 developer-release series; callers that intend conversion should use

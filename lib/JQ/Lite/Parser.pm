@@ -154,7 +154,9 @@ sub parse_query {
         }
         elsif ($_ =~ /^\.(.+)$/) {
             my $rest = $1;
-            if ($rest eq 'count') {
+            # Rooted ordinary field paths must stay distinct from builtin
+            # names and literals, e.g. .type, .length, .empty and .null.
+            if ($rest =~ /\A[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*\z/) {
                 $_;
             }
             elsif ($rest =~ /,/ || $rest =~ /\|=/) {

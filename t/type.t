@@ -76,9 +76,9 @@ for my $case (@comparison_cases) {
     is_deeply([ $jq->run_query($input, $query) ], $decoder->decode($expected), $name);
 }
 
-# Retain this existing v2 difference until the path/empty-stream audit (#625).
-is_deeply([ $jq->run_query('null', 'empty | type') ], ['null'],
-    'type keeps the documented empty-stream fallback for now');
+# Empty streams remain empty; an explicit JSON null still has type null.
+is_deeply([ $jq->run_query('null', 'empty | type') ], [],
+    'type does not synthesize a null from an empty stream');
 
 is_deeply([ $jq->run_query('null', 'empty == null') ], [JSON::PP::true],
     'comparison retains documented no-output operand normalization');
