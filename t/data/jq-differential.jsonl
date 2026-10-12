@@ -1738,3 +1738,22 @@
 {"name":"tryrange-strict-iterator","input":null,"filter":"try (range(0;3) | .[]) catch 42","status":"compatible","expected":"ok"}
 {"name":"tryrange-optional-iterator","input":null,"filter":"try (range(0;3) | .[]?) catch 42","status":"compatible","expected":"ok"}
 {"name":"tryrange-control-bare","input":null,"filter":"try range(0;3)","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-default-catch","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-optional-catch","input":[1,[2],3],"filter":"try (recurse(.[]?) | if . == 2 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-no-catch","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1 / 0) else . end)","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-null-catch","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1 / 0) else . end) catch null","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-empty-catch","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1 / 0) else . end) catch empty","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-type-catch","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1 / 0) else . end) catch type","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-multi-catch","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1 / 0) else . end) catch (42, 43)","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-comma-in","input":[1,[2],3],"filter":"try ((recurse | if . == 2 then (1 / 0) else . end), 99) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-comma-out","input":[1,[2],3],"filter":"0, (try (recurse | if . == 2 then (1 / 0) else . end) catch 42), 9","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-multistage","input":[1,[2],3],"filter":"try (recurse | if . == 2 then (1 / 0) else . end | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-root-tail-fails","input":[1,[2],3],"filter":"try (recurse | if . == 1 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-filter-numbers","input":[1,[2],3],"filter":"try (recurse | select(type == \"number\"))","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-optional-all","input":[1,[2],3],"filter":"try (recurse(.[]?) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-type-all","input":[1,[2],3],"filter":"try (recurse(.[]?) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-null-root","input":null,"filter":"try (recurse | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-false-root","input":false,"filter":"try (recurse | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-array-empty","input":[],"filter":"try (recurse | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-control-bare","input":[1,[2],3],"filter":"try recurse","status":"compatible","expected":"ok"}
+{"name":"tryrecurse-control-literal","input":null,"filter":"try []","status":"compatible","expected":"ok"}

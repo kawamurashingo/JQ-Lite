@@ -353,10 +353,10 @@ sub apply {
                             # expression. Visit each member in depth-first
                             # source order; retain earlier completed
                             # results if a subsequent member fails.
-                            # A simple range(...) generator is handled
-                            # separately below via its on-demand visitor.
-                            # Other path forms and partially failing leaf
-                            # filters remain eager.
+                            # Simple range(...) and default/optional
+                            # recurse generators also reuse their existing
+                            # on-demand visitors below. Other paths and
+                            # partially failing leaf filters remain eager.
                             my $unwrapped =
                                 JQ::Lite::Util::_strip_wrapping_parens($branch);
                             my @stages =
@@ -406,6 +406,31 @@ sub apply {
                                         my ($number) = @_;
                                         push @branch_outputs, $self->run_query(
                                             JQ::Lite::Util::_encode_json($number),
+                                            $tail
+                                        );
+                                        return 0;
+                                    }
+                                );
+                            }
+                            elsif (@stages > 1 && $stages[0] =~
+                                /\A\s*recurse(?:\(\s*(\.\[\s*\]\?)\s*\))?\s*\z/s)
+                            {
+                                # Reuse the update RHS depth-first recurse
+                                # visitor for the default generator and its
+                                # optional child iterator, recurse(.[]?).
+                                # Pass each emitted value directly to the
+                                # remaining try pipeline before expanding
+                                # any unneeded descendants. A later tail
+                                # error leaves earlier completed outputs
+                                # intact and stops traversal immediately.
+                                my $child_filter = defined($1) ? $1 : undef;
+                                shift @stages;
+                                my $tail = join(' | ', @stages);
+                                JQ::Lite::Util::_visit_update_rhs_recurse(
+                                    $self, $value, $child_filter, sub {
+                                        my ($recur_value) = @_;
+                                        push @branch_outputs, $self->run_query(
+                                            JQ::Lite::Util::_encode_json($recur_value),
                                             $tail
                                         );
                                         return 0;
