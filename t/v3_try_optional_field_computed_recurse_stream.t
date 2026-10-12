@@ -83,7 +83,7 @@ subtest 'optional dotted and JSON-quoted fields' => sub {
             "optional selector $selector preserves prior nodes");
         is_deeply(results('{"cfg":3}',
             "try (. | ($child | .)) catch 42"),
-            $selector =~ /name\?/ ? [{cfg=>3}] : [{cfg=>3},42],
+            [{cfg=>3}],
             "optional field $selector retains stage-specific errors");
     }
     my $special = {
