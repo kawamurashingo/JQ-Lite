@@ -13,6 +13,37 @@ recorded in the [2.x semantic differences inventory](jq-semantics-differences.md
 That inventory is the source of truth for scope: this roadmap does not silently
 turn an `undecided` item into a commitment.
 
+## Practical v2 baseline and size policy (2026-10-13)
+
+Use v2's practical feature set as the baseline. Prioritize compatibility
+within that subset, smaller implementation size, and simple maintenance.
+New syntax coverage is not a release goal. Rare deeply nested computed
+selectors and try/recurse combinations are not required release criteria;
+review existing support before removing it rather than expanding it further.
+Keep Perl 5.14 support, existing dependencies, and stable 2.x unchanged.
+
+An initial size measurement of tracked `lib/**/*.pm` files at stable/main
+`6880c30` and v3-dev `40c05db` gives:
+
+| Source | Modules | Lines | Bytes |
+| --- | ---: | ---: | ---: |
+| Stable/main (v2 baseline) | 22 | 8,839 | 242,573 |
+| v3-dev before dispatch cleanup | 22 | 10,560 | 326,242 |
+| v3-dev after dispatch cleanup | 22 | 10,451 | 321,629 |
+
+The pre-cleanup implementation is 34.5% larger in bytes than stable/main.
+These counts include comments and whitespace; they do not measure installed
+archive size, execution speed, or feature usage. Tests and documentation are
+excluded. A complete practical-feature inventory remains pending in #625.
+
+The first cleanup combines repeated path-dispatch guards in `Filters.pm`.
+It preserves their syntax triggers and full-parser validation, removes three
+redundant subset guards, and attempts that parser at most once per dispatch.
+It removes 109 lines / 4,613 bytes without removing supported expressions.
+Existing regression and jq 1.7 differential fixtures remain the behavioral
+checks. Further cleanup should focus on shared handling for ordinary lookup,
+indexing, iteration and optional access before specialized syntax support.
+
 ## Compatibility policy
 
 - The 2.x CLI and Library API contracts remain unchanged. Semantic corrections

@@ -17,129 +17,20 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
-    # Whitespace immediately before an audited dotted suffix belongs
-    # to the same literal path, e.g. .items[0] .name or .items[] .name.
-    # Only complete rooted paths use the ordered v3 visitor; a bare
-    # ". name" remains outside this syntax.
-    if ($normalized =~ /\s+\.(?:[A-Za-z_]|"|\[)/
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # New whitespace forms of [] / []? must enter the ordered v3
-    # path visitor, not legacy arithmetic/array-expression shortcuts.
-    # The entire rooted path must parse: 'try [ ]' and bare [ ] are
-    # array expressions, not literal iterator paths.
-    if ($normalized =~ /\[\s+\]|\s+\[\s*\]/
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # A full literal numeric path can also contain whitespace before
-    # the bracket: . [0], .items [ 0 ], or .items[0] [1].
-    # Keep this check before legacy numeric/arithmetic shortcuts.
-    # Do not match bare array constructors or nonliteral bracket forms.
-    if ($normalized =~ /\s+\[\s*-?\d+\s*\]/
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # jq allows spaces inside literal numeric brackets: [ 0 ], [-1 ],
-    # and [ 0 ]?. Route only fully parsed literal paths to the
-    # ordered visitor, before legacy index/value-expression shortcuts.
-    # Bare [ 0 ] constructors and arithmetic/slice brackets are excluded.
-    if ($normalized =~ /\[(?:\s+-?\d+\s*|-?\d+\s+)\]/
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # Standalone strict positive literal numeric stages use the ordered
-    # v3 visitor for index type errors, null propagation and subsequent
-    # strict suffixes. Require a fully parsed literal path rather than
-    # routing arbitrary computed bracket expressions.
-    if ($normalized =~ /\[\d+\]/
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # Strict signed negative literal indices also need the scoped v3
-    # visitor even without an iterator or optional step. Legacy
-    # arithmetic/field shortcuts can mistake [-N] for subtraction or
-    # return null rather than an indexed value. Require a complete
-    # recognized path, not merely a bracket fragment.
-    if ($normalized =~ /\[-[1-9]\d*\]/
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # Standalone optional literal named-field paths must reach the
-    # scoped visitor before legacy path/value shortcuts. A full parser
-    # match keeps arbitrary expressions and other '?' uses untouched.
-    if (index($normalized, '?') >= 0
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # Standalone optional literal numeric paths are also scoped to the
-    # ordered v3 visitor. Without this guard, the legacy value-expression
-    # shortcut can convert .[0]? or .items[0]? into null instead of
-    # emitting no results on scalar/object index targets. Match only
-    # complete, audited paths, not arbitrary []-based expressions.
-    if ($normalized =~ /\[-?\d+\]\?/
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # Root and intermediate simple computed selectors also allow
-    # whitespace before the bracket: . [.key], .obj [ .key ].
-    # Require the *complete rooted literal path* before bypassing
-    # expression handling. In particular, try [.key] and bare [.key]
-    # are array constructors and not computed path selectors.
-    if ($normalized =~ /\s+\[\s*\./
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # A root .[.key] selector is a computed *path*, not an ordinary
-    # bracket expression.  Let the scoped v3 visitor resolve the selector
-    # against each current input before the legacy expression shortcuts
-    # turn it into a null or malformed lookup.  A complete simple
-    # computed-root path is required: arbitrary jq expressions stay here.
-    # Numeric/quoted nested selector steps also need this bypass, e.g.
-    # .[.[0]], or the legacy root-bracket shortcut returns null.
-    if ($normalized =~ /\A\.\[\s*\./
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # A computed selector following a literal field or iterator, as in
-    # .obj[.key] or .items[][.key], must be evaluated in the original
-    # filter context. Route only complete, scoped path expressions to the
-    # v3 visitor, including optional selector fields; arbitrary computed
-    # expressions keep the legacy path.
-    if ($normalized =~ /\[\s*\./
-        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
-    {
-        return 0;
-    }
-
-    # Legacy filter shortcuts can mistake quoted-key iterator paths for
-    # arithmetic, assignment, or a root bracket expression when the key
-    # contains punctuation such as '=', '|=', or a literal dot.  Yield
-    # *complete, recognized quoted literal iterator paths* to the scoped
-    # v3 runtime visitor before those shortcuts.  Bare quoted lookups and
-    # computed expressions remain on their original evaluation paths.
-    if (index($normalized, '"') >= 0
+    # Yield complete audited paths to the ordered v3 visitor before
+    # legacy expression shortcuts. Check the existing syntax triggers
+    # together so an expression is parsed at most once here. Bare array
+    # constructors, slices and arbitrary computed expressions still need
+    # to pass the full path parser before they can bypass those shortcuts.
+    if (($normalized =~ /\s+\.(?:[A-Za-z_]|"|\[)/
+            || $normalized =~ /\[\s+\]|\s+\[\s*\]/
+            || $normalized =~ /\s+\[\s*-?\d+\s*\]/
+            || $normalized =~ /\[(?:\s+-?\d+\s*|-?\d+\s+)\]/
+            || $normalized =~ /\[\d+\]/
+            || $normalized =~ /\[-[1-9]\d*\]/
+            || index($normalized, '?') >= 0
+            || $normalized =~ /\[\s*\./
+            || index($normalized, '"') >= 0)
         && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
     {
         return 0;
