@@ -1882,3 +1882,24 @@
 {"name":"trytwocomma-outer","input":null,"filter":"0, (try (range(0;2) | (., . + 10) | (., 1/0)) catch 42), 9","status":"compatible","expected":"ok"}
 {"name":"trytwocomma-inner","input":null,"filter":"try ((range(0;2) | (., . + 10) | (., 1/0)), 9) catch 42","status":"compatible","expected":"ok"}
 {"name":"trytwocomma-prior-control","input":null,"filter":"try (range(0;2) | (., 1/0) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-error","input":7,"filter":"try (. | ((0, 1/0), 9)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-no-catch","input":7,"filter":"try (. | ((0, 1/0), 9))","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-null-catch","input":7,"filter":"try (. | ((0, 1/0), 9)) catch null","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-empty-catch","input":7,"filter":"try (. | ((0, 1/0), 9)) catch empty","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-type-catch","input":7,"filter":"try (. | ((0, 1/0), 9)) catch type","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-multiple-catch","input":7,"filter":"try (. | ((0, 1/0), 9)) catch (42,43)","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-range","input":null,"filter":"try (range(0;2) | ((0, 1/0), 9)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-iterator","input":[7,8],"filter":"try (.[] | ((., 1/0), 99) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-named","input":{"items":[7,8]},"filter":"try (.items[] | ((., 1/0), 99) | tostring) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-recurse","input":[1,[2]],"filter":"try (recurse | ((., 1/0), 99) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-inner-success","input":7,"filter":"try (. | (((0,1),2),3))","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-inner-success-suffix","input":7,"filter":"try (. | (((0,1),2),3) | tostring)","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-inner-3level-error","input":7,"filter":"try (. | (((0,1/0),9), 10)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-second-fails","input":7,"filter":"try (. | (9, (0,1/0))) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-null-false","input":7,"filter":"try (. | ((null,false), 1/0)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-empty-first","input":7,"filter":"try (. | ((empty,1),2)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-nested-completed","input":null,"filter":"try (range(0;2) | ((., .+10), 1/0)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-tail-error","input":7,"filter":"try (. | ((0,1),2) | if . == 1 then (1/0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-comma-stage","input":null,"filter":"try (range(0;2) | ((0,1),2) | (., 1/0)) catch 42","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-outer","input":7,"filter":"0, (try (. | ((0,1/0),9)) catch 42), 99","status":"compatible","expected":"ok"}
+{"name":"trynestcomma-control-simple","input":7,"filter":"try (. | (0, 1/0, 9)) catch 42","status":"compatible","expected":"ok"}
