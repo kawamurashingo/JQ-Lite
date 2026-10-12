@@ -868,6 +868,12 @@ sub _parse_v3_literal_iterator_path {
             $after_step = 0;
         }
 
+        # jq accepts whitespace between a path stage (or a root dot)
+        # and a following literal numeric bracket: . [0], .a [ -1 ],
+        # .a[0] [1]. Do not eat whitespace before other expressions,
+        # slices, quoted keys, or bare array constructors.
+        $rest =~ s/\A\s+(?=\[\s*-?\d+\s*\])//;
+
         if ($rest =~ s/\A([A-Za-z_]\w*)(\?)?//) {
             # An optional field is distinct from an optional index and
             # suppresses only its own invalid lookup target type.
@@ -944,7 +950,7 @@ sub _parse_v3_literal_iterator_path {
             my $optional = defined($2) ? 1 : 0;
             # A root bracket numeric lookup must start with an explicit
             # dot; bare [ 0 ] is an array constructor, not a path.
-            return undef unless @steps || $path =~ /\A\.\[/;
+            return undef unless @steps || $path =~ /\A\.\s*\[/;
             my @index_step = ('index', $index);
             push @index_step, 1 if $optional;
             push @steps, \@index_step;
