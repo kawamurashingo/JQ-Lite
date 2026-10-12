@@ -353,29 +353,13 @@ sub apply {
                     my %existing = %{ $self->{_vars} || {} };
                     local $self->{_vars} = { %existing, error => $message };
 
-                    my ($catch_values, $catch_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $catch_expr);
-                    if ($catch_ok) {
-                        push @next_results, @$catch_values ? @$catch_values : (undef);
-                    }
-                    else {
-                        my @catch_outputs;
-                        my $catch_error;
-
-                        {
-                            local $@;
-                            eval { @catch_outputs = $self->run_query($json, $catch_expr); 1 } or $catch_error = $@;
-                        }
-
-                        if ($catch_error) {
-                            # A catch handler's own failure is not protected
-                            # by this try. Propagate it to the caller (or an
-                            # enclosing try) instead of emitting JSON null.
-                            die $catch_error;
-                        }
-                        else {
-                            push @next_results, @catch_outputs;
-                        }
-                    }
+                    # A catch handler is a filter, so its result is a stream.
+                    # Evaluating it through the scalar expression shortcut
+                    # turned a legitimate empty result into JSON null.
+                    # Running the filter directly preserves empty/null/false
+                    # outputs and lets errors propagate to an enclosing try.
+                    my @catch_outputs = $self->run_query($json, $catch_expr);
+                    push @next_results, @catch_outputs;
 
                     next VALUE;
                 }
