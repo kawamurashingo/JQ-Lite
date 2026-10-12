@@ -738,11 +738,30 @@ available after `range`, `.[]`, named iterators, recurse,
 and with a downstream `tostring` suffix. JSON null and false,
 `empty`, and handler output semantics are preserved.
 
+**A nested comma alternative that itself starts with a `range(...)`
+pipeline** now also retains outputs completed before a later error
+within that alternative. For example,
+`try (. | ((range(0;4) | if . == 2 then (1/0)
+else . end), 99)) catch 42` produces `0, 1, 42`.
+The later sibling `99` is not evaluated after the error.
+This also applies with a downstream `tostring` stage and
+further fully parenthesized comma stages. A very large inner
+range is stopped at the failing element rather than eagerly
+materialized.
+
+The scoped implementation reuses the demand-driven update-RHS
+stream visitor for a `try` branch containing a fully
+parenthesized comma stage and an inner **literal `range(...)`
+pipeline**. The visitor preserves the jq depth-first sequence
+of finished outputs and passes any later error to the existing
+catch machinery. Other filters that emit partially before
+failing, arbitrary generator arguments, and nonliteral
+subexpressions still require a separate audit.
+
 This remains a scoped correction for **fully parenthesized
-comma alternatives inside a pipeline stage**. A partially
-failing individual leaf filter or eager prefix generator still
-may lose earlier output, and independent arbitrary subexpression
-forms or bare nested `try` expressions need separate audits.
+comma alternatives inside a pipeline stage**. An individual
+failing eager leaf filter may still lose its earlier output,
+and bare nested `try` expressions remain separately audited.
 
 This is an intentionally scoped streaming correction. Partial values
 produced *within one failing member* or inside other generator/path
@@ -973,6 +992,7 @@ application logic. In particular:
 | bare `try .[][]` or `try .items[][]` yielded null or missed earlier completed nested members | bare two-level iterators now visit each member and emit it directly, preserving strict/optional errors and completed prior outputs before catch; arbitrary deeper paths still require audit |
 | a `try (.[][] | f)` or `try (.items[][] | f)` pipeline lost completed inner members on a later error | two-level iterator heads are visited member by member; a failing inner iterator or tail stops further members, preserving already completed outputs, with optional `[][]?` still skipping non-iterable members |
 | a `try (.items[] | f)` pipeline lost completed named-field iterator results after a later error | simple named-field `[]` / `[]?` heads now retain completed element outputs and preserve strict versus optional head errors; nested iterators and generators remain separately scoped |
+| `try (source | ((range(...) | f), fallback))` lost completed generator outputs when a later element of `f` failed | nested literal range pipelines in parenthesized comma alternatives now stream their completed results before the catch handler and do not evaluate later siblings after error |
 | `try (source | ((a, b), c))` lost output from completed nested comma alternatives when a later inner alternative errored | the continuation stack now expands fully parenthesized nested alternatives, preserving completed inner output and downstream suffixes before catch |
 | `try (source | (a, b) | (c, d))` lost completed results when the second comma stage failed | multiple parenthesized comma stages now execute in depth-first order with completed suffix output preserved before the first error |
 | a `try (source | (a, b) | f)` pipeline lost completed middle-stage results if a later comma alternative failed | fully parenthesized middle comma alternatives now feed the downstream suffix in source order, before proceeding to the next alternative or generator input |
