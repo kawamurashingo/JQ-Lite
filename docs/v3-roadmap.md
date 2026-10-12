@@ -112,6 +112,12 @@ for those field paths; `.empty | type` emits `"null"`, while `empty | type`
 emits nothing. To deliberately construct that former empty-stream fallback,
 use `null | type`. No additional function or public API is introduced.
 
+Within supported array/object constructors, a filter that emits nothing does
+not become JSON null: `[empty | type]` yields `[]`, and
+`{x: (empty | type)}` emits no object. Explicit `null | type` still yields
+`"null"`. Object fields continue to use the first value when a filter emits
+multiple values; this is not a claim of full jq constructor stream parity.
+
 - Treat both `false` and `null` as absent for the `//` alternative operator.
 - Emit `null` for a missing object field and for continued traversal through a
   missing field.

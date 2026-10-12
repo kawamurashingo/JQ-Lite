@@ -2,6 +2,7 @@
     [Developer release]
     - Keep ordinary dotted field paths distinct from builtin names and literals, including .type, .length, .empty and .null.
     - Make type/type() preserve empty streams while retaining explicit null classification; document migration.
+    - Preserve zero-output values in existing array/object constructors instead of inserting JSON null.
     - Make comparison operators and simple select() predicates use shared JSON-type-sensitive equality and jq value ordering.
     - Preserve compound JSON comparison literals and share type() classification; document empty-stream differences and migration.
     - Make contains() use jq-style recursive containment for literal arrays and objects, with JSON type identity.

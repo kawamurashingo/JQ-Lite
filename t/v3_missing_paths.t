@@ -74,4 +74,23 @@ is_deeply(query_results('[{"type":"vm"},{"type":"k8s"}]', '.type'),
 is_deeply(query_results('[]', '.name'), [],
     'existing empty array projection stays empty');
 
+subtest 'constructor values preserve empty streams' => sub {
+    is_deeply(query_results('null', '[empty | type]'), [[]],
+        'array constructor skips an empty type stream');
+    is_deeply(query_results('null', '[empty]'), [[]],
+        'array constructor skips a bare empty stream');
+    is_deeply(query_results('null', '[1, empty | type, 2]'), [[1, 2]],
+        'array constructor preserves neighboring values');
+    is_deeply(query_results('null', '{x: (empty | type)}'), [],
+        'object constructor emits nothing for an empty type stream');
+    is_deeply(query_results('null', '{x: empty}'), [],
+        'object constructor emits nothing for a bare empty stream');
+    is_deeply(query_results('null', '{x: (empty | type), y: 1}'), [],
+        'one empty field suppresses the object');
+    is_deeply(query_results('null', '[null | type]'), [['null']],
+        'explicit null still produces one type string in an array');
+    is_deeply(query_results('null', '{x: (null | type)}'), [{ x => 'null' }],
+        'explicit null still produces one type string in an object');
+};
+
 done_testing;

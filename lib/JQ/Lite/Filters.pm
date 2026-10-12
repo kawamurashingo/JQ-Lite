@@ -845,21 +845,14 @@ sub apply {
 
                     my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $element);
                     if ($ok) {
-                        if (@$values) {
-                            push @built, @$values;
-                        } else {
-                            push @built, undef;
-                        }
+                        # An empty filter stream contributes no array element.
+                        push @built, @$values;
                         next;
                     }
 
                     my $json = JQ::Lite::Util::_encode_json($item);
                     my @outputs = $self->run_query($json, $element);
-                    if (@outputs) {
-                        push @built, @outputs;
-                    } else {
-                        push @built, undef;
-                    }
+                    push @built, @outputs;
                 }
 
                 push @next_results, \@built;
@@ -884,6 +877,7 @@ sub apply {
 
             for my $item (@results) {
                 my %built;
+                my $has_output = 1;
 
                 for my $pair (@pairs) {
                     next if !defined $pair;
@@ -902,18 +896,27 @@ sub apply {
 
                     my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $value_expr);
                     if ($ok) {
-                        $value = @$values ? $values->[0] : undef;
+                        if (!@$values) {
+                            $has_output = 0;
+                            last;
+                        }
+                        $value = $values->[0];
                     }
                     else {
                         my $json = JQ::Lite::Util::_encode_json($item);
                         my @outputs = $self->run_query($json, $value_expr);
-                        $value = @outputs ? $outputs[0] : undef;
+                        if (!@outputs) {
+                            $has_output = 0;
+                            last;
+                        }
+                        $value = $outputs[0];
                     }
 
                     $built{$key} = $value;
                 }
 
-                push @next_results, \%built;
+                # A field with no output suppresses this object, unlike null.
+                push @next_results, \%built if $has_output;
             }
 
             if (!@pairs) {

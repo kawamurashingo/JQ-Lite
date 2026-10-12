@@ -3143,3 +3143,11 @@
 {"name":"v3-basic-field-after-iteration","input":[{"type":"vm"},{"type":"k8s"}],"filter":".[] | .type","status":"compatible","expected":"ok"}
 {"name":"v3-basic-field-shorthand","input":{"type":"vm","length":99,"empty":null},"filter":"{type,length,empty}","status":"compatible","expected":"ok"}
 {"name":"v3-basic-array-field-projection-difference","input":[{"type":"vm"}],"filter":".type","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-empty-type-array-constructor","input":null,"filter":"[empty | type]","status":"compatible","expected":"ok"}
+{"name":"v3-empty-array-constructor","input":null,"filter":"[empty]","status":"compatible","expected":"ok"}
+{"name":"v3-empty-type-array-neighbors","input":null,"filter":"[1, empty | type, 2]","status":"compatible","expected":"ok"}
+{"name":"v3-empty-type-object-constructor","input":null,"filter":"{x: (empty | type)}","status":"compatible","expected":"ok"}
+{"name":"v3-empty-object-constructor","input":null,"filter":"{x: empty}","status":"compatible","expected":"ok"}
+{"name":"v3-empty-type-object-neighbor","input":null,"filter":"{x: (empty | type), y: 1}","status":"compatible","expected":"ok"}
+{"name":"v3-null-type-array-constructor","input":null,"filter":"[null | type]","status":"compatible","expected":"ok"}
+{"name":"v3-null-type-object-constructor","input":null,"filter":"{x: (null | type)}","status":"compatible","expected":"ok"}
