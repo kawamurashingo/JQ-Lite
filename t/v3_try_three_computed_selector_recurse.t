@@ -93,8 +93,16 @@ subtest 'mixed quoted and numeric stages resolve from each node' => sub {
         'try (. | (recurse(.[.cfg["first"][0]][.cfg."second"[0]][.cfg.third[-1]][] | if .id == 2 then (1/0) else . end) | .)) catch 42'),
         [$tree,$tree->{children}{block}{nodes}[0],42],
         'strict mixed selectors preserve earlier outputs');
-    is_deeply(results($json->encode($root),
+    my $control = {
+        first=>'children',second=>'nodes',
+        children=>{nodes=>[
+            {first=>'children',second=>'nodes',id=>1,children=>{nodes=>[]}},
+            {first=>'children',second=>'nodes',id=>2,children=>{nodes=>[]}}
+        ]}
+    };
+    is_deeply(results($json->encode($control),
         'try (. | (recurse(.[.first][.second][]? | if .id == 2 then (1/0) else . end) | .)) catch 42'),
-        [$root,42], 'old two-selector behavior is not reinterpreted');
+        [$control,$control->{children}{nodes}[0],42],
+        'old two-selector behavior is not reinterpreted');
 };
 done_testing;
