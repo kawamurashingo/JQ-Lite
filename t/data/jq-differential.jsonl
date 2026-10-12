@@ -1778,3 +1778,24 @@
 {"name":"trystrictrec-comma-in","input":[1,[2],3],"filter":"try ((recurse(.[]) | type), 9) catch 42","status":"compatible","expected":"ok"}
 {"name":"trystrictrec-optional-control","input":[1,[2],3],"filter":"try (recurse(.[]?) | type)","status":"compatible","expected":"ok"}
 {"name":"trystrictrec-bare-default","input":[1,[2],3],"filter":"try recurse","status":"compatible","expected":"ok"}
+{"name":"trycustom-bare-error","input":[1,[2],3,4],"filter":"try recurse(.[]? | if . == 3 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-bare-no-catch","input":[1,[2],3,4],"filter":"try recurse(.[]? | if . == 3 then (1 / 0) else . end)","status":"compatible","expected":"ok"}
+{"name":"trycustom-bare-null","input":[1,[2],3,4],"filter":"try recurse(.[]? | if . == 3 then (1 / 0) else . end) catch null","status":"compatible","expected":"ok"}
+{"name":"trycustom-bare-empty","input":[1,[2],3,4],"filter":"try recurse(.[]? | if . == 3 then (1 / 0) else . end) catch empty","status":"compatible","expected":"ok"}
+{"name":"trycustom-bare-type","input":[1,[2],3,4],"filter":"try recurse(.[]? | if . == 3 then (1 / 0) else . end) catch type","status":"compatible","expected":"ok"}
+{"name":"trycustom-pipe-identity","input":[1,[2],3,4],"filter":"try (recurse(.[]? | if . == 3 then (1 / 0) else . end) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-pipe-type","input":[1,[2],3,4],"filter":"try (recurse(.[]? | if . == 3 then (1 / 0) else . end) | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-pipe-multi","input":[1,[2],3,4],"filter":"try (recurse(.[]? | if . == 3 then (1 / 0) else . end) | . | type) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-pipe-tail-fails","input":[1,[2],3,4],"filter":"try (recurse(.[]? | if . == 3 then (1 / 0) else . end) | if . == 2 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-comma-inner","input":[1,[2],3,4],"filter":"try ((recurse(.[]? | if . == 3 then (1 / 0) else . end) | type), 99) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-comma-outer","input":[1,[2],3,4],"filter":"0, (try (recurse(.[]? | if . == 3 then (1 / 0) else . end) | .) catch 42), 9","status":"compatible","expected":"ok"}
+{"name":"trycustom-multicatch","input":[1,[2],3,4],"filter":"try (recurse(.[]? | if . == 3 then (1 / 0) else . end) | .) catch (42, 43)","status":"compatible","expected":"ok"}
+{"name":"trycustom-skip-child","input":[1,[2],3,4],"filter":"try (recurse(.[]? | if . == 3 then empty else . end) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-empty-filter","input":[1,[2],3,4],"filter":"try (recurse(.[]? | empty) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-comma-child","input":[1,2],"filter":"try (recurse(.[]? | (., .)) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-multistage-child","input":[[[1],[2]],3],"filter":"try (recurse(.[]? | .[]?) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-root-null","input":null,"filter":"try recurse(.[]? | if . == 3 then (1 / 0) else . end) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-root-empty","input":[],"filter":"try (recurse(.[]? | if . == 3 then (1 / 0) else . end) | .) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-unmodified-default","input":[1,[2],3,4],"filter":"try recurse","status":"compatible","expected":"ok"}
+{"name":"trycustom-unmodified-strict","input":[1,[2],3,4],"filter":"try recurse(.[]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycustom-unmodified-optional","input":[1,[2],3,4],"filter":"try (recurse(.[]?) | type) catch 42","status":"compatible","expected":"ok"}

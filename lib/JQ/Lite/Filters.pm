@@ -355,9 +355,10 @@ sub apply {
                             # results if a subsequent member fails.
                             # Simple range(...) and default/optional
                             # recurse generators reuse existing on-demand
-                            # visitors; strict recurse(.[]) also gets a
-                            # scoped yield-then-expand visitor. Other paths
-                            # and partially failing leaf filters stay eager.
+                            # visitors; strict recurse(.[]) has a scoped
+                            # yield-then-expand visitor, and custom recurse
+                            # child filters use the update-RHS visitor.
+                            # Other paths and failing leaf filters stay eager.
                             my $unwrapped =
                                 JQ::Lite::Util::_strip_wrapping_parens($branch);
                             my @stages =
@@ -471,6 +472,33 @@ sub apply {
                                         [$_, 0]
                                     } reverse @children;
                                 }
+                            }
+                            elsif (@stages && $stages[0] =~
+                                /\A\s*recurse\((.+)\)\s*\z/s)
+                            {
+                                # Custom recurse child filters have the
+                                # same yield-then-expand ordering as jq.
+                                # Reuse the existing update-RHS visitor:
+                                # it evaluates each child filter output,
+                                # recursively emits the child's subtree,
+                                # and only then requests the next sibling.
+                                # An error in the custom filter or tail
+                                # keeps all previously completed results.
+                                my $child_filter = $1;
+                                $child_filter =~ s/^\s+|\s+$//g;
+                                shift @stages;
+                                my $tail = @stages
+                                    ? join(' | ', @stages) : '.';
+                                JQ::Lite::Util::_visit_update_rhs_recurse(
+                                    $self, $value, $child_filter, sub {
+                                        my ($node) = @_;
+                                        push @branch_outputs, $self->run_query(
+                                            JQ::Lite::Util::_encode_json($node),
+                                            $tail
+                                        );
+                                        return 0;
+                                    }
+                                );
                             }
                             elsif (@iterator_heads) {
                                 shift @stages;

@@ -180,6 +180,7 @@ t/v3_try_deep_iterator_stream.t
 t/v3_try_range_pipeline_stream.t
 t/v3_try_recurse_pipeline_stream.t
 t/v3_try_strict_recurse_stream.t
+t/v3_try_custom_recurse_stream.t
 t/tsv_format.t
 t/uri_format.t
 t/type.t
