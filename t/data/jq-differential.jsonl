@@ -1614,3 +1614,17 @@
 {"name":"catchinput-optional-field","input":null,"filter":"try (1 / 0) catch .den?","status":"compatible","expected":"ok"}
 {"name":"catchinput-nested-catch","input":null,"filter":"try (try (1 / 0) catch .[\"den\"]) catch type","status":"compatible","expected":"ok"}
 {"name":"catchinput-original-binding","input":{"num":1,"den":0},"filter":". as $original | try (.num / .den) catch $original.den","status":"compatible","expected":"ok"}
+{"name":"trycomma-error-no-catch","input":null,"filter":"try (0, (1 / 0), 9)","status":"compatible","expected":"ok"}
+{"name":"trycomma-error-catch-constant","input":null,"filter":"try (0, (1 / 0), 9) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycomma-error-catch-type","input":null,"filter":"try (0, (1 / 0), 9) catch type","status":"compatible","expected":"ok"}
+{"name":"trycomma-error-catch-multiple","input":null,"filter":"try (0, (1 / 0), 9) catch (42, 43)","status":"compatible","expected":"ok"}
+{"name":"trycomma-strict-iterator-fail","input":null,"filter":"try (0, .[])","status":"compatible","expected":"ok"}
+{"name":"trycomma-strict-iterator-catch","input":null,"filter":"try (0, .[]) catch 42","status":"compatible","expected":"ok"}
+{"name":"trycomma-strict-iterator-success","input":[1,2],"filter":"try (0, .[])","status":"compatible","expected":"ok"}
+{"name":"trycomma-empty-branch","input":null,"filter":"try (0, empty, 9)","status":"compatible","expected":"ok"}
+{"name":"trycomma-preserve-false-null","input":null,"filter":"try (null, false, (1 / 0)) catch empty","status":"compatible","expected":"ok"}
+{"name":"trycomma-successful","input":null,"filter":"try (0, 1, 2)","status":"compatible","expected":"ok"}
+{"name":"trycomma-explicit-null","input":null,"filter":"try (0, (1 / 0)) catch null","status":"compatible","expected":"ok"}
+{"name":"trycomma-explicit-empty","input":null,"filter":"try (0, (1 / 0)) catch empty","status":"compatible","expected":"ok"}
+{"name":"trycomma-catch-pipeline","input":null,"filter":"try (0, (1 / 0)) catch (. | type)","status":"compatible","expected":"ok"}
+{"name":"trycomma-array-constructor","input":null,"filter":"try ([0, 1], (1 / 0)) catch 8","status":"compatible","expected":"ok"}
