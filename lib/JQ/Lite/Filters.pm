@@ -348,8 +348,8 @@ sub apply {
                         local $@;
                         eval {
                             # A leading root/named-field iterator (or
-                            # a pair of nested iterators) can supply several
-                            # pipeline inputs or be a bare two-level try
+                            # multiple nested iterators) can supply several
+                            # pipeline inputs or be a bare nested try
                             # expression. Visit each member in depth-first
                             # source order; retain earlier completed
                             # results if a subsequent member fails.
@@ -368,22 +368,27 @@ sub apply {
                                     @iterator_heads = ($head);
                                 }
                                 elsif ($head =~
-                                    /\A\s*(\.(?:\[\s*\]|[A-Za-z_]\w*\[\s*\])\??)(\[\s*\]\??)\s*\z/s)
+                                    /\A\s*(\.(?:\[\s*\]|[A-Za-z_]\w*\[\s*\])\??)((?:\[\s*\]\??)+)\s*\z/s)
                                 {
-                                    # Nested root or named-field iterator,
-                                    # e.g. .[][], .[][]?, .items[][].
-                                    # Each stage must run on one member at
-                                    # a time; evaluating the entire head
-                                    # eagerly would discard earlier output
-                                    # if a later inner iterator fails.
-                                    @iterator_heads = ($1, '.' . $2);
+                                    # A simple iterator head can contain
+                                    # two or more nested stages, e.g.
+                                    # .[][][], .items[][], or .[][][]?.
+                                    # Split only complete literal suffixes:
+                                    # evaluate every level independently,
+                                    # so a later inner error cannot erase
+                                    # already completed member outputs.
+                                    my ($first, $suffixes) = ($1, $2);
+                                    @iterator_heads = ($first);
+                                    while ($suffixes =~ /(\[\s*\]\??)/g) {
+                                        push @iterator_heads, '.' . $1;
+                                    }
                                 }
                             }
                             if (@iterator_heads) {
                                 shift @stages;
                                 # With no downstream pipeline, each nested
                                 # iterator value is itself the final result.
-                                # Evaluating .[][] eagerly in one run_query
+                                # Evaluating a complete nested head eagerly
                                 # used to yield synthetic null instead.
                                 my $tail = @stages
                                     ? join(' | ', @stages) : '.';
