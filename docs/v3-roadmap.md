@@ -946,6 +946,26 @@ field after a simple dotted identifier selector prefix,
 not arbitrary expression evaluation or eager-leaf partial
 streaming. The regression suite adds 39 jq 1.7 differential
 fixtures and a separate Perl test file for this form.
+**Signed literal numeric indices in computed selectors**
+now retain already completed outputs for nested
+`recurse(.[.keys[0]][]? | f)` and `recurse(.[.keys[-1]][] | f)`
+pipelines within `try`. A simple dotted prefix such as
+`.[.cfg.names[0]][]?` is also supported. These forms use
+the existing update-RHS demand-driven visitor, not a
+general computed-expression evaluator. Numeric indexing
+takes place against each recursion node's selector array.
+An invalid computed key or numeric selector path still
+raises after emitting its node; optional `[]?` skips
+a missing or null *selected container*, while strict
+`[]` rejects it. Earlier siblings remain emitted in
+depth-first order, and `catch` outputs follow the error.
+Literal signed indices (including negative indices),
+missing selector keys, null/scalar values, comma tails
+and outer iterators are covered by direct Perl assertions
+and 40 jq 1.7 differential fixtures. Arbitrary arithmetic
+inside selectors, multiple computed brackets, and
+partially failing eager leaves remain separate #625 audits.
+
 
 
 **Simple computed-key strict child iterators**,
