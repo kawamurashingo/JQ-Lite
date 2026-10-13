@@ -79,6 +79,23 @@ sub parse_ast {
     return JQ::Lite::AST->pipeline(@filters);
 }
 
+# Keep suffix eligibility identical for standalone filters and comma branches.
+# Dotted paths own their iterators; comparisons/alternatives may have [] as
+# their right operand rather than as a suffix.
+sub _nonpath_iterator_suffix {
+    my ($part) = @_;
+    return if $part =~ /^\s*\./s;
+    my (undef, $comparison_operator)
+        = JQ::Lite::Util::_split_top_level_comparison($part);
+    return if defined $comparison_operator;
+    return unless $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s;
+    my ($filter, $optional) = ($1, $2);
+    $filter =~ s/\s+$//;
+    return if $filter !~ /\S/ || $filter =~ /\Atry\b/
+        || $filter =~ m{(?:[=!<>]|//)\z};
+    return ($filter, defined $optional ? '.[]?' : '.[]');
+}
+
 sub parse_query {
     my ($query) = @_;
 
@@ -95,59 +112,26 @@ sub parse_query {
         $part;
     } @parts;
 
-    # Expand jq's iterator suffix before path normalization. This preserves
-    # existing dotted path traversal such as .values[] while allowing any
-    # non-path filter that produces an array or object (for example keys,
-    # split(","), or an array constructor) to reuse the existing .[] logic.
+    # Expand non-path iterator suffixes before path normalization. Comma
+    # branches keep their iterator local; standalone filters append .[].
     my @iterator_expanded;
     for my $part (@parts) {
         my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($part);
         if (@sequence_parts > 1) {
             for my $sequence_part (@sequence_parts) {
                 $sequence_part =~ s/^\s+|\s+$//g;
-                next if $sequence_part =~ /^\./s;
-                my (undef, $comparison_operator)
-                    = JQ::Lite::Util::_split_top_level_comparison($sequence_part);
-                next if defined $comparison_operator;
-                if ($sequence_part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s) {
-                    my ($filter, $optional) = ($1, $2);
-                    $filter =~ s/\s+$//;
-                    my $iterator = defined $optional ? '.[]?' : '.[]';
-                    # Keep a try expression's iterator suffix INSIDE
-                    # its error handler. Moving try .[] into
-                    # '(try . | .[])' exposes the strict iterator error
-                    # outside try. This also preserves try [] and
-                    # try [ ] array constructors from the prior audit.
-                    $sequence_part = "($filter | $iterator)"
-                        if $filter =~ /\S/ && $filter !~ /\Atry\b/
-                        && $filter !~ m{(?:[=!<>]|//)\z};
-                }
+                my ($filter, $iterator)
+                    = _nonpath_iterator_suffix($sequence_part);
+                $sequence_part = "($filter | $iterator)"
+                    if defined $iterator;
             }
             push @iterator_expanded, join(', ', @sequence_parts);
             next;
         }
 
-        # A comparison's trailing iterator belongs to its right operand.
-        my (undef, $comparison_operator)
-            = JQ::Lite::Util::_split_top_level_comparison($part);
-        if (!defined($comparison_operator) && $part !~ /^\s*\./s
-            && $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s) {
-            my ($filter, $optional) = ($1, $2);
-            $filter =~ s/\s+$//;
-            # Comparisons and // ending in [] have an empty-array operand;
-            # stripping [] must not turn that operand into an iterator.
-            if ($filter =~ /\S/ && $filter !~ /\Atry\b/
-                && $filter !~ m{(?:[=!<>]|//)\z}) {
-                push @iterator_expanded, $filter,
-                    (defined $optional ? '.[]?' : '.[]');
-            }
-            else {
-                # try .[] must retain the strict iterator inside try's
-                # error handling, and try [] must remain an array
-                # constructor. Both are distinct from keys[] or
-                # other value-producing iterator suffixes.
-                push @iterator_expanded, $part;
-            }
+        my ($filter, $iterator) = _nonpath_iterator_suffix($part);
+        if (defined $iterator) {
+            push @iterator_expanded, $filter, $iterator;
         }
         else {
             push @iterator_expanded, $part;

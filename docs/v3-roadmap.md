@@ -50,6 +50,13 @@ Existing regression and jq 1.7 differential fixtures remain the behavioral
 checks. Further cleanup should focus on shared handling for ordinary lookup,
 indexing, iteration and optional access before specialized syntax support.
 
+A maintenance-only iterator pass shares the non-path suffix eligibility
+check between standalone filters and comma branches. Dotted paths,
+comparisons, alternatives and `try` retain their existing guards;
+`keys[]`, `split(",")[]`, comma-local suffixes and `null // []` remain
+regression-checked. The practical path/iterator inventory and release
+audit remain open under #625.
+
 ## Compatibility policy
 
 - The 2.x CLI and Library API contracts remain unchanged. Semantic corrections
