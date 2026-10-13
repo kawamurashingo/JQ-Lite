@@ -120,7 +120,7 @@ sub parse_query {
                     # try [ ] array constructors from the prior audit.
                     $sequence_part = "($filter | $iterator)"
                         if $filter =~ /\S/ && $filter !~ /\Atry\b/
-                        && $filter !~ /[=!<>]\z/;
+                        && $filter !~ m{(?:[=!<>]|//)\z};
                 }
             }
             push @iterator_expanded, join(', ', @sequence_parts);
@@ -134,10 +134,10 @@ sub parse_query {
             && $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s) {
             my ($filter, $optional) = ($1, $2);
             $filter =~ s/\s+$//;
-            # A comparison ending in [] has an empty-array operand,
-            # not an iterator suffix: stripping [] leaves an operator.
+            # Comparisons and // ending in [] have an empty-array operand;
+            # stripping [] must not turn that operand into an iterator.
             if ($filter =~ /\S/ && $filter !~ /\Atry\b/
-                && $filter !~ /[=!<>]\z/) {
+                && $filter !~ m{(?:[=!<>]|//)\z}) {
                 push @iterator_expanded, $filter,
                     (defined $optional ? '.[]?' : '.[]');
             }

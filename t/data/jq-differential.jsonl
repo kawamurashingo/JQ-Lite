@@ -3345,3 +3345,24 @@
 {"name":"v3-text-latin-1-json-roundtrip","input":{"word":"\u00e9x"},"filter":"tojson | fromjson","status":"compatible","expected":"ok"}
 {"name":"v3-text-raw-fromjson-unicode","input":"{\"word\":\"\u65e5\u672c\"}\n","filter":"fromjson","raw_input":true,"status":"compatible","expected":"ok"}
 {"name":"v3-text-arg-fromjson-unicode","input":null,"filter":"$doc | fromjson","cli_args":["--arg","doc","{\"word\":\"\u00e9\"}","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-null","input":null,"filter":"null // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-false","input":null,"filter":"false // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-zero","input":null,"filter":"0 // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-empty-string","input":null,"filter":"\"\" // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-true","input":null,"filter":"true // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-spaced","input":null,"filter":"null // [ ]","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-parenthesized","input":null,"filter":"(null // [])","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-comma-after","input":null,"filter":"null // [], 1","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-comma-alternatives","input":null,"filter":"(null // [], false // [])","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-empty-left","input":null,"filter":"empty // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-null-field","input":{"value":null},"filter":".value // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-missing-field","input":{},"filter":".missing // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-null-current","input":null,"filter":". // []","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-empty-array-current","input":[],"filter":". // [1]","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-array-constructor","input":null,"filter":"[null // []]","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-object-constructor","input":null,"filter":"{x: (null // [])}","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-explicit-iterator","input":null,"filter":"(null // [])[]","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-length","input":null,"filter":"null // [] | length","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-type","input":null,"filter":"null // [] | type","status":"compatible","expected":"ok"}
+{"name":"v3-alternative-empty-array-strict-boolean-iterator","input":null,"filter":"(true // [])[]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-alternative-empty-array-optional-boolean-iterator","input":null,"filter":"(true // [])[]?","status":"compatible","expected":"ok"}
