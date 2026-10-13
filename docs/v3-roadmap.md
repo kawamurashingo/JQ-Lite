@@ -126,6 +126,15 @@ v2 meanings. Those
 are documented differences, not full jq search/error compatibility claims;
 this correction adds no argument grammar, function, public API or dependency.
 
+The CLI decodes UTF-8 raw text before JSON wrapping, for both per-line `-R`
+and slurped `-Rs` input. Search offsets therefore match decoded JSON inputs
+instead of double-counting UTF-8 bytes. Raw string output (`-r`) writes UTF-8
+bytes as well. Migration: supply UTF-8 text to these raw modes; line splitting
+and the existing CLI exit/error categories are retained. Unicode line order,
+multibyte needles and Latin-1 characters are covered by CLI regression and
+raw-mode jq 1.7 differential fixtures. This uses the existing core Encode
+dependency.
+
 ### Null, fallback, and paths
 
 Ordinary unquoted field paths retain their leading dot and are evaluated as

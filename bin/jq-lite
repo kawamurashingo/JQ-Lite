@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use JSON::PP;
+use Encode qw(decode encode is_utf8);
 use IO::File;
 use FindBin;
 use Term::ANSIColor;
@@ -579,6 +580,7 @@ if ($raw_input) {
 my @raw_lines;
 if ($raw_input) {
     my $text    = $json_text // '';
+    $text = decode('UTF-8', $text) unless is_utf8($text, 1);
     my $encoder = JSON::PP->new->utf8->allow_nonref;
 
     if ($slurp_input) {
@@ -712,7 +714,7 @@ sub print_results {
             print "null\n";
         }
         elsif ($raw_output && !ref($r)) {
-            print "$r\n";
+            print encode('UTF-8', "$r"), "\n";
         }
         else {
             my $json = $pp->encode($r);
