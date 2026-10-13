@@ -80,8 +80,8 @@ for my $case (@comparison_cases) {
 is_deeply([ $jq->run_query('null', 'empty | type') ], [],
     'type does not synthesize a null from an empty stream');
 
-is_deeply([ $jq->run_query('null', 'empty == null') ], [JSON::PP::true],
-    'comparison retains documented no-output operand normalization');
+is_deeply([ $jq->run_query('null', 'empty == null') ], [],
+    'comparison does not synthesize a null from an empty operand');
 
 done_testing();
 

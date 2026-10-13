@@ -734,9 +734,7 @@ sub apply {
         # field named "length" on the original document.
         my ($comparison_lhs, $comparison_operator, $comparison_rhs)
             = JQ::Lite::Util::_split_top_level_comparison($normalized);
-        if (defined($comparison_operator)
-            && $comparison_lhs !~ /\b(?:if|then|elif|else|end|try|catch)\b/)
-        {
+        if (defined($comparison_operator)) {
             my ($lhs_expr, $operator, $rhs_expr)
                 = ($comparison_lhs, $comparison_operator, $comparison_rhs);
             $lhs_expr =~ s/^\s+|\s+$//g;
@@ -745,27 +743,14 @@ sub apply {
             if (length($lhs_expr) && length($rhs_expr)) {
                 @next_results = ();
                 for my $item (@results) {
-                    my $json = JQ::Lite::Util::_encode_json($item);
-                    my ($lhs_values, $lhs_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $lhs_expr);
-                    my ($rhs_values, $rhs_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $rhs_expr);
-                    if (!$lhs_ok) {
-                        my @values = $self->run_query($json, $lhs_expr);
-                        $lhs_values = \@values;
-                    }
-                    if (!$rhs_ok) {
-                        my @values = $self->run_query($json, $rhs_expr);
-                        $rhs_values = \@values;
-                    }
+                    # jq evaluates the right operand first. An empty stream
+                    # yields no comparison, unlike one explicit JSON null.
+                    my @rhs_values = _evaluate_comparison_operand($self, $item, $rhs_expr);
+                    next unless @rhs_values;
+                    my @lhs_values = _evaluate_comparison_operand($self, $item, $lhs_expr);
 
-                    # A missing path participates in a comparison as null;
-                    # it must not turn the comparison into an empty stream.
-                    # This also preserves the expected result for `!=` and
-                    # comparisons against an explicit null literal.
-                    $lhs_values = [undef] unless @$lhs_values;
-                    $rhs_values = [undef] unless @$rhs_values;
-
-                    for my $lhs (@$lhs_values) {
-                        for my $rhs (@$rhs_values) {
+                    for my $rhs (@rhs_values) {
+                        for my $lhs (@lhs_values) {
                             push @next_results,
                                 JQ::Lite::Util::_compare_values($lhs, $operator, $rhs)
                                 ? JSON::PP::true
@@ -2174,6 +2159,24 @@ sub apply {
         }
 
     return 0;
+}
+
+# Plain named fields and value expressions share the established shortcut.
+# Optional, quoted, indexed and iterator paths need the query evaluator to
+# preserve null/no-output distinctions and their existing path error policy.
+sub _evaluate_comparison_operand {
+    my ($self, $context, $expr) = @_;
+    my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
+    $copy =~ s/^\s+|\s+$//g;
+
+    if ($copy !~ /\A\./
+        || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/)
+    {
+        my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $copy);
+        return @$values if $ok;
+    }
+
+    return $self->run_query(JQ::Lite::Util::_encode_json($context), $expr);
 }
 
 # Preserve reduce/foreach's existing scalar evaluation: use the first

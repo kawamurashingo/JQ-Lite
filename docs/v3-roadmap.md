@@ -171,11 +171,32 @@ before comparison, e.g. `"10" | tonumber | . == 10` and
 not silently changed by this operator correction.
 
 `type` now preserves empty input streams: `empty | type` emits no output,
-while `null | type` emits one `"null"` string. Comparison operands that emit
-no values are still normalized to null (`empty == null` yields true); jq emits
-no output in that case. The latter remains a documented difference under
-#625. This correction does not add variable arithmetic, general filter stream
-semantics, new syntax, or a public API.
+while `null | type` emits one `"null"` string. All six comparison operators
+also preserve zero-output operands: `empty == null` and `null == empty` emit
+nothing, while `null == null` and `{} | .missing == null` emit true.
+Operands retain the existing value shortcut for literals and plain named
+fields. Optional/quoted/index/iterator paths use the existing query evaluator,
+so a missing object field remains JSON null rather than an empty stream.
+Empty iterators and filtered-out values remain empty. Comparisons inside
+supported constructors use the same comparison evaluator.
+An unparenthesized right iterator keeps its operand meaning:
+`{"arr":[1,2]} | 1 == .arr[]` yields true, false. Its trailing `[]` is
+not applied to the comparison's booleans; `(1 == 1)[]` still raises the
+existing iterator type error.
+
+Comparisons evaluate the right operand first; an empty right operand skips
+the left operand (`(1 / 0) == empty` emits nothing), while a right-operand
+error still propagates (`empty == (1 / 0)` fails). For supported finite
+operand outputs, result order follows the right operand before the left,
+e.g. `(1,3) < (2,4)` yields true, false, true, true. This uses the existing
+eager query evaluation and does not promise lazy delivery of partial results
+before an operand error or full jq expression grammar.
+
+Migration: use an explicit null or an alternative such as
+`(empty // null) == null` when a null fallback is intended. Comparisons no
+longer insert null for empty operands. Existing array-projection and
+invalid-target path policies remain in place. No variable arithmetic, new
+syntax, function, public API, or dependency is introduced.
 
 Numeric-looking strings are now rejected by numeric arithmetic in the 3.x
 developer-release series; callers that intend conversion should use

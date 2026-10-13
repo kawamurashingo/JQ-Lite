@@ -424,7 +424,7 @@ sub _split_top_level_operator {
 
 sub _split_top_level_comparison {
     my ($text) = @_;
-    return unless defined $text;
+    return unless defined $text && $text =~ /(?:==|!=|[<>])/;
 
     my %close = ('(' => ')', '[' => ']', '{' => '}');
     my %open = reverse %close;
@@ -458,6 +458,10 @@ sub _split_top_level_comparison {
             @comparison = (substr($text, 0, $i), $operator, substr($text, $i + length($operator)));
         }
     }
+    # Only complete operands can use the comparison evaluator. Control flow
+    # and incomplete variable suffixes retain their existing evaluation path.
+    return if @comparison && ($comparison[0] !~ /\S/ || $comparison[2] !~ /\S/
+        || $comparison[0] =~ /\b(?:if|then|elif|else|end|try|catch)\b/);
     return @comparison;
 }
 
@@ -907,6 +911,14 @@ sub _evaluate_value_expression {
     if ($copy =~ /\A[\[\{]/) {
         my $decoded = eval { _decode_json($copy) };
         return ([ $decoded ], 1) unless $@;
+    }
+
+    # Comparison values must preserve their filter streams in constructors
+    # and other value contexts instead of using the scalar expression path.
+    my (undef, $comparison_operator) = _split_top_level_comparison($copy);
+    if (defined($comparison_operator) && defined($self) && $self->can('run_query')) {
+        my @values = $self->run_query(_encode_json($context), $copy);
+        return (\@values, 1);
     }
 
     if (_looks_like_expression($copy)) {

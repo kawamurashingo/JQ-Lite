@@ -3117,7 +3117,7 @@
 {"name":"v3-practical-type-literal-constructors","input":null,"filter":"[\"42\",42,true,false,null,[],{}] | map(type)","status":"compatible","expected":"ok"}
 {"name":"v3-practical-type-after-number-string-cache","input":10,"filter":"(tostring, .) | type","status":"compatible","expected":"ok"}
 {"name":"v3-type-empty-stream","input":null,"filter":"empty | type","status":"compatible","expected":"ok"}
-{"name":"v3-comparison-empty-operand-difference","input":null,"filter":"empty == null","status":"known-difference","expected":"ok"}
+{"name":"v3-comparison-empty-operand","input":null,"filter":"empty == null","status":"compatible","expected":"ok"}
 {"name":"v3-basic-field-type","input":{"type":"vm"},"filter":".type","status":"compatible","expected":"ok"}
 {"name":"v3-basic-field-length","input":{"length":99},"filter":".length","status":"compatible","expected":"ok"}
 {"name":"v3-basic-field-empty","input":{"empty":null},"filter":".empty","status":"compatible","expected":"ok"}
@@ -3153,3 +3153,63 @@
 {"name":"v3-null-type-object-constructor","input":null,"filter":"{x: (null | type)}","status":"compatible","expected":"ok"}
 {"name":"v3-missing-field-array-constructor","input":{},"filter":"[.missing]","status":"compatible","expected":"ok"}
 {"name":"v3-missing-field-object-constructor","input":{},"filter":"{x: .missing}","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-right-eq","input":null,"filter":"null == empty","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-left-ne","input":null,"filter":"empty != null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-right-ne","input":null,"filter":"null != empty","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-left-lt","input":null,"filter":"empty < null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-right-lt","input":null,"filter":"null < empty","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-left-le","input":null,"filter":"empty <= null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-right-le","input":null,"filter":"null <= empty","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-left-gt","input":null,"filter":"empty > null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-right-gt","input":null,"filter":"null > empty","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-left-ge","input":null,"filter":"empty >= null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-right-ge","input":null,"filter":"null >= empty","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-filtered-left-operand","input":null,"filter":"select(false) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-filtered-right-operand","input":null,"filter":"null == select(false)","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-array-iterator","input":[],"filter":".[] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-object-iterator","input":{},"filter":".[] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-optional-empty-iterator","input":{},"filter":".missing[]? == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-named-iterator","input":{"items":[]},"filter":".items[] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-filtered-iterator","input":[1,2],"filter":"(.[] | select(. > 9)) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-operand-after-type","input":null,"filter":"(empty | type) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-explicit-null-comparison","input":null,"filter":"null == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-missing-named-field","input":{},"filter":".missing == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-missing-field-chain","input":{},"filter":".missing.value == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-missing-optional-field","input":{},"filter":".missing? == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-optional-field-on-null","input":null,"filter":".missing? == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-missing-quoted-field","input":{},"filter":".[\"missing\"] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-quoted-field-on-null","input":null,"filter":".[\"missing\"] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-missing-dot-quoted-field","input":{},"filter":".\"missing\" == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-missing-dotted-quoted-key","input":{},"filter":".[\"a.b\"] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-out-of-range-index","input":[1],"filter":".[5] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-iterator-emits-explicit-null","input":[null],"filter":".[] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-null-array-slot","input":{"items":[null]},"filter":".items[0] == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-explicit-null-fallback","input":null,"filter":"(empty // null) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-literal-named-field","input":{"null":7},"filter":".null == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-builtin-named-field","input":{"type":"vm"},"filter":".type == \"vm\"","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-named-null-field","input":{"empty":null},"filter":".empty == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-right-operand-output-order","input":null,"filter":"(1,3) < (2,4)","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-comma-branch-adds-no-null","input":null,"filter":"(empty,1) == (null,1)","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-operand-skips-left-error","input":null,"filter":"(1 / 0) == empty","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-comparison-in-array-constructor","input":null,"filter":"[empty == null]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-comparison-in-object-constructor","input":null,"filter":"{x: (empty == null)}","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-comparison-through-a-pipe","input":null,"filter":"(empty == null) | type","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-empty-left-right-error","input":null,"filter":"empty == (1 / 0)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-comparison-empty-array-projection-difference","input":[],"filter":".name == null","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-comparison-stream-parenthesized-optional-field","input":{},"filter":"(.missing?) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-parenthesized-quoted-field","input":{},"filter":"(.[\"missing\"]) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-parenthesized-empty-iterator","input":[],"filter":"(.[]) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-parenthesized-optional-iterator","input":{},"filter":"(.missing[]?) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-parenthesized-optional-field-chain","input":{},"filter":"( .missing.value? ) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-unparenthesized-right-iterator","input":{"arr":[1,2]},"filter":"1 == .arr[]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-unparenthesized-right-optional-iterator","input":{"arr":[1,2]},"filter":"1 == .arr[]?","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-named-iterator","input":{"arr":[]},"filter":"null == .arr[]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-optional-named-iterator","input":{"arr":[]},"filter":"null == .arr[]?","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-array-iterator","input":[],"filter":"null == .[]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-optional-array-iterator","input":[],"filter":"null == .[]?","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-right-iterator-before-comma","input":{"arr":[1,2]},"filter":"1 == .arr[], 9","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-right-optional-iterator-before-comma","input":{"arr":[1,2]},"filter":"1 == .arr[]?, 9","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-optional-iterator-skips-left-error","input":null,"filter":"(1 / 0) == .[]?","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-right-iterator-emits-explicit-null","input":{"arr":[null]},"filter":"null == .arr[]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-strict-right-iterator-error","input":{"arr":1},"filter":"empty == .arr[]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-comparison-parenthesized-result-iterator-error","input":null,"filter":"(1 == 1)[]","status":"compatible","expected":"runtime-error"}

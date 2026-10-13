@@ -106,6 +106,9 @@ sub parse_query {
             for my $sequence_part (@sequence_parts) {
                 $sequence_part =~ s/^\s+|\s+$//g;
                 next if $sequence_part =~ /^\./s;
+                my (undef, $comparison_operator)
+                    = JQ::Lite::Util::_split_top_level_comparison($sequence_part);
+                next if defined $comparison_operator;
                 if ($sequence_part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s) {
                     my ($filter, $optional) = ($1, $2);
                     $filter =~ s/\s+$//;
@@ -124,7 +127,11 @@ sub parse_query {
             next;
         }
 
-        if ($part !~ /^\s*\./s && $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s) {
+        # A comparison's trailing iterator belongs to its right operand.
+        my (undef, $comparison_operator)
+            = JQ::Lite::Util::_split_top_level_comparison($part);
+        if (!defined($comparison_operator) && $part !~ /^\s*\./s
+            && $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s) {
             my ($filter, $optional) = ($1, $2);
             $filter =~ s/\s+$//;
             # A comparison ending in [] has an empty-array operand,
