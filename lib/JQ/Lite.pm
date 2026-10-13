@@ -422,6 +422,7 @@ as a fallback.
 Example:
 
   .users[] | (.nickname // .name)
+  null // []       # => one empty array
 
 Returns the nickname when present, otherwise the name field.
 

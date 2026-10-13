@@ -172,6 +172,16 @@ not become JSON null: `[empty | type]` yields `[]`, and
 `"null"`. Object fields continue to use the first value when a filter emits
 multiple values; this is not a claim of full jq constructor stream parity.
 
+For practical literal/current-value/named-field alternatives, a trailing empty
+array remains the right operand: `null // []` and `false // []` emit one empty
+array, while zero and empty strings remain valid left values. Comma branches
+retain their order. To iterate that result, use `(null // [])[]`, which emits
+nothing; a strict iterator on a boolean still raises a runtime error.
+For a function result, apply the fallback in a pipeline, for example
+`indices("an") | . // []`. Existing first-result alternative evaluation is
+retained; this correction does not promise arbitrary filter-operand or full
+streaming parity and introduces no argument grammar or dependency.
+
 - Treat both `false` and `null` as absent for the `//` alternative operator.
 - Emit `null` for a missing object field and for continued traversal through a
   missing field.
