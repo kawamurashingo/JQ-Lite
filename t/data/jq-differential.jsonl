@@ -3201,3 +3201,15 @@
 {"name":"v3-comparison-stream-parenthesized-empty-iterator","input":[],"filter":"(.[]) == null","status":"compatible","expected":"ok"}
 {"name":"v3-comparison-stream-parenthesized-optional-iterator","input":{},"filter":"(.missing[]?) == null","status":"compatible","expected":"ok"}
 {"name":"v3-comparison-stream-parenthesized-optional-field-chain","input":{},"filter":"( .missing.value? ) == null","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-unparenthesized-right-iterator","input":{"arr":[1,2]},"filter":"1 == .arr[]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-unparenthesized-right-optional-iterator","input":{"arr":[1,2]},"filter":"1 == .arr[]?","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-named-iterator","input":{"arr":[]},"filter":"null == .arr[]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-optional-named-iterator","input":{"arr":[]},"filter":"null == .arr[]?","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-array-iterator","input":[],"filter":"null == .[]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-optional-array-iterator","input":[],"filter":"null == .[]?","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-right-iterator-before-comma","input":{"arr":[1,2]},"filter":"1 == .arr[], 9","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-right-optional-iterator-before-comma","input":{"arr":[1,2]},"filter":"1 == .arr[]?, 9","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-empty-right-optional-iterator-skips-left-error","input":null,"filter":"(1 / 0) == .[]?","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-stream-right-iterator-emits-explicit-null","input":{"arr":[null]},"filter":"null == .arr[]","status":"compatible","expected":"ok"}
+{"name":"v3-comparison-strict-right-iterator-error","input":{"arr":1},"filter":"empty == .arr[]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-comparison-parenthesized-result-iterator-error","input":null,"filter":"(1 == 1)[]","status":"compatible","expected":"runtime-error"}

@@ -101,6 +101,16 @@ my @stream_cases = (
     [ '[]', '(.[]) == null', '[]', 'parenthesized empty iterator' ],
     [ '{}', '(.missing[]?) == null', '[]', 'parenthesized optional iterator' ],
     [ '{}', '( .missing.value? ) == null', '[true]', 'parenthesized optional field chain' ],
+    [ '{"arr":[1,2]}', '1 == .arr[]', '[true,false]', 'unparenthesized right iterator' ],
+    [ '{"arr":[1,2]}', '1 == .arr[]?', '[true,false]', 'unparenthesized right optional iterator' ],
+    [ '{"arr":[]}', 'null == .arr[]', '[]', 'empty right named iterator' ],
+    [ '{"arr":[]}', 'null == .arr[]?', '[]', 'empty right optional named iterator' ],
+    [ '[]', 'null == .[]', '[]', 'empty right array iterator' ],
+    [ '[]', 'null == .[]?', '[]', 'empty right optional array iterator' ],
+    [ '{"arr":[1,2]}', '1 == .arr[], 9', '[true,false,9]', 'right iterator before comma' ],
+    [ '{"arr":[1,2]}', '1 == .arr[]?, 9', '[true,false,9]', 'right optional iterator before comma' ],
+    [ 'null', '(1 / 0) == .[]?', '[]', 'empty right optional iterator skips left error' ],
+    [ '{"arr":[null]}', 'null == .arr[]', '[true]', 'right iterator emits explicit null' ],
 );
 for my $case (@stream_cases) {
     my ($input, $query, $expected, $name) = @$case;
@@ -115,6 +125,21 @@ my $error;
 }
 isa_ok($error, 'JQ::Lite::Error::Evaluation', 'right operand error remains structured');
 like("$error", qr/Division by zero/, 'empty left operand does not hide right error');
+
+for my $case (
+    [ '{"arr":1}', 'empty == .arr[]', 'strict right iterator error' ],
+    [ 'null', '(1 == 1)[]', 'iterator suffix on parenthesized comparison' ],
+) {
+    my ($input, $query, $name) = @$case;
+    my $iterator_error;
+    {
+        local $@;
+        eval { $jq->run_query($input, $query) };
+        $iterator_error = $@;
+    }
+    isa_ok($iterator_error, 'JQ::Lite::Error::Evaluation', $name);
+    like("$iterator_error", qr/Cannot iterate over/, "$name propagates");
+}
 
 is_deeply([ $jq->run_query('[]', '.name == null') ], [],
     'existing empty array projection stays empty in a comparison');

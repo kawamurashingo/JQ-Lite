@@ -179,6 +179,10 @@ fields. Optional/quoted/index/iterator paths use the existing query evaluator,
 so a missing object field remains JSON null rather than an empty stream.
 Empty iterators and filtered-out values remain empty. Comparisons inside
 supported constructors use the same comparison evaluator.
+An unparenthesized right iterator keeps its operand meaning:
+`{"arr":[1,2]} | 1 == .arr[]` yields true, false. Its trailing `[]` is
+not applied to the comparison's booleans; `(1 == 1)[]` still raises the
+existing iterator type error.
 
 Comparisons evaluate the right operand first; an empty right operand skips
 the left operand (`(1 / 0) == empty` emits nothing), while a right-operand
