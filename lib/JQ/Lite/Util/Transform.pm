@@ -28,17 +28,13 @@ sub _apply_tostring {
         return "$value";
     }
 
-    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        return $TOJSON_ENCODER->encode($value);
-    }
-
-    return $TOJSON_ENCODER->encode($value);
+    return _apply_tojson($value);
 }
 
 sub _apply_tojson {
     my ($value) = @_;
 
-    return $TOJSON_ENCODER->encode($value);
+    return Encode::decode('UTF-8', $TOJSON_ENCODER->encode($value));
 }
 
 sub _apply_fromjson {
@@ -53,6 +49,7 @@ sub _apply_fromjson {
     return $value if ref $value;
 
     my $text = "$value";
+    $text = encode('UTF-8', $text) if is_utf8($text, 1);
     my $decoded = eval { $FROMJSON_DECODER->decode($text) };
 
     return $@ ? $value : $decoded;
@@ -2052,7 +2049,7 @@ sub _apply_base64d {
     die '@base64d(): input must be base64 text'
         if $reencoded ne $text;
 
-    return $decoded;
+    return Encode::decode('UTF-8', $decoded);
 }
 
 sub _apply_uri {
@@ -2093,7 +2090,7 @@ sub _format_csv_field {
     }
 
     if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        my $encoded = _encode_json($value);
+        my $encoded = _apply_tojson($value);
         return _quote_csv_text($encoded);
     }
 
@@ -2120,7 +2117,7 @@ sub _format_tsv_field {
     }
 
     if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        my $encoded = _encode_json($value);
+        my $encoded = _apply_tojson($value);
         return _escape_tsv_text($encoded);
     }
 
@@ -2727,31 +2724,22 @@ sub _apply_indices {
         return \@matches;
     }
 
-    return [] if !defined $value;
+    # Retain v2 coercion and invalid-target fallbacks outside string search.
+    return [] if !defined $needle;
+    return JQ::Lite::Value::type_of($needle) eq 'string' ? undef : []
+        if !defined $value;
+    return [] if ref($value) && !JSON::PP::is_bool($value);
 
-    if (!ref $value || JSON::PP::is_bool($value)) {
-        return [] unless defined $needle;
+    my $haystack = encode('UTF-8', "$value");
+    my $fragment = encode('UTF-8', "$needle");
+    return [] if $fragment eq '';
 
-        my $haystack = "$value";
-        my $fragment = "$needle";
-
-        my @positions;
-        if ($fragment eq '') {
-            @positions = (0 .. length($haystack));
-        }
-        else {
-            my $pos = -1;
-            while (1) {
-                $pos = index($haystack, $fragment, $pos + 1);
-                last if $pos == -1;
-                push @positions, $pos;
-            }
-        }
-
-        return \@positions;
+    my @positions;
+    for (my $pos = CORE::index($haystack, $fragment); $pos >= 0;
+        $pos = CORE::index($haystack, $fragment, $pos + 1)) {
+        push @positions, $pos;
     }
-
-    return [];
+    return \@positions;
 }
 
 sub _apply_has {

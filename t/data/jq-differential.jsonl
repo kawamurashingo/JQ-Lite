@@ -3256,3 +3256,92 @@
 {"name":"v3-search-null-needle-difference","input":"banana","filter":"index(null), rindex(null)","status":"known-difference","expected":"runtime-error"}
 {"name":"v3-search-index-latin-1-byte-offsets","input":"\u00e9b","filter":"index(\"b\")","status":"compatible","expected":"ok"}
 {"name":"v3-search-rindex-latin-1-byte-offsets","input":"\u00e9b","filter":"rindex(\"b\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-repeated-substring","input":"banana","filter":"indices(\"an\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-overlapping-substring","input":"aaaa","filter":"indices(\"aa\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-missing-substring","input":"banana","filter":"indices(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-substring","input":"banana","filter":"indices(\"\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-input-and-substring","input":"","filter":"indices(\"\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-input-string","input":"","filter":"indices(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-literal-punctuation","input":"a.b.a.b","filter":"indices(\"a.b\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-unicode-byte-offsets","input":"\u65e5\u672c\u8a9e\u65e5\u672c","filter":"indices(\"\\u672c\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-latin-1-byte-offsets","input":"\u00e9b\u00e9b","filter":"indices(\"b\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-repeated-array-scalar","input":[1,2,1],"filter":"indices(1)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-missing-array-scalar","input":[1,2],"filter":"indices(9)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-array","input":[],"filter":"indices(1)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-false-array-value","input":[false,true,false],"filter":"indices(false)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-array-value","input":[null,1,null],"filter":"indices(null)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-exact-object-element","input":[{"a":1},{"a":2},{"a":1}],"filter":"indices({\"a\":1})","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-object-search-is-exact","input":[{"a":1,"b":2}],"filter":"indices({\"a\":1})","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-string-array-element","input":["",1,""],"filter":"indices(\"\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-haystack","input":null,"filter":"indices(\"a\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-haystack-and-needle-difference","input":null,"filter":"indices(null)","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-search-indices-empty-upstream","input":"banana","filter":"empty | indices(\"an\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-map","input":["banana","can","",null],"filter":"map(indices(\"an\"))","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-missing-field","input":{},"filter":".missing | indices(\"a\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-fallback","input":null,"filter":"indices(\"a\") | . // []","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-array-coercion-difference","input":["1",1,"1"],"filter":"indices(1)","status":"known-difference","expected":"ok"}
+{"name":"v3-search-indices-array-needle-difference","input":[[],1,[]],"filter":"indices([])","status":"known-difference","expected":"ok"}
+{"name":"v3-search-indices-null-needle-difference","input":"banana","filter":"indices(null)","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-search-indices-object-target-difference","input":{},"filter":"indices(\"a\")","status":"known-difference","expected":"ok"}
+{"name":"v3-search-indices-non-null-fallback","input":"banana","filter":"indices(\"an\") | . // []","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-numeric-string-needle","input":null,"filter":"indices(\"1\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-number-needle-difference","input":null,"filter":"indices(1)","status":"known-difference","expected":"ok"}
+{"name":"v3-search-indices-null-boolean-needle-difference","input":null,"filter":"indices(true)","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-search-indices-null-array-needle-difference","input":null,"filter":"indices([])","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-search-indices-null-object-needle-difference","input":null,"filter":"indices({})","status":"known-difference","expected":"ok"}
+{"name":"v3-raw-search-japanese-index","input":"\u65e5\u672cx\n","filter":"index(\"x\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-japanese-rindex","input":"\u65e5\u672cx\n","filter":"rindex(\"x\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-japanese-indices","input":"\u65e5\u672cx\n","filter":"indices(\"x\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-latin-1-index","input":"\u00e9x\n","filter":"index(\"x\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-latin-1-rindex","input":"\u00e9x\n","filter":"rindex(\"x\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-latin-1-indices","input":"\u00e9x\n","filter":"indices(\"x\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-multibyte-needle-index","input":"\u65e5\u672cx\n","filter":"index(\"\\u672c\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-multibyte-needle-rindex","input":"\u65e5\u672cx\n","filter":"rindex(\"\\u672c\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-multibyte-needle-indices","input":"\u65e5\u672cx\n","filter":"indices(\"\\u672c\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-line-order","input":"\u65e5\u672cx\n\u00e9x\n","filter":"indices(\"x\")","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-slurp-index","input":"\u65e5\u672cx\n\u00e9x\n","filter":"index(\"x\")","status":"compatible","expected":"ok","raw_input":true,"slurp":true}
+{"name":"v3-raw-search-slurp-rindex","input":"\u65e5\u672cx\n\u00e9x\n","filter":"rindex(\"x\")","status":"compatible","expected":"ok","raw_input":true,"slurp":true}
+{"name":"v3-raw-search-slurp-indices","input":"\u65e5\u672cx\n\u00e9x\n","filter":"indices(\"x\")","status":"compatible","expected":"ok","raw_input":true,"slurp":true}
+{"name":"v3-raw-search-slurp-multibyte","input":"\u65e5\u672cx\n\u00e9x\n","filter":"indices(\"\\u672c\")","status":"compatible","expected":"ok","raw_input":true,"slurp":true}
+{"name":"v3-raw-search-japanese-identity","input":"\u65e5\u672cx\n","filter":".","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-japanese-length","input":"\u65e5\u672cx\n","filter":"length","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-latin-1-identity","input":"\u00e9x\n","filter":".","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-raw-search-latin-1-length","input":"\u00e9x\n","filter":"length","status":"compatible","expected":"ok","raw_input":true}
+{"name":"v3-text-arg-japanese-index","input":null,"filter":"$doc | index(\"x\")","cli_args":["--arg","doc","\u65e5\u672cx","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-japanese-rindex","input":null,"filter":"$doc | rindex(\"x\")","cli_args":["--arg","doc","\u65e5\u672cx","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-japanese-indices","input":null,"filter":"$doc | indices(\"x\")","cli_args":["--arg","doc","\u65e5\u672cx","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-japanese-identity","input":null,"filter":"$doc | .","cli_args":["--arg","doc","\u65e5\u672cx","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-japanese-length","input":null,"filter":"$doc | length","cli_args":["--arg","doc","\u65e5\u672cx","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-latin-1-index","input":null,"filter":"$doc | index(\"x\")","cli_args":["--arg","doc","\u00e9x","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-latin-1-rindex","input":null,"filter":"$doc | rindex(\"x\")","cli_args":["--arg","doc","\u00e9x","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-latin-1-indices","input":null,"filter":"$doc | indices(\"x\")","cli_args":["--arg","doc","\u00e9x","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-latin-1-identity","input":null,"filter":"$doc | .","cli_args":["--arg","doc","\u00e9x","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-latin-1-length","input":null,"filter":"$doc | length","cli_args":["--arg","doc","\u00e9x","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-numeric-string-type","input":null,"filter":"$doc | type","cli_args":["--arg","doc","1","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-rawfile-index","input":null,"filter":"$doc | index(\"x\")","cli_args":["--rawfile","doc","t/data/cli-utf8-raw.txt","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-rawfile-rindex","input":null,"filter":"$doc | rindex(\"x\")","cli_args":["--rawfile","doc","t/data/cli-utf8-raw.txt","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-rawfile-indices","input":null,"filter":"$doc | indices(\"x\")","cli_args":["--rawfile","doc","t/data/cli-utf8-raw.txt","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-rawfile-identity","input":null,"filter":"$doc | .","cli_args":["--rawfile","doc","t/data/cli-utf8-raw.txt","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-rawfile-length","input":null,"filter":"$doc | length","cli_args":["--rawfile","doc","t/data/cli-utf8-raw.txt","-n"],"status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-japanese-identity","input":"5pel5pyseA==","filter":"@base64d","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-japanese-index","input":"5pel5pyseA==","filter":"@base64d | index(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-japanese-rindex","input":"5pel5pyseA==","filter":"@base64d | rindex(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-japanese-indices","input":"5pel5pyseA==","filter":"@base64d | indices(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-japanese-length","input":"5pel5pyseA==","filter":"@base64d | length","status":"compatible","expected":"ok"}
+{"name":"v3-text-japanese-fromjson","input":"{\"word\":\"\u65e5\u672cx\"}","filter":"fromjson","status":"compatible","expected":"ok"}
+{"name":"v3-text-japanese-base64-fromjson","input":"eyJ3b3JkIjoi5pel5pyseCJ9","filter":"@base64d | fromjson","status":"compatible","expected":"ok"}
+{"name":"v3-text-japanese-tojson","input":{"word":"\u65e5\u672cx"},"filter":"tojson","status":"compatible","expected":"ok"}
+{"name":"v3-text-japanese-tostring","input":{"word":"\u65e5\u672cx"},"filter":"tostring","status":"compatible","expected":"ok"}
+{"name":"v3-text-japanese-json-roundtrip","input":{"word":"\u65e5\u672cx"},"filter":"tojson | fromjson","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-latin-1-identity","input":"w6l4","filter":"@base64d","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-latin-1-index","input":"w6l4","filter":"@base64d | index(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-latin-1-rindex","input":"w6l4","filter":"@base64d | rindex(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-latin-1-indices","input":"w6l4","filter":"@base64d | indices(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-text-base64d-latin-1-length","input":"w6l4","filter":"@base64d | length","status":"compatible","expected":"ok"}
+{"name":"v3-text-latin-1-fromjson","input":"{\"word\":\"\u00e9x\"}","filter":"fromjson","status":"compatible","expected":"ok"}
+{"name":"v3-text-latin-1-base64-fromjson","input":"eyJ3b3JkIjoiw6l4In0=","filter":"@base64d | fromjson","status":"compatible","expected":"ok"}
+{"name":"v3-text-latin-1-tojson","input":{"word":"\u00e9x"},"filter":"tojson","status":"compatible","expected":"ok"}
+{"name":"v3-text-latin-1-tostring","input":{"word":"\u00e9x"},"filter":"tostring","status":"compatible","expected":"ok"}
+{"name":"v3-text-latin-1-json-roundtrip","input":{"word":"\u00e9x"},"filter":"tojson | fromjson","status":"compatible","expected":"ok"}
+{"name":"v3-text-raw-fromjson-unicode","input":"{\"word\":\"\u65e5\u672c\"}\n","filter":"fromjson","raw_input":true,"status":"compatible","expected":"ok"}
+{"name":"v3-text-arg-fromjson-unicode","input":null,"filter":"$doc | fromjson","cli_args":["--arg","doc","{\"word\":\"\u00e9\"}","-n"],"status":"compatible","expected":"ok"}

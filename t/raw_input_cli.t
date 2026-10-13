@@ -3,10 +3,11 @@ use warnings;
 use Test::More;
 use IPC::Open3;
 use Symbol qw(gensym);
+use Encode qw(encode);
 
 sub run_cli {
     my (%opts) = @_;
-    my @cmd = ($^X, 'bin/jq-lite', @{ $opts{args} // [] });
+    my @cmd = ($^X, 'bin/jq-lite', map { encode('UTF-8', $_) } @{ $opts{args} // [] });
 
     my $err = gensym;
     my $pid = open3(my $in, my $out, $err, @cmd);
@@ -73,5 +74,49 @@ like(
     'usage error is raised when --raw-input --slurp lacks a query'
 );
 is($exit, 5, '--raw-input --slurp without a query exits with usage code');
+
+my $japanese = "\x{65e5}\x{672c}x\n";
+my $latin = "\x{e9}x\n";
+my @unicode_cases = (
+    [ ['-R','-c','index("x")'], $japanese, "6\n", 'Japanese first byte offset' ],
+    [ ['-R','-c','rindex("x")'], $japanese, "6\n", 'Japanese last byte offset' ],
+    [ ['-R','-c','indices("x")'], $japanese, "[6]\n", 'Japanese byte offsets' ],
+    [ ['-R','-c','index("x")'], $latin, "2\n", 'Latin-1 first byte offset' ],
+    [ ['-R','-c','rindex("x")'], $latin, "2\n", 'Latin-1 last byte offset' ],
+    [ ['-R','-c','indices("x")'], $latin, "[2]\n", 'Latin-1 byte offsets' ],
+    [ ['-R','-c','index("\u672c")'], $japanese, "3\n", 'first multibyte needle' ],
+    [ ['-R','-c','rindex("\u672c")'], $japanese, "3\n", 'last multibyte needle' ],
+    [ ['-R','-c','indices("\u672c")'], $japanese, "[3]\n", 'all multibyte needles' ],
+    [ ['-R','-c','indices("x")'], $japanese.$latin, "[6]\n[2]\n", 'raw line output order' ],
+    [ ['-R','-s','-c','index("x")'], $japanese.$latin, "6\n", 'slurped first byte offset' ],
+    [ ['-R','-s','-c','rindex("x")'], $japanese.$latin, "10\n", 'slurped last byte offset' ],
+    [ ['-R','-s','-c','indices("x")'], $japanese.$latin, "[6,10]\n", 'slurped byte offsets' ],
+    [ ['-R','-s','-c','indices("\u672c")'], $japanese.$latin, "[3]\n", 'slurped multibyte needle' ],
+    [ ['-R','-c','.'], $japanese, "\"\x{65e5}\x{672c}x\"\n", 'Japanese JSON output' ],
+    [ ['-R','-c','.'], $latin, "\"\x{e9}x\"\n", 'Latin-1 JSON output' ],
+    [ ['-R','-c','length'], $japanese, "3\n", 'Japanese character length' ],
+    [ ['-R','-c','length'], $latin, "2\n", 'Latin-1 character length' ],
+    [ ['-R','-r','.'], $japanese, $japanese, 'Japanese raw output' ],
+    [ ['-R','-r','.'], $latin, $latin, 'Latin-1 raw output' ],
+    [ ['-R','-s','-r','.'], $japanese.$latin, $japanese.$latin."\n", 'slurped raw output' ],
+    [ ['--arg','doc',"\x{65e5}\x{672c}x",'-n','-r','$doc'], '', "\x{65e5}\x{672c}x\n", 'Japanese argument raw output' ],
+    [ ['--arg','doc',"\x{e9}x",'-n','-r','$doc'], '', "\x{e9}x\n", 'Latin-1 argument raw output' ],
+    [ ['--arg','doc',"\x{65e5}\x{672c}x",'-n','-c','$doc | indices("x")'], '', "[6]\n", 'argument search byte offsets' ],
+    [ ['--arg','doc','1','-n','-c','$doc | type'], '', "\"string\"\n", 'numeric argument remains a string' ],
+    [ ['--rawfile','doc','t/data/cli-utf8-raw.txt','-n','-r','$doc'], '', $japanese.$latin."\n", 'rawfile raw output' ],
+    [ ['--rawfile','doc','t/data/cli-utf8-raw.txt','-n','-c','$doc | indices("x")'], '', "[6,10]\n", 'rawfile search byte offsets' ],
+    [ ['-r','-c','.'], "\"\x{e9}x\"\n", "\x{e9}x\n", 'decoded JSON string raw output' ],
+    [ ['-r','-c','@base64d'], "\"w6l4\"\n", "\x{e9}x\n", 'base64 text raw output' ],
+    [ ['-r','-c','@base64d'], "\"5pel5pyseA==\"\n", $japanese, 'Japanese base64 raw output' ],
+    [ ['-r','-c','tojson'], "{\"word\":\"\x{e9}x\"}\n", "{\"word\":\"\x{e9}x\"}\n", 'JSON text raw output' ],
+    [ ['-r','-c','tostring'], "{\"word\":\"\x{e9}x\"}\n", "{\"word\":\"\x{e9}x\"}\n", 'structured text raw output' ],
+);
+for my $case (@unicode_cases) {
+    my ($args, $input, $expected, $name) = @$case;
+    my ($out, $err, $rc) = run_cli(args=>$args, stdin=>encode('UTF-8', $input));
+    is($rc, 0, "$name exits successfully");
+    is($out, encode('UTF-8', $expected), "$name writes the expected bytes");
+    is($err, '', "$name has no UTF-8 warnings");
+}
 
 done_testing;

@@ -754,7 +754,8 @@ Returns the zero-based index of the first occurrence of the supplied value.
 When the current result is an array, deep comparisons are used so nested
 structures (hashes, arrays, booleans) work as expected. When the current value
 is a string, the function returns the position of the substring, or null when
-not found.
+not found. String positions count UTF-8 bytes; an empty substring emits null,
+matching jq 1.7.
 
 Example:
 
@@ -766,7 +767,8 @@ Example:
 Returns the zero-based index of the final occurrence of the supplied value.
 Array inputs are scanned from the end using deep comparisons, while string
 inputs return the position of the last matching substring (or null when not
-found).
+found). String positions count UTF-8 bytes; an empty substring emits null,
+matching jq 1.7.
 
 Example:
 
@@ -780,14 +782,17 @@ Returns every zero-based index where the supplied value appears. For arrays,
 deep comparisons are performed against each element and the matching indexes
 are collected into an array. For strings, the helper searches for literal
 substring matches (including overlapping ones) and emits each starting
-position. When the fragment is empty, positions for every character boundary
-are returned to mirror jq's behaviour.
+position as a UTF-8 byte offset. An empty fragment emits an empty array;
+with a string needle, a null input emits null, matching jq 1.7. Existing
+array-element equality, scalar coercion and invalid-target fallbacks retain
+their v2 meanings.
 
 Example:
 
   .users | indices("Alice")     # => [0, 3]
   "banana" | indices("an")      # => [1, 3]
-  "perl"   | indices("")        # => [0, 1, 2, 3, 4]
+  "perl"   | indices("")        # => []
+  null     | indices("a")       # => null
 
 =item * abs()
 

@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use JSON::PP ();
+use Encode qw(encode);
 use IPC::Open3 qw(open3);
 use Symbol qw(gensym);
 use FindBin;
@@ -88,9 +89,19 @@ while (my $line = <$fh>) {
         next;
     }
 
-    my $input = $json->encode($case->{input}) . "\n";
-    my $jq = run_command([$jq_bin, '-c', $case->{filter}], $input);
-    my $lite = run_command([$^X, '-I' . $lib_dir, $lite_bin, '-c', $case->{filter}], $input);
+    # Raw text fixtures cover the public CLI input boundary as well as JSON.
+    BAIL_OUT("Raw fixture $case->{name} needs scalar text input")
+        if $case->{raw_input} && (!defined($case->{input}) || ref($case->{input}));
+    my $cli_args = $case->{cli_args} || [];
+    BAIL_OUT("Fixture $case->{name} needs a scalar CLI argument array")
+        if ref($cli_args) ne 'ARRAY' || grep { !defined($_) || ref($_) } @$cli_args;
+    my @input_args = $case->{raw_input} ? ('-R') : ();
+    push @input_args, '-s' if $case->{raw_input} && $case->{slurp};
+    push @input_args, map { encode('UTF-8', $_) } @$cli_args;
+    my $input = $case->{raw_input} ? encode('UTF-8', $case->{input})
+        : $json->encode($case->{input}) . "\n";
+    my $jq = run_command([$jq_bin, '-c', @input_args, $case->{filter}], $input);
+    my $lite = run_command([$^X, '-I' . $lib_dir, $lite_bin, '-c', @input_args, $case->{filter}], $input);
     my $jq_kind = result_kind($jq, 0);
     my $lite_kind = result_kind($lite, 1);
 
