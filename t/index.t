@@ -27,6 +27,9 @@ is($array_index[0], 0, 'scalar array search returns zero-based index');
 my @string_index = $jq->run_query($json, '.title | index("lite")');
 is($string_index[0], 3, 'substring search returns the expected offset');
 
+is_deeply([ $jq->run_query($json, '.title | index("")') ], [undef],
+    'an empty string needle emits one null, matching jq 1.7');
+
 my @boolean_index = $jq->run_query($json, '.flags | index(true)');
 is($boolean_index[0], 0, 'boolean search matches JSON::PP::Boolean values');
 

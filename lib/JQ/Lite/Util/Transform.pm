@@ -2693,6 +2693,29 @@ sub _apply_inside {
     return _deep_contains($container, $value, 'legacy') ? JSON::PP::true : JSON::PP::false;
 }
 
+# Share first/last search without allocating all match positions. Array
+# equality and scalar coercion retain their v2 meanings in this scoped fix.
+# jq 1.7 string search offsets count UTF-8 bytes rather than characters.
+sub _apply_index {
+    my ($value, $needle, $last) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        my $step = $last ? -1 : 1;
+        for (my $i = $last ? $#$value : 0; $i >= 0 && $i < @$value; $i += $step) {
+            return $i if _values_equal($value->[$i], $needle);
+        }
+        return undef;
+    }
+
+    return undef if !defined $value || !defined $needle;
+    return undef if ref($value) && ref($value) ne 'JSON::PP::Boolean';
+    my $fragment = encode('UTF-8', "$needle");
+    return undef if $fragment eq '';
+    my $haystack = encode('UTF-8', "$value");
+    my $position = $last ? CORE::rindex($haystack, $fragment) : CORE::index($haystack, $fragment);
+    return $position >= 0 ? $position : undef;
+}
+
 sub _apply_indices {
     my ($value, $needle) = @_;
 
