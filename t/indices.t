@@ -37,7 +37,7 @@ my @string_indices = $jq->run_query($json, '.phrase | indices("an")');
 is_deeply($string_indices[0], [1, 3], 'indices() lists every substring occurrence');
 
 my @empty_fragment = $jq->run_query($json, '.phrase | indices("")');
-is_deeply($empty_fragment[0], [0, 1, 2, 3, 4, 5, 6], 'indices("") returns every string boundary');
+is_deeply(\@empty_fragment, [[]], 'indices("") emits one empty array, matching jq 1.7');
 
 my @no_match = $jq->run_query($json, '.tags | indices("python")');
 is_deeply($no_match[0], [], 'indices() returns an empty array when no matches exist');

@@ -108,10 +108,21 @@ upstream streams retain their existing order and cardinality.
 
 Migration: explicitly return `0` or `length` when an empty needle is intended
 to mean the first or final string boundary; convert byte offsets in the
-application if a character position is required. `indices("")` retains its v2
-boundary-list extension pending a separate audit. Array needles still mean
-exact-element lookup, scalar array equality still permits numeric-string
-coercion, and invalid/null-needle fallbacks retain their v2 meanings. Those
+application if a character position is required.
+
+`indices(value)` applies the same jq 1.7 string rules: an empty string needle
+emits one empty array, and substring positions count UTF-8 bytes in ascending
+order, including overlapping matches. With a string needle, a null input emits
+one JSON null rather than an empty array; missing fields keep that null, while
+an empty upstream stream still emits nothing. Array null/false matches retain
+their positions.
+Migration: generate a character-boundary list explicitly in the application
+when the v2 `indices("")` extension was intended; use `indices(...) | . // []`
+when a null input should produce an empty result array.
+
+Array needles still mean exact-element lookup, scalar array equality still
+permits numeric-string coercion, and invalid/null-needle fallbacks retain their
+v2 meanings. Those
 are documented differences, not full jq search/error compatibility claims;
 this correction adds no argument grammar, function, public API or dependency.
 

@@ -2727,31 +2727,22 @@ sub _apply_indices {
         return \@matches;
     }
 
-    return [] if !defined $value;
+    # Retain v2 coercion and invalid-target fallbacks outside string search.
+    return [] if !defined $needle;
+    return JQ::Lite::Value::type_of($needle) eq 'string' ? undef : []
+        if !defined $value;
+    return [] if ref($value) && !JSON::PP::is_bool($value);
 
-    if (!ref $value || JSON::PP::is_bool($value)) {
-        return [] unless defined $needle;
+    my $haystack = encode('UTF-8', "$value");
+    my $fragment = encode('UTF-8', "$needle");
+    return [] if $fragment eq '';
 
-        my $haystack = "$value";
-        my $fragment = "$needle";
-
-        my @positions;
-        if ($fragment eq '') {
-            @positions = (0 .. length($haystack));
-        }
-        else {
-            my $pos = -1;
-            while (1) {
-                $pos = index($haystack, $fragment, $pos + 1);
-                last if $pos == -1;
-                push @positions, $pos;
-            }
-        }
-
-        return \@positions;
+    my @positions;
+    for (my $pos = CORE::index($haystack, $fragment); $pos >= 0;
+        $pos = CORE::index($haystack, $fragment, $pos + 1)) {
+        push @positions, $pos;
     }
-
-    return [];
+    return \@positions;
 }
 
 sub _apply_has {

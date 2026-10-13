@@ -3256,3 +3256,36 @@
 {"name":"v3-search-null-needle-difference","input":"banana","filter":"index(null), rindex(null)","status":"known-difference","expected":"runtime-error"}
 {"name":"v3-search-index-latin-1-byte-offsets","input":"\u00e9b","filter":"index(\"b\")","status":"compatible","expected":"ok"}
 {"name":"v3-search-rindex-latin-1-byte-offsets","input":"\u00e9b","filter":"rindex(\"b\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-repeated-substring","input":"banana","filter":"indices(\"an\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-overlapping-substring","input":"aaaa","filter":"indices(\"aa\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-missing-substring","input":"banana","filter":"indices(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-substring","input":"banana","filter":"indices(\"\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-input-and-substring","input":"","filter":"indices(\"\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-input-string","input":"","filter":"indices(\"x\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-literal-punctuation","input":"a.b.a.b","filter":"indices(\"a.b\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-unicode-byte-offsets","input":"\u65e5\u672c\u8a9e\u65e5\u672c","filter":"indices(\"\\u672c\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-latin-1-byte-offsets","input":"\u00e9b\u00e9b","filter":"indices(\"b\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-repeated-array-scalar","input":[1,2,1],"filter":"indices(1)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-missing-array-scalar","input":[1,2],"filter":"indices(9)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-array","input":[],"filter":"indices(1)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-false-array-value","input":[false,true,false],"filter":"indices(false)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-array-value","input":[null,1,null],"filter":"indices(null)","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-exact-object-element","input":[{"a":1},{"a":2},{"a":1}],"filter":"indices({\"a\":1})","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-object-search-is-exact","input":[{"a":1,"b":2}],"filter":"indices({\"a\":1})","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-empty-string-array-element","input":["",1,""],"filter":"indices(\"\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-haystack","input":null,"filter":"indices(\"a\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-haystack-and-needle-difference","input":null,"filter":"indices(null)","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-search-indices-empty-upstream","input":"banana","filter":"empty | indices(\"an\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-map","input":["banana","can","",null],"filter":"map(indices(\"an\"))","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-missing-field","input":{},"filter":".missing | indices(\"a\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-fallback","input":null,"filter":"indices(\"a\") | . // []","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-array-coercion-difference","input":["1",1,"1"],"filter":"indices(1)","status":"known-difference","expected":"ok"}
+{"name":"v3-search-indices-array-needle-difference","input":[[],1,[]],"filter":"indices([])","status":"known-difference","expected":"ok"}
+{"name":"v3-search-indices-null-needle-difference","input":"banana","filter":"indices(null)","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-search-indices-object-target-difference","input":{},"filter":"indices(\"a\")","status":"known-difference","expected":"ok"}
+{"name":"v3-search-indices-non-null-fallback","input":"banana","filter":"indices(\"an\") | . // []","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-numeric-string-needle","input":null,"filter":"indices(\"1\")","status":"compatible","expected":"ok"}
+{"name":"v3-search-indices-null-number-needle-difference","input":null,"filter":"indices(1)","status":"known-difference","expected":"ok"}
+{"name":"v3-search-indices-null-boolean-needle-difference","input":null,"filter":"indices(true)","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-search-indices-null-array-needle-difference","input":null,"filter":"indices([])","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-search-indices-null-object-needle-difference","input":null,"filter":"indices({})","status":"known-difference","expected":"ok"}
