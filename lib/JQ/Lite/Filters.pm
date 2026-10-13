@@ -1932,76 +1932,14 @@ sub apply {
             return 1;
         }
 
-        # support for index(value)
-        if ($part =~ /^index\((.*)\)$/) {
-            my @args   = JQ::Lite::Util::_parse_arguments($1);
+        # support for index(value) and rindex(value)
+        if ($part =~ /^(r?index)\((.*)\)$/) {
+            my ($name, $argument) = ($1, $2);
+            my @args   = JQ::Lite::Util::_parse_arguments($argument);
             my $needle = @args ? $args[0] : undef;
+            my $last   = $name eq 'rindex';
 
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $array = $_;
-                    my $found;
-                    for my $i (0 .. $#$array) {
-                        if (JQ::Lite::Util::_values_equal($array->[$i], $needle)) {
-                            $found = $i;
-                            last;
-                        }
-                    }
-                    defined $found ? $found : undef;
-                }
-                elsif (!ref $_ || ref($_) eq 'JSON::PP::Boolean') {
-                    if (!defined $_ || !defined $needle) {
-                        undef;
-                    }
-                    else {
-                        my $haystack = "$_";
-                        my $fragment = "$needle";
-                        my $pos      = index($haystack, $fragment);
-                        $pos >= 0 ? $pos : undef;
-                    }
-                }
-                else {
-                    undef;
-                }
-            } @results;
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for rindex(value)
-        if ($part =~ /^rindex\((.*)\)$/) {
-            my @args   = JQ::Lite::Util::_parse_arguments($1);
-            my $needle = @args ? $args[0] : undef;
-
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $array = $_;
-                    my $found;
-                    for (my $i = $#$array; $i >= 0; $i--) {
-                        if (JQ::Lite::Util::_values_equal($array->[$i], $needle)) {
-                            $found = $i;
-                            last;
-                        }
-                    }
-                    defined $found ? $found : undef;
-                }
-                elsif (!ref $_ || ref($_) eq 'JSON::PP::Boolean') {
-                    if (!defined $_ || !defined $needle) {
-                        undef;
-                    }
-                    else {
-                        my $haystack = "$_";
-                        my $fragment = "$needle";
-                        my $pos      = rindex($haystack, $fragment);
-                        $pos >= 0 ? $pos : undef;
-                    }
-                }
-                else {
-                    undef;
-                }
-            } @results;
-
+            @next_results = map { JQ::Lite::Util::_apply_index($_, $needle, $last) } @results;
             @$out_ref = @next_results;
             return 1;
         }

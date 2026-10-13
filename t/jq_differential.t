@@ -15,7 +15,9 @@ my $jq_bin  = $ENV{JQ_BIN} || 'jq';
 my $lib_dir = File::Spec->catdir($FindBin::Bin, '..', 'lib');
 my $lite_bin = $ENV{JQ_LITE_BIN} || File::Spec->catfile($FindBin::Bin, '..', 'bin', 'jq-lite');
 my $fixtures = File::Spec->catfile($FindBin::Bin, 'data', 'jq-differential.jsonl');
-my $json = JSON::PP->new->allow_nonref->canonical;
+# Fixtures and subprocess streams contain UTF-8 bytes, including Latin-1
+# characters that Perl would otherwise print as single-byte values.
+my $json = JSON::PP->new->allow_nonref->canonical->utf8;
 
 sub run_command {
     my ($cmd, $input) = @_;

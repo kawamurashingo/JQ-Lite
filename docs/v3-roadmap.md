@@ -95,6 +95,26 @@ infix `contains` extension retain their v2 meanings. In particular,
 `contains_subset` still counts duplicate needles and coerces scalar strings;
 `inside` is not advertised as the inverse of 3.x `contains`.
 
+### Search positions
+
+`index(value)` and `rindex(value)` share first/last search while retaining
+the practical v2 array-element and scalar-coercion policies. For string
+haystacks, an empty string needle now emits one JSON null in both functions,
+matching jq 1.7; it no longer yields zero or the string length. Unicode
+substring positions now count UTF-8 bytes, also matching jq 1.7; for example,
+`"\u65e5\u672c\u8a9e\u65e5\u672c" | index("\u672c")` returns 3 rather than 1.
+ASCII offsets, overlapping matches, array null/false values and empty
+upstream streams retain their existing order and cardinality.
+
+Migration: explicitly return `0` or `length` when an empty needle is intended
+to mean the first or final string boundary; convert byte offsets in the
+application if a character position is required. `indices("")` retains its v2
+boundary-list extension pending a separate audit. Array needles still mean
+exact-element lookup, scalar array equality still permits numeric-string
+coercion, and invalid/null-needle fallbacks retain their v2 meanings. Those
+are documented differences, not full jq search/error compatibility claims;
+this correction adds no argument grammar, function, public API or dependency.
+
 ### Null, fallback, and paths
 
 Ordinary unquoted field paths retain their leading dot and are evaluated as
