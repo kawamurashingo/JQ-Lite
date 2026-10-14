@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Verify MANIFEST completeness against Git-tracked non-skipped files and catch missing distribution assets without new dependencies.
     - Reuse the leaf-path collector for scalar-path container traversal while preserving root/null and v2 leaf_paths output contracts.
     - Share paths/paths(scalars) output-stream dispatch; preserve the v2 paths() and null-leaf differences without broadening jq syntax.
     - Share test()/match() literal regex argument dispatch while retaining each function's v2 results, jq 1.7 subset and specific regex errors.
