@@ -2523,68 +2523,22 @@ sub _split_semicolon_arguments {
     return @segments;
 }
 
+# Reuse the balanced semicolon scanner already used by slice() and regex
+# arguments. Keep range()'s legacy first-value-per-argument and empty-slot
+# handling unchanged for the practical v2 range grammar.
 sub _parse_range_arguments {
     my ($raw) = @_;
 
     return () unless defined $raw;
-
     $raw =~ s/^\s+|\s+$//g;
     return () if $raw eq '';
 
-    my @segments;
-    my $current    = '';
-    my $in_single  = 0;
-    my $in_double  = 0;
-    my $escape     = 0;
-
-    for my $char (split //, $raw) {
-        if ($escape) {
-            $current .= $char;
-            $escape = 0;
-            next;
-        }
-
-        if ($char eq '\\' && $in_double) {
-            $current .= $char;
-            $escape = 1;
-            next;
-        }
-
-        if ($char eq '"' && !$in_single) {
-            $in_double = !$in_double;
-            $current  .= $char;
-            next;
-        }
-
-        if ($char eq "'" && !$in_double) {
-            $in_single = !$in_single;
-            $current  .= $char;
-            next;
-        }
-
-        if ($char eq ';' && !$in_single && !$in_double) {
-            push @segments, $current;
-            $current = '';
-            next;
-        }
-
-        $current .= $char;
-    }
-
-    push @segments, $current;
-
     my @args;
-    for my $segment (@segments) {
+    for my $segment (_split_semicolon_arguments($raw)) {
         next unless defined $segment;
-        my $clean = $segment;
-        $clean =~ s/^\s+|\s+$//g;
-        next if $clean eq '';
-
-        my @values = _parse_arguments($clean);
-        my $value  = @values ? $values[0] : undef;
-        push @args, $value;
+        my @values = _parse_arguments($segment);
+        push @args, @values ? $values[0] : undef;
     }
-
     return @args;
 }
 
