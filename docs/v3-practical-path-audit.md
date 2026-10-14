@@ -154,6 +154,28 @@ This prevents silent omission of newly added regression tests from source
 distributions, without changing the v2 practical feature set, jq grammar,
 Perl 5.14 requirement or existing runtime code size. #625 remains open.
 
+## Shared range argument scanner (maintenance checkpoint)
+
+`Util/Transform.pm::_parse_range_arguments` formerly kept an independent
+character-by-character semicolon/quote scanner. It now uses the existing
+balanced `_split_semicolon_arguments` lexer, while preserving its previous
+range-specific empty-slot omission, JSON literal decoding and first-value
+selection for ordinary arguments. Array/iterator and range generator logic
+remain unchanged, including zero-step empty streams and error categories.
+
+Perl regression tests cover ordinary one-, two-, three-bound ranges, ordered
+pipeline/comma streams, blank slots, quoted or escaped semicolons, string-bound
+errors and the original argument fallback. Nine jq 1.7 differential cases
+check the supported public range subset and runtime-error categories; they do
+not establish support for arbitrary nested/computed argument expressions.
+The latter were not part of the v2 practical subset being preserved.
+
+The independent range scanner cleanup removes 785 implementation bytes
+from `Util/Transform.pm`. Tracked `lib/**/*.pm` size is
+315,436 → 314,651 bytes (22 modules) relative to
+`e98058a7`, excluding tests and docs. The new test is registered in
+`MANIFEST`, maintaining distribution coverage. #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

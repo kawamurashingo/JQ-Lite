@@ -3393,3 +3393,12 @@
 {"name":"v3-shared-leaf-paths-empty-array","input":[],"filter":"paths(scalars)","status":"compatible","expected":"ok"}
 {"name":"v3-shared-leaf-paths-scalar-root","input":7,"filter":"paths(scalars)","status":"compatible","expected":"ok"}
 {"name":"v3-shared-leaf-paths-null-leaf-extension","input":{"a":null,"b":2},"filter":"paths(scalars)","status":"known-difference","expected":"ok"}
+{"name":"v3-shared-range-single-bound","input":null,"filter":"range(4)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-range-two-bounds","input":null,"filter":"range(1;6)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-range-positive-step","input":null,"filter":"range(1;8;3)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-range-negative-step","input":null,"filter":"range(7;0;-2)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-range-zero-step","input":null,"filter":"range(0;4;0)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-range-equal-bounds","input":null,"filter":"range(5;5)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-range-pipeline-order","input":null,"filter":"range(2;5) | .","status":"compatible","expected":"ok"}
+{"name":"v3-shared-range-invalid-string-bound","input":null,"filter":"range(\"1\";5)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-shared-range-invalid-semicolon-bound","input":null,"filter":"range(1;\"a;b\")","status":"compatible","expected":"runtime-error"}
