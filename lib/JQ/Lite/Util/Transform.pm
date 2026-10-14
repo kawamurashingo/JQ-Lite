@@ -2277,6 +2277,17 @@ sub _apply_substr {
     return substr($value, $start);
 }
 
+# Both forms reject text/invalid numeric bounds, but preserve their separate
+# length-vs-end calculations and legacy error labels.
+sub _slice_numeric_bound {
+    my ($raw, $name) = @_;
+
+    return undef unless defined $raw;
+    die "slice(): $name must be numeric"
+        if _is_string_scalar($raw) || !looks_like_number($raw);
+    return int($raw);
+}
+
 sub _apply_slice {
     my ($value, @args) = @_;
 
@@ -2287,30 +2298,17 @@ sub _apply_slice {
         my $size  = @$array;
 
         my $raw_start = @args ? $args[0] : 0;
-        my $start     = 0;
-
-        if (defined $raw_start
-            && (_is_string_scalar($raw_start) || !looks_like_number($raw_start))) {
-            die 'slice(): start must be numeric';
-        }
-
-        if (defined $raw_start && looks_like_number($raw_start)) {
-            $start = int($raw_start);
-        }
+        my $start = _slice_numeric_bound($raw_start, 'start');
+        $start = 0 unless defined $start;
 
         $start += $size if $start < 0;
         $start = 0       if $start < 0;
         return []        if $start >= $size;
 
-        my $length;
-        if (@args > 1 && defined $args[1]
-            && (_is_string_scalar($args[1]) || !looks_like_number($args[1]))) {
-            die 'slice(): length must be numeric';
-        }
-
-        if (@args > 1 && defined $args[1] && looks_like_number($args[1])) {
-            $length = int($args[1]);
-        }
+        # The original slice(start, length) validates length only after
+        # returning an empty result for a start beyond the array.
+        my $length = @args > 1
+            ? _slice_numeric_bound($args[1], 'length') : undef;
 
         return [] if $size == 0;
 
@@ -2339,25 +2337,19 @@ sub _apply_bracket_slice {
     return _apply_slice($value, $raw_start, $raw_end)
         if ref $value ne 'ARRAY';
 
-    if (defined $raw_start
-        && (_is_string_scalar($raw_start) || !looks_like_number($raw_start))) {
-        die 'slice(): start must be numeric';
-    }
-    if (defined $raw_end
-        && (_is_string_scalar($raw_end) || !looks_like_number($raw_end))) {
-        die 'slice(): length must be numeric';
-    }
+    # Bracket slices validate the end even when start is out of range,
+    # and retain the v2 error text "length" for an invalid end.
+    my $start = _slice_numeric_bound($raw_start, 'start');
+    my $end   = _slice_numeric_bound($raw_end, 'length');
 
-    my $size  = scalar @$value;
-    my $start = defined $raw_start ? int($raw_start) : 0;
+    my $size = scalar @$value;
+    $start = 0 unless defined $start;
     $start += $size if $start < 0;
     $start = 0       if $start < 0;
 
-    return _apply_slice($value, $start) unless defined $raw_end;
+    return _apply_slice($value, $start) unless defined $end;
 
-    my $end = int($raw_end);
     $end += $size if $end < 0;
-
     return _apply_slice($value, $start, $end - $start);
 }
 
