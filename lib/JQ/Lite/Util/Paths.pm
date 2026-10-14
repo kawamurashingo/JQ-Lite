@@ -903,6 +903,17 @@ sub _validate_path_array {
     return [ @$path ];
 }
 
+# Literal getpath/setpath operands share the same array validation.
+# Stream-produced operands retain their separate legacy error/skip rules.
+sub _validate_literal_paths {
+    my ($decoded, $caller) = @_;
+
+    die "$caller(): path must be an array" unless ref $decoded eq 'ARRAY';
+    return map { _validate_path_array($_, $caller) } @$decoded
+        if @$decoded && ref $decoded->[0] eq 'ARRAY';
+    return (_validate_path_array($decoded, $caller));
+}
+
 sub _apply_getpath {
     my ($self, $value, $expr) = @_;
 
@@ -916,19 +927,7 @@ sub _apply_getpath {
 
     my $decoded = eval { _decode_json($expr) };
     if (!$@ && defined $decoded) {
-        if (ref $decoded eq 'ARRAY') {
-            if (@$decoded && ref $decoded->[0] eq 'ARRAY') {
-                    for my $path (@$decoded) {
-                        push @paths, _validate_path_array($path, 'getpath');
-                    }
-            }
-            else {
-                push @paths, _validate_path_array($decoded, 'getpath');
-            }
-        }
-        else {
-            die 'getpath(): path must be an array';
-        }
+        push @paths, _validate_literal_paths($decoded, 'getpath');
     }
 
     if (!@paths) {
@@ -993,17 +992,7 @@ sub _resolve_paths_from_expr {
 
     my $decoded = eval { _decode_json($clean) };
     if (!$@ && defined $decoded) {
-        if (ref $decoded eq 'ARRAY') {
-            if (@$decoded && ref $decoded->[0] eq 'ARRAY') {
-                push @paths, map { _validate_path_array($_, 'setpath') } @$decoded;
-            }
-            else {
-                push @paths, _validate_path_array($decoded, 'setpath');
-            }
-        }
-        else {
-            die 'setpath(): path must be an array';
-        }
+        push @paths, _validate_literal_paths($decoded, 'setpath');
     }
 
     if (!@paths) {
