@@ -76,6 +76,23 @@ measured tracked `lib/**/*.pm` source totals 316,383 bytes
 (22 modules) from v3 base `faf56b7a` at 316,537 bytes.
 This is a limited maintenance refactor; #625 remains open.
 
+## Regex builtin dispatcher maintenance checkpoint
+
+The practical v2 baseline also includes literal `test(pattern; flags)` and
+`match(pattern; flags)` filters (`t/test_function.t`, `t/match.t`).
+Previously, the two branches in `Filters.pm` duplicated argument splitting
+and decoding. A single explicitly whitelisted dispatcher now shares only
+that parsing; `_apply_test` and `_apply_match` still run separately with
+their original return types, source-order behavior, regular-expression
+validation and function-specific error text. No general regex argument
+expressions or new syntax are introduced. Targeted Perl regression cases
+cover case-sensitive/insensitive behavior, ordered streams, the retained
+v2 array-mapping extension, and invalid-pattern/flag errors. Six jq 1.7
+differential cases check the supported scalar/stream subset and error
+categories. This reduces the `Filters.pm` implementation by 298 bytes
+compared with `5b30e5cc`; tracked `lib/**/*.pm` totals
+316,085 bytes (22 modules), excluding tests/docs.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

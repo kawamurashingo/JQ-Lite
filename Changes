@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Share test()/match() literal regex argument dispatch while retaining each function's v2 results, jq 1.7 subset and specific regex errors.
     - Share array path-index normalization for getpath/setpath without altering v2 coercion, jq-compatible bounds, or error policies.
     - Share non-path iterator-suffix eligibility across comma branches and standalone filters without expanding v2 syntax.
     - Keep a literal empty-array fallback in supported // expressions instead of treating it as an iterator suffix; document the practical scope.

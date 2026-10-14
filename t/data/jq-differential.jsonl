@@ -3374,3 +3374,9 @@
 {"name":"v3-shared-array-set-first","input":[10,20,30],"filter":"setpath([0]; 0)","status":"compatible","expected":"ok"}
 {"name":"v3-shared-array-get-bool-v2-extension","input":[10,20,30],"filter":"getpath([true])","status":"known-difference","expected":"runtime-error"}
 {"name":"v3-shared-array-set-bool-v2-extension","input":[10,20,30],"filter":"setpath([true]; 77)","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-shared-regex-test-case-sensitive","input":"Alpha","filter":"test(\"^a\")","status":"compatible","expected":"ok"}
+{"name":"v3-shared-regex-test-ignorecase","input":"Alpha","filter":"test(\"^a\"; \"i\")","status":"compatible","expected":"ok"}
+{"name":"v3-shared-regex-test-stream-order","input":["Alpha","beta"],"filter":".[] | test(\"a\"; \"i\")","status":"compatible","expected":"ok"}
+{"name":"v3-shared-regex-match-no-captures","input":"Alpha","filter":"match(\"lph\"; \"i\")","status":"compatible","expected":"ok"}
+{"name":"v3-shared-regex-test-invalid-pattern","input":"abc","filter":"test(\"[\")","status":"compatible","expected":"runtime-error"}
+{"name":"v3-shared-regex-match-invalid-pattern","input":"abc","filter":"match(\"[\")","status":"compatible","expected":"runtime-error"}
