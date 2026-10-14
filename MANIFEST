@@ -280,3 +280,4 @@ t/manifest_coverage.t
 t/v3_shared_range_arguments.t
 t/v3_shared_slice_numeric_bounds.t
 t/v3_literal_path_validation.t
+t/v3_shared_top_level_delimiter.t
