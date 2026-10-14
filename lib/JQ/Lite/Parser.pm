@@ -157,60 +157,20 @@ sub parse_query {
             elsif ($rest =~ /^\s*\[/) {
                 $_;
             }
-            # Strict root dot-quoted fields must retain their leading
-            # dot. Dropping it would turn ."a.b" into a JSON string
-            # literal "a.b", or accidentally let the literal parser
-            # treat that standalone string as a field path.
-            elsif ($rest =~ /\A"/
-                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
-            {
-                $_;
-            }
-            # After a dotted suffix the jq grammar also allows
-            # whitespace before a literal bracket:
-            #   .items[0] . [1] / .items[0] . ["a.b"]
-            # Retain the explicit root dot before attempting the
-            # dotless-path normalization. Otherwise the ordered
-            # visitor never sees the full rooted path; its literal
-            # numeric/quoted index stages already handle this spacing.
-            elsif ($rest =~ /\.\s+\[/
-                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
-            {
-                $_;
-            }
-            # A dotted suffix with preceding whitespace must keep
-            # its leading root dot; otherwise a dotless path could
-            # collide with non-path literal/try expression handling.
-            elsif ($rest =~ /\s+\.(?:[A-Za-z_]|"|\[)/
-                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
-            {
-                $_;
-            }
-            # Scoped computed selectors preceded by whitespace must
-            # retain the explicit leading dot, including .obj [.key].
-            # This keeps dotless try [.key] and array constructors on
-            # their existing expression paths.
-            elsif ($rest =~ /\s+\[\s*\./
-                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
-            {
-                $_;
-            }
-            # Brackets containing only whitespace, or iterator
-            # brackets separated from a field by whitespace, require
-            # the leading dot. Do not reinterpret 'try [ ]' as a
-            # dotless field traversal or interfere with bare [ ].
-            elsif ($rest =~ /\[\s+\]|\s+\[\s*\]/
-                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
-            {
-                $_;
-            }
-            # Unlike older unspaced paths, a field followed by
-            # whitespace and a quoted bracket must retain its dot,
-            # or the scoped scanner cannot distinguish it from
-            # 'try ["literal"]' and other non-path filters.
-            elsif ($rest =~ /\s+\[\s*"/
-                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_))
-            {
+            # Keep the leading dot for supported literal, optional and
+            # whitespace-separated path stages. Each shape uses the same
+            # full-path validator, so call it once after the cheap checks.
+            elsif (
+                (
+                    $rest =~ /\A"/
+                    || $rest =~ /\.\s+\[/
+                    || $rest =~ /\s+\.(?:[A-Za-z_]|"|\[)/
+                    || $rest =~ /\s+\[\s*\./
+                    || $rest =~ /\[\s+\]|\s+\[\s*\]/
+                    || $rest =~ /\s+\[\s*"/
+                )
+                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_)
+            ) {
                 $_;
             }
             # Literal iterator paths with signed indices or JSON-quoted
