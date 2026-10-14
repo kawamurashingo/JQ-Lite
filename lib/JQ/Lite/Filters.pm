@@ -1900,24 +1900,18 @@ sub apply {
             return 1;
         }
 
-        # support for test("pattern"[, "flags"])
-        if ($part =~ /^test\((.+)\)$/) {
-            my ($pattern_expr, $flags_expr) = JQ::Lite::Util::_split_semicolon_arguments($1, 2);
+        # Literal regex functions share argument decoding, not matching
+        # semantics: each existing implementation owns its result and errors.
+        if ($part =~ /^(test|match)\((.+)\)$/) {
+            my ($function, $args) = ($1, $2);
+            my ($pattern_expr, $flags_expr) = JQ::Lite::Util::_split_semicolon_arguments($args, 2);
             my $pattern = defined $pattern_expr ? JQ::Lite::Util::_parse_string_argument($pattern_expr) : '';
             my $flags   = defined $flags_expr   ? JQ::Lite::Util::_parse_string_argument($flags_expr)   : '';
+            my $apply = $function eq 'test'
+                ? \&JQ::Lite::Util::_apply_test
+                : \&JQ::Lite::Util::_apply_match;
 
-            @next_results = map { JQ::Lite::Util::_apply_test($_, $pattern, $flags) } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for match("pattern"[, "flags"])
-        if ($part =~ /^match\((.+)\)$/) {
-            my ($pattern_expr, $flags_expr) = JQ::Lite::Util::_split_semicolon_arguments($1, 2);
-            my $pattern = defined $pattern_expr ? JQ::Lite::Util::_parse_string_argument($pattern_expr) : '';
-            my $flags   = defined $flags_expr   ? JQ::Lite::Util::_parse_string_argument($flags_expr)   : '';
-
-            @next_results = map { JQ::Lite::Util::_apply_match($_, $pattern, $flags) } @results;
+            @next_results = map { $apply->($_, $pattern, $flags) } @results;
             @$out_ref = @next_results;
             return 1;
         }
