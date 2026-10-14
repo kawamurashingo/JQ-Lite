@@ -1206,38 +1206,13 @@ sub _collect_paths {
     push @$paths, [@$current_path];
 }
 
+# Both public path enumerators walk container leaves identically. Preserve the
+# historical internal scalar-root no-output contract; leaf_paths on the root
+# intentionally differs and is handled by _apply_leaf_paths.
 sub _collect_scalar_paths {
-    my ($value, $current_path, $paths) = @_;
-
-    if (ref $value eq 'HASH') {
-        for my $key (sort keys %$value) {
-            my $child = $value->{$key};
-            my @next  = (@$current_path, $key);
-
-            if (_is_scalar_value($child)) {
-                push @$paths, [@next];
-            }
-            elsif (ref $child eq 'HASH' || ref $child eq 'ARRAY') {
-                _collect_scalar_paths($child, \@next, $paths);
-            }
-        }
-        return;
-    }
-
-    if (ref $value eq 'ARRAY') {
-        for my $index (0 .. $#$value) {
-            my $child = $value->[$index];
-            my @next  = (@$current_path, $index);
-
-            if (_is_scalar_value($child)) {
-                push @$paths, [@next];
-            }
-            elsif (ref $child eq 'HASH' || ref $child eq 'ARRAY') {
-                _collect_scalar_paths($child, \@next, $paths);
-            }
-        }
-        return;
-    }
+    my ($value) = @_;
+    return if _is_scalar_value($value);
+    return _collect_leaf_paths(@_);
 }
 
 sub _traverse_path_array {
