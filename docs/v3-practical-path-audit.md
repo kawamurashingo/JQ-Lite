@@ -137,6 +137,23 @@ Tracked `lib/**/*.pm` total decreases from 316,045 to
 315,436 bytes across 22 modules relative to
 `2e6cd497`. Tests/documentation are excluded; #625 stays open.
 
+## MANIFEST distribution coverage (maintenance checkpoint)
+
+After PR #755 restored missing test/data/doc registrations, the Git tree and
+`MANIFEST.SKIP` rules were compared against `MANIFEST`: the tracked source
+files have no unlisted, non-excluded entries at this checkpoint.
+
+The new `t/manifest_coverage.t` verifies that registered files exist, entries
+are unique, and (when running from a Git checkout) every tracked file not
+excluded by `MANIFEST.SKIP` is in `MANIFEST`. It uses only Perl core modules
+and `git ls-files` in developer/CI checkouts. Release-source test runs without
+Git metadata still check for duplicates and missing registered files; the
+Git-specific assertion is skipped. The test is itself in `MANIFEST`.
+
+This prevents silent omission of newly added regression tests from source
+distributions, without changing the v2 practical feature set, jq grammar,
+Perl 5.14 requirement or existing runtime code size. #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
