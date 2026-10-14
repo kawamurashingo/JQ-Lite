@@ -176,6 +176,27 @@ from `Util/Transform.pm`. Tracked `lib/**/*.pm` size is
 `e98058a7`, excluding tests and docs. The new test is registered in
 `MANIFEST`, maintaining distribution coverage. #625 remains open.
 
+## Shared slice bound validation (maintenance checkpoint)
+
+Both the existing v2 `slice(start,length)` extension and jq-style
+`[start:end]` selectors rejected text and other nonnumeric bounds via
+duplicated validation in `Util/Transform.pm`. A single
+`_slice_numeric_bound` helper now preserves these checks without changing
+length-versus-exclusive-end semantics. In particular, a beyond-end v2
+`slice()` start still yields an empty array before examining its length,
+while bracket slicing validates its end first; invalid bracket ends retain
+the legacy `slice(): length must be numeric` diagnostic. Scalar and null
+inputs still short-circuit before validating bounds.
+
+Focused Perl regression tests cover negative and omitted bounds, empty
+results, scalar passthrough, invalid numeric-string bounds, and validation
+precedence. Eight jq 1.7 differential cases check the supported bracket
+slice subset and runtime error categories. They do not relabel v2's
+`slice(start,length)` extension as jq-compatible. The test is registered in
+`MANIFEST`. Implementation source shrinks by 70 bytes (tracked
+`lib/**/*.pm`: 314,651 → 314,581 across 22 modules) versus
+`7fb6483b`, excluding tests/docs. #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
