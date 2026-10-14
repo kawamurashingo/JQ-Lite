@@ -218,6 +218,29 @@ This reduces `Util/Paths.pm` by 253 implementation bytes, with tracked
 `lib/**/*.pm` decreasing 314,581 → 314,328 bytes across 22 modules
 relative to `1e1ec3b0`. Tests/docs excluded; #625 remains open.
 
+## Shared top-level delimiter scanner (maintenance checkpoint)
+
+`Util/Parsing.pm` previously had literally identical quoted-string and
+nested-bracket scanners for top-level semicolons and commas, except for the
+separator character. One `_split_top_level_delimiter` now implements both;
+`_split_top_level_semicolons` and `_split_top_level_commas` retain their
+names, list return behavior, and error/empty-input behavior. The scanner
+preserves the existing behavior for empty fields, escaped quotes, mismatched
+closing delimiters, and unmatched opening delimiters. Other operator and
+pipe scanners are deliberately unchanged.
+
+The Perl regressions cover direct splitting and common v2 comma, iterator,
+reduce and foreach filters, including null values versus a genuinely empty
+stream and per-input output ordering. Seven jq 1.7 differential cases cover
+supported comma/array/iterator/reduce/foreach output order. The v2-only
+foreach behavior for an empty extraction is protected in Perl tests and
+not labelled jq-compatible. No grammar expansion or new CPAN dependency.
+
+Implementation bytes in `Util/Parsing.pm` decrease by 1118; tracked
+`lib/**/*.pm` totals fall from 314,328 to 313,210 bytes
+across 22 modules relative to `d5ccf6c9`, excluding tests/docs.
+The new test is registered in `MANIFEST`; Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

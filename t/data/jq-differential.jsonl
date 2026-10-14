@@ -3419,3 +3419,10 @@
 {"name":"v3-literal-setpath-invalid-scalar","input":{"a":1},"filter":"setpath(\"a\";9)","status":"compatible","expected":"runtime-error"}
 {"name":"v3-literal-getpath-null-segment","input":{"a":1},"filter":"getpath([\"a\",null])","status":"compatible","expected":"runtime-error"}
 {"name":"v3-literal-setpath-null-segment","input":{"a":1},"filter":"setpath([\"a\",null];9)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-shared-delimiter-comma-null","input":{"a":null,"b":2},"filter":".a, .b","status":"compatible","expected":"ok"}
+{"name":"v3-shared-delimiter-comma-empty","input":{"a":null,"b":2},"filter":"empty, .a, .b","status":"compatible","expected":"ok"}
+{"name":"v3-shared-delimiter-comma-stream","input":[{"a":1},{"a":2}],"filter":".[] | (.a, 0)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-delimiter-comma-array","input":{"a":1,"b":2},"filter":"[.a,.b]","status":"compatible","expected":"ok"}
+{"name":"v3-shared-delimiter-reduce","input":[1,2],"filter":"reduce .[] as $x (0; . + $x)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-delimiter-foreach","input":[1,2],"filter":"foreach .[] as $x (0; . + $x; .)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-delimiter-iterator-null","input":[null,2],"filter":".[] | (., 0)","status":"compatible","expected":"ok"}

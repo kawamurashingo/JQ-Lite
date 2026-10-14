@@ -112,8 +112,8 @@ sub _strip_wrapping_parens {
     return $copy;
 }
 
-sub _split_top_level_semicolons {
-    my ($text) = @_;
+sub _split_top_level_delimiter {
+    my ($text, $delimiter) = @_;
 
     return unless defined $text;
 
@@ -168,7 +168,7 @@ sub _split_top_level_semicolons {
             next;
         }
 
-        next unless $char eq ';';
+        next unless $char eq $delimiter;
 
         if (!@stack) {
             my $chunk = substr($text, $start, $i - $start);
@@ -180,6 +180,11 @@ sub _split_top_level_semicolons {
     push @parts, substr($text, $start) if $start <= length $text;
 
     return @parts;
+}
+
+# Preserve both existing parsing entry points and their list/empty semantics.
+sub _split_top_level_semicolons {
+    return _split_top_level_delimiter($_[0], ';');
 }
 
 sub _split_top_level_pipes {
@@ -276,73 +281,7 @@ sub _split_top_level_pipes {
 }
 
 sub _split_top_level_commas {
-    my ($text) = @_;
-
-    return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
-    my @stack;
-    my $string;
-    my $escape = 0;
-    my @parts;
-    my $start = 0;
-
-    for (my $i = 0; $i < length $text; $i++) {
-        my $char = substr($text, $i, 1);
-
-        if (defined $string) {
-            if ($escape) {
-                $escape = 0;
-                next;
-            }
-
-            if ($char eq '\\') {
-                $escape = 1;
-                next;
-            }
-
-            if ($char eq $string) {
-                undef $string;
-            }
-
-            next;
-        }
-
-        if ($char eq "'" || $char eq '"') {
-            $string = $char;
-            next;
-        }
-
-        if (exists $pairs{$char}) {
-            push @stack, $char;
-            next;
-        }
-
-        if (exists $closing{$char}) {
-            return unless @stack;
-            my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
-            next;
-        }
-
-        next unless $char eq ',';
-
-        if (!@stack) {
-            my $chunk = substr($text, $start, $i - $start);
-            push @parts, $chunk;
-            $start = $i + 1;
-        }
-    }
-
-    push @parts, substr($text, $start) if $start <= length $text;
-
-    return @parts;
+    return _split_top_level_delimiter($_[0], ',');
 }
 
 sub _split_top_level_operator {
