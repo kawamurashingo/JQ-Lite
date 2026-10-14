@@ -1158,24 +1158,10 @@ sub _normalize_array_index_for_set {
     return $index;
 }
 
+# Read and write use identical segment coercion and negative-index rules.
+# Bounds remain caller-specific: get returns null past end; set may grow arrays.
 sub _normalize_array_index_for_get {
-    my ($segment, $length) = @_;
-
-    return undef if !defined $segment;
-
-    if (JSON::PP::is_bool($segment)) {
-        $segment = $segment ? 1 : 0;
-    }
-
-    return undef if ref $segment;
-    return undef if $segment !~ /^-?\d+$/;
-
-    my $index = int($segment);
-    $index += $length if $index < 0;
-
-    return undef if $index < 0;
-
-    return $index;
+    return _normalize_array_index_for_set(@_);
 }
 
 sub _ensure_array_length {

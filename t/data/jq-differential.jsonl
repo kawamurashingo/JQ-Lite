@@ -3366,3 +3366,11 @@
 {"name":"v3-alternative-empty-array-type","input":null,"filter":"null // [] | type","status":"compatible","expected":"ok"}
 {"name":"v3-alternative-empty-array-strict-boolean-iterator","input":null,"filter":"(true // [])[]","status":"compatible","expected":"runtime-error"}
 {"name":"v3-alternative-empty-array-optional-boolean-iterator","input":null,"filter":"(true // [])[]?","status":"compatible","expected":"ok"}
+{"name":"v3-shared-array-get-first","input":[10,20,30],"filter":"getpath([0])","status":"compatible","expected":"ok"}
+{"name":"v3-shared-array-get-last-negative","input":[10,20,30],"filter":"getpath([-1])","status":"compatible","expected":"ok"}
+{"name":"v3-shared-array-get-out-of-range","input":[10,20,30],"filter":"getpath([5])","status":"compatible","expected":"ok"}
+{"name":"v3-shared-array-set-last-negative","input":[10,20,30],"filter":"setpath([-1]; 77)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-array-set-grow","input":[10,20,30],"filter":"setpath([4]; 77)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-array-set-first","input":[10,20,30],"filter":"setpath([0]; 0)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-array-get-bool-v2-extension","input":[10,20,30],"filter":"getpath([true])","status":"known-difference","expected":"runtime-error"}
+{"name":"v3-shared-array-set-bool-v2-extension","input":[10,20,30],"filter":"setpath([true]; 77)","status":"known-difference","expected":"runtime-error"}
