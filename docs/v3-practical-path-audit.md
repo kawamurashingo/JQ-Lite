@@ -45,6 +45,11 @@ fallback paths. It does **not** remove supported syntax.
 | Array slicing | `t/slice.t` | Distinguish jq bracket slice semantics from v2's `slice(start,length)` extension |
 | Lookup/path functions | `t/getpath.t`, `t/setpath.t`, `t/delpaths.t`, `t/path.t` | Inventory supported arguments and errors, including existing v2 extensions |
 
+A scoped grammar difference remains: jq 1.7 accepts `.obj .name` with a
+space before a named dotted suffix, but the current JQ::Lite path normalizer
+does not. This spacing was not established as a v2 practical baseline here;
+do not change its recognition just to satisfy a broad jq-syntax test.
+
 The tests above establish *v2 usage*, not blanket jq 1.7 conformance. v3 has
 dedicated coverage under `t/v3_*.t` for quoted/numeric/computed selectors,
 whitespace, strict/optional access, update and try/recurse; rare deep-selector

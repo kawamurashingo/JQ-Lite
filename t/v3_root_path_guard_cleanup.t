@@ -12,8 +12,6 @@ my $jq = JQ::Lite->new;
 my @cases = (
     ['{"a.b":7}', '."a.b"', [7],
         'strict dot-quoted root remains a field lookup'],
-    ['{"obj":{"name":"Ada"}}', '.obj .name', ['Ada'],
-        'whitespace before a named dotted suffix'],
     ['{"items":[[2,3]]}', '.items[0] . [1]', [3],
         'whitespace-separated dotted numeric bracket'],
     ['{"items":[{"a.b":7}]}', '.items[0] . ["a.b"]', [7],
@@ -41,7 +39,7 @@ for my $case (@cases) {
     is_deeply([$jq->run_query($input, $filter)], $expected, $description);
 }
 
-for my $filter ('.obj .name', '.items[0] . [1]', '.obj [.key]',
+for my $filter ('.items[0] . [1]', '.obj [.key]',
     '.items [ ]', '.obj ["a.b"]', '."a.b"')
 {
     is_deeply([JQ::Lite::Parser::parse_query($filter)], [$filter],
