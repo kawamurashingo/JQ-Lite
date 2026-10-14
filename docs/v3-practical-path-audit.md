@@ -114,6 +114,29 @@ This reduces `Filters.pm` by 40 tracked bytes relative to commit
 to 316,045 bytes (22 modules). Tests and documentation are
 not included in that measurement. Issue #625 remains open.
 
+## Shared scalar/leaf path collector (maintenance checkpoint)
+
+The pre-existing `_collect_scalar_paths` and `_collect_leaf_paths` each
+recursed through sorted object keys and array indices, collecting the same
+non-container leaf paths. The scalar check already delegates to the leaf
+predicate. The scalar collector now delegates container traversal to the
+existing leaf collector, retaining its historical no-output behavior when
+called directly on a scalar. Public `paths(scalars)` still emits a stream of
+paths while the v2 `leaf_paths` extension returns a single array of paths;
+their root-scalar behavior therefore remains different by design.
+
+Focused Perl regressions cover nested arrays and objects, empty containers,
+null/boolean leaves, traversal order, both public output shapes, and direct
+internal scalar-root behavior. Five jq 1.7 compatible fixtures cover the
+ordinary `paths(scalars)` subset; one non-gating known-difference fixture
+records v2 null-leaf inclusion (jq 1.7 excludes null). No new jq syntax or
+CPAN dependencies are introduced.
+
+This change removes 609 implementation bytes from `Util/Paths.pm`.
+Tracked `lib/**/*.pm` total decreases from 316,045 to
+315,436 bytes across 22 modules relative to
+`2e6cd497`. Tests/documentation are excluded; #625 stays open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
