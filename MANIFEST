@@ -265,3 +265,14 @@ t/v3_recurse_iterator_errors.t
 t/v3_standalone_iterator_errors.t
 t/walk.t
 t/yaml_cli.t
+docs/v3-practical-path-audit.md
+t/data/cli-utf8-raw.txt
+t/alternative_empty_array.t
+t/search_index.t
+t/search_indices.t
+t/text_utf8.t
+t/v3_paths_dispatch.t
+t/v3_regex_filter_dispatch.t
+t/v3_root_path_guard_cleanup.t
+t/v3_shared_leaf_path_collector.t
+t/v3_shared_path_array_index.t
