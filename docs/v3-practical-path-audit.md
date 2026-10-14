@@ -197,6 +197,27 @@ slice subset and runtime error categories. They do not relabel v2's
 `lib/**/*.pm`: 314,651 → 314,581 across 22 modules) versus
 `7fb6483b`, excluding tests/docs. #625 remains open.
 
+## Shared literal path validation (maintenance checkpoint)
+
+The JSON-literal path operand branches of `getpath` and `setpath` both
+recognized a single validated array path or an array of validated array paths.
+`_validate_literal_paths` now centralizes only that identical recognition and
+reuses the existing segment validator with the original function-specific error
+labels. Empty `[]` still denotes **one root path**, not an empty output stream.
+The separate evaluation and filtering of dynamically produced path values is
+unchanged: these have different v2 behaviors and are not folded together.
+
+New Perl regressions cover nested/single/multiple/root paths, negative array
+indices, missing null values, and invalid scalar/null/container path elements.
+Nine jq 1.7 differential cases cover the standard literal single-path subset
+and error classes. The v2 array-of-paths extension is tested as JQ::Lite
+behavior only and is not labelled jq-compatible. The added regression file is
+registered in `MANIFEST`; Perl >= 5.14 and zero non-core dependencies remain.
+
+This reduces `Util/Paths.pm` by 253 implementation bytes, with tracked
+`lib/**/*.pm` decreasing 314,581 → 314,328 bytes across 22 modules
+relative to `1e1ec3b0`. Tests/docs excluded; #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

@@ -279,3 +279,4 @@ t/v3_shared_path_array_index.t
 t/manifest_coverage.t
 t/v3_shared_range_arguments.t
 t/v3_shared_slice_numeric_bounds.t
+t/v3_literal_path_validation.t
