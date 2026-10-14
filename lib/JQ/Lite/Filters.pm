@@ -1938,25 +1938,17 @@ sub apply {
             return 1;
         }
 
-        # support for paths()
-        if ($part eq 'paths()' || $part eq 'paths') {
+        # These v2 path enumerators share their output-stream handling.
+        # Keep each existing accepted spelling and collector unchanged.
+        if ($part eq 'paths()' || $part eq 'paths'
+            || $part =~ /^paths\(\s*scalars\s*\)$/)
+        {
+            my $collect = $part eq 'paths()' || $part eq 'paths'
+                ? \&JQ::Lite::Util::_apply_paths
+                : \&JQ::Lite::Util::_apply_scalar_paths;
             @next_results = ();
-
             for my $value (@results) {
-                my $paths = JQ::Lite::Util::_apply_paths($value);
-                push @next_results, @$paths;
-            }
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for paths(scalars)
-        if ($part =~ /^paths\(\s*scalars\s*\)$/) {
-            @next_results = ();
-
-            for my $value (@results) {
-                my $paths = JQ::Lite::Util::_apply_scalar_paths($value);
+                my $paths = $collect->($value);
                 push @next_results, @$paths;
             }
 

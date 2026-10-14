@@ -3380,3 +3380,10 @@
 {"name":"v3-shared-regex-match-no-captures","input":"Alpha","filter":"match(\"lph\"; \"i\")","status":"compatible","expected":"ok"}
 {"name":"v3-shared-regex-test-invalid-pattern","input":"abc","filter":"test(\"[\")","status":"compatible","expected":"runtime-error"}
 {"name":"v3-shared-regex-match-invalid-pattern","input":"abc","filter":"match(\"[\")","status":"compatible","expected":"runtime-error"}
+{"name":"v3-shared-paths-nested-array","input":[1,[2,3]],"filter":"paths","status":"compatible","expected":"ok"}
+{"name":"v3-shared-paths-nested-object","input":{"a":[10],"b":{"c":4}},"filter":"paths","status":"compatible","expected":"ok"}
+{"name":"v3-shared-paths-scalar-root","input":12,"filter":"paths","status":"compatible","expected":"ok"}
+{"name":"v3-shared-scalar-paths-array","input":[10,[20,30],{"k":true}],"filter":"paths(scalars)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-scalar-paths-object","input":{"a":[10],"b":{"c":4}},"filter":"paths(scalars)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-scalar-paths-root","input":true,"filter":"paths(scalars)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-scalar-paths-null-v2-difference","input":[null,3],"filter":"paths(scalars)","status":"known-difference","expected":"ok"}

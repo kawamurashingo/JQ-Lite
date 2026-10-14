@@ -93,6 +93,27 @@ categories. This reduces the `Filters.pm` implementation by 298 bytes
 compared with `5b30e5cc`; tracked `lib/**/*.pm` totals
 316,085 bytes (22 modules), excluding tests/docs.
 
+## Common path enumeration dispatcher (maintenance checkpoint)
+
+The existing v2 `paths`, `paths()`, and `paths(scalars)` branches in
+`Filters.pm` previously duplicated the output-stream collection loop. The
+shared dispatcher only chooses the existing `_apply_paths` or
+`_apply_scalar_paths` implementation once per filter; it does not change
+accepted syntax, object key traversal, path order, empty output, or the
+specific leaf predicate. Focused Perl regressions cover all three spellings,
+whitespace, arrays, objects, empty/scalar roots, null, booleans, and pipelines.
+
+Six jq 1.7 differential fixtures gate the ordinary supported subset, with one
+**known-difference** fixture tracking the retained v2 behavior of including
+null leaves in `paths(scalars)` (jq 1.7 excludes null). The extra `paths()`
+spelling also remains a v2 extension: jq 1.7 rejects it at parse time; it is
+covered by Perl regressions, not falsely marked jq-compatible.
+
+This reduces `Filters.pm` by 40 tracked bytes relative to commit
+`235f0e24` and changes the `lib/**/*.pm` aggregate from 316,085
+to 316,045 bytes (22 modules). Tests and documentation are
+not included in that measurement. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
