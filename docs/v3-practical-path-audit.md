@@ -55,6 +55,27 @@ dedicated coverage under `t/v3_*.t` for quoted/numeric/computed selectors,
 whitespace, strict/optional access, update and try/recurse; rare deep-selector
 files are **review targets**, not grounds for extending the supported subset.
 
+## Shared path-array index normalization (next checkpoint)
+
+Read and write path-array traversals use identical scalar/index conversion:
+negative indices add the current array length, numeric strings and JSON
+booleans retain the v2 extension, and invalid/negative-out-of-range indices
+return no usable index. The prior `_normalize_array_index_for_get` and
+`_normalize_array_index_for_set` contained the same implementation. The
+get helper now delegates to the set helper; read-side bounds checks still
+produce JSON null beyond the array, while write-side `setpath` may grow the
+array with null padding. No public parser or syntax changes are made.
+
+Targeted v2-behavior regression tests cover both internal call sites and
+public `getpath` / `setpath`. Additional jq 1.7 differential fixtures
+compare ordinary positive/negative/out-of-range indices and ordered JSON
+results; boolean path elements are marked **known differences**, because
+jq 1.7 reports a runtime error but v2 JQ::Lite treats them as indices.
+This checkpoint removes 154 implementation bytes from `Util/Paths.pm`;
+measured tracked `lib/**/*.pm` source totals 316,383 bytes
+(22 modules) from v3 base `faf56b7a` at 316,537 bytes.
+This is a limited maintenance refactor; #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
