@@ -241,6 +241,26 @@ Implementation bytes in `Util/Parsing.pm` decrease by 1118; tracked
 across 22 modules relative to `d5ccf6c9`, excluding tests/docs.
 The new test is registered in `MANIFEST`; Issue #625 remains open.
 
+## Shared scoped numeric array access (maintenance checkpoint)
+
+The scoped literal-path visitor previously duplicated negative-index
+normalization and array bounds checks for ordinary `[N]` and computed numeric
+selectors such as `[.idx]`. The small `_v3_array_index_or_null` helper now
+owns only the confirmed-array read: negative indexes count from the end, and
+out-of-bounds indexes or explicit null slots yield a single null. Existing
+computed-selector `int()` conversion remains at its call site. Field, optional,
+wrong-type error and null-target decisions are unchanged. Identical null-target
+cases for computed string and numeric keys are consolidated.
+
+Perl regressions cover both access paths, negative/out-of-bounds/null slots,
+invalid scalar index types, optional access and the null-versus-empty-stream
+distinction. Nine jq 1.7 differential cases cover the supported practical
+subset and error class. The new regression test is registered in `MANIFEST`.
+
+This saves 106 source bytes in `Util/Transform.pm` (tracked `lib/**/*.pm`:
+313,210 → 313,104 bytes across 22 modules relative to `5507198c`),
+excluding tests/docs. No grammar or dependency expansion. #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

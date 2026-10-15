@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Share numeric scoped array index lookup while retaining null values, optional field access and ordered iterator streams.
     - Share identical top-level comma/semicolon scanners while preserving v2 parsing, null/empty streams and iterator output order.
     - Share literal getpath/setpath array-of-path validation while keeping dynamic path and null/error semantics unchanged.
     - Share slice()/bracket-slice numeric bound validation without changing v2 length, jq-exclusive end, or error precedence.

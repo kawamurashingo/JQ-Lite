@@ -1084,6 +1084,13 @@ sub _resolve_v3_computed_key_selector {
 # iterator in source order. Computed selectors refer to the original input,
 # while each subsequent index operates on the current intermediate stream.
 # The compatibility-sensitive general _traverse is deliberately unchanged.
+# Bound normalization for confirmed arrays, shared by literal/computed paths.
+sub _v3_array_index_or_null {
+    my ($array, $index) = @_;
+    $index += @$array if $index < 0;
+    return $index >= 0 && $index < @$array ? $array->[$index] : undef;
+}
+
 sub _traverse_v3_field_iterator {
     my ($input, $path, $steps) = @_;
     $steps ||= _parse_v3_literal_iterator_path($path);
@@ -1132,15 +1139,11 @@ sub _traverse_v3_field_iterator {
                         ? $value->{$selected} : undef;
                 }
                 elsif ($key_type eq 'number' && $input_type eq 'array') {
-                    my $index = int($selected);
-                    $index += scalar(@$value) if $index < 0;
-                    push @next, $index >= 0 && $index < @$value
-                        ? $value->[$index] : undef;
+                    push @next, _v3_array_index_or_null($value, int($selected));
                 }
-                elsif ($key_type eq 'string' && $input_type eq 'null') {
-                    push @next, undef;
-                }
-                elsif ($key_type eq 'number' && $input_type eq 'null') {
+                elsif (($key_type eq 'string' || $key_type eq 'number')
+                    && $input_type eq 'null')
+                {
                     push @next, undef;
                 }
                 else {
@@ -1190,10 +1193,7 @@ sub _traverse_v3_field_iterator {
                     push @next, undef;
                 }
                 elsif (ref($value) eq 'ARRAY') {
-                    my $index = $step->[1];
-                    $index += scalar(@$value) if $index < 0;
-                    push @next, $index >= 0 && $index < @$value
-                        ? $value->[$index] : undef;
+                    push @next, _v3_array_index_or_null($value, $step->[1]);
                 }
                 else {
                     # [N]? drops precisely this invalid numeric lookup.
