@@ -285,3 +285,4 @@ t/v3_shared_scoped_array_index.t
 t/v3_shared_iterator_expansion.t
 t/v3_shared_top_level_colon.t
 t/v3_shared_regex_validation.t
+t/v3_shared_delimited_formats.t
