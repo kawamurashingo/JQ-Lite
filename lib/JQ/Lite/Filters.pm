@@ -1594,32 +1594,17 @@ sub apply {
             return 1;
         }
 
-        # support for max_by(path)
-        if ($part =~ /^max_by\((.+)\)$/) {
-            my ($key_path, $use_entire_item) = JQ::Lite::Util::_normalize_path_argument($1);
+        # max_by/min_by share path validation and array dispatch; only the
+        # comparison direction differs in the existing extreme-value helper.
+        if ($part =~ /^(max|min)_by\((.+)\)$/) {
+            my ($mode, $raw_path) = ($1, $2);
+            my ($key_path, $use_entire_item)
+                = JQ::Lite::Util::_normalize_path_argument($raw_path);
 
             @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    JQ::Lite::Util::_extreme_by($_, $key_path, $use_entire_item, 'max');
-                } else {
-                    $_;
-                }
-            } @results;
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for min_by(path)
-        if ($part =~ /^min_by\((.+)\)$/) {
-            my ($key_path, $use_entire_item) = JQ::Lite::Util::_normalize_path_argument($1);
-
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    JQ::Lite::Util::_extreme_by($_, $key_path, $use_entire_item, 'min');
-                } else {
-                    $_;
-                }
+                ref($_) eq 'ARRAY'
+                    ? JQ::Lite::Util::_extreme_by($_, $key_path, $use_entire_item, $mode)
+                    : $_
             } @results;
 
             @$out_ref = @next_results;
