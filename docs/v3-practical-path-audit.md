@@ -348,6 +348,29 @@ Tracked `lib/**/*.pm` implementation decreases by 462 bytes,
 311,177 → 310715 bytes (22 modules), versus `42e45cc2`,
 excluding tests/docs. Issue #625 remains open.
 
+## Shared Base64 input conversion (maintenance checkpoint)
+
+The existing v2 `@base64` and `@base64d` implementations duplicated
+null/boolean/string/structured-value conversion into text. A small private
+`_base64_input_text` helper now shares that conversion while preserving
+encoding's literal `null` text versus decoding's empty-null input. The
+decoder's numeric-scalar validation remains **at the original call site
+before coercion**, so Perl scalar flags and their error messages are not
+silently changed. MIME::Base64 encode/decode, strict alphabet/padding and
+round-trip validation, and final UTF-8 decoding are unchanged.
+
+Perl regressions cover scalar and structured inputs, null, booleans,
+numeric-looking strings, nested JSON, whitespace, decoding errors and ordered
+array streams. Nine jq 1.7 compatible differential fixtures cover ordinary
+encoding/decoding values and stream order. Non-jq decoding of null or
+non-string structured inputs remains protected only as historical JQ::Lite
+behavior, not incorrectly labelled jq-compatible. No grammar change,
+dependency, public API expansion or stable/main edits.
+
+Tracked `lib/**/*.pm` source decreases by 215 bytes,
+310,715 → 310500 bytes across 22 modules (versus `7915321c`).
+Tests/docs excluded. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
