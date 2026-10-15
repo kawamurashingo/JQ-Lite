@@ -283,3 +283,4 @@ t/v3_literal_path_validation.t
 t/v3_shared_top_level_delimiter.t
 t/v3_shared_scoped_array_index.t
 t/v3_shared_iterator_expansion.t
+t/v3_shared_top_level_colon.t

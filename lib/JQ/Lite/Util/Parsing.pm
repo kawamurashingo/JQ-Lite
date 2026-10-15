@@ -442,70 +442,10 @@ sub _split_top_level_keyword {
     return @parts;
 }
 
+# Colon splitting is the same first top-level operator scan. Reuse its
+# quote, bracket, and mismatch handling without changing the public helper.
 sub _split_top_level_colon {
-    my ($text) = @_;
-
-    return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
-    my @stack;
-    my $string;
-    my $escape = 0;
-
-    for (my $i = 0; $i < length $text; $i++) {
-        my $char = substr($text, $i, 1);
-
-        if (defined $string) {
-            if ($escape) {
-                $escape = 0;
-                next;
-            }
-
-            if ($char eq '\\') {
-                $escape = 1;
-                next;
-            }
-
-            if ($char eq $string) {
-                undef $string;
-            }
-
-            next;
-        }
-
-        if ($char eq "'" || $char eq '"') {
-            $string = $char;
-            next;
-        }
-
-        if (exists $pairs{$char}) {
-            push @stack, $char;
-            next;
-        }
-
-        if (exists $closing{$char}) {
-            return unless @stack;
-            my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
-            next;
-        }
-
-        next if $char ne ':';
-
-        if (!@stack) {
-            my $lhs = substr($text, 0, $i);
-            my $rhs = substr($text, $i + 1);
-            return ($lhs, $rhs);
-        }
-    }
-
-    return;
+    return _split_top_level_operator($_[0], ':');
 }
 
 sub _interpret_object_key {
