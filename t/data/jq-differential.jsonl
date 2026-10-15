@@ -3462,3 +3462,12 @@
 {"name":"v3-shared-csv-tsv-csv-empty-row","input":[],"filter":"@csv","status":"compatible","expected":"ok"}
 {"name":"v3-shared-csv-tsv-tsv-empty-row","input":[],"filter":"@tsv","status":"compatible","expected":"ok"}
 {"name":"v3-shared-csv-tsv-csv-stream-order","input":[["a"],["b"]],"filter":".[] | @csv","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-encode-ascii","input":"ASCII","filter":"@base64","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-encode-empty","input":"","filter":"@base64","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-encode-null","input":null,"filter":"@base64","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-encode-number","input":42,"filter":"@base64","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-encode-boolean","input":true,"filter":"@base64","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-encode-object","input":{"foo":"bar"},"filter":"@base64","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-decode-string","input":"aGVsbG8=","filter":"@base64d","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-decode-empty","input":"","filter":"@base64d","status":"compatible","expected":"ok"}
+{"name":"v3-shared-base64-text-encode-stream","input":["a","b"],"filter":".[] | @base64","status":"compatible","expected":"ok"}

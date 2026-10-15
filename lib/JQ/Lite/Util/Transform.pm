@@ -1982,52 +1982,29 @@ sub _apply_tsv {
     return _apply_delimited($_[0], "\t", \&_format_tsv_field);
 }
 
+sub _base64_input_text {
+    my ($value, $decoding) = @_;
+
+    return $decoding ? '' : 'null' if !defined $value;
+    return $value ? 'true' : 'false' if JSON::PP::is_bool($value);
+    return "$value" if !ref $value;
+    return _encode_json($value) if ref $value eq 'ARRAY' || ref $value eq 'HASH';
+    return "$value";
+}
+
 sub _apply_base64 {
-    my ($value) = @_;
-
-    my $text;
-
-    if (!defined $value) {
-        $text = 'null';
-    }
-    elsif (JSON::PP::is_bool($value)) {
-        $text = $value ? 'true' : 'false';
-    }
-    elsif (!ref $value) {
-        $text = "$value";
-    }
-    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        $text = _encode_json($value);
-    }
-    else {
-        $text = "$value";
-    }
-
-    return encode_base64($text, '');
+    return encode_base64(_base64_input_text($_[0], 0), '');
 }
 
 sub _apply_base64d {
     my ($value) = @_;
 
-    my $text;
+    # Keep scalar type validation local, before coercion changes SV flags.
+    die '@base64d(): input must be base64 text'
+        if defined($value) && !JSON::PP::is_bool($value)
+            && !ref($value) && !_is_string_scalar($value);
 
-    if (!defined $value) {
-        $text = '';
-    }
-    elsif (JSON::PP::is_bool($value)) {
-        $text = $value ? 'true' : 'false';
-    }
-    elsif (!ref $value) {
-        die '@base64d(): input must be base64 text'
-            if !_is_string_scalar($value);
-        $text = "$value";
-    }
-    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        $text = _encode_json($value);
-    }
-    else {
-        $text = "$value";
-    }
+    my $text = _base64_input_text($value, 1);
 
     $text =~ s/\s+//g;
 
