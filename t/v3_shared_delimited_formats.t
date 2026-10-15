@@ -19,7 +19,7 @@ is_deeply(
 );
 
 is_deeply(
-    run(q(["a\tb","line\nnext","slash\\back",42,null,true,false]), '@tsv'),
+    run(q(["a\tb","line\nnext","slash\\\\back",42,null,true,false]), '@tsv'),
     ["a\\tb\tline\\nnext\tslash\\\\back\t42\t\ttrue\tfalse"],
     'TSV escapes tabs, newlines and backslashes without CSV quoting',
 );
