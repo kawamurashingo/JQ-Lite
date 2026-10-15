@@ -302,6 +302,27 @@ The `Util/Parsing.pm` source decreases by 1044 bytes; tracked `lib/**/*.pm`
 decreases 312,284 → 311,240 bytes across 22 modules, relative
 to `12d5ca24`. Tests/docs are excluded. Issue #625 remains open.
 
+## Shared test/match regex validation (maintenance checkpoint)
+
+The existing `test()` and `match()` filter implementations compiled the same
+literal pattern and flags using `_build_regex`, trimmed identical trailing
+newlines from compile errors, and raised their function-specific messages.
+A small private `_apply_regex_filter` now shares only compilation, validation
+and dispatch. `_test_against_regex` and `_match_against_regex` keep their
+separate boolean and match-object/offset/capture semantics, including v2 array
+mapping and null behavior. Supported i/m/s/x flags, rejection of unsafe
+embedded Perl code, and all existing regular-expression error text are
+preserved; the regex compiler is unchanged.
+
+Perl regressions exercise both result shapes, flags, array/null cases,
+invalid patterns and flags. Four jq 1.7 differential cases cover ordinary
+multiline/capture results and invalid flag error categories. No new syntax,
+CPAN dependency or public API is introduced, and the new test is in MANIFEST.
+
+Implementation source in `Util/Transform.pm` decreases by 63 bytes;
+tracked `lib/**/*.pm` totals 311177 bytes (22 modules), versus
+`c593f71b`, excluding tests/docs. Issue #625 stays open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

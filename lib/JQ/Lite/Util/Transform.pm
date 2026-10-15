@@ -1799,29 +1799,30 @@ sub _string_predicate_result {
     return JSON::PP::false;
 }
 
-sub _apply_test {
-    my ($value, $pattern, $flags) = @_;
+sub _apply_regex_filter {
+    my ($value, $pattern, $flags, $name) = @_;
 
     my ($regex, $error) = _build_regex($pattern, $flags);
     if ($error) {
         $error =~ s/[\r\n]+$//;
-        die "test(): invalid regular expression - $error";
+        die "$name(): invalid regular expression - $error";
     }
 
-    return _test_against_regex($value, $regex);
+    return $name eq 'test'
+        ? _test_against_regex($value, $regex)
+        : _match_against_regex($value, $regex);
 }
+
+
+sub _apply_test {
+    return _apply_regex_filter(@_, 'test');
+}
+
 
 sub _apply_match {
-    my ($value, $pattern, $flags) = @_;
-
-    my ($regex, $error) = _build_regex($pattern, $flags);
-    if ($error) {
-        $error =~ s/[\r\n]+$//;
-        die "match(): invalid regular expression - $error";
-    }
-
-    return _match_against_regex($value, $regex);
+    return _apply_regex_filter(@_, 'match');
 }
+
 
 sub _test_against_regex {
     my ($value, $regex) = @_;
