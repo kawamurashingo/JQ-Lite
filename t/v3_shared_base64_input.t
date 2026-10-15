@@ -46,9 +46,9 @@ for my $item (
 ) {
     my ($json, $label) = @$item;
     my $ok = eval { $jq->run_query($json, '@base64d'); 1 };
-    ok(!$ok, "@base64d rejects $label");
+    ok(!$ok, "\@base64d rejects $label");
     like($@, qr/\@base64d\(\): input must be base64 text/,
-        "@base64d keeps error text for $label");
+        "\@base64d keeps error text for $label");
 }
 
 is_deeply(JQ::Lite::Util::_apply_base64(JSON::PP::true), 'dHJ1ZQ==',
