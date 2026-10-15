@@ -281,6 +281,27 @@ Tracked `lib/**/*.pm` implementation size decreases by 820 bytes,
 313,104 → 312,284 across 22 modules versus `d061cf7b`,
 excluding tests/docs. Issue #625 remains open.
 
+## Shared top-level colon scan (maintenance checkpoint)
+
+The top-level colon splitter had another standalone quote/bracket scanner. For
+a literal `:` delimiter, its behavior matched the existing one-character
+`_split_top_level_operator` scanner: it returns only the first top-level
+pair, protects quoted and nested colons, and stops with no result on an invalid
+closing bracket before a split. The colon helper now forwards to the existing
+scanner with `':'`; arithmetic `+`/`-` exponent/update exclusions in the
+operator helper do not apply to `:`. The helper keeps its existing name and
+returns the same empty/list-shaped output without changing parsing grammar.
+
+Perl tests protect direct splitting (quoted/escaped punctuation, nesting,
+empty sides, malformed brackets) and v2 object constructors with nested,
+quoted, missing-null and streaming fields. Six jq 1.7 compatible fixtures
+cover the object-constructor subset and field/output ordering. Added regression
+tests are in `MANIFEST` and no dependency or feature coverage is added.
+
+The `Util/Parsing.pm` source decreases by 1044 bytes; tracked `lib/**/*.pm`
+decreases 312,284 → 311,240 bytes across 22 modules, relative
+to `12d5ca24`. Tests/docs are excluded. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
