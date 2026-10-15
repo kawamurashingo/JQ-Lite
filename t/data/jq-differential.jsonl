@@ -3426,3 +3426,12 @@
 {"name":"v3-shared-delimiter-reduce","input":[1,2],"filter":"reduce .[] as $x (0; . + $x)","status":"compatible","expected":"ok"}
 {"name":"v3-shared-delimiter-foreach","input":[1,2],"filter":"foreach .[] as $x (0; . + $x; .)","status":"compatible","expected":"ok"}
 {"name":"v3-shared-delimiter-iterator-null","input":[null,2],"filter":".[] | (., 0)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-numeric-literal-negative","input":{"items":[7,8]},"filter":".items[-1]","status":"compatible","expected":"ok"}
+{"name":"v3-shared-numeric-computed-negative","input":{"idx":-1,"items":[7,8]},"filter":".items[.idx]","status":"compatible","expected":"ok"}
+{"name":"v3-shared-numeric-literal-outside","input":{"items":[7,8]},"filter":".items[5]","status":"compatible","expected":"ok"}
+{"name":"v3-shared-numeric-computed-outside","input":{"idx":5,"items":[7,8]},"filter":".items[.idx]","status":"compatible","expected":"ok"}
+{"name":"v3-shared-numeric-computed-null-slot","input":{"idx":0,"items":[null,8]},"filter":".items[.idx]","status":"compatible","expected":"ok"}
+{"name":"v3-shared-numeric-null-root","input":null,"filter":".[0]","status":"compatible","expected":"ok"}
+{"name":"v3-shared-numeric-null-optional","input":null,"filter":".[0]?","status":"compatible","expected":"ok"}
+{"name":"v3-shared-numeric-invalid-computed-string","input":{"idx":"0","items":[7,8]},"filter":".items[.idx]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-shared-numeric-optional-computed-string","input":{"idx":"0","items":[7,8]},"filter":".items[.idx]?","status":"compatible","expected":"ok"}
