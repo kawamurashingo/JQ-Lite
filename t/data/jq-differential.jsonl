@@ -3471,3 +3471,11 @@
 {"name":"v3-shared-base64-text-decode-string","input":"aGVsbG8=","filter":"@base64d","status":"compatible","expected":"ok"}
 {"name":"v3-shared-base64-text-decode-empty","input":"","filter":"@base64d","status":"compatible","expected":"ok"}
 {"name":"v3-shared-base64-text-encode-stream","input":["a","b"],"filter":".[] | @base64","status":"compatible","expected":"ok"}
+{"name":"v3-shared-extreme-dispatch-max-object","input":[{"name":"a","score":3},{"name":"b","score":9},{"name":"c","score":5}],"filter":"max_by(.score)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-extreme-dispatch-min-object","input":[{"name":"a","score":3},{"name":"b","score":9},{"name":"c","score":5}],"filter":"min_by(.score)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-extreme-dispatch-max-number","input":[3,-2,7,5],"filter":"max_by(.)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-extreme-dispatch-min-number","input":[3,-2,7,5],"filter":"min_by(.)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-extreme-dispatch-max-empty","input":[],"filter":"max_by(.)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-extreme-dispatch-min-empty","input":[],"filter":"min_by(.)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-extreme-dispatch-max-rows","input":[[{"n":1},{"n":4}],[{"n":-3},{"n":2}]],"filter":".[] | max_by(.n)","status":"compatible","expected":"ok"}
+{"name":"v3-shared-extreme-dispatch-min-rows","input":[[{"n":1},{"n":4}],[{"n":-3},{"n":2}]],"filter":".[] | min_by(.n)","status":"compatible","expected":"ok"}

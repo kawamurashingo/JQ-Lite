@@ -371,6 +371,29 @@ Tracked `lib/**/*.pm` source decreases by 215 bytes,
 310,715 → 310500 bytes across 22 modules (versus `7915321c`).
 Tests/docs excluded. Issue #625 remains open.
 
+## Shared min_by/max_by dispatch (maintenance checkpoint)
+
+The existing `max_by(path)` and `min_by(path)` branches in `Filters.pm`
+performed identical argument normalization, array-only mapping, non-array
+passthrough and stream assignment. A single narrowly matched dispatcher
+now selects only the comparison mode (`max` or `min`) and calls the
+unchanged `_extreme_by` implementation. Its first-item tie behavior,
+null result on empty arrays or missing keys, value comparison and field
+projection are unchanged. The accepted grammar remains exactly
+`max_by(<nonempty argument>)` or `min_by(<nonempty argument>)`.
+
+Focused Perl regressions protect projected numeric and string keys,
+whole-value comparisons, empty arrays, absent paths, ties, scalars,
+nulls and multiple array streams. Eight jq 1.7 compatible differential
+fixtures cover supported ordinary extrema and ordered results.
+Non-array passthrough and first-item tie behavior are explicitly protected
+as existing JQ::Lite behavior rather than advertised as jq guarantees.
+No new dependencies, public API or syntax.
+
+Tracked `lib/**/*.pm` implementation source decreases by 355 bytes,
+310,500 → 310145 bytes (22 modules), against `12b281f1`.
+Tests/docs excluded. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

@@ -287,3 +287,4 @@ t/v3_shared_top_level_colon.t
 t/v3_shared_regex_validation.t
 t/v3_shared_delimited_formats.t
 t/v3_shared_base64_input.t
+t/v3_shared_extreme_dispatch.t
