@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Share CSV/TSV row dispatch and field formatting while preserving numeric SV identity, escapes and v2 scalar/container behavior.
     - Share test()/match() regex validation and function-specific errors while retaining existing safe compilation, captures and flags.
     - Reuse balanced one-character operator scanning for object-colon splitting while preserving literal, nested and null-field behavior.
     - Reuse common array/object iteration for standalone and path iterators, retaining strict/optional error and null/empty-stream semantics.

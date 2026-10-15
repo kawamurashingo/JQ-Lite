@@ -325,6 +325,29 @@ Implementation source in `Util/Transform.pm` decreases by 63 bytes;
 tracked `lib/**/*.pm` totals 311177 bytes (22 modules), versus
 `c593f71b`, excluding tests/docs. Issue #625 stays open.
 
+## Shared CSV/TSV row and field formatting (maintenance checkpoint)
+
+The existing `@csv` and `@tsv` row serializers duplicated array mapping,
+joining and scalar dispatch. Their field formatters also duplicated null,
+boolean, structured JSON and reference stringification. Two small shared
+helpers now perform that common work, while retaining separate quoted CSV
+versus escaped TSV output, the pre-stringification numeric SV flag check for
+CSV, scalar fields, and the v2 extension for nested containers. Array row
+ordering and empty rows are unchanged; structured values still use the
+existing UTF-8 JSON text conversion.
+
+Focused Perl regressions check numeric values versus numeric-looking strings,
+quoted and escaped punctuation, null/boolean values, structured fields, scalar
+fields, empty arrays and multi-row output ordering. Six jq 1.7 differential
+fixtures cover compatible ordinary row cases and output order; nested
+container/scalar-root extensions are tested as v2 behavior only, not mislabeled
+as jq-compatible. No new syntax, dependencies or public API changes; the
+test is in `MANIFEST`.
+
+Tracked `lib/**/*.pm` implementation decreases by 462 bytes,
+311,177 → 310715 bytes (22 modules), versus `42e45cc2`,
+excluding tests/docs. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

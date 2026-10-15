@@ -1964,26 +1964,22 @@ sub _parse_literal_argument {
     return $raw;
 }
 
-sub _apply_csv {
-    my ($value) = @_;
+sub _apply_delimited {
+    my ($value, $delimiter, $format) = @_;
 
     if (ref $value eq 'ARRAY') {
-        my @fields = map { _format_csv_field($_) } @$value;
-        return join(',', @fields);
+        return join $delimiter, map { $format->($_) } @$value;
     }
 
-    return _format_csv_field($value);
+    return $format->($value);
+}
+
+sub _apply_csv {
+    return _apply_delimited($_[0], ',', \&_format_csv_field);
 }
 
 sub _apply_tsv {
-    my ($value) = @_;
-
-    if (ref $value eq 'ARRAY') {
-        my @fields = map { _format_tsv_field($_) } @$value;
-        return join("\t", @fields);
-    }
-
-    return _format_tsv_field($value);
+    return _apply_delimited($_[0], "\t", \&_format_tsv_field);
 }
 
 sub _apply_base64 {
@@ -2081,8 +2077,8 @@ sub _apply_uri {
     return $encoded;
 }
 
-sub _format_csv_field {
-    my ($value) = @_;
+sub _format_delimited_field {
+    my ($value, $csv) = @_;
 
     return '' if !defined $value;
 
@@ -2090,45 +2086,23 @@ sub _format_csv_field {
         return $value ? 'true' : 'false';
     }
 
-    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        my $encoded = _apply_tojson($value);
-        return _quote_csv_text($encoded);
-    }
-
-    if (ref $value) {
-        my $stringified = "$value";
-        return _quote_csv_text($stringified);
-    }
-
-    if (_is_unquoted_csv_number($value)) {
+    # Preserve the numeric SV flag before any stringification.
+    if ($csv && !ref($value) && _is_unquoted_csv_number($value)) {
         return "$value";
     }
 
-    my $text = "$value";
-    return _quote_csv_text($text);
+    my $text = (ref $value eq 'ARRAY' || ref $value eq 'HASH')
+        ? _apply_tojson($value) : "$value";
+
+    return $csv ? _quote_csv_text($text) : _escape_tsv_text($text);
+}
+
+sub _format_csv_field {
+    return _format_delimited_field($_[0], 1);
 }
 
 sub _format_tsv_field {
-    my ($value) = @_;
-
-    return '' if !defined $value;
-
-    if (JSON::PP::is_bool($value)) {
-        return $value ? 'true' : 'false';
-    }
-
-    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        my $encoded = _apply_tojson($value);
-        return _escape_tsv_text($encoded);
-    }
-
-    if (ref $value) {
-        my $stringified = "$value";
-        return _escape_tsv_text($stringified);
-    }
-
-    my $text = "$value";
-    return _escape_tsv_text($text);
+    return _format_delimited_field($_[0], 0);
 }
 
 sub _quote_csv_text {

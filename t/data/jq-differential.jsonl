@@ -3456,3 +3456,9 @@
 {"name":"v3-shared-regex-validation-match-no-capture","input":"abc123","filter":"match(\"bc\")","status":"compatible","expected":"ok"}
 {"name":"v3-shared-regex-validation-test-invalid-flag","input":"abc","filter":"test(\"a\"; \"z\")","status":"compatible","expected":"runtime-error"}
 {"name":"v3-shared-regex-validation-match-invalid-flag","input":"abc","filter":"match(\"a\"; \"z\")","status":"compatible","expected":"runtime-error"}
+{"name":"v3-shared-csv-tsv-csv-mixed-row","input":["a,b","say \"hi\"",42,null,true,false],"filter":"@csv","status":"compatible","expected":"ok"}
+{"name":"v3-shared-csv-tsv-tsv-control-chars","input":["a\tb","line\nnext",42,null,true,false],"filter":"@tsv","status":"compatible","expected":"ok"}
+{"name":"v3-shared-csv-tsv-csv-numeric-string","input":[42,"42",0],"filter":"@csv","status":"compatible","expected":"ok"}
+{"name":"v3-shared-csv-tsv-csv-empty-row","input":[],"filter":"@csv","status":"compatible","expected":"ok"}
+{"name":"v3-shared-csv-tsv-tsv-empty-row","input":[],"filter":"@tsv","status":"compatible","expected":"ok"}
+{"name":"v3-shared-csv-tsv-csv-stream-order","input":[["a"],["b"]],"filter":".[] | @csv","status":"compatible","expected":"ok"}
