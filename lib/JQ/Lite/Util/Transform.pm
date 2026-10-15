@@ -1091,6 +1091,20 @@ sub _v3_array_index_or_null {
     return $index >= 0 && $index < @$array ? $array->[$index] : undef;
 }
 
+# Array/object stream expansion, shared by standalone and path-local [].
+# Optional []? only drops scalar targets; strict [] keeps its error class.
+sub _v3_iterate_values {
+    my ($value, $optional) = @_;
+    return @$value if ref $value eq 'ARRAY';
+    return values %$value if ref $value eq 'HASH';
+    return if $optional;
+    my $type = JQ::Lite::Value::type_of($value);
+    die JQ::Lite::Error::Evaluation->new(
+        message => 'Cannot iterate over ' . $type . ' ('
+            . _encode_json($value) . ')'
+    );
+}
+
 sub _traverse_v3_field_iterator {
     my ($input, $path, $steps) = @_;
     $steps ||= _parse_v3_literal_iterator_path($path);
@@ -1208,22 +1222,8 @@ sub _traverse_v3_field_iterator {
                 next;
             }
 
-            if (ref($value) eq 'ARRAY') {
-                push @next, @$value;
-            }
-            elsif (ref($value) eq 'HASH') {
-                # Preserve the library's established object-value order.
-                push @next, values %$value;
-            }
-            elsif (!$step->[1]) {
-                my $type = JQ::Lite::Value::type_of($value);
-                die JQ::Lite::Error::Evaluation->new(
-                    message => 'Cannot iterate over ' . $type . ' ('
-                        . _encode_json($value) . ')'
-                );
-            }
-            # []? emits no value for a scalar. It does not mask errors
-            # from previous field lookups or later strict stages.
+            # []? suppresses only iteration errors for the current stage.
+            push @next, _v3_iterate_values($value, $step->[1]);
         }
 
         @stream = @next;

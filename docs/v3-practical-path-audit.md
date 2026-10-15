@@ -261,6 +261,26 @@ This saves 106 source bytes in `Util/Transform.pm` (tracked `lib/**/*.pm`:
 313,210 → 313,104 bytes across 22 modules relative to `5507198c`),
 excluding tests/docs. No grammar or dependency expansion. #625 remains open.
 
+## Shared standalone/path iterator expansion (maintenance checkpoint)
+
+Standalone ` .[] ` / ` .[]? ` handling in `Filters.pm` and the final
+iterator step in `_traverse_v3_field_iterator` both expanded array elements,
+object values and raised the same structured scalar error. The small
+`_v3_iterate_values` helper consolidates only that shared expansion. Both
+callers retain their own input-stream iteration and pipeline ordering, and
+path-local optional markers still suppress only their own invalid iteration.
+The object's existing `values %hash` iteration order is unchanged.
+
+Focused Perl regressions check emitted null and boolean members versus empty
+streams, standalone and nested paths, arrays/objects, strict scalar errors,
+optional suppression, optional field suffixes and comma branches. Eleven jq
+1.7 differential cases cover the same supported scope and error categories.
+No new syntax or dependency is introduced and the added test is in `MANIFEST`.
+
+Tracked `lib/**/*.pm` implementation size decreases by 820 bytes,
+313,104 → 312,284 across 22 modules versus `d061cf7b`,
+excluding tests/docs. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

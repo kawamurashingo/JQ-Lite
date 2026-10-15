@@ -1022,31 +1022,13 @@ sub apply {
             return 1;
         }
 
-        # jq 1.7: .[] iterates arrays and objects, but raises a structured
-        # type error on scalars.  Its optional counterpart .[]? suppresses
-        # *only that iterator error*: it emits nothing on a scalar, not its
-        # string characters.  Both forms retain the same container stream.
+        # Standalone and path-local iterators share type and optional rules.
         if ($part eq '.[]' || $part eq '.[]?') {
             my $optional = $part eq '.[]?';
             @next_results = ();
             for my $item (@results) {
-                if (ref($item) eq 'ARRAY') {
-                    push @next_results, @$item;
-                    next;
-                }
-                if (ref($item) eq 'HASH') {
-                    # Preserve the existing object-value traversal order.
-                    push @next_results, values %$item;
-                    next;
-                }
-
-                next if $optional;
-
-                my $type = JQ::Lite::Value::type_of($item);
-                die JQ::Lite::Error::Evaluation->new(
-                    message => 'Cannot iterate over ' . $type
-                        . ' (' . JQ::Lite::Util::_encode_json($item) . ')'
-                );
+                push @next_results,
+                    JQ::Lite::Util::_v3_iterate_values($item, $optional);
             }
             @$out_ref = @next_results;
             return 1;
