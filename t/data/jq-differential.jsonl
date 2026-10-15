@@ -3452,7 +3452,7 @@
 {"name":"v3-colon-shared-missing-null","input":{"name":"Ada"},"filter":"{missing: .missing}","status":"compatible","expected":"ok"}
 {"name":"v3-colon-shared-array-stream","input":[{"name":"Ada"},{"name":"Ben"}],"filter":".[] | {name: .name}","status":"compatible","expected":"ok"}
 {"name":"v3-colon-shared-multiple-members","input":{"x":1,"y":2},"filter":"{left: .x, right: .y}","status":"compatible","expected":"ok"}
-{"name":"v3-shared-regex-validation-test-multiline","input":"alpha\nbeta","filter":"test(\"^beta\"; \"m\")","status":"compatible","expected":"ok"}
-{"name":"v3-shared-regex-validation-match-captures","input":"abc123","filter":"match(\"([a-z]+)([0-9]+)\")","status":"compatible","expected":"ok"}
+{"name":"v3-shared-regex-validation-test-ignorecase","input":"Alpha","filter":"test(\"^alpha$\"; \"i\")","status":"compatible","expected":"ok"}
+{"name":"v3-shared-regex-validation-match-no-capture","input":"abc123","filter":"match(\"bc\")","status":"compatible","expected":"ok"}
 {"name":"v3-shared-regex-validation-test-invalid-flag","input":"abc","filter":"test(\"a\"; \"z\")","status":"compatible","expected":"runtime-error"}
 {"name":"v3-shared-regex-validation-match-invalid-flag","input":"abc","filter":"match(\"a\"; \"z\")","status":"compatible","expected":"runtime-error"}

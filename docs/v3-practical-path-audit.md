@@ -315,8 +315,10 @@ embedded Perl code, and all existing regular-expression error text are
 preserved; the regex compiler is unchanged.
 
 Perl regressions exercise both result shapes, flags, array/null cases,
-invalid patterns and flags. Four jq 1.7 differential cases cover ordinary
-multiline/capture results and invalid flag error categories. No new syntax,
+invalid patterns and flags. Four jq 1.7 differential cases cover case-insensitive tests,
+no-capture match results and invalid flag error categories. This maintenance
+refactor does not claim full jq parity for `m` regex flag semantics or
+capture-group metadata; those remain separate compatibility audit items. No new syntax,
 CPAN dependency or public API is introduced, and the new test is in MANIFEST.
 
 Implementation source in `Util/Transform.pm` decreases by 63 bytes;
