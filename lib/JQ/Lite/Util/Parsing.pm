@@ -785,6 +785,10 @@ sub _evaluate_value_expression {
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
 
+    # select() emits its input or no values; use its filter dispatcher in
+    # constructors instead of treating an inner comparison as a boolean.
+    return ([], 0) if $copy =~ /^select\((.+)\)$/;
+
     # Decode compound JSON literals before inspecting expression operators
     # or treating brackets as paths. Nonliteral constructors retain fallback.
     if ($copy =~ /\A[\[\{]/) {

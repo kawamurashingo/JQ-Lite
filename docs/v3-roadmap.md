@@ -274,6 +274,15 @@ developer-release series; callers that intend conversion should use
 `tonumber()` or `to_number()` explicitly. Regex scalar coercion remains
 undecided and is not changed by the arithmetic work.
 
+The existing simple named-field arithmetic predicates now use that same
+typed evaluator and JSON comparator. They no longer coerce numeric strings
+or turn division/modulo errors into false. Supported constructors dispatch
+`select(...)` as a filter, preserving its selected input, zero-output and
+error behavior. See the [practical arithmetic contract](v3-arithmetic.md)
+for the type table, 404-case audit, retained nonnumeric jq overload
+differences and executable v2 migration examples. Predicate spelling and
+the separate plain/compound-assignment scope are unchanged.
+
 ### Assignment and update
 
 - Make update assignment (`|=`) emit the updated root value.
