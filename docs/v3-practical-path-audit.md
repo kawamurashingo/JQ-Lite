@@ -449,6 +449,28 @@ Tracked `lib/**/*.pm` implementation decreases by 324 bytes,
 309,379 → 309055 bytes (22 modules), relative to `a731f6ff`.
 No CPAN dependency, public API change or stable/main edits. #625 remains open.
 
+## Shared sort/sort_desc array dispatch (maintenance checkpoint)
+
+The original `sort` and `sort_desc` legacy branches in `Filters.pm`
+duplicated array type checks, results mapping and assignment. Their shared
+branch now chooses the comparison argument order while retaining the
+existing `_smart_cmp` implementation, sorted arrays, and non-array v2
+passthrough. Comparator construction moves from each ascending comparison
+to once per array, matching the pre-existing descending branch; it has no
+state or side effects. Neither comparator ordering nor duplicate handling
+is changed, and only the two original exact spellings are accepted.
+
+Perl regression tests protect numeric values, text and numeric-looking
+strings, duplicates, empty/single arrays, object/scalar/null passthrough,
+and ordered multi-row outputs. Five jq 1.7 differential fixtures cover
+only ordinary compatible `sort` inputs. `sort_desc` is a legacy extension
+and is protected by Perl tests, not labeled jq 1.7 compatible.
+
+Tracked `lib/**/*.pm` implementation source decreases 195 bytes,
+309,055 → 308860 bytes (22 modules), versus `ba9d60f4`.
+No new syntax, public API, dependency or stable/main change.
+Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

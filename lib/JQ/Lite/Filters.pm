@@ -1111,25 +1111,15 @@ sub apply {
             return 1;
         }
 
-        # support for sort
-        if ($part eq 'sort') {
-            @next_results = map {
-                ref $_ eq 'ARRAY' ? [ sort { JQ::Lite::Util::_smart_cmp()->($a, $b) } @$_ ] : $_
-            } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for sort_desc
-        if ($part eq 'sort_desc') {
+        # Share the array dispatch; only comparison direction differs.
+        if ($part eq 'sort' || $part eq 'sort_desc') {
+            my $desc = $part eq 'sort_desc';
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $cmp = JQ::Lite::Util::_smart_cmp();
-                    [ sort { $cmp->($b, $a) } @$_ ];
+                    [ sort { $desc ? $cmp->($b, $a) : $cmp->($a, $b) } @$_ ]
                 }
-                else {
-                    $_;
-                }
+                else { $_ }
             } @results;
             @$out_ref = @next_results;
             return 1;
