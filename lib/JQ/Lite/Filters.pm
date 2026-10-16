@@ -1610,22 +1610,13 @@ sub apply {
             return 1;
         }
 
-        # support for group_count(key)
-        if ($part =~ /^group_count\((.+)\)$/) {
-            my $key_path = $1;
-            @next_results = map {
-                JQ::Lite::Util::_group_count($_, $key_path)
-            } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for group_by(key)
-        if ($part =~ /^group_by\((.+)\)$/) {
-            my $key_path = $1;
-            @next_results = map {
-                JQ::Lite::Util::_group_by($_, $key_path)
-            } @results;
+        # Legacy groupers share path dispatch, not their output semantics.
+        if ($part =~ /^(group_count|group_by)\((.+)\)$/) {
+            my ($name, $key_path) = ($1, $2);
+            my $apply = $name eq 'group_by'
+                ? \&JQ::Lite::Util::_group_by
+                : \&JQ::Lite::Util::_group_count;
+            @next_results = map { $apply->($_, $key_path) } @results;
             @$out_ref = @next_results;
             return 1;
         }

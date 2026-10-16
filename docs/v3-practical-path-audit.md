@@ -546,6 +546,39 @@ Tracked `lib/**/*.pm` source decreases by 181 bytes,
 No new syntax, dependency or public API; `main` / stable v2 unchanged.
 Issue #625 stays open.
 
+## Shared group_by()/group_count() key projection (maintenance checkpoint)
+
+The legacy `group_by(path)` and `group_count(path)` implementations
+duplicated the same array-element key projection: entire items for
+`.`, otherwise the **first** result of the normalized traversal
+path (or undef when there are no results). A local
+`_first_group_key` helper now provides the identical operation.
+Their `Filters.pm` dispatch also reuses a single exact-name pattern,
+with the original function implementations selected by name.
+
+**Deliberately different semantics remain unchanged:** `group_by`
+requires an array, sorts groups using its existing smart-signature
+comparator and preserves original order within ties; missing/null
+projected keys use a private sentinel. `group_count` returns an
+empty hash for non-array input, counts by a string signature, and
+uses the literal `null` bucket for missing/null keys (which can
+collide with a literal string key `"null"`). No key encoding,
+sorting, comparator or group materialization was altered.
+
+A dedicated Perl regression covers projected, quoted, nested and
+whole-item paths, multi-output traversal (first result only),
+missing/null keys, legacy null bucket behavior, non-array and empty
+array behavior, numeric and array keys, and ordered multi-array
+streams. No jq 1.7 compatible fixtures are added because the
+historical `group_count` extension and `group_by` ordering and
+signature rules do not guarantee upstream matching. Existing
+jq differential CI remains a full merge gate.
+
+Tracked `lib/**/*.pm` source decreases by 179 bytes:
+307,000 → 306821 (22 Perl modules), based on
+`74a23ec8`. No syntax, dependency or public API changes.
+`main` and stable v2 are untouched. Issue #625 stays open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

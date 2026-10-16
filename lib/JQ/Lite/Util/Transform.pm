@@ -1672,6 +1672,14 @@ sub _key {
     }
 }
 
+# The groupers project the first path result; missing paths yield undef.
+sub _first_group_key {
+    my ($item, $key_path, $whole_item) = @_;
+    return $item if $whole_item;
+    my @values = _traverse($item, $key_path);
+    return @values ? $values[0] : undef;
+}
+
 sub _group_by {
     my ($array_ref, $path) = @_;
     die 'group_by(): input must be an array' unless ref $array_ref eq 'ARRAY';
@@ -1681,13 +1689,7 @@ sub _group_by {
     my @entries;
     my $index = 0;
     for my $item (@$array_ref) {
-        my $key_value;
-        if ($use_entire_item) {
-            $key_value = $item;
-        } else {
-            my @values = _traverse($item, $key_path);
-            $key_value = @values ? $values[0] : undef;
-        }
+        my $key_value = _first_group_key($item, $key_path, $use_entire_item);
 
         my $signature = defined $key_value ? _key($key_value) : "\0__JQ_LITE_UNDEF__";
         push @entries, {
@@ -2817,14 +2819,7 @@ sub _group_count {
 
     my %counts;
     for my $item (@$array_ref) {
-        my $key_value;
-        if ($use_entire_item) {
-            $key_value = $item;
-        }
-        else {
-            my @values = _traverse($item, $key_path);
-            $key_value = @values ? $values[0] : undef;
-        }
+        my $key_value = _first_group_key($item, $key_path, $use_entire_item);
 
         my $key = defined $key_value ? _key($key_value) : 'null';
         $counts{$key}++;
