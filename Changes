@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Share limit/drop/tail/chunks non-negative count validation without changing array slicing, v2 scalar passthrough or function-specific errors.
     - Share all()/any() stream dispatch and array/scalar quantifier evaluation while retaining v2 truthiness, empty streams, and short-circuit behavior.
     - Share max_by()/min_by() path normalization and array dispatch without changing selection, tie handling or v2 scalar passthrough.
     - Share @base64/@base64d input text normalization while preserving scalar type checks, null and boolean behavior, strict decoder validation, and UTF-8 output.
