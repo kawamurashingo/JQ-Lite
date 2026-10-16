@@ -521,6 +521,31 @@ Tracked `lib/**/*.pm` source decreases by 1109 bytes,
 No new syntax, dependencies or public API. Stable/main unchanged.
 Issue #625 remains open.
 
+## Reused unique_by() path normalization (maintenance checkpoint)
+
+The legacy `unique_by(path)` branch in `Filters.pm` duplicated the same
+whitespace trim, paired quote removal, whole-item `.` detection and
+leading-dot removal already implemented in
+`JQ::Lite::Util::_normalize_path_argument`. The branch now calls that
+existing helper; the exact `unique_by(...)` matcher and the
+deduplication loop are **unchanged**. The loop still retains the first
+element for each projected key, including its special absent/null
+signature, preserves array input order, and passes through v2 non-array
+inputs. No jq-style sorting or unique-by-key behavior is added.
+
+Focused Perl regressions cover projected and nested keys, quoted and
+whitespace-padded paths, whole-value deduplication, null/missing keys,
+first-occurrence order, scalars and empty arrays, multiple traversal
+results, v2 object/scalar passthrough and streams. These preserve legacy
+JQ::Lite `unique_by` semantics, which may differ from jq 1.7's
+key-sorted outputs; no new comparison fixture is mislabeled as compatible.
+The full existing jq 1.7 differential CI remains a merge gate.
+
+Tracked `lib/**/*.pm` source decreases by 181 bytes,
+307,181 → 307000 bytes (22 modules) against `a776c160`.
+No new syntax, dependency or public API; `main` / stable v2 unchanged.
+Issue #625 stays open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

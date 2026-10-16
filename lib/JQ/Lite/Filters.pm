@@ -1136,14 +1136,8 @@ sub apply {
 
         # support for unique_by(path)
         if ($part =~ /^unique_by\((.+?)\)$/) {
-            my $raw_path = $1;
-            $raw_path =~ s/^\s+|\s+$//g;
-
-            my $key_path = $raw_path;
-            $key_path =~ s/^['"](.*)['"]$/$1/;
-
-            my $use_entire_item = ($key_path eq '' || $key_path eq '.');
-            $key_path =~ s/^\.// unless $use_entire_item;
+            my ($key_path, $use_entire_item)
+                = JQ::Lite::Util::_normalize_path_argument($1);
 
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
