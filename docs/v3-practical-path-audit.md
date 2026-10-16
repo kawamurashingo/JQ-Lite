@@ -699,6 +699,33 @@ no dependency. The new undecided rows do not authorize a compatibility change
 or require string-slice feature growth for release. Issue #625 remains open
 for the remaining scope and migration review.
 
+## Shared drop()/tail() suffix slicing (maintenance checkpoint)
+
+The legacy `drop(n)` and `tail(n)` filters duplicated argument validation,
+array checks, suffix extraction, non-array passthrough, stream mapping and
+result assignment. A single narrowly matched `(drop|tail)(n)` branch
+now uses the existing `_parse_nonnegative_count` with each original
+function name in error messages. `drop` retains the suffix beginning at
+`n`, while `tail` retains the suffix beginning at `length - n`,
+clamped to zero. Starting beyond the last index returns an empty array.
+This is equivalent to the prior separate array branches for zero,
+equal/exceeding length and empty array cases. It does not affect
+`limit()` or `chunks()`.
+
+Focused Perl tests cover valid zero, one, exact-length, oversized and
+padded counts; empty/singleton arrays, numeric/string/object/null/boolean
+passthrough, invalid signs, fractions and text with exact function-specific
+errors, and ordered mixed array/scalar streams. Existing `t/drop.t`,
+`t/tail.t` and array-count validation suites remain in place. These
+are v2 practical extensions, not jq 1.7 syntax, so no false
+jq-compatible fixture is introduced. The full jq 1.7 differential suite
+still gates merging.
+
+Tracked `lib/**/*.pm` implementation decreases by 602 bytes,
+306,263 → 305661 bytes (22 modules), versus `90b50dc1`.
+No dependency, public API, grammar, `main` or stable-2.x change.
+Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

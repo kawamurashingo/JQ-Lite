@@ -298,3 +298,4 @@ t/v3_shared_group_key_projection.t
 t/v3_shared_first_projected_key.t
 t/v3_shared_median_calculation.t
 t/v3_practical_path_audit.t
+t/v3_shared_drop_tail_slicing.t
