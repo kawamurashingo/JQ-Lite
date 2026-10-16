@@ -58,7 +58,7 @@ operation.
 
 | Area | Example | jq | JQ::Lite 2.x | v3 status | Follow-up |
 | --- | --- | --- | --- | --- | --- |
-| Numeric coercion | `"1e3" * 1` | `"1e3"` (string repetition) | `1000` | **undecided** | arithmetic/coercion |
+| Numeric coercion | `"1e3" * 1` | `"1e3"` (string repetition) | `1000` | **change in v3** | strict numeric rejection; jq string repetition remains outside scope |
 | Boolean arithmetic | `true + 1` | type error | `2` | **change in v3** | arithmetic/coercion |
 | Vectorised rounding | `[1.2,"2.8","x"] \| floor` | type error | `[1,2,"x"]` | **preserve** | none |
 | Lossless JSON parsing | `["1","true","bad"] \| fromjson` | type error (input is not a string) | `[1,true,"bad"]` (element-wise, invalid text passes through) | **preserve** | none |
@@ -68,6 +68,12 @@ This category is especially important when moving filters between the tools:
 successful JQ::Lite output does not imply that jq will accept the same input
 types. Conversely, jq operator overloading must not be assumed to use Perl's
 numeric coercion in JQ::Lite.
+
+The v3 numeric-string decision is now implemented by the
+[strict arithmetic contract](v3-arithmetic.md): numeric arithmetic rejects
+strings, including numeric-looking strings. jq's string-repetition overload
+remains unsupported. Other undecided coercion rows retain their separate
+decision status.
 
 ### C. Comparison
 

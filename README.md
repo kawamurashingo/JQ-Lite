@@ -228,6 +228,8 @@ for compatibility guarantees.
 
 ## Documentation
 
+* [`docs/jq-compatibility.md`](docs/jq-compatibility.md) — practical v3 compatibility matrix, documented differences and unsupported scope
+* [`docs/v3-migration.md`](docs/v3-migration.md) — v2-to-v3 result, type, text, update and error migration guide
 * [`docs/cli-contract.md`](docs/cli-contract.md) — **stable, test-backed CLI contract**
 * [`docs/library-contract.md`](docs/library-contract.md) — **stable Library API compatibility contract**
 * [`docs/library-integration.md`](docs/library-integration.md) — examples for downstream Perl/CPAN users

@@ -1653,6 +1653,10 @@ Unresolved items retain their 2.x behaviour in 3.0.
 
 ## Migration guidance
 
+Use the [practical compatibility matrix](jq-compatibility.md) and
+[v2-to-v3 migration guide](v3-migration.md) as the user-facing entry points.
+The detailed decisions and examples below remain the implementation record.
+
 Applications that need one code path across 2.x and 3.x should avoid relying
 on the changed edge cases until they can require 3.0. Some changed semantics,
 including the result of update assignment, cannot be normalized by appending a
