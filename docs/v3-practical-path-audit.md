@@ -579,6 +579,37 @@ Tracked `lib/**/*.pm` source decreases by 179 bytes:
 `74a23ec8`. No syntax, dependency or public API changes.
 `main` and stable v2 are untouched. Issue #625 stays open.
 
+## Shared first projected key across unique_by/group filters (maintenance checkpoint)
+
+The legacy `unique_by(path)` loop repeated the same first-key
+projection as `group_by(path)` and `group_count(path)`: use the whole
+item for `.`, otherwise traverse the normalized path and take the first
+result, or undef for no result. The previously introduced private
+`_first_group_key` is now named `_first_projected_key` and reused
+by all three filters. The code that constructs key signatures and the
+deduplication/grouping/counting loops remain unchanged.
+
+Crucial v2 differences stay intact: `unique_by` retains the first
+occurrence in input order and passes through non-arrays; `group_by`
+orders groups using its original signature comparison and errors on
+non-arrays; `group_count` returns a hash of signature counts and `{}`
+on non-arrays. Missing/null keys share the original sentinel in
+`unique_by` and `group_by`, while `group_count` still uses the
+literal `null` bucket (including its historical collision with the
+string `"null"`). Multi-output paths still use only the first value.
+
+The dedicated Perl regressions exercise ordinary, quoted and nested
+paths, whole-item input, multi-result paths, missing/null keys,
+stable first-occurrence ordering, each function's distinct non-array
+behavior, and independent ordered array streams. No new jq 1.7
+fixtures falsely assert compatibility with intentional v2 extensions.
+The full jq 1.7 differential suite remains required on the final SHA.
+
+Tracked `lib/**/*.pm` implementation decreases by 171 bytes,
+306,821 → 306650 bytes (22 modules), from `8dcd197c`.
+No new syntax, public API, dependencies or edits to `main` or stable
+2.x. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

@@ -1145,14 +1145,9 @@ sub apply {
                     my @deduped;
 
                     for my $element (@$_) {
-                        my $key_value;
-
-                        if ($use_entire_item) {
-                            $key_value = $element;
-                        } else {
-                            my @values = JQ::Lite::Util::_traverse($element, $key_path);
-                            $key_value = @values ? $values[0] : undef;
-                        }
+                        my $key_value = JQ::Lite::Util::_first_projected_key(
+                            $element, $key_path, $use_entire_item
+                        );
 
                         my $signature;
                         if (defined $key_value) {
