@@ -394,6 +394,36 @@ Tracked `lib/**/*.pm` implementation source decreases by 355 bytes,
 310,500 → 310145 bytes (22 modules), against `12b281f1`.
 Tests/docs excluded. Issue #625 remains open.
 
+## Shared all()/any() quantifier evaluation (maintenance checkpoint)
+
+The v2 `all`/`any` filter branches duplicated the same accepted regex
+spelling, optional argument parsing and output-stream mapping. Likewise,
+`Util/Paths.pm` duplicated iteration over array elements, expression
+evaluation, non-array fallback, truthiness and short-circuit logic.
+A shared `_apply_quantifier` now handles that iteration, retaining the
+existing private `_apply_all`/`_apply_any` wrappers and their distinct
+return values. The dispatcher selects the original wrapper by name,
+without broadening accepted syntax or changing the builtin registry.
+
+Crucial v2 compatibility: `all` on an empty array is true and `any`
+is false; on an existing scalar, `all(expr)` with no emitted values
+remains false, despite jq's vacuous-truth behavior for `all(empty)`.
+Existing truthiness for zero, empty text/containers and null is
+also unchanged, as are per-item order and short-circuit evaluation.
+`all()`/`any()` without an argument remain accepted v2 spellings,
+though jq 1.7 does not accept those empty-parentheses spellings.
+
+Focused Perl tests cover empty arrays and expressions, true/false,
+scalar fallbacks, first false/true short-circuits, callback result
+streams and ordered input streams. Twelve jq 1.7 differential fixtures
+cover only ordinary compatible quantifier spellings and outputs;
+legacy-only behavior stays in Perl tests rather than being incorrectly
+claimed jq-compatible. No new dependency, public API or grammar.
+
+Implementation source in `lib/**/*.pm` decreases by 766 bytes,
+310,145 → 309379 bytes (22 modules), versus `77dbdd93`.
+Tests/docs excluded. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
