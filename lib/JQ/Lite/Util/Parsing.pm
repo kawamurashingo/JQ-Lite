@@ -785,6 +785,10 @@ sub _evaluate_value_expression {
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
 
+    # select() emits its input or no values; use its filter dispatcher in
+    # constructors instead of treating an inner comparison as a boolean.
+    return ([], 0) if $copy =~ /^select\((.+)\)$/;
+
     # Decode compound JSON literals before inspecting expression operators
     # or treating brackets as paths. Nonliteral constructors retain fallback.
     if ($copy =~ /\A[\[\{]/) {
@@ -953,31 +957,7 @@ sub _evaluate_value_expression {
 }
 
 sub _apply_addition {
-    my ($left, $right) = @_;
-
-    my $left_type  = JQ::Lite::Value::type_of($left);
-    my $right_type = JQ::Lite::Value::type_of($right);
-
-    return $right if $left_type eq 'null';
-    return $left  if $right_type eq 'null';
-
-    if ($left_type eq 'number' && $right_type eq 'number') {
-        return $left + $right;
-    }
-
-    if ($left_type eq 'string' && $right_type eq 'string') {
-        return "$left$right";
-    }
-
-    if ($left_type eq 'array' && $right_type eq 'array') {
-        return [ @$left, @$right ];
-    }
-
-    if ($left_type eq 'object' && $right_type eq 'object') {
-        return { %$left, %$right };
-    }
-
-    die "addition operands must have compatible jq types ($left_type + $right_type)";
+    return JQ::Lite::Expression::_apply_addition(@_);
 }
 
 sub _coerce_number_strict {

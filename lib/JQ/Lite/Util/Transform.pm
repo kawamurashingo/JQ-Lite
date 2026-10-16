@@ -1421,16 +1421,14 @@ sub _evaluate_condition {
         return _compare_values($item, $operator, $right) if $parsed;
     }
 
-    # support for numeric expressions like: select(.a + 5 > 10)
+    # Keep the v2 predicate spelling, but share v3 arithmetic type/errors.
     if ($cond =~ /^\s*(\.\w+)\s*([\+\-\*\/%])\s*(-?\d+(?:\.\d+)?)\s*(==|!=|>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/) {
         my ($path, $op1, $rhs1, $cmp, $rhs2) = ($1, $2, $3, $4, $5);
-        my @values = _traverse($item, substr($path, 1));
-        my $lhs = $values[0];
-    
-        return 0 unless defined $lhs && $lhs =~ /^-?\d+(?:\.\d+)?$/;
-    
-        my $expr = _apply_numeric_operator($lhs, $op1, $rhs1);
-        return _compare_numeric_values($expr, $cmp, $rhs2);
+        my ($values, $ok) = _evaluate_value_expression(
+            undef, $item, "$path $op1 $rhs1"
+        );
+        return $ok && @$values
+            && _compare_values($values->[0], $cmp, 0 + $rhs2);
     }
 
     # support for the contains operator: select(.tags contains "perl")
@@ -1507,34 +1505,6 @@ sub _evaluate_condition {
             return 1 if _compare_values($field_val, $op, $value);
         }
     }
-
-    return 0;
-}
-
-sub _apply_numeric_operator {
-    my ($lhs, $operator, $rhs) = @_;
-
-    return $lhs + $rhs if $operator eq '+';
-    return $lhs - $rhs if $operator eq '-';
-    return $lhs * $rhs if $operator eq '*';
-    return undef if ($operator eq '/' || $operator eq '%') && $rhs == 0;
-    return $lhs / $rhs if $operator eq '/';
-    return $lhs % $rhs if $operator eq '%';
-
-    return undef;
-}
-
-sub _compare_numeric_values {
-    my ($lhs, $operator, $rhs) = @_;
-
-    return 0 unless defined $lhs && defined $rhs;
-
-    return $lhs == $rhs if $operator eq '==';
-    return $lhs != $rhs if $operator eq '!=';
-    return $lhs >= $rhs if $operator eq '>=';
-    return $lhs <= $rhs if $operator eq '<=';
-    return $lhs >  $rhs if $operator eq '>';
-    return $lhs <  $rhs if $operator eq '<';
 
     return 0;
 }

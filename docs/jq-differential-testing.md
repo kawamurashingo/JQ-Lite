@@ -34,6 +34,8 @@ The runner sends the same single JSON input to both CLIs in compact-output
 mode, decodes each emitted JSON value, canonicalizes object-key ordering, and
 compares the **ordered** result stream. It compares success versus runtime
 error for cases where exact diagnostic messages and exit-code numbers differ.
+Both CLI invocations put `--` before the filter, so expressions beginning
+with unary minus are passed as filters rather than parsed as CLI options.
 
 ## Compatibility statuses
 
