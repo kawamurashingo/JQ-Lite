@@ -1450,18 +1450,7 @@ sub apply {
                         push @numbers, JQ::Lite::Util::_project_numeric_values($element, $key_path, $use_entire_item);
                     }
 
-                    if (@numbers) {
-                        @numbers = sort { $a <=> $b } @numbers;
-                        my $count  = @numbers;
-                        my $middle = int($count / 2);
-                        if ($count % 2) {
-                            $numbers[$middle];
-                        } else {
-                            ($numbers[$middle - 1] + $numbers[$middle]) / 2;
-                        }
-                    } else {
-                        undef;
-                    }
+                    JQ::Lite::Util::_median_value(@numbers);
                 }
                 else {
                     $_;

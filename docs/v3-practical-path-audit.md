@@ -610,6 +610,31 @@ Tracked `lib/**/*.pm` implementation decreases by 171 bytes,
 No new syntax, public API, dependencies or edits to `main` or stable
 2.x. Issue #625 remains open.
 
+## Shared median calculation (maintenance checkpoint)
+
+`median` and `median_by(path)` now share the numeric sort, odd-count middle
+selection and even-count middle-pair average in `_median_value`. Each caller
+keeps its existing numeric extraction or path projection unchanged. The even
+case still uses `(left + right) / 2`, preserving the original arithmetic
+rather than substituting percentile interpolation.
+
+The v2 boundary remains deliberate: `median` passes an empty input array
+through as `[]`, whereas `median_by` emits JSON null for an empty array.
+Both emit null when a nonempty array has no eligible numeric values and pass
+non-array inputs through unchanged. Numeric-looking strings and JSON booleans
+retain their existing coercion. Projected paths still include every eligible
+numeric output, rather than selecting only the first result.
+
+The focused regression covers odd/even counts, zero, negative/fractional
+numbers, numeric strings, booleans, ignored values, empty/null/non-array
+inputs, normalized and nested paths, multi-output projections and ordered
+streams. These are retained v2 extensions, so no jq 1.7 fixture claims them
+as jq builtins; the full existing differential suite remains a merge gate.
+
+Tracked `lib/**/*.pm` implementation decreases by 387 bytes,
+306,650 → 306,263 bytes (22 modules), from `dff0f110`.
+No new syntax, public API or dependency. Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,

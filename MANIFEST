@@ -296,3 +296,4 @@ t/v3_shared_sum_avg_by.t
 t/v3_unique_by_shared_path_normalization.t
 t/v3_shared_group_key_projection.t
 t/v3_shared_first_projected_key.t
+t/v3_shared_median_calculation.t

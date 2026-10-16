@@ -39,14 +39,9 @@ sub register {
         my ($owner, $inputs) = @_;
         return [ map {
             if (ref($_) eq 'ARRAY' && @{$_}) {
-                my @numbers = sort { $a <=> $b }
-                    JQ::Lite::Util::_extract_numeric_values($_);
-                if (@numbers) {
-                    my $middle = int(@numbers / 2);
-                    @numbers % 2 ? $numbers[$middle]
-                        : ($numbers[$middle - 1] + $numbers[$middle]) / 2;
-                }
-                else { undef }
+                JQ::Lite::Util::_median_value(
+                    JQ::Lite::Util::_extract_numeric_values($_)
+                );
             }
             else { $_ }
         } @{$inputs} ];
