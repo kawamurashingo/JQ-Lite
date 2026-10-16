@@ -100,8 +100,8 @@ while (my $line = <$fh>) {
     push @input_args, map { encode('UTF-8', $_) } @$cli_args;
     my $input = $case->{raw_input} ? encode('UTF-8', $case->{input})
         : $json->encode($case->{input}) . "\n";
-    my $jq = run_command([$jq_bin, '-c', @input_args, $case->{filter}], $input);
-    my $lite = run_command([$^X, '-I' . $lib_dir, $lite_bin, '-c', @input_args, $case->{filter}], $input);
+    my $jq = run_command([$jq_bin, '-c', @input_args, '--', $case->{filter}], $input);
+    my $lite = run_command([$^X, '-I' . $lib_dir, $lite_bin, '-c', @input_args, '--', $case->{filter}], $input);
     my $jq_kind = result_kind($jq, 0);
     my $lite_kind = result_kind($lite, 1);
 
