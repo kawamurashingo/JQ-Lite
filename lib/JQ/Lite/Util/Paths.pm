@@ -407,6 +407,14 @@ sub _apply_container_iterator_update_assignment {
 sub _apply_assignment {
     my ($self, $item, $path, $value_spec, $operator) = @_;
 
+    # The legacy setter only supports literal numeric brackets. Reject
+    # other selectors before it can silently assign a truncated prefix.
+    if (defined($path) && $path =~ /\[(?!-?\d+\])/) {
+        die JQ::Lite::Error::Evaluation->new(
+            message => 'Plain/compound assignment requires literal numeric indices'
+        );
+    }
+
     return $item unless defined $item;
     return $item unless defined $path && length $path;
 
