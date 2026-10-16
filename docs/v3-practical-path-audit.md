@@ -471,6 +471,30 @@ Tracked `lib/**/*.pm` implementation source decreases 195 bytes,
 No new syntax, public API, dependency or stable/main change.
 Issue #625 remains open.
 
+## Shared variance/stddev population statistics (maintenance checkpoint)
+
+The `variance` and `stddev` filters duplicated numeric extraction,
+mean calculation, population variance and non-array passthrough. The
+existing exact-name dispatchers now share one array mapping block.
+The `_extract_numeric_values` helper and the arithmetic expression
+(`sum(map { (x - mean) ** 2 }) / count`) remain unchanged, with the
+same floating-point operation order. Only `stddev` applies `sqrt`
+to the resulting variance. Empty arrays or arrays with no eligible
+numbers still return null, and scalar/object/null input remains
+unchanged. No change to grammar or public API.
+
+Perl regression tests cover ordinary positive and negative values,
+singleton arrays, numeric-looking strings, booleans, excluded invalid
+values, empty/nonnumeric arrays, non-array passthrough, population
+rather than sample variance, and output-stream ordering. These two
+practical v2 extensions are not treated as jq 1.7-compatible builtins:
+no misleading differential fixture is added. The full existing jq
+1.7 differential CI must still succeed.
+
+Tracked `lib/**/*.pm` implementation is reduced by 570 bytes,
+308,860 → 308290 bytes (22 modules), compared with
+`7d1355d`. No dependency or stable/main edit. #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
