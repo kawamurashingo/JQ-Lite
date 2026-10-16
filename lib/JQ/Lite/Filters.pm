@@ -1188,45 +1188,20 @@ sub apply {
             return 1;
         }
 
-        # support for drop(n)
-        if ($part =~ /^drop\((.+)\)$/) {
-            my $count = _parse_nonnegative_count($1, 'drop', 'count');
+        # drop/tail differ only in the start of the retained suffix.
+        if ($part =~ /^(drop|tail)\((.+)\)$/) {
+            my ($name, $raw_count) = ($1, $2);
+            my $count = _parse_nonnegative_count($raw_count, $name, 'count');
+
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
-                    if ($count >= @$arr) {
-                        [];
-                    } else {
-                        [ @$arr[$count .. $#$arr] ];
-                    }
-                } else {
-                    $_;
+                    my $start = $name eq 'tail' ? @$arr - $count : $count;
+                    $start = 0 if $start < 0;
+                    $start > $#$arr ? [] : [ @$arr[$start .. $#$arr] ];
                 }
+                else { $_ }
             } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for tail(n)
-        if ($part =~ /^tail\((.+)\)$/) {
-            my $count = _parse_nonnegative_count($1, 'tail', 'count');
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $arr = $_;
-
-                    if ($count == 0 || !@$arr) {
-                        [];
-                    } else {
-                        my $start = @$arr - $count;
-                        $start = 0 if $start < 0;
-
-                        [ @$arr[$start .. $#$arr] ];
-                    }
-                } else {
-                    $_;
-                }
-            } @results;
-
             @$out_ref = @next_results;
             return 1;
         }
