@@ -290,3 +290,4 @@ t/v3_shared_base64_input.t
 t/v3_shared_extreme_dispatch.t
 t/v3_shared_all_any_quantifier.t
 t/v3_shared_array_count_validation.t
+t/v3_shared_sort_direction.t

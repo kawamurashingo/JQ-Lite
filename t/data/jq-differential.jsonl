@@ -3491,3 +3491,8 @@
 {"name":"v3-shared-quantifier-any-expr-false","input":[{"ok":false},{"ok":false}],"filter":"any(.ok)","status":"compatible","expected":"ok"}
 {"name":"v3-shared-quantifier-all-ordered-rows","input":[[true,true],[false,true]],"filter":".[] | all","status":"compatible","expected":"ok"}
 {"name":"v3-shared-quantifier-any-ordered-rows","input":[[false,true],[false,false]],"filter":".[] | any","status":"compatible","expected":"ok"}
+{"name":"v3-shared-sort-direction-numbers","input":[3,1,2],"filter":"sort","status":"compatible","expected":"ok"}
+{"name":"v3-shared-sort-direction-text","input":["z","a","b"],"filter":"sort","status":"compatible","expected":"ok"}
+{"name":"v3-shared-sort-direction-empty","input":[],"filter":"sort","status":"compatible","expected":"ok"}
+{"name":"v3-shared-sort-direction-duplicates","input":[3,1,3,2],"filter":"sort","status":"compatible","expected":"ok"}
+{"name":"v3-shared-sort-direction-multiple-rows","input":[[3,1],[5,2]],"filter":".[] | sort","status":"compatible","expected":"ok"}
