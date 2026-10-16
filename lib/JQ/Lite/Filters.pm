@@ -1655,47 +1655,21 @@ sub apply {
             return 1;
         }
 
-        # support for variance
-        if ($part eq 'variance') {
+        # Both array statistics share population variance calculation.
+        # Standard deviation alone takes the square root.
+        if ($part eq 'variance' || $part eq 'stddev') {
+            my $stddev = $part eq 'stddev';
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my @numbers = JQ::Lite::Util::_extract_numeric_values($_);
-
-                    if (@numbers) {
-                        my $mean = sum(@numbers) / @numbers;
-                        sum(map { ($_ - $mean) ** 2 } @numbers) / @numbers;
-                    }
-                    else {
-                        undef;
-                    }
-                }
-                else {
-                    $_;
-                }
-            } @results;
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for stddev
-        if ($part eq 'stddev') {
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my @numbers = JQ::Lite::Util::_extract_numeric_values($_);
-
                     if (@numbers) {
                         my $mean = sum(@numbers) / @numbers;
                         my $variance = sum(map { ($_ - $mean) ** 2 } @numbers) / @numbers;
-                        sqrt($variance);
+                        $stddev ? sqrt($variance) : $variance;
                     }
-                    else {
-                        undef;
-                    }
+                    else { undef }
                 }
-                else {
-                    $_;
-                }
+                else { $_ }
             } @results;
 
             @$out_ref = @next_results;
