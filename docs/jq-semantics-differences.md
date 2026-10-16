@@ -90,10 +90,19 @@ currently jq-compatible case by accident.
 | Path through a missing field | `{}` with `.missing.value` | one `null` result | no results | **change in v3** | null/missing/path semantics |
 | Invalid array field path | `{"a":[]}` with `.a.value` | type error | no results | **undecided** | path error policy |
 | Numeric index on an object | `{}` with `.[5]` | type error | one `null` result | **change in v3** | path error policy |
+| Ordinary field on a scalar | `7` with `.name` | type error | no results | **undecided** | ordinary-field error policy; optional access is audited separately |
+| Bracket slice on a string | `"abcd"` with `.[1:3]` | `"bc"` | `"abcd"` (passes the string through) | **undecided** | string bracket-slice scope |
 
 JQ::Lite therefore distinguishes a missing traversal (an empty result stream)
 from an explicit JSON null in direct path output, even though comparisons such
 as `.missing == null` currently treat them alike.
+
+The scalar-field and string-slice rows were verified against stable 2.59
+(`6880c304`) and v3 (`ac4a1382`) in the practical path audit. Their v2 results
+are also still the v3 results at that checkpoint. Recording these differences
+does not approve a semantic change or add string-slice grammar to the v3
+release goal. The existing `slice(start,length)` function is a separate v2
+extension, not a jq builtin or a synonym for bracket slicing.
 
 ### E. Iterators and pipelines
 
