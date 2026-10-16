@@ -11,7 +11,7 @@ promise full jq assignment grammar.
 | Form | Input used by the RHS | Output / scope |
 | --- | --- | --- |
 | `.a = value` | Original root for an existing path/variable RHS | One root with a literal, copied path value or variable; existing named fields and compact literal numeric indices |
-| `.a |= filter` | Old selected target, null for a missing target | Updated root; empty RHS deletes; first accepted RHS value replaces |
+| `.a \|= filter` | Old selected target, null for a missing target | Updated root; empty RHS deletes; first accepted RHS value replaces |
 | `.a += n`, `-=`, `*=`, `/=` | Existing target plus RHS resolved from the root | Existing v2 numeric-coercion behavior; not aliases for strict v3 expression operators |
 
 For ordinary assignment, compact `[N]` / `[-N]` indices retain existing
@@ -88,7 +88,7 @@ The audit compares 95 cases with jq 1.7:
 | --- | ---: | --- |
 | Ordinary assignment | 23 | 19 compatible, four known differences |
 | Existing compound assignment | 42 | Seven compatible, 35 known differences |
-| Audited `|=` update | 14 | All compatible |
+| Audited `\|=` update | 14 | All compatible |
 | Unsupported bracket targets rejected by this change | 10 | Unsupported; structured-error regression |
 | Other unsupported stream/target forms | 6 | Unsupported; no incidental-result promise |
 
