@@ -408,8 +408,10 @@ sub _apply_assignment {
     my ($self, $item, $path, $value_spec, $operator) = @_;
 
     # The legacy setter only supports literal numeric brackets. Reject
-    # other selectors before it can silently assign a truncated prefix.
-    if (defined($path) && $path =~ /\[(?!-?\d+\])/) {
+    # other selectors or suffixes after a numeric bracket before the
+    # parser can silently assign a truncated prefix or a synthetic key.
+    if (defined($path) &&
+        ($path =~ /\[(?!-?\d+\])/ || $path =~ /\[-?\d+\](?![.\[]|\z)/)) {
         die JQ::Lite::Error::Evaluation->new(
             message => 'Plain/compound assignment requires literal numeric indices'
         );
