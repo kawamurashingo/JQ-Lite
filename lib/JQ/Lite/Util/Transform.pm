@@ -153,6 +153,15 @@ sub _extract_numeric_values {
     } @$values;
 }
 
+# Share only the numeric median; callers retain their own input policies.
+sub _median_value {
+    return undef unless @_;
+    my @numbers = sort { $a <=> $b } @_;
+    my $middle = int(@numbers / 2);
+    return @numbers % 2 ? $numbers[$middle]
+        : ($numbers[$middle - 1] + $numbers[$middle]) / 2;
+}
+
 sub _normalize_percentile {
     my ($value) = @_;
 
