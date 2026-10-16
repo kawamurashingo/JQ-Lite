@@ -45,7 +45,8 @@ That replaces the whole `a` array instead of assigning the slice. V3 now
 raises `JQ::Lite::Error::Evaluation` for these targets before resolving the
 RHS or mutating the root. The same restriction applies to plain/compound
 iterator, computed, quoted, internally spaced and nested unsupported bracket
-selectors, including a null input. These forms are classified as unsupported
+selectors, as well as an optional suffix after a numeric index (`.a[0]?`),
+including on a null input. These forms are classified as unsupported
 and are not jq-compatible assignment claims.
 
 Use existing compact literal indices for known slots, such as `.a[0] = 9`.
@@ -82,20 +83,20 @@ advertised as general filter-valued plain assignment.
 
 ## Reproducible behavior matrix
 
-The audit compares 95 cases with jq 1.7:
+The audit compares 101 cases with jq 1.7:
 
 | Scope | Cases | Classification |
 | --- | ---: | --- |
 | Ordinary assignment | 23 | 19 compatible, four known differences |
 | Existing compound assignment | 42 | Seven compatible, 35 known differences |
 | Audited `\|=` update | 14 | All compatible |
-| Unsupported bracket targets rejected by this change | 10 | Unsupported; structured-error regression |
+| Unsupported bracket targets rejected by this change | 16 | Unsupported; structured-error regression |
 | Other unsupported stream/target forms | 6 | Unsupported; no incidental-result promise |
 
-Thus 40 cases are compatible, 39 are known differences and 16 are unsupported.
-The shared differential file gains 94 cases and annotates one existing case.
-`assignment_v3` outcomes protect 89 current results/errors through the public
-Library API; the six unpromised forms are deliberately excluded. The ten
+Thus 40 cases are compatible, 39 are known differences and 22 are unsupported.
+The shared differential file gains 100 cases and annotates one existing case.
+`assignment_v3` outcomes protect 95 current results/errors through the public
+Library API; the six unpromised forms are deliberately excluded. The sixteen
 new selector rejections check the structured Evaluation error even though
 their unsupported differential fixtures are not presented as jq parity.
 
