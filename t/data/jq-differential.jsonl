@@ -4029,3 +4029,9 @@
 {"assignment_scope":"unsupported-stream","expected":"ok","filter":". = 9","input":{"a":1},"name":"assignment-audit-outside-root-plain","status":"unsupported"}
 {"assignment_scope":"unsupported-stream","expected":"ok","filter":".a[-1] |= . + 1","input":{"a":[1,2]},"name":"assignment-audit-outside-negative-update","status":"unsupported"}
 {"assignment_scope":"unsupported-stream","expected":"ok","filter":".a = .b + 1","input":{"a":0,"b":2},"name":"assignment-audit-outside-arithmetic-path-rhs","status":"unsupported"}
+{"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".a[0]? = 9","input":{"a":[{"?":1}]},"name":"assignment-audit-rejected-plain-optional-index","status":"unsupported"}
+{"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".a[0]? += 1","input":{"a":[{"?":1}]},"name":"assignment-audit-rejected-compound-optional-index","status":"unsupported"}
+{"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".a[-1]? = 9","input":{"a":[{"?":1}]},"name":"assignment-audit-rejected-plain-optional-negative-index","status":"unsupported"}
+{"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".[0]? = 9","input":[{"?":1}],"name":"assignment-audit-rejected-plain-optional-root-index","status":"unsupported"}
+{"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".a[0]?.n = 9","input":{"a":[{"?":{"n":1}}]},"name":"assignment-audit-rejected-plain-optional-index-suffix","status":"unsupported"}
+{"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".a[0]? = 9","input":null,"name":"assignment-audit-rejected-plain-optional-index-null-root","status":"unsupported"}
