@@ -1193,14 +1193,7 @@ sub apply {
 
         # support for limit(n)
         if ($part =~ /^limit\((.+)\)$/) {
-            my $limit_str = $1;
-            $limit_str =~ s/^\s+|\s+$//g;
-
-            if ($limit_str !~ /^\d+$/) {
-                die "limit(): count must be a non-negative integer";
-            }
-
-            my $limit = $limit_str + 0;
+            my $limit = _parse_nonnegative_count($1, 'limit', 'count');
 
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
@@ -1218,14 +1211,7 @@ sub apply {
 
         # support for drop(n)
         if ($part =~ /^drop\((.+)\)$/) {
-            my $count_str = $1;
-            $count_str =~ s/^\s+|\s+$//g;
-
-            if ($count_str !~ /^\d+$/) {
-                die "drop(): count must be a non-negative integer";
-            }
-
-            my $count = $count_str + 0;
+            my $count = _parse_nonnegative_count($1, 'drop', 'count');
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
@@ -1244,14 +1230,7 @@ sub apply {
 
         # support for tail(n)
         if ($part =~ /^tail\((.+)\)$/) {
-            my $count_str = $1;
-            $count_str =~ s/^\s+|\s+$//g;
-
-            if ($count_str !~ /^\d+$/) {
-                die "tail(): count must be a non-negative integer";
-            }
-
-            my $count = $count_str + 0;
+            my $count = _parse_nonnegative_count($1, 'tail', 'count');
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
@@ -1275,14 +1254,7 @@ sub apply {
 
         # support for chunks(n)
         if ($part =~ /^chunks\((.+)\)$/) {
-            my $size_str = $1;
-            $size_str =~ s/^\s+|\s+$//g;
-
-            if ($size_str !~ /^\d+$/) {
-                die "chunks(): size must be a non-negative integer";
-            }
-
-            my $size = $size_str + 0;
+            my $size = _parse_nonnegative_count($1, 'chunks', 'size');
             $size = 1 if $size < 1;
 
             @next_results = map {
@@ -2044,6 +2016,16 @@ sub apply {
         }
 
     return 0;
+}
+
+# Common legacy array-count argument validation. Keep each original
+# function name and error label, and do not broaden accepted syntax.
+sub _parse_nonnegative_count {
+    my ($raw, $name, $label) = @_;
+    $raw =~ s/^\s+|\s+$//g;
+    die "$name(): $label must be a non-negative integer"
+        unless $raw =~ /^\d+$/;
+    return $raw + 0;
 }
 
 # Plain named fields and value expressions share the established shortcut.

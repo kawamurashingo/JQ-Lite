@@ -424,6 +424,31 @@ Implementation source in `lib/**/*.pm` decreases by 766 bytes,
 310,145 → 309379 bytes (22 modules), versus `77dbdd93`.
 Tests/docs excluded. Issue #625 remains open.
 
+## Shared array count validation (maintenance checkpoint)
+
+`Filters.pm` separately trimmed, validated and numerically converted the
+count or size arguments for `limit(n)`, `drop(n)`, `tail(n)` and
+`chunks(n)`. These four matching private blocks now call a small
+`_parse_nonnegative_count` helper. Each original per-filter matcher and
+array implementation remains unchanged. The helper keeps the same Perl
+digit check (`/^\\d+$/`), whitespace trim and numeric conversion, and
+retains the original **function-specific error wording** (`count` versus
+`size`). No grammar is broadened.
+
+Focused Perl regressions protect zero, oversized and leading-zero counts;
+whitespace; invalid signs, fractions, scientific notation and text; invalid
+arguments on non-array input; empty arrays; scalar/object passthrough;
+chunk-size-zero normalization; and ordered iterator streams. Existing
+`limit`/`drop`/`tail`/`chunks` tests are also retained. These are v2
+practical extensions: jq 1.7's `limit(n; filter)` and unsupported
+`drop`/`tail`/`chunks` spellings are not equivalent. No false
+jq-compatible differential fixtures are added. Existing jq 1.7
+differential CI must still pass on the final commit.
+
+Tracked `lib/**/*.pm` implementation decreases by 324 bytes,
+309,379 → 309055 bytes (22 modules), relative to `a731f6ff`.
+No CPAN dependency, public API change or stable/main edits. #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
