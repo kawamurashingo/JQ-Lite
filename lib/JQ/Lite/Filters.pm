@@ -1760,22 +1760,16 @@ sub apply {
             return 1;
         }
 
-        # support for all() / all(expr)
-        if ($part =~ /^all(?:\((.*)\))?$/) {
-            my $expr = defined $1 ? $1 : undef;
+        # all()/any() share the supported spelling and stream dispatcher.
+        # Their private implementations preserve opposite quantifier semantics.
+        if ($part =~ /^(all|any)(?:\((.*)\))?$/) {
+            my ($name, $expr) = ($1, $2);
             $expr = undef if defined($expr) && $expr eq '';
+            my $apply = $name eq 'all'
+                ? \&JQ::Lite::Util::_apply_all
+                : \&JQ::Lite::Util::_apply_any;
 
-            @next_results = map { JQ::Lite::Util::_apply_all($self, $_, $expr) } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for any() / any(expr)
-        if ($part =~ /^any(?:\((.*)\))?$/) {
-            my $expr = defined $1 ? $1 : undef;
-            $expr = undef if defined($expr) && $expr eq '';
-
-            @next_results = map { JQ::Lite::Util::_apply_any($self, $_, $expr) } @results;
+            @next_results = map { $apply->($self, $_, $expr) } @results;
             @$out_ref = @next_results;
             return 1;
         }

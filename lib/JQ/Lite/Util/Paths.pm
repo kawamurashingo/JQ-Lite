@@ -656,60 +656,41 @@ sub _map {
     return @mapped;
 }
 
-sub _apply_all {
-    my ($self, $value, $expr) = @_;
+sub _apply_quantifier {
+    my ($self, $value, $expr, $all) = @_;
 
-    if (ref $value eq 'ARRAY') {
-        return JSON::PP::true unless @$value;
+    my $is_array = ref $value eq 'ARRAY';
+    my @items = $is_array ? @$value : ($value);
 
-        for my $item (@$value) {
-            if (defined $expr) {
-                my @evaluated = $self->run_query(_encode_json($item), $expr);
-                return JSON::PP::false unless @evaluated;
-                return JSON::PP::false if grep { !_is_truthy($_) } @evaluated;
-            }
-            else {
-                return JSON::PP::false unless _is_truthy($item);
-            }
+    # An empty array is vacuously true for all(), false for any().
+    return $all ? JSON::PP::true : JSON::PP::false
+        if $is_array && !@items;
+
+    for my $item (@items) {
+        my @evaluated = defined $expr
+            ? $self->run_query(_encode_json($item), $expr)
+            : ($item);
+
+        if ($all) {
+            # Preserve the v2 rule: a nonempty input element with no
+            # expression outputs makes all(expr) false.
+            return JSON::PP::false unless @evaluated;
+            return JSON::PP::false if grep { !_is_truthy($_) } @evaluated;
         }
-
-        return JSON::PP::true;
+        else {
+            return JSON::PP::true if grep { _is_truthy($_) } @evaluated;
+        }
     }
 
-    if (defined $expr) {
-        my @evaluated = $self->run_query(_encode_json($value), $expr);
-        return JSON::PP::false unless @evaluated;
-        return grep { !_is_truthy($_) } @evaluated ? JSON::PP::false : JSON::PP::true;
-    }
+    return $all ? JSON::PP::true : JSON::PP::false;
+}
 
-    return _is_truthy($value) ? JSON::PP::true : JSON::PP::false;
+sub _apply_all {
+    return _apply_quantifier(@_, 1);
 }
 
 sub _apply_any {
-    my ($self, $value, $expr) = @_;
-
-    if (ref $value eq 'ARRAY') {
-        return JSON::PP::false unless @$value;
-
-        for my $item (@$value) {
-            if (defined $expr) {
-                my @evaluated = $self->run_query(_encode_json($item), $expr);
-                return JSON::PP::true if grep { _is_truthy($_) } @evaluated;
-            }
-            else {
-                return JSON::PP::true if _is_truthy($item);
-            }
-        }
-
-        return JSON::PP::false;
-    }
-
-    if (defined $expr) {
-        my @evaluated = $self->run_query(_encode_json($value), $expr);
-        return grep { _is_truthy($_) } @evaluated ? JSON::PP::true : JSON::PP::false;
-    }
-
-    return _is_truthy($value) ? JSON::PP::true : JSON::PP::false;
+    return _apply_quantifier(@_, 0);
 }
 
 sub _is_truthy {
