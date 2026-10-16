@@ -495,6 +495,32 @@ Tracked `lib/**/*.pm` implementation is reduced by 570 bytes,
 308,860 → 308290 bytes (22 modules), compared with
 `7d1355d`. No dependency or stable/main edit. #625 remains open.
 
+## Shared sum_by()/avg_by() projected aggregation (maintenance checkpoint)
+
+The existing `sum_by(path)` and `avg_by(path)` filters had duplicate
+path normalization, value traversal, JSON::PP boolean coercion, numeric
+classification, sum accumulation, and v2 scalar passthrough. A small
+private `_sum_or_avg_by` helper now shares that exact traversal and
+addition order. The sum result remains zero on empty/no-numeric arrays;
+the average is sum divided by the **count of numeric outputs**, or zero
+for none. Whole-item `.`, quoted paths, whitespace, paths yielding
+multiple values, and non-array passthrough retain their behavior.
+
+The arithmetic loop retains the original `looks_like_number` check
+and the original JSON::PP::Boolean class check; it does not route through
+the different `_project_numeric_values` implementation or change
+number coercion. `median_by` and `max_by`/`min_by` remain untouched.
+Thirty dedicated Perl regressions exercise mixed data, nulls, booleans,
+empty results, nested paths, numeric strings, zero totals, and stream
+order. Both filters are practical v2 extensions and are not falsely
+marked jq 1.7-compatible; the full existing jq 1.7 differential CI
+must still pass.
+
+Tracked `lib/**/*.pm` source decreases by 1109 bytes,
+308,290 → 307181 bytes (22 modules) from `adf0db77`.
+No new syntax, dependencies or public API. Stable/main unchanged.
+Issue #625 remains open.
+
 ## Review order and compatibility boundaries
 
 1. Keep common v2 field, index, slice, iterator, comma and constructor cases,
