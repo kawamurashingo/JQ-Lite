@@ -5,6 +5,7 @@ use warnings;
 
 use JSON::PP ();    # lightweight decoder for string literals
 use JQ::Lite::Value ();
+use JQ::Lite::Error ();
 
 # Internal constant used to signal that parsing failed and callers should
 # silently fall back to other heuristics.
@@ -431,7 +432,9 @@ sub _apply_addition {
         return { %{$left}, %{$right} };
     }
 
-    die "addition operands must have compatible jq types ($left_type + $right_type)";
+    die JQ::Lite::Error::Evaluation->new(
+        message => "addition operands must have compatible jq types ($left_type + $right_type)"
+    );
 }
 
 sub _default_coerce_number {
