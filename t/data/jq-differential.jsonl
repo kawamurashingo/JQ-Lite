@@ -3931,3 +3931,7 @@
 {"arithmetic_v3":{"kind":"ok","out":[{"n":3}]},"expected":"ok","filter":"select(.n + 2 <= 5)","input":{"n":3},"name":"arithmetic-contract-predicate-compare-3c3d","status":"compatible"}
 {"arithmetic_v3":{"kind":"ok","out":[]},"expected":"ok","filter":"select(.n + 2 > 5)","input":{"n":3},"name":"arithmetic-contract-predicate-compare-3e","status":"compatible"}
 {"arithmetic_v3":{"kind":"ok","out":[]},"expected":"ok","filter":"select(.n + 2 < 5)","input":{"n":3},"name":"arithmetic-contract-predicate-compare-3c","status":"compatible"}
+{"arithmetic_v3":{"kind":"runtime-error","out":[]},"expected":"runtime-error","filter":"(.n | type) + true","input":{"n":3},"name":"arithmetic-contract-fallback-string-boolean","status":"compatible"}
+{"arithmetic_v3":{"kind":"runtime-error","out":[]},"expected":"runtime-error","filter":". + (.n | type)","input":{"n":3},"name":"arithmetic-contract-fallback-object-string","status":"compatible"}
+{"arithmetic_v3":{"kind":"runtime-error","out":[]},"expected":"runtime-error","filter":"(.n | type) + 1","input":{"n":3},"name":"arithmetic-contract-fallback-string-number","status":"compatible"}
+{"arithmetic_v3":{"kind":"ok","out":["xnumber"]},"expected":"ok","filter":"\"x\" + (.n | type)","input":{"n":3},"name":"arithmetic-contract-fallback-string-concat","status":"compatible"}

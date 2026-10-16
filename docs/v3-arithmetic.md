@@ -24,7 +24,8 @@ number. Null, booleans, strings and containers are not implicitly converted
 to numbers. Scientific notation in a JSON numeric literal remains numeric;
 the JSON string `"1e3"` remains a string. Use `tonumber` or `to_number`
 explicitly when conversion is intended. `/` and `%` with a zero divisor
-raise structured runtime errors.
+raise structured runtime errors. Addition with supported piped operands uses
+the same private primitive, including its structured type errors.
 
 Existing expression precedence and parentheses remain in place: `1+2*3`
 is 7, and `(1+2)*3` is 9. Ordinary named-field operands use the established
@@ -62,17 +63,17 @@ arithmetic errors inside either constructor propagate normally.
 
 ## jq boundary and reproducible coverage
 
-The arithmetic snapshot in `t/data/jq-differential.jsonl` has 404 cases:
+The arithmetic snapshot in `t/data/jq-differential.jsonl` has 408 cases:
 
 | Scope | Cases |
 | --- | ---: |
 | Five binary operators over eight representative values on both sides | 320 |
 | The existing arithmetic predicate over those eight values | 40 |
 | Unary minus over those eight values | 8 |
-| Error, conversion, numeric, comparison, map, try and constructor boundaries | 36 |
+| Error, conversion, numeric, comparison, map, try and constructor boundaries | 40 |
 
 The eight representatives are null, false, true, a number, a numeric-looking
-string, another string, an array and an object. The 404 cases have **392 jq
+string, another string, an array and an object. The 408 cases have **396 jq
 1.7-compatible outcomes** and **12 documented differences**. These are
 representative values and accepted forms, not an exhaustive numeric-precision
 or expression-grammar conformance claim.
