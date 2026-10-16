@@ -1,6 +1,6 @@
 # Practical v2-to-v3 path and iterator audit (checkpoint)
 
-This is an initial **source-and-test inventory**, not a claim that every v2
+This is a **source-and-test inventory**, not a claim that every v2
 filter or jq 1.7 expression works in v3. Issue #625 tracks the remaining
 behavioral audit. The v2 practical subset remains the compatibility baseline;
 new jq grammar and deep computed-selector combinations are not release goals.
@@ -634,6 +634,70 @@ as jq builtins; the full existing differential suite remains a merge gate.
 Tracked `lib/**/*.pm` implementation decreases by 387 bytes,
 306,650 → 306,263 bytes (22 modules), from `dff0f110`.
 No new syntax, public API or dependency. Issue #625 remains open.
+
+## Measured practical behavior matrix (2026-10-17 JST)
+
+The source inventory now has a reproducible behavior checkpoint: 55 ordinary
+field, index, slice, iterator, optional, comma, fallback, constructor and
+path-function examples were run against stable v2.59 (`6880c304`), v3
+(`ac4a1382`) and jq 1.7. Results compare ordered JSON values and runtime-error
+categories, including the distinction between no outputs and one JSON null;
+exact diagnostic wording is not a parity requirement.
+
+| Result | Examples | Interpretation |
+| --- | ---: | --- |
+| v3 matches jq 1.7 | 50 | 31 already matched in v2; 19 demonstrate existing v3 corrections |
+| Accepted syntax with a retained output/error difference | 4 | Two array-projection examples, scalar field lookup and string bracket slicing |
+| v2-only builtin without a jq equivalent | 1 | `slice(start,length)`; retain its existing length semantics |
+
+The 19 corrected examples include standalone builtin-name fields, missing
+and quoted fields, negative indexing, numeric-object rejection, strict and
+optional iterators, optional missing/index results, false fallback and empty
+constructor/type streams. They exercise existing v3 behavior, not new syntax.
+The already matching cases cover ordinary values, explicit null and false,
+array slices, suffix iterators, stream order, valid optional access,
+zero/empty-string fallbacks and getpath/setpath/delpaths.
+
+The remaining boundaries are explicit:
+
+| Input / filter | Stable v2 and current v3 | jq 1.7 | Decision boundary |
+| --- | --- | --- | --- |
+| `[{"name":"a"},{"name":"b"}]` / `.name` | `"a"`, `"b"` | runtime error | Retained array-projection extension |
+| `[{"name":"a"},{},null,7]` / `.name` | `"a"` | runtime error | Same projection policy, including missing/scalar members |
+| `7` / `.name` | no outputs | runtime error | Ordinary-field error policy remains undecided |
+| `"abcd"` / `.[1:3]` | `"abcd"` | `"bc"` | String bracket-slice scope remains undecided |
+| `[0,1,2,3]` / `slice(1,2)` | `[1,2]` | no such builtin | v2 length-based extension; not jq bracket slicing |
+
+The 54 examples whose filters jq accepts reuse the existing differential
+fixture file: 23 existing fixtures gain `audit_v2` / `audit_v3` snapshots and
+31 are added (27 compatible, four known differences). The normal differential
+harness still compares live CLI output against jq; it does not substitute the
+recorded snapshots for upstream execution. `t/v3_practical_path_audit.t`
+also checks every recorded JQ::Lite result through the public Library API
+without requiring jq. Existing `t/slice.t` covers the v2-only extension,
+which is deliberately not presented as a jq-compatible fixture.
+
+Reproduce the v3 and live jq checks:
+
+```sh
+prove -l t/v3_practical_path_audit.t t/slice.t
+JQ_DIFFERENTIAL=1 prove -l t/jq_differential.t
+```
+
+Recheck the recorded v2 results without modifying the stable branch:
+
+```sh
+v2_audit_dir=$(mktemp -d)
+git archive 6880c30440b564480d9971d575179513e16ed51f lib |
+    tar -x -C "$v2_audit_dir"
+JQ_AUDIT_V2=1 prove -I"$v2_audit_dir/lib" t/v3_practical_path_audit.t t/slice.t
+```
+
+This is a defined practical sample, not an exhaustive grammar/feature census.
+It adds no implementation code, changes no runtime semantics and introduces
+no dependency. The new undecided rows do not authorize a compatibility change
+or require string-slice feature growth for release. Issue #625 remains open
+for the remaining scope and migration review.
 
 ## Review order and compatibility boundaries
 
