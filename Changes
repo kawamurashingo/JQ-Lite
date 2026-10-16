@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Reuse first-key path projection across unique_by(), group_by() and group_count() without changing key signatures or ordering.
     - Share group_by()/group_count() first-key projection and call dispatch while retaining distinct grouping, missing-key, and non-array rules.
     - Reuse normalized path arguments in unique_by() without changing first-key selection, missing-key handling or v2 passthrough.
     - Share sum_by()/avg_by() numeric projection, coercion and accumulation while retaining zero-result and v2 non-array behavior.

@@ -1672,8 +1672,8 @@ sub _key {
     }
 }
 
-# The groupers project the first path result; missing paths yield undef.
-sub _first_group_key {
+# Share first-result path projection; key signatures remain filter-specific.
+sub _first_projected_key {
     my ($item, $key_path, $whole_item) = @_;
     return $item if $whole_item;
     my @values = _traverse($item, $key_path);
@@ -1689,7 +1689,7 @@ sub _group_by {
     my @entries;
     my $index = 0;
     for my $item (@$array_ref) {
-        my $key_value = _first_group_key($item, $key_path, $use_entire_item);
+        my $key_value = _first_projected_key($item, $key_path, $use_entire_item);
 
         my $signature = defined $key_value ? _key($key_value) : "\0__JQ_LITE_UNDEF__";
         push @entries, {
@@ -2819,7 +2819,7 @@ sub _group_count {
 
     my %counts;
     for my $item (@$array_ref) {
-        my $key_value = _first_group_key($item, $key_path, $use_entire_item);
+        my $key_value = _first_projected_key($item, $key_path, $use_entire_item);
 
         my $key = defined $key_value ? _key($key_value) : 'null';
         $counts{$key}++;
