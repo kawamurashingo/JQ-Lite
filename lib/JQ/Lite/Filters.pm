@@ -1439,46 +1439,13 @@ sub apply {
 
         # support for sum_by(path)
         if ($part =~ /^sum_by\((.+)\)$/) {
-            my $raw_path = $1;
-            $raw_path =~ s/^\s+|\s+$//g;
-            $raw_path =~ s/^['"](.*)['"]$/$1/;
-
-            my $use_entire_item = ($raw_path eq '' || $raw_path eq '.');
-            my $key_path        = $raw_path;
-            $key_path =~ s/^\.// unless $use_entire_item;
-
+            my ($key_path, $use_entire_item)
+                = JQ::Lite::Util::_normalize_path_argument($1);
             @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $sum        = 0;
-                    my $has_number = 0;
-
-                    for my $element (@$_) {
-                        my @values = $use_entire_item
-                            ? ($element)
-                            : JQ::Lite::Util::_traverse($element, $key_path);
-
-                        for my $value (@values) {
-                            next unless defined $value;
-
-                            my $num = $value;
-                            if (ref($num) eq 'JSON::PP::Boolean') {
-                                $num = $num ? 1 : 0;
-                            }
-
-                            next if ref $num;
-                            next unless looks_like_number($num);
-                            $sum += $num;
-                            $has_number = 1;
-                        }
-                    }
-
-                    $has_number ? $sum : 0;
-                }
-                else {
-                    $_;
-                }
+                ref($_) eq 'ARRAY'
+                    ? _sum_or_avg_by($_, $key_path, $use_entire_item, 0)
+                    : $_
             } @results;
-
             @$out_ref = @next_results;
             return 1;
         }
@@ -1518,40 +1485,13 @@ sub apply {
 
         # support for avg_by(path)
         if ($part =~ /^avg_by\((.+)\)$/) {
-            my ($key_path, $use_entire_item) = JQ::Lite::Util::_normalize_path_argument($1);
-
+            my ($key_path, $use_entire_item)
+                = JQ::Lite::Util::_normalize_path_argument($1);
             @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $sum   = 0;
-                    my $count = 0;
-
-                    for my $element (@$_) {
-                        my @values = $use_entire_item
-                            ? ($element)
-                            : JQ::Lite::Util::_traverse($element, $key_path);
-
-                        for my $value (@values) {
-                            next unless defined $value;
-
-                            my $num = $value;
-                            if (ref($num) eq 'JSON::PP::Boolean') {
-                                $num = $num ? 1 : 0;
-                            }
-
-                            next if ref $num;
-                            next unless looks_like_number($num);
-                            $sum   += $num;
-                            $count += 1;
-                        }
-                    }
-
-                    $count ? $sum / $count : 0;
-                }
-                else {
-                    $_;
-                }
+                ref($_) eq 'ARRAY'
+                    ? _sum_or_avg_by($_, $key_path, $use_entire_item, 1)
+                    : $_
             } @results;
-
             @$out_ref = @next_results;
             return 1;
         }
@@ -1990,6 +1930,33 @@ sub _parse_nonnegative_count {
     die "$name(): $label must be a non-negative integer"
         unless $raw =~ /^\d+$/;
     return $raw + 0;
+}
+
+# Preserve v2's per-value numeric coercion, traversal and addition order.
+# sum_by returns the sum; avg_by divides by the number of numeric outputs.
+sub _sum_or_avg_by {
+    my ($array, $key_path, $use_entire_item, $average) = @_;
+    my ($sum, $count) = (0, 0);
+
+    for my $element (@$array) {
+        my @values = $use_entire_item
+            ? ($element)
+            : JQ::Lite::Util::_traverse($element, $key_path);
+
+        for my $value (@values) {
+            next unless defined $value;
+            my $num = $value;
+            if (ref($num) eq 'JSON::PP::Boolean') {
+                $num = $num ? 1 : 0;
+            }
+            next if ref $num;
+            next unless looks_like_number($num);
+            $sum += $num;
+            ++$count;
+        }
+    }
+
+    return $average && $count ? $sum / $count : $sum;
 }
 
 # Plain named fields and value expressions share the established shortcut.
