@@ -10,7 +10,7 @@ sub check {
     my ($json, $filter, $expected, $label) = @_;
     my @result = $jq->run_query($json, $filter);
     is(scalar @result, scalar @$expected, "$label output count");
-    ok(!grep { !JSON::PP::is_bool($_) } @result, "$label returns JSON booleans");
+    ok(!(grep { !JSON::PP::is_bool($_) } @result), "$label returns JSON booleans");
     is_deeply([ map { $_ ? 1 : 0 } @result ], $expected, $label);
 }
 
