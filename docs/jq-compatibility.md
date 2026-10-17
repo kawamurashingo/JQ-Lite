@@ -36,7 +36,7 @@ additional `planned` promises in this guide.
 | Direct field read | `{};` `.missing` | **compatible** | One JSON `null` rather than an empty stream, for ordinary unquoted fields. |
 | Missing nested field | `{};` `.missing.value` | **compatible** | One JSON `null` in the audited direct-path subset. |
 | Object numeric index | `{};` `.[5]` | **compatible** | Structured runtime type error; not silent null. |
-| Array iterator | `[2,3];` `.[]` | **compatible** | Emits 2 then 3; `[] | .[]` produces no output. |
+| Array iterator | `[2,3];` `.[]` | **compatible** | Emits 2 then 3; `[] \| .[]` produces no output. |
 | Alternative | `false;` `. // []` | **compatible** | Returns `[]`; `null // []` is also covered. |
 | Strict addition | `"1";` `. + 1` | **compatible** | Numeric-looking string plus number raises a runtime type error. |
 | Typed comparison | `"10";` `. == 10` | **compatible** | Returns `false` (string is not number). |
