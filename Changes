@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Share median_by() numeric projection with sum_by()/avg_by() while keeping numeric counting, addition order and v2 passthrough behavior.
     - Reuse the shared numeric-value extractor for median_by() projections, preserving iterator output order and numeric coercion.
     - Reuse the existing first-key projection for min_by()/max_by(), preserving comparator conversion, missing-key and tie behavior.
     - Reuse the existing numeric array recursion for clamp() and to_number() without changing coercion, passthrough or output stream shape.
