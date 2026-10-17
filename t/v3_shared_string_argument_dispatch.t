@@ -68,9 +68,9 @@ for my $case (@cases) {
 
 # Nested arrays are recursively transformed by trims, not by predicates.
 is_deeply(run('["foobar",["foo",null,42]]', 'ltrimstr("foo")'),
-    ['bar', ['', undef, 42]], 'nested trim keeps non-strings and depth');
+    [['bar', ['', undef, 42]]], 'nested trim keeps non-strings and depth');
 is_deeply(run('["foobar",["foo",null,42]]', 'rtrimstr("foo")'),
-    ['foobar', ['', undef, 42]], 'nested suffix trim keeps depth');
+    [['foobar', ['', undef, 42]]], 'nested suffix trim keeps depth');
 
 # The builtins must continue to accept nonempty argument captures only.
 for my $name (qw(ltrimstr rtrimstr startswith endswith)) {
