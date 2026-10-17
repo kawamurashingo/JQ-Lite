@@ -38,20 +38,18 @@ sub register {
         my $needle = @args ? $args[0] : undef;
         return [ map { JQ::Lite::Util::_apply_has($_, $needle) } @{$inputs} ];
     });
-    $register->(qr/^contains\((.+)\)$/, sub {
-        my ($owner, $inputs, $argument) = @_;
+    # Share literal argument decoding, not containment semantics:
+    # contains is jq-style, contains_subset counts duplicates, and inside
+    # retains the legacy membership direction and coercion.
+    $register->(qr/^(contains|contains_subset|inside)\((.+)\)$/, sub {
+        my ($owner, $inputs, $name, $argument) = @_;
         my $needle = JQ::Lite::Util::_parse_literal_argument($argument);
-        return [ map { JQ::Lite::Util::_apply_contains($_, $needle) } @{$inputs} ];
-    });
-    $register->(qr/^contains_subset\((.+)\)$/, sub {
-        my ($owner, $inputs, $argument) = @_;
-        my $needle = JQ::Lite::Util::_parse_literal_argument($argument);
-        return [ map { JQ::Lite::Util::_apply_contains_subset($_, $needle) } @{$inputs} ];
-    });
-    $register->(qr/^inside\((.+)\)$/, sub {
-        my ($owner, $inputs, $argument) = @_;
-        my $container = JQ::Lite::Util::_parse_literal_argument($argument);
-        return [ map { JQ::Lite::Util::_apply_inside($_, $container) } @{$inputs} ];
+        my $apply = $name eq 'contains'
+            ? \&JQ::Lite::Util::_apply_contains
+            : $name eq 'contains_subset'
+                ? \&JQ::Lite::Util::_apply_contains_subset
+                : \&JQ::Lite::Util::_apply_inside;
+        return [ map { $apply->($_, $needle) } @{$inputs} ];
     });
 }
 
