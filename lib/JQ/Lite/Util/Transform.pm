@@ -1518,7 +1518,9 @@ sub _extreme_by {
     my ($best_item, $best_key);
 
     for my $element (@$array_ref) {
-        my $candidate = _extract_extreme_key($element, $key_path, $use_entire_item);
+        my $candidate = _value_to_comparable(
+            _first_projected_key($element, $key_path, $use_entire_item)
+        );
         next unless defined $candidate;
 
         if (!defined $best_item) {
@@ -1534,16 +1536,6 @@ sub _extreme_by {
     }
 
     return defined $best_item ? $best_item : undef;
-}
-
-sub _extract_extreme_key {
-    my ($element, $key_path, $use_entire_item) = @_;
-
-    my @values = $use_entire_item ? ($element) : _traverse($element, $key_path);
-    return undef unless @values;
-
-    my $value = $values[0];
-    return _value_to_comparable($value);
 }
 
 sub _value_to_comparable {
