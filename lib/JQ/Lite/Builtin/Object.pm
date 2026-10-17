@@ -8,21 +8,21 @@ use JQ::Lite::Util ();
 sub register {
     my ($class, $register) = @_;
 
-    $register->('keys', sub {
-        my ($owner, $inputs) = @_;
-        return [ map {
-            ref($_) eq 'HASH' ? [ sort keys %{$_} ]
-                : ref($_) eq 'ARRAY' ? [ 0 .. $#{$_} ]
-                : die 'keys(): argument must be an object or array'
-        } @{$inputs} ];
-    });
-    $register->(['keys_unsorted', 'keys_unsorted()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ map {
-            ref($_) eq 'HASH' ? [ keys %{$_} ]
-                : ref($_) eq 'ARRAY' ? [ 0 .. $#{$_} ] : undef
-        } @{$inputs} ];
-    });
+    # Share container enumeration without changing the distinct invalid-input
+    # policy or the accepted spellings of the two legacy filters.
+    for my $name ('keys', 'keys_unsorted') {
+        my $sorted = $name eq 'keys';
+        my $names = $sorted ? $name : [$name, "$name()"];
+        $register->($names, sub {
+            my ($owner, $inputs) = @_;
+            return [ map {
+                ref($_) eq 'HASH'
+                    ? [ $sorted ? sort(keys %{$_}) : keys %{$_} ]
+                    : ref($_) eq 'ARRAY' ? [ 0 .. $#{$_} ]
+                    : $sorted ? die 'keys(): argument must be an object or array' : undef
+            } @{$inputs} ];
+        });
+    }
     $register->(['to_entries', 'to_entries()'], sub {
         my ($owner, $inputs) = @_;
         return [ map { JQ::Lite::Util::_to_entries($_) } @{$inputs} ];
