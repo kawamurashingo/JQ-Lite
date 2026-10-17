@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use List::Util qw(sum min);
-use Scalar::Util qw(looks_like_number);
 use JQ::Lite::Util ();
 use JQ::Lite::Value ();
 use JQ::Lite::Builtin ();
@@ -1860,25 +1859,16 @@ sub _parse_nonnegative_count {
     return $raw + 0;
 }
 
-# Preserve v2's per-value numeric coercion, traversal and addition order.
-# sum_by returns the sum; avg_by divides by the number of numeric outputs.
+# Share the existing numeric projection with median_by. Preserve v2's
+# per-value addition order; avg_by still divides by numeric output count.
 sub _sum_or_avg_by {
     my ($array, $key_path, $use_entire_item, $average) = @_;
     my ($sum, $count) = (0, 0);
 
     for my $element (@$array) {
-        my @values = $use_entire_item
-            ? ($element)
-            : JQ::Lite::Util::_traverse($element, $key_path);
-
-        for my $value (@values) {
-            next unless defined $value;
-            my $num = $value;
-            if (ref($num) eq 'JSON::PP::Boolean') {
-                $num = $num ? 1 : 0;
-            }
-            next if ref $num;
-            next unless looks_like_number($num);
+        for my $num (JQ::Lite::Util::_project_numeric_values(
+            $element, $key_path, $use_entire_item
+        )) {
             $sum += $num;
             ++$count;
         }
