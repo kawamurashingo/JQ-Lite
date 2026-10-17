@@ -19,7 +19,7 @@ sub register {
         my ($name, $depth) = @$spec;
         $register->([$name, "$name()"], sub {
             my ($owner, $inputs) = @_;
-            return [ map { ref($_) eq 'ARRAY' ? JQ::Lite::Util::_flatten_depth($_, $depth) : $_ } @$inputs ];
+            return [ map { JQ::Lite::Util::_flatten_depth($_, $depth) } @$inputs ];
         });
     }
     $register->(['compact', 'compact()'], sub {
@@ -34,7 +34,7 @@ sub register {
         $depth = 1 unless defined($depth) && looks_like_number($depth);
         $depth = int($depth);
         $depth = 0 if $depth < 0;
-        return [ map { ref($_) eq 'ARRAY' ? JQ::Lite::Util::_flatten_depth($_, $depth) : $_ } @{$inputs} ];
+        return [ map { JQ::Lite::Util::_flatten_depth($_, $depth) } @{$inputs} ];
     });
     $register->(qr/^nth\((\d+)\)$/, sub {
         my ($owner, $inputs, $index) = @_;
