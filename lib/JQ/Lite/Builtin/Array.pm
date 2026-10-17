@@ -15,14 +15,13 @@ sub register {
     }
     $register->('rest', sub { my ($o, $i) = @_; return [ map { ref($_) eq 'ARRAY' ? (@{$_} ? [ @{$_}[1 .. $#{$_}] ] : []) : $_ } @{$i} ] });
     $register->('reverse', sub { my ($o, $i) = @_; return [ map { ref($_) eq 'ARRAY' ? [ reverse @{$_} ] : JQ::Lite::Util::_is_string_scalar($_) ? scalar(reverse $_) : $_ } @{$i} ] });
-    $register->(['flatten', 'flatten()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ map { ref($_) eq 'ARRAY' ? JQ::Lite::Util::_flatten_depth($_, 1) : $_ } @{$inputs} ];
-    });
-    $register->(['flatten_all', 'flatten_all()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ map { ref($_) eq 'ARRAY' ? JQ::Lite::Util::_flatten_all($_) : $_ } @{$inputs} ];
-    });
+    for my $spec (['flatten', 1], ['flatten_all', undef]) {
+        my ($name, $depth) = @$spec;
+        $register->([$name, "$name()"], sub {
+            my ($owner, $inputs) = @_;
+            return [ map { ref($_) eq 'ARRAY' ? JQ::Lite::Util::_flatten_depth($_, $depth) : $_ } @$inputs ];
+        });
+    }
     $register->(['compact', 'compact()'], sub {
         my ($owner, $inputs) = @_;
         return [ map { ref($_) eq 'ARRAY' ? [ grep { defined $_ } @{$_} ] : $_ } @{$inputs} ];

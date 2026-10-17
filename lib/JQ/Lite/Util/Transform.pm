@@ -1713,14 +1713,9 @@ sub _flatten_depth {
     my @flattened;
     for my $item (@$value) {
         if (ref $item eq 'ARRAY') {
-            my $flattened = _flatten_depth(
+            push @flattened, @{ _flatten_depth(
                 $item, defined($depth) ? $depth - 1 : undef
-            );
-            if (ref $flattened eq 'ARRAY') {
-                push @flattened, @$flattened;
-            } else {
-                push @flattened, $flattened;
-            }
+            ) };
         } else {
             push @flattened, $item;
         }
