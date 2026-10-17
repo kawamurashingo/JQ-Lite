@@ -1896,20 +1896,8 @@ sub _build_regex {
 }
 
 sub _parse_string_argument {
-    my ($raw) = @_;
-
-    return '' if !defined $raw;
-
-    my $parsed = eval { _decode_json($raw) };
-    if (!$@) {
-        $parsed = '' if !defined $parsed;
-        return $parsed;
-    }
-
-    $raw =~ s/^\s+|\s+$//g;
-    $raw =~ s/^['"]//;
-    $raw =~ s/['"]$//;
-    return $raw;
+    my $parsed = _parse_literal_argument($_[0]);
+    return defined($parsed) ? $parsed : '';
 }
 
 sub _parse_literal_argument {
