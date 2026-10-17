@@ -37,6 +37,8 @@ die "unexpected standalone result" unless
 die "parent loaded by registration" if exists $INC{'JQ/Lite/Builtin.pm'};
 PERL
 for my $case (
+    ['Array', 'first', '[3,4]', '[3]'],
+    ['Array', 'flatten', '[[1],[2]]', '[[1,2]]'],
     ['String', 'upper', '"hello"', '["HELLO"]'],
     ['Math', 'ceil', '1.2', '[2]'],
     ['Math', 'to_number', '"12"', '[12]'],
@@ -142,6 +144,26 @@ my @public_cases = (
      [{a=>1},{b=>2}], 'object from_entries'],
     ['[[{"a":1},{"b":2}],[{"c":3}]]', '.[] | merge_objects',
      [{a=>1,b=>2},{c=>3}], 'object merge_objects'],
+    ['[[1,2],[],[9]]', '.[] | first',
+     [1,undef,9], 'array first'],
+    ['[[1,2],[],[9]]', '.[] | last',
+     [2,undef,9], 'array last'],
+    ['[[1,2,3],[],{"keep":1}]', '.[] | rest',
+     [[2,3],[],{keep=>1}], 'array rest and object passthrough'],
+    ['[[1,2,3],"abc",123]', '.[] | reverse',
+     [[3,2,1],'cba',123], 'array/string reverse and number passthrough'],
+    ['[[[1,[2]],3],[],{"x":[[4]]}]', '.[] | flatten',
+     [[1,[2],3],[],{x=>[[4]]}], 'array flatten one level'],
+    ['[[[1,[2]],3],[],{"x":[[4]]}]', '.[] | flatten_all',
+     [[1,2,3],[],{x=>[[4]]}], 'array flatten recursively'],
+    ['[[null,false,0,"",4],[],null]', '.[] | compact',
+     [[JSON::PP::false,0,'',4],[],undef], 'array compact retains falsey nonnull'],
+    ['[[null,1],[2,null]]', '.[] | compact()',
+     [[1],[2]], 'compact parenthesized alias'],
+    ['[[1,[2]],[[3]]]', '.[] | flatten()',
+     [[1,2],[3]], 'flatten parenthesized alias'],
+    ['[[1,[2]],[[3]]]', '.[] | flatten_all()',
+     [[1,2],[3]], 'flatten_all parenthesized alias'],
 );
 for my $case (@public_cases) {
     my ($input, $filter, $expected, $name) = @$case;
@@ -149,9 +171,34 @@ for my $case (@public_cases) {
         "public builtin stream order and cardinality: $name");
 }
 
-for my $filter ('upper', 'ceil', '@uri', 'to_entries') {
+for my $filter ('upper', 'ceil', '@uri', 'to_entries',
+               'first', 'last', 'rest', 'reverse',
+               'flatten', 'flatten_all', 'compact') {
     is_deeply(run('null', "empty | $filter"), [],
         "empty upstream stays empty: $filter");
+}
+
+# Direct dispatch keeps the v2 contracts of each unary Array builtin:
+# first/last yield undef for invalid or empty arrays; others pass through.
+my $opaque = { keep => [1,2] };
+my $truth = JSON::PP::true;
+for my $name (qw(rest reverse flatten flatten_all compact)) {
+    my ($found, $result) = JQ::Lite::Builtin->dispatch(
+        $jq, $name, [$opaque, $truth, undef]
+    );
+    ok($found, "$name remains registered as a direct builtin");
+    is($result->[0], $opaque, "$name preserves object reference identity");
+    is($result->[1], $truth, "$name preserves boolean reference identity");
+    is_deeply($result, [$opaque, $truth, undef],
+        "$name preserves ordered non-array input values");
+}
+for my $name (qw(first last)) {
+    my ($found, $result) = JQ::Lite::Builtin->dispatch(
+        $jq, $name, [[], $opaque, undef, [1,2]]
+    );
+    ok($found, "$name remains registered as a direct builtin");
+    is_deeply($result, [undef,undef,undef,$name eq 'first' ? 1 : 2],
+        "$name retains one output per input including null fallback");
 }
 
 my $ok = eval {
