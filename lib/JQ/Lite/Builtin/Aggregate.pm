@@ -17,13 +17,12 @@ sub register {
         my ($owner, $inputs) = @_;
         return [ map {
             if (ref($_) eq 'ARRAY') {
-                my ($product, $seen) = (1, 0);
+                my $product = 1;
                 for my $value (@{$_}) {
                     next unless defined $value;
                     $product *= 0 + $value;
-                    $seen = 1;
                 }
-                $seen ? $product : 1;
+                $product;
             }
             else { $_ }
         } @{$inputs} ];
