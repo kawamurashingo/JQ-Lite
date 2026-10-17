@@ -9,6 +9,7 @@
     - Share group_by()/group_count() first-key projection and call dispatch while retaining distinct grouping, missing-key, and non-array rules.
     - Reuse normalized path arguments in unique_by() without changing first-key selection, missing-key handling or v2 passthrough.
     - Share sum_by()/avg_by() numeric projection, coercion and accumulation while retaining zero-result and v2 non-array behavior.
+    - Unify sum_by()/avg_by() filter dispatch without changing per-stream ordering, projected values or non-array passthrough.
     - Share variance/stddev population-statistics dispatch while preserving numeric extraction, empty values and scalar passthrough.
     - Share sort/sort_desc array dispatch while retaining smart comparison, ascending/descending order and v2 passthrough.
     - Share limit/drop/tail/chunks non-negative count validation without changing array slicing, v2 scalar passthrough or function-specific errors.

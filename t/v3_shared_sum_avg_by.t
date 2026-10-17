@@ -41,6 +41,10 @@ my @cases = (
     ['null', 'avg_by(.)', [undef], 'average preserves v2 null passthrough'],
     ['[[1,2],[3,4]]', '.[] | sum_by(.)', [3,7], 'sum keeps stream order'],
     ['[[1,2],[3,4]]', '.[] | avg_by(.)', [1.5,3.5], 'average keeps stream order'],
+    ['[[{"n":1},{"n":3}],[{"n":5},{"n":7}]]', '.[] | sum_by(.n)', [4,12], 'sum of nested object streams stays ordered'],
+    ['[[{"n":1},{"n":3}],[{"n":5},{"n":7}]]', '.[] | avg_by(.n)', [2,6], 'average of nested object streams stays ordered'],
+    ['[{"values":[4,null,2]},{"values":[6,"bad"]}]', 'sum_by(.values[])', [12], 'sum of mixed projected multi-values'],
+    ['[{"values":[4,null,2]},{"values":[6,"bad"]}]', 'avg_by(.values[])', [4], 'average of mixed projected multi-values'],
 );
 
 for my $case (@cases) {
