@@ -280,6 +280,7 @@ t/v3_paths_dispatch.t
 t/v3_regex_filter_dispatch.t
 t/v3_root_path_guard_cleanup.t
 t/v3_shared_leaf_path_collector.t
+t/v3_shared_numeric_recursion.t
 t/v3_shared_path_array_index.t
 t/manifest_coverage.t
 t/v3_shared_range_arguments.t
