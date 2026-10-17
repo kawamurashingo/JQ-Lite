@@ -858,8 +858,6 @@ sub _apply_paths {
 sub _apply_scalar_paths {
     my ($value) = @_;
 
-    return [] if _is_scalar_value($value);
-
     my @paths;
     _collect_scalar_paths($value, [], \@paths);
     return \@paths;
