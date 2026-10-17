@@ -76,8 +76,9 @@ is_deeply(results('42', 'startswith("4")'), [JSON::PP::false],
     'string predicate does not reinterpret numeric scalars as text');
 
 my $ok = eval { $jq->run_query('1234', '@base64d'); 1 };
+my $error = $@;
 ok(!$ok, 'base64d still rejects numeric scalar inputs');
-like("$@", qr/\@base64d\(\): input must be base64 text/,
+like("$error", qr/\@base64d\(\): input must be base64 text/,
     'base64d retains numeric-input validation message');
 is_deeply(results('[42,"42"]', '.[] | @csv'),
     ['42','"42"'], 'streamed CSV output preserves type and order');
