@@ -57,6 +57,7 @@ t/avg_by.t
 t/base64_format.t
 t/base64d.t
 t/builtin_dispatch.t
+t/v3_shared_builtin_stream_map.t
 t/basic.t
 t/case_transform.t
 t/ceil_floor.t
