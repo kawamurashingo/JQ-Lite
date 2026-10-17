@@ -97,7 +97,7 @@ is_deeply(run('null', 'empty | substr'), [],
 my $object = { keep => ['abcdef'] };
 my $true = JSON::PP::true;
 my $false = JSON::PP::false;
-my @inputs = ($object, $true, $false, undef, 'abcdef', ['xyz',null]);
+my @inputs = ($object, $true, $false, undef, 'abcdef', ['xyz',undef]);
 my ($found, $values) = JQ::Lite::Builtin->dispatch(
     $jq, 'substr', \@inputs
 );
