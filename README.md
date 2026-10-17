@@ -233,6 +233,8 @@ for compatibility guarantees.
 * [`docs/library-integration.md`](docs/library-integration.md) — examples for downstream Perl/CPAN users
 * [`docs/FUNCTIONS.md`](docs/FUNCTIONS.md) — supported jq functions
 * [`docs/jq-differential-testing.md`](docs/jq-differential-testing.md) — jq 1.7 differential test harness for 3.0 development
+* [`docs/jq-compatibility.md`](docs/jq-compatibility.md) — practical v3/jq 1.7 compatibility matrix, verified scope and documented differences
+* [`docs/v3-migration.md`](docs/v3-migration.md) — v2-to-v3 filter migration checklist and behavior changes
 * [`docs/jq-semantics-differences.md`](docs/jq-semantics-differences.md) — jq 1.7 semantic differences in the current 2.x series
 * [`docs/v3-roadmap.md`](docs/v3-roadmap.md) — compatibility policy, migration plan, and release criteria for JQ::Lite 3.0
 * [`docs/v3-arithmetic.md`](docs/v3-arithmetic.md) — practical v3 arithmetic types, predicates, retained jq differences and v2 migration

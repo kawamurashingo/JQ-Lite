@@ -8,6 +8,8 @@ docs/library-contract.md
 docs/library-integration.md
 docs/jq-semantics-differences.md
 docs/jq-differential-testing.md
+docs/jq-compatibility.md
+docs/v3-migration.md
 docs/v3-roadmap.md
 install-jq-lite.ps1
 lib/JQ/Lite.pm
