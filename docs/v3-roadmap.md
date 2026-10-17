@@ -8,6 +8,10 @@ to implement every jq feature. It is to make the supported language more
 predictable, move deliberately toward jq 1.7 where that benefits portable
 filters, and preserve the lightweight, pure-Perl deployment model.
 
+For a reader-facing snapshot see the [practical jq 1.7 compatibility matrix](jq-compatibility.md)
+and [v2-to-v3 migration guide](v3-migration.md). They do not override the
+roadmap's pending semantic decisions.
+
 The current behaviour and the decision status of every known difference are
 recorded in the [2.x semantic differences inventory](jq-semantics-differences.md).
 That inventory is the source of truth for scope: this roadmap does not silently

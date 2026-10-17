@@ -1,6 +1,7 @@
 3.00_01  2026-09-23
     [Developer release]
     - Delegate paths(scalars) root-type checks to its existing leaf collector while retaining the empty stream for scalar roots.
+    - Document practical jq 1.7 compatibility classifications and a v2-to-v3 migration guide without expanding the supported grammar.
     - Share index()/rindex()/indices() filter argument decoding and dispatch while retaining first/last/all-match, UTF-8 and v2 fallback behavior.
     - Delegate absent substr argument captures to the common parser without changing slicing, coercion or stream semantics.
     - Let the common argument parser handle omitted/empty flatten_depth captures while preserving depth fallback and stream behavior.
