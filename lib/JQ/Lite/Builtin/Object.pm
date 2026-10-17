@@ -26,7 +26,7 @@ sub register {
         [merge_objects => \&JQ::Lite::Util::_apply_merge_objects],
     ) {
         my ($name, $function) = @$spec;
-        $register->([$name, "$name()"], JQ::Lite::Builtin::_stream_map($function));
+        $register->([$name, "$name()"], JQ::Lite::Util::_stream_map($function));
     }
     $register->(qr/^has\((.+)\)$/, sub {
         my ($owner, $inputs, $arguments) = @_;
