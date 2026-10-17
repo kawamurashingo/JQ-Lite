@@ -9,7 +9,6 @@ use Scalar::Util qw(looks_like_number);
 sub register {
     my ($class, $register) = @_;
 
-    # Only the array endpoint differs; non-arrays still emit one null.
     for my $spec (['first', 0], ['last', -1]) {
         my ($name, $index) = @$spec;
         $register->($name, sub { my ($o, $i) = @_; return [ map { ref($_) eq 'ARRAY' && @$_ ? $_->[$index] : undef } @$i ] });
