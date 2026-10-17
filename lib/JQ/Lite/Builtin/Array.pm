@@ -28,8 +28,7 @@ sub register {
     });
     $register->(qr/^flatten_depth(?:\((.*)\))?$/, sub {
         my ($owner, $inputs, $arguments) = @_;
-        $arguments = '' unless defined $arguments;
-        my @args = length($arguments) ? JQ::Lite::Util::_parse_arguments($arguments) : ();
+        my @args = JQ::Lite::Util::_parse_arguments($arguments);
         my $depth = @args ? $args[0] : 1;
         $depth = 1 unless defined($depth) && looks_like_number($depth);
         $depth = int($depth);
