@@ -218,15 +218,13 @@ sub _apply_merge_objects {
 
     if (ref $value eq 'ARRAY') {
         my %merged;
-        my $saw_object = 0;
 
         for my $element (@$value) {
             next unless ref $element eq 'HASH';
             %merged = (%merged, %$element);
-            $saw_object = 1;
         }
 
-        return $saw_object ? \%merged : {};
+        return \%merged;
     }
 
     if (ref $value eq 'HASH') {
