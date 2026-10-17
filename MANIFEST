@@ -293,6 +293,7 @@ t/v3_shared_extreme_dispatch.t
 t/v3_shared_all_any_quantifier.t
 t/v3_shared_array_count_validation.t
 t/v3_shared_sort_direction.t
+t/v3_shared_key_enumeration.t
 t/v3_shared_search_dispatch.t
 t/v3_shared_variance_stddev.t
 t/v3_shared_sum_avg_by.t
