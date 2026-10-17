@@ -82,8 +82,8 @@ is_deeply([ $jq->run_query('{"a":1,"b":2}', '.a, .b') ],
     [1,2], 'comma results preserve their order');
 is_deeply([ $jq->run_query('[{"n":1},{"n":3}]', '.[] | .n') ],
     [1,3], 'pipeline preserves ordered multiple results');
-is_deeply([ $jq->run_query('[{"n":1},{"n":3}]', '[.[] | .n]') ],
-    [[1,3]], 'array construction returns one array reference');
+is_deeply([ $jq->run_query('{"a":1,"b":2}', '[(.a, .b)]') ],
+    [[1,2]], 'array construction returns one array reference');
 is_deeply([ $jq->run_query('{"a":1}', '.a') ],
     [1], 'normal query after multi-result query stays independent');
 
@@ -98,11 +98,12 @@ sub check_error {
     my ($json, $filter, $class, $category, $label) = @_;
     local $@;
     my $ok = eval { my @discard = $jq->run_query($json, $filter); 1 };
+    my $error = $@;
     ok(!$ok, "$label raises an exception");
-    isa_ok($@, $class, "$label error class");
-    if (ref $@) {
-        is($@->category, $category, "$label stable error category");
-        ok(length("$@") > 0, "$label has a readable diagnostic");
+    isa_ok($error, $class, "$label error class");
+    if (ref $error) {
+        is($error->category, $category, "$label stable error category");
+        ok(length("$error") > 0, "$label has a readable diagnostic");
     }
 }
 
