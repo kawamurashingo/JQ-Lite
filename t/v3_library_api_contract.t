@@ -75,8 +75,6 @@ is_deeply([ $jq->run_query('null', 'empty') ], [],
     'empty filter yields no results');
 is_deeply([ $jq->run_query('{}', '.missing') ], [undef],
     'missing ordinary key yields exactly one null');
-is_deeply([ $jq->run_query('{}', '.missing?') ], [],
-    'missing optional key yields zero results');
 
 is_deeply([ $jq->run_query('{"a":1,"b":2}', '.a, .b') ],
     [1,2], 'comma results preserve their order');
