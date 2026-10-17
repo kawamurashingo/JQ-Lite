@@ -8,16 +8,13 @@ use JQ::Lite::Util ();
 sub register {
     my ($class, $register) = @_;
 
-    # Share container enumeration without changing the distinct invalid-input
-    # policy or the accepted spellings of the two legacy filters.
-    for my $name ('keys', 'keys_unsorted') {
-        my $sorted = $name eq 'keys';
-        my $names = $sorted ? $name : [$name, "$name()"];
-        $register->($names, sub {
+    # Only hash key order and invalid-input behavior differ.
+    for my $sorted (1, 0) {
+        my $name = $sorted ? 'keys' : 'keys_unsorted';
+        $register->($sorted ? $name : [$name, "$name()"], sub {
             my ($owner, $inputs) = @_;
             return [ map {
-                ref($_) eq 'HASH'
-                    ? [ $sorted ? sort(keys %{$_}) : keys %{$_} ]
+                ref($_) eq 'HASH' ? [ $sorted ? sort(keys %{$_}) : keys %{$_} ]
                     : ref($_) eq 'ARRAY' ? [ 0 .. $#{$_} ]
                     : $sorted ? die 'keys(): argument must be an object or array' : undef
             } @{$inputs} ];
