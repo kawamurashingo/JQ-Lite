@@ -20,18 +20,17 @@ sub register {
             } @{$inputs} ];
         });
     }
-    $register->(['to_entries', 'to_entries()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ map { JQ::Lite::Util::_to_entries($_) } @{$inputs} ];
-    });
-    $register->(['from_entries', 'from_entries()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ map { JQ::Lite::Util::_from_entries($_) } @{$inputs} ];
-    });
-    $register->(['merge_objects', 'merge_objects()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ map { JQ::Lite::Util::_apply_merge_objects($_) } @{$inputs} ];
-    });
+    for my $spec (
+        [to_entries    => \&JQ::Lite::Util::_to_entries],
+        [from_entries  => \&JQ::Lite::Util::_from_entries],
+        [merge_objects => \&JQ::Lite::Util::_apply_merge_objects],
+    ) {
+        my ($name, $function) = @$spec;
+        $register->([$name, "$name()"], sub {
+            my ($owner, $inputs) = @_;
+            return [ map { $function->($_) } @$inputs ];
+        });
+    }
     $register->(qr/^has\((.+)\)$/, sub {
         my ($owner, $inputs, $arguments) = @_;
         my @args = JQ::Lite::Util::_parse_arguments($arguments);

@@ -1,6 +1,7 @@
 3.00_01  2026-09-23
     [Developer release]
     - Share index()/rindex()/indices() filter argument decoding and dispatch while retaining first/last/all-match, UTF-8 and v2 fallback behavior.
+    - Share to_entries/from_entries/merge_objects stream registration while retaining entry reconstruction, errors and object merge behavior.
     - Simplify guaranteed-array flatten recursion and share one-level/full-depth builtin registration without changing output streams.
     - Share bounded and unlimited flatten recursion while retaining depth stopping rules, nested values and stream behavior.
     - Share arrays/objects/scalars type-filter dispatch while retaining exact scalar, boolean and stream behavior.
