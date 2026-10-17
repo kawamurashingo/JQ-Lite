@@ -7,7 +7,7 @@ use JQ::Lite::Util ();
 
 sub register {
     my ($class, $register) = @_;
-    my $map = \&JQ::Lite::Builtin::_stream_map;
+    my $map = \&JQ::Lite::Util::_stream_map;
 
     for my $spec (
         [titlecase => \&JQ::Lite::Util::_apply_case_transform, 'titlecase'],
