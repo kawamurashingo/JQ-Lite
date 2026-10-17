@@ -31,11 +31,7 @@ sub register {
     $register->(qr/^rtrimstr\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_trimstr, 'right'));
     $register->(qr/^startswith\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_string_predicate, 'start'));
     $register->(qr/^endswith\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_string_predicate, 'end'));
-    $register->(qr/^split\((.+)\)$/, sub {
-        my ($owner, $inputs, $argument) = @_;
-        my $separator = JQ::Lite::Util::_parse_string_argument($argument);
-        return [ map { JQ::Lite::Util::_apply_split($_, $separator) } @{$inputs} ];
-    });
+    $register->(qr/^split\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_split, undef));
     $register->(qr/^substr(?:\((.*)\))?$/, sub {
         my ($owner, $inputs, $arguments) = @_;
         my @args = JQ::Lite::Util::_parse_arguments(defined($arguments) ? $arguments : '');
