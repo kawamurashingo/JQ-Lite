@@ -27,10 +27,10 @@ sub register {
     $register->(['tostring', 'tostring()'], _map(\&JQ::Lite::Util::_apply_tostring));
     $register->(['tojson', 'tojson()'], _map(\&JQ::Lite::Util::_apply_tojson));
     $register->(['fromjson', 'fromjson()'], _map(\&JQ::Lite::Util::_apply_fromjson));
-    $register->(qr/^ltrimstr\((.+)\)$/, _trimstr('left'));
-    $register->(qr/^rtrimstr\((.+)\)$/, _trimstr('right'));
-    $register->(qr/^startswith\((.+)\)$/, _predicate('start'));
-    $register->(qr/^endswith\((.+)\)$/, _predicate('end'));
+    $register->(qr/^ltrimstr\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_trimstr, 'left'));
+    $register->(qr/^rtrimstr\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_trimstr, 'right'));
+    $register->(qr/^startswith\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_string_predicate, 'start'));
+    $register->(qr/^endswith\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_string_predicate, 'end'));
     $register->(qr/^split\((.+)\)$/, sub {
         my ($owner, $inputs, $argument) = @_;
         my $separator = JQ::Lite::Util::_parse_string_argument($argument);
@@ -50,21 +50,13 @@ sub register {
     });
 }
 
-sub _trimstr {
-    my ($side) = @_;
+# Only the existing trim/predicate implementation and direction vary.
+sub _string_argument {
+    my ($function, $mode) = @_;
     return sub {
         my ($owner, $inputs, $argument) = @_;
         my $needle = JQ::Lite::Util::_parse_string_argument($argument);
-        return [ map { JQ::Lite::Util::_apply_trimstr($_, $needle, $side) } @{$inputs} ];
-    };
-}
-
-sub _predicate {
-    my ($side) = @_;
-    return sub {
-        my ($owner, $inputs, $argument) = @_;
-        my $needle = JQ::Lite::Util::_parse_string_argument($argument);
-        return [ map { JQ::Lite::Util::_apply_string_predicate($_, $needle, $side) } @{$inputs} ];
+        return [ map { $function->($_, $needle, $mode) } @{$inputs} ];
     };
 }
 
