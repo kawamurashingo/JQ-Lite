@@ -1686,24 +1686,19 @@ sub apply {
             return 1;
         }
 
-        # support for indices(value)
-        if ($part =~ /^indices\((.*)\)$/) {
-            my @args   = JQ::Lite::Util::_parse_arguments($1);
-            my $needle = @args ? $args[0] : undef;
-
-            @next_results = map { JQ::Lite::Util::_apply_indices($_, $needle) } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for index(value) and rindex(value)
-        if ($part =~ /^(r?index)\((.*)\)$/) {
+        # Share search argument decoding and stream dispatch. Each builtin
+        # retains its existing first/last/all-match implementation.
+        if ($part =~ /^(indices|r?index)\((.*)\)$/) {
             my ($name, $argument) = ($1, $2);
-            my @args   = JQ::Lite::Util::_parse_arguments($argument);
+            my @args = JQ::Lite::Util::_parse_arguments($argument);
             my $needle = @args ? $args[0] : undef;
-            my $last   = $name eq 'rindex';
+            my $last = $name eq 'rindex';
 
-            @next_results = map { JQ::Lite::Util::_apply_index($_, $needle, $last) } @results;
+            @next_results = map {
+                $name eq 'indices'
+                    ? JQ::Lite::Util::_apply_indices($_, $needle)
+                    : JQ::Lite::Util::_apply_index($_, $needle, $last)
+            } @results;
             @$out_ref = @next_results;
             return 1;
         }
