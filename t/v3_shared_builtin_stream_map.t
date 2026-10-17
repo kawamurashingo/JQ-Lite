@@ -7,6 +7,49 @@ use JQ::Lite::Util ();
 use FindBin ();
 use File::Spec ();
 
+# Each builtin subpackage previously supported direct require/register without
+# first loading the parent registry. Verify that contract in fresh processes:
+# this test process has already loaded JQ::Lite and cannot test load order.
+my $lib = File::Spec->catdir($FindBin::Bin, '..', 'lib');
+my $standalone = <<'PERL';
+use strict;
+use warnings;
+use JSON::PP ();
+my ($module, $builtin, $input, $expected) = @ARGV;
+my $package = "JQ::Lite::Builtin::$module";
+my $file = "$package.pm";
+$file =~ s{::}{/}g;
+require $file;
+die "parent loaded implicitly" if exists $INC{'JQ/Lite/Builtin.pm'};
+my %handlers;
+$package->register(sub {
+    my ($names, $handler) = @_;
+    return if ref($names) eq 'Regexp';
+    my @names = ref($names) eq 'ARRAY' ? @$names : ($names);
+    $handlers{$_} = $handler for @names;
+});
+die "missing standalone handler: $builtin" unless $handlers{$builtin};
+my $json = JSON::PP->new->allow_nonref->canonical;
+my $value = $json->decode($input);
+my $got = $handlers{$builtin}->(undef, [$value]);
+die "unexpected standalone result" unless
+    $json->encode($got) eq $json->encode($json->decode($expected));
+die "parent loaded by registration" if exists $INC{'JQ/Lite/Builtin.pm'};
+PERL
+for my $case (
+    ['String', 'upper', '"hello"', '["HELLO"]'],
+    ['Math', 'ceil', '1.2', '[2]'],
+    ['Math', 'to_number', '"12"', '[12]'],
+    ['Encoding', '@uri', '"a b"', '["a%20b"]'],
+    ['Object', 'to_entries', '{"b":2,"a":1}',
+     '[[{"key":"a","value":1},{"key":"b","value":2}]]'],
+) {
+    my ($module, $builtin, $input, $expected) = @$case;
+    is(system($^X, "-I$lib", '-e', $standalone,
+              $module, $builtin, $input, $expected), 0,
+       "standalone $module registration works without loading parent");
+}
+
 my $jq = JQ::Lite->new;
 
 sub run {
