@@ -35,7 +35,9 @@ for my $case (@cases) {
 for my $input ('[]', '[[]]', '[[[]]]') {
     for my $filter ('flatten', 'flatten_all', 'flatten_depth(0)',
                     'flatten_depth(1)', 'flatten_depth(3)') {
-        my $expected = $filter eq 'flatten_depth(0)' ? $input : '[]';
+        my $expected = $filter eq 'flatten_depth(0)' ? $input
+            : $input eq '[[[]]]' && ($filter eq 'flatten' || $filter eq 'flatten_depth(1)')
+                ? '[[]]' : '[]';
         is_deeply(run($input, $filter), [$json->decode($expected)],
             "$filter preserves empty nested array structure for $input");
     }
@@ -85,7 +87,7 @@ for my $name ('flatten', 'flatten_all') {
     );
     ok($found, "$name remains registered");
     is_deeply($outputs,
-        $name eq 'flatten' ? [[[1,[2]]], undef, 42]
+        $name eq 'flatten' ? [[1,[2]], undef, 42]
                           : [[1,2], undef, 42],
         "$name preserves the three-item direct stream");
     my ($alias, $alias_outputs) = JQ::Lite::Builtin->dispatch(
@@ -93,17 +95,17 @@ for my $name ('flatten', 'flatten_all') {
     );
     ok($alias, "$name() alias remains registered");
     is_deeply($alias_outputs,
-        $name eq 'flatten' ? [[[1,[2]]]] : [[1,2]],
+        $name eq 'flatten' ? [[1,[2]]] : [[1,2]],
         "$name() direct alias keeps legacy flattening behavior");
     is_deeply(run('null', "empty | $name"), [],
         "$name does not create values from an empty upstream stream");
 }
 
-is_deeply(run('[[1,[2]],[],[3,[4]]]', '.[] | flatten_all'),
-    [[1,2], [], [3,4]],
+is_deeply(run('[[1,[2,[20]]],[],[3,[4,[40]]]]', '.[] | flatten_all'),
+    [[1,2,20], [], [3,4,40]],
     'full flatten retains ordered multi-value streams');
-is_deeply(run('[[1,[2]],[],[3,[4]]]', '.[] | flatten'),
-    [[1,[2]], [], [3,[4]]],
+is_deeply(run('[[1,[2,[20]]],[],[3,[4,[40]]]]', '.[] | flatten'),
+    [[1,2,[20]], [], [3,4,[40]]],
     'single flatten retains ordered multi-value streams');
 
 done_testing;
