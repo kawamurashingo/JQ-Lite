@@ -311,6 +311,7 @@ t/v3_flatten_shared_dispatch_cleanup.t
 t/v3_flatten_utility_type_guard.t
 t/v3_flatten_depth_parser_delegation.t
 t/v3_shared_object_transform_dispatch.t
+t/v3_merge_objects_empty_hash_identity.t
 t/v3_shared_variance_stddev.t
 t/v3_shared_sum_avg_by.t
 t/v3_unique_by_shared_path_normalization.t
