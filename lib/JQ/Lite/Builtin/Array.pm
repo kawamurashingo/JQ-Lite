@@ -9,8 +9,10 @@ use Scalar::Util qw(looks_like_number);
 sub register {
     my ($class, $register) = @_;
 
-    $register->('first', sub { my ($o, $i) = @_; return [ map { ref($_) eq 'ARRAY' && @{$_} ? $_->[0] : undef } @{$i} ] });
-    $register->('last', sub { my ($o, $i) = @_; return [ map { ref($_) eq 'ARRAY' && @{$_} ? $_->[-1] : undef } @{$i} ] });
+    for my $spec (['first', 0], ['last', -1]) {
+        my ($name, $index) = @$spec;
+        $register->($name, sub { my ($o, $i) = @_; return [ map { ref($_) eq 'ARRAY' && @$_ ? $_->[$index] : undef } @$i ] });
+    }
     $register->('rest', sub { my ($o, $i) = @_; return [ map { ref($_) eq 'ARRAY' ? (@{$_} ? [ @{$_}[1 .. $#{$_}] ] : []) : $_ } @{$i} ] });
     $register->('reverse', sub { my ($o, $i) = @_; return [ map { ref($_) eq 'ARRAY' ? [ reverse @{$_} ] : JQ::Lite::Util::_is_string_scalar($_) ? scalar(reverse $_) : $_ } @{$i} ] });
     $register->(['flatten', 'flatten()'], sub {
