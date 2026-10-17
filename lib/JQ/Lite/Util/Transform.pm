@@ -79,22 +79,9 @@ sub _apply_numeric_function {
 sub _apply_clamp {
     my ($value, $min, $max) = @_;
 
-    return undef if !defined $value;
-
-    if (JSON::PP::is_bool($value)) {
-        my $numeric = $value ? 1 : 0;
-        return _clamp_scalar($numeric, $min, $max);
-    }
-
-    if (!ref $value) {
-        return _clamp_scalar($value, $min, $max);
-    }
-
-    if (ref $value eq 'ARRAY') {
-        return [ map { _apply_clamp($_, $min, $max) } @$value ];
-    }
-
-    return $value;
+    return _apply_numeric_function($value, sub {
+        return _clamp_scalar($_[0], $min, $max);
+    });
 }
 
 sub _normalize_numeric_bound {
@@ -124,21 +111,7 @@ sub _clamp_scalar {
 sub _apply_to_number {
     my ($value) = @_;
 
-    return undef if !defined $value;
-
-    if (JSON::PP::is_bool($value)) {
-        return $value ? 1 : 0;
-    }
-
-    if (!ref $value) {
-        return looks_like_number($value) ? 0 + $value : $value;
-    }
-
-    if (ref $value eq 'ARRAY') {
-        return [ map { _apply_to_number($_) } @$value ];
-    }
-
-    return $value;
+    return _apply_numeric_function($value, sub { 0 + $_[0] });
 }
 
 sub _extract_numeric_values {
