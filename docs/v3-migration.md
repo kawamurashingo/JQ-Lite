@@ -40,7 +40,7 @@ arbitrary jq filter. A quoted JSON literal means a JSON string, not a number.
 | `[1,2,3];` `contains([1,3])` | `false` (single array element equality). | `true` (recursive subset containment). | Use `index([1,3]) != null` to retain exact whole-element lookup. |
 | `"日本語";` `index("本")` | Character index 1. | UTF-8 byte offset 3. | Convert byte positions at the integration boundary if character offsets are required. |
 | `{"a":1};` `.a \|= . + 1` | Emits only the updated target `2`. | Emits the updated root `{"a":2}`. | Remove any wrapper that reconstructed the root from the target. |
-| `{"a":1};` `.a \|= empty` | No jq-equivalent deletion guarantee. | Deletes `a`, emits `{}`. | Use `|= null` when a null-valued key must be kept. |
+| `{"a":1};` `.a \|= empty` | No jq-equivalent deletion guarantee. | Deletes `a`, emits `{}`. | Use `\|= null` when a null-valued key must be kept. |
 | `{"a":[1,2,3]};` `.a[0:1] = [9]` | Could silently replace the whole `a` prefix. | Structured runtime error before mutation. | Use a supported literal index or a separate explicit transformation. |
 
 In particular, do not apply the numeric-expression migration rules to the
