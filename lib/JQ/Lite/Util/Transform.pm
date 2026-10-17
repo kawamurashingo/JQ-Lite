@@ -221,16 +221,15 @@ sub _to_entries {
     return $value;
 }
 
-# Keep type decisions based on the original Perl scalar flags, not on
-# looks_like_number: JSON numeric-looking strings must stay strings.
-sub _scalar_sv_flags {
+# Preserve scalar type flags; numeric-looking JSON strings are strings.
+sub _scalar_flags {
     my ($value) = @_;
     return 0 if !defined $value || ref $value;
     return B::svref_2object(\$value)->FLAGS;
 }
 
 sub _is_string_scalar {
-    return (_scalar_sv_flags($_[0]) & B::SVp_POK()) ? 1 : 0;
+    return (_scalar_flags($_[0]) & B::SVp_POK()) ? 1 : 0;
 }
 
 sub _from_entries {
@@ -1983,7 +1982,7 @@ sub _escape_tsv_text {
 }
 
 sub _is_unquoted_csv_number {
-    return (_scalar_sv_flags($_[0]) & (B::SVp_IOK() | B::SVp_NOK())) ? 1 : 0;
+    return (_scalar_flags($_[0]) & (B::SVp_IOK() | B::SVp_NOK())) ? 1 : 0;
 }
 
 sub _apply_split {
