@@ -8,7 +8,7 @@ use JQ::Lite::Util ();
 
 sub register {
     my ($class, $register) = @_;
-    my $map = \&JQ::Lite::Builtin::_stream_map;
+    my $map = \&JQ::Lite::Util::_stream_map;
 
     $register->('abs', sub {
         my ($owner, $inputs) = @_;
@@ -37,7 +37,7 @@ sub register {
 
 sub _numeric {
     my ($function) = @_;
-    return JQ::Lite::Builtin::_stream_map(sub { JQ::Lite::Util::_apply_numeric_function($_[0], $function) });
+    return JQ::Lite::Util::_stream_map(sub { JQ::Lite::Util::_apply_numeric_function($_[0], $function) });
 }
 
 1;
