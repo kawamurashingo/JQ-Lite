@@ -1401,13 +1401,15 @@ sub apply {
             return 1;
         }
 
-        # support for sum_by(path)
-        if ($part =~ /^sum_by\((.+)\)$/) {
+        # sum_by/avg_by share path normalization, array dispatch and numeric
+        # projection; the final division is the only difference.
+        if ($part =~ /^(sum|avg)_by\((.+)\)$/) {
+            my ($average, $raw_path) = ($1 eq 'avg', $2);
             my ($key_path, $use_entire_item)
-                = JQ::Lite::Util::_normalize_path_argument($1);
+                = JQ::Lite::Util::_normalize_path_argument($raw_path);
             @next_results = map {
                 ref($_) eq 'ARRAY'
-                    ? _sum_or_avg_by($_, $key_path, $use_entire_item, 0)
+                    ? _sum_or_avg_by($_, $key_path, $use_entire_item, $average)
                     : $_
             } @results;
             @$out_ref = @next_results;
@@ -1432,19 +1434,6 @@ sub apply {
                 }
             } @results;
 
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for avg_by(path)
-        if ($part =~ /^avg_by\((.+)\)$/) {
-            my ($key_path, $use_entire_item)
-                = JQ::Lite::Util::_normalize_path_argument($1);
-            @next_results = map {
-                ref($_) eq 'ARRAY'
-                    ? _sum_or_avg_by($_, $key_path, $use_entire_item, 1)
-                    : $_
-            } @results;
             @$out_ref = @next_results;
             return 1;
         }
