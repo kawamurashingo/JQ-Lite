@@ -111,6 +111,7 @@ t/keys_unsorted.t
 t/leaf_paths.t
 t/length.t
 t/library_errors.t
+t/v3_library_api_contract.t
 t/limit.t
 t/map.t
 t/map_values.t
