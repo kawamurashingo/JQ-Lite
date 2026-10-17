@@ -1579,22 +1579,7 @@ sub _project_numeric_values {
         ? ($element)
         : _traverse($element, $key_path);
 
-    my @numbers;
-    for my $value (@values) {
-        next unless defined $value;
-
-        if (JSON::PP::is_bool($value)) {
-            push @numbers, $value ? 1 : 0;
-            next;
-        }
-
-        next if ref $value;
-        next unless looks_like_number($value);
-
-        push @numbers, 0 + $value;
-    }
-
-    return @numbers;
+    return _extract_numeric_values(\@values);
 }
 
 sub _uniq {
