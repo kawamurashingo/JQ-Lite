@@ -7,6 +7,7 @@ use JQ::Lite::Util ();
 
 sub register {
     my ($class, $register) = @_;
+    my $map = \&JQ::Lite::Builtin::_stream_map;
 
     for my $spec (
         [titlecase => \&JQ::Lite::Util::_apply_case_transform, 'titlecase'],
@@ -17,14 +18,14 @@ sub register {
     ) {
         my ($name, $function, $mode) = @{$spec};
         $register->([$name, "$name()"],
-            JQ::Lite::Builtin::_stream_map(sub { $function->($_[0], $mode) }));
+            $map->(sub { $function->($_[0], $mode) }));
     }
-    $register->(['trim', 'trim()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_trim));
-    $register->(['explode', 'explode()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_explode));
-    $register->(['implode', 'implode()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_implode));
-    $register->(['tostring', 'tostring()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_tostring));
-    $register->(['tojson', 'tojson()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_tojson));
-    $register->(['fromjson', 'fromjson()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_fromjson));
+    $register->(['trim', 'trim()'], $map->(\&JQ::Lite::Util::_apply_trim));
+    $register->(['explode', 'explode()'], $map->(\&JQ::Lite::Util::_apply_explode));
+    $register->(['implode', 'implode()'], $map->(\&JQ::Lite::Util::_apply_implode));
+    $register->(['tostring', 'tostring()'], $map->(\&JQ::Lite::Util::_apply_tostring));
+    $register->(['tojson', 'tojson()'], $map->(\&JQ::Lite::Util::_apply_tojson));
+    $register->(['fromjson', 'fromjson()'], $map->(\&JQ::Lite::Util::_apply_fromjson));
     $register->(qr/^ltrimstr\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_trimstr, 'left'));
     $register->(qr/^rtrimstr\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_trimstr, 'right'));
     $register->(qr/^startswith\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_string_predicate, 'start'));
