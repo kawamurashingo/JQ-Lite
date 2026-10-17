@@ -3,7 +3,9 @@ use warnings;
 use Test::More;
 use JSON::PP ();
 use JQ::Lite;
-use JQ::Lite::Builtin ();
+use JQ::Lite::Util ();
+use FindBin ();
+use File::Spec ();
 
 my $jq = JQ::Lite->new;
 
@@ -12,10 +14,10 @@ sub run {
     return [ $jq->run_query($input, $filter) ];
 }
 
-# Exercise the private shared dispatcher without binding to a specific
+# Exercise the dependency-safe private shared mapper without binding to a specific
 # builtin implementation: one callback call and one result per input.
 my $calls = 0;
-my $twice = JQ::Lite::Builtin::_stream_map(sub {
+my $twice = JQ::Lite::Util::_stream_map(sub {
     $calls++;
     return defined $_[0] ? $_[0] * 2 : undef;
 });
@@ -31,7 +33,7 @@ is_deeply($twice->(undef, []), [],
     'empty inputs create an empty result array');
 is($calls, 0, 'empty inputs never invoke callback');
 
-my $identity = JQ::Lite::Builtin::_stream_map(sub { $_[0] });
+my $identity = JQ::Lite::Util::_stream_map(sub { $_[0] });
 my $bool = JSON::PP::true;
 my $container = { key => [1,2] };
 my $unchanged = $identity->(undef, [$bool, $container, undef]);
@@ -41,7 +43,7 @@ is($unchanged->[1], $container,
     'mapper preserves unmodified reference identity');
 
 my $caught = eval {
-    my $fail = JQ::Lite::Builtin::_stream_map(sub {
+    my $fail = JQ::Lite::Util::_stream_map(sub {
         die "callback failure\n" if $_[0] == 2;
         return $_[0];
     });
