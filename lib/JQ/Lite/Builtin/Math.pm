@@ -8,6 +8,7 @@ use JQ::Lite::Util ();
 
 sub register {
     my ($class, $register) = @_;
+    my $map = \&JQ::Lite::Util::_stream_map;
 
     $register->('abs', sub {
         my ($owner, $inputs) = @_;
@@ -22,8 +23,8 @@ sub register {
     $register->(['ceil', 'ceil()'], _numeric(\&JQ::Lite::Util::_ceil));
     $register->(['floor', 'floor()'], _numeric(\&JQ::Lite::Util::_floor));
     $register->(['round', 'round()'], _numeric(\&JQ::Lite::Util::_round));
-    $register->(['to_number', 'to_number()'], _map(\&JQ::Lite::Util::_apply_to_number));
-    $register->(['tonumber', 'tonumber()'], _map(\&JQ::Lite::Util::_tonumber));
+    $register->(['to_number', 'to_number()'], $map->(\&JQ::Lite::Util::_apply_to_number));
+    $register->(['tonumber', 'tonumber()'], $map->(\&JQ::Lite::Util::_tonumber));
     $register->(qr/^clamp\((.*)\)$/, sub {
         my ($owner, $inputs, $arguments) = @_;
         my @args = JQ::Lite::Util::_parse_arguments($arguments);
@@ -36,15 +37,7 @@ sub register {
 
 sub _numeric {
     my ($function) = @_;
-    return _map(sub { JQ::Lite::Util::_apply_numeric_function($_[0], $function) });
-}
-
-sub _map {
-    my ($function) = @_;
-    return sub {
-        my ($owner, $inputs) = @_;
-        return [ map { $function->($_) } @{$inputs} ];
-    };
+    return JQ::Lite::Util::_stream_map(sub { JQ::Lite::Util::_apply_numeric_function($_[0], $function) });
 }
 
 1;

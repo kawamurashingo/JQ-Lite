@@ -16,6 +16,16 @@ require JQ::Lite::Util::Parsing;
 require JQ::Lite::Util::Paths;
 require JQ::Lite::Util::Transform;
 
+# Unary builtins preserve input stream order and produce one output per input.
+# Keep mapping separate from each builtin's scalar transformation.
+sub _stream_map {
+    my ($function) = @_;
+    return sub {
+        my ($owner, $inputs) = @_;
+        return [ map { $function->($_) } @$inputs ];
+    };
+}
+
 my $decode_json_impl = \&_decode_json;
 {
     no warnings 'redefine';
