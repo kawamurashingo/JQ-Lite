@@ -24,16 +24,14 @@ my @cases = (
 
 for my $case (@cases) {
     my ($name, $expected) = @$case;
-    for my $spelling ($name, "$name()") {
-        is_deeply(run($values, $spelling), [$json->decode($expected)],
-            "$spelling preserves array recursion, rounding, booleans and objects");
-        is_deeply(run('null', $spelling), [undef],
-            "$spelling preserves null scalar");
-        is_deeply(run('{}', $spelling), [{}],
-            "$spelling preserves object scalar");
-        is_deeply(run('"oops"', $spelling), ['oops'],
-            "$spelling preserves nonnumeric scalar");
-    }
+    is_deeply(run($values, $name), [$json->decode($expected)],
+        "$name preserves array recursion, rounding, booleans and objects");
+    is_deeply(run('null', $name), [undef],
+        "$name preserves null scalar");
+    is_deeply(run('{}', $name), [{}],
+        "$name preserves object scalar");
+    is_deeply(run('"oops"', $name), ['oops'],
+        "$name preserves nonnumeric scalar");
 }
 
 is_deeply(run('["1.9","-1.9","bad"]', 'ceil'), [[2,-1,'bad']],
@@ -53,6 +51,13 @@ for my $name (qw(ceil floor round)) {
     is(scalar @$outputs, 3,
         "$name maps once per input and preserves the null slot");
     ok(!defined $outputs->[2], "$name keeps null in direct dispatch");
+    # The exact-name aliases are registered, but public ceil()/floor()/round()
+    # expressions use their separate strict arithmetic evaluator.
+    my ($alias_matched, $alias_outputs) = JQ::Lite::Builtin->dispatch(
+        $jq, "$name()", [1.2]
+    );
+    ok($alias_matched, "$name() retains its direct registry alias");
+    is(scalar @$alias_outputs, 1, "$name() retains one mapped result");
 }
 
 is_deeply(run('[1.2,-1.2,2.5]', '.[] | ceil'), [2,-1,3],
