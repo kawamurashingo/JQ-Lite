@@ -1060,7 +1060,7 @@ sub _set_value_at_path {
     }
 
     if (ref $current eq 'ARRAY') {
-        my $index = _normalize_array_index_for_set($segment, scalar @$current);
+        my $index = _normalize_array_index_segment($segment, scalar @$current);
         return $current unless defined $index;
 
         my @copy = @$current;
@@ -1116,7 +1116,9 @@ sub _is_numeric_segment {
     return ($segment =~ /^-?\d+$/) ? 1 : 0;
 }
 
-sub _normalize_array_index_for_set {
+# Read and write share coercion and negative-index rules. Bounds stay
+# caller-specific: get returns null past end; set may grow arrays.
+sub _normalize_array_index_segment {
     my ($segment, $length) = @_;
 
     return undef if !defined $segment;
@@ -1134,12 +1136,6 @@ sub _normalize_array_index_for_set {
     return undef if $index < 0;
 
     return $index;
-}
-
-# Read and write use identical segment coercion and negative-index rules.
-# Bounds remain caller-specific: get returns null past end; set may grow arrays.
-sub _normalize_array_index_for_get {
-    return _normalize_array_index_for_set(@_);
 }
 
 sub _ensure_array_length {
@@ -1189,7 +1185,7 @@ sub _collect_paths {
 # intentionally differs and is handled by _apply_leaf_paths.
 sub _collect_scalar_paths {
     my ($value) = @_;
-    return if _is_scalar_value($value);
+    return if _is_leaf_value($value);
     return _collect_leaf_paths(@_);
 }
 
@@ -1213,7 +1209,7 @@ sub _traverse_path_array {
         }
 
         if (ref $cursor eq 'ARRAY') {
-            my $index = _normalize_array_index_for_get($segment, scalar @$cursor);
+            my $index = _normalize_array_index_segment($segment, scalar @$cursor);
             return undef unless defined $index;
 
             return undef if $index > $#$cursor;
@@ -1272,10 +1268,6 @@ sub _is_leaf_value {
     return 0 if ref($value) eq 'ARRAY';
     return 0 if ref($value) eq 'HASH';
     return 1;
-}
-
-sub _is_scalar_value {
-    return _is_leaf_value(@_);
 }
 
 1;

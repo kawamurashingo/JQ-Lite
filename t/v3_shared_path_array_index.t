@@ -24,10 +24,8 @@ my @index_cases = (
 );
 for my $case (@index_cases) {
     my ($segment, $length, $expected, $label) = @$case;
-    is(JQ::Lite::Util::_normalize_array_index_for_get($segment, $length),
-        $expected, "get normalizer: $label");
-    is(JQ::Lite::Util::_normalize_array_index_for_set($segment, $length),
-        $expected, "set normalizer: $label");
+    is(JQ::Lite::Util::_normalize_array_index_segment($segment, $length),
+        $expected, "shared get/set segment normalizer: $label");
 }
 
 sub results {
@@ -63,5 +61,20 @@ is_deeply(results($array, 'setpath([true]; 77)'), [[10,77,30]],
     'v2 boolean index update extension remains');
 is_deeply(results($array, 'getpath(["1"])'), [20],
     'v2 numeric-string path extension remains');
+
+is_deeply(results($array, 'getpath([-3])'), [10],
+    'negative index at first array slot remains valid');
+is_deeply(results($array, 'setpath([-3]; 77)'), [[77,20,30]],
+    'setpath writes the first slot with equivalent negative index');
+is_deeply(results($array, 'setpath(["1"]; 77)'), [[10,77,30]],
+    'numeric-looking string segment remains valid in setpath');
+is_deeply(results('[[10,20],[30,40]]', 'getpath([-1,-2])'), [30],
+    'nested negative indices retain getpath traversal');
+is_deeply(results('[[10,20],[30,40]]', 'setpath([-1,-2]; 7)'),
+    [[[10,20],[7,40]]], 'nested negative indices retain setpath update');
+is_deeply(results('[10,20,30]', 'getpath([-5])'), [undef],
+    'out-of-range negative index still yields null on get');
+is_deeply(results('[10,20,30]', 'setpath([-5]; 7)'), [[10,20,30]],
+    'out-of-range negative index is ignored by set');
 
 done_testing;
