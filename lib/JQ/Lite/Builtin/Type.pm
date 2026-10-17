@@ -24,18 +24,16 @@ sub register {
         return [ map { JQ::Lite::Value::type_of($_) } @{$inputs} ];
     });
 
-    $register->(['arrays', 'arrays()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ grep { ref($_) eq 'ARRAY' } @{$inputs} ];
-    });
-    $register->(['objects', 'objects()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ grep { ref($_) eq 'HASH' } @{$inputs} ];
-    });
-    $register->(['scalars', 'scalars()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ grep { !defined($_) || !ref($_) || ref($_) eq 'JSON::PP::Boolean' } @{$inputs} ];
-    });
+    for my $spec (['arrays', 'ARRAY'], ['objects', 'HASH'], ['scalars', '']) {
+        my ($name, $type) = @$spec;
+        $register->([$name, "$name()"], sub {
+            my ($owner, $inputs) = @_;
+            return [ grep {
+                $type ? ref($_) eq $type
+                    : !defined($_) || !ref($_) || ref($_) eq 'JSON::PP::Boolean'
+            } @$inputs ];
+        });
+    }
     $register->('values', sub {
         my ($owner, $inputs) = @_;
         return [ map { ref($_) eq 'HASH' ? [ values %{$_} ] : $_ } @{$inputs} ];
