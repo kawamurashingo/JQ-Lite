@@ -121,6 +121,9 @@ extension, not a jq builtin or a synonym for bracket slicing.
 | Update assignment result | `{"a":1} \| .a \|= . + 1` | `{"a":2}` | `2` (emits the updated value, not the root) | **change in v3** | assignment/update semantics |
 | Missing update target | `{"a":1} \| .missing \|= . + 1` | object with `"missing":1` | no results | **change in v3** | assignment/update semantics |
 | Multi-result assignment | `{"a":0} \| .a = (1,2)` | two updated objects | no results | **undecided** | assignment/update stream semantics |
+| Plain assignment on a null root | `null \| .a = 2` | `{"a":2}` | null root is unchanged | **undecided** | ordinary-assignment target policy |
+| Compound numeric-string coercion | `{"n":"2"} \| .n += 2` | type error | `{"n":4}` | **undecided** | compound assignment; distinct from strict v3 expressions |
+| Compound zero-divisor handling | `{"n":10} \| .n /= 0` | runtime error | root is unchanged | **undecided** | compound-assignment error policy |
 
 ### G. Unsupported jq behaviour
 

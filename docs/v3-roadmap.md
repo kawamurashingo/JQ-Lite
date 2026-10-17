@@ -285,6 +285,13 @@ the separate plain/compound-assignment scope are unchanged.
 
 ### Assignment and update
 
+The [practical assignment audit](v3-assignment.md) records the current `=`,
+`|=` and compound-assignment boundaries. Unsupported nonnumeric brackets in
+plain/compound targets now raise a structured runtime error before a legacy
+setter can mutate a truncated prefix. Literal indices retain their behavior;
+ordinary null/type policies, compound coercion and broader stream/target
+forms remain separately scoped under #626.
+
 - Make update assignment (`|=`) emit the updated root value.
 - Allow update assignment to create a missing target using the same input
   semantics as jq.

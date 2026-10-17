@@ -267,6 +267,7 @@ t/walk.t
 t/yaml_cli.t
 docs/v3-practical-path-audit.md
 docs/v3-arithmetic.md
+docs/v3-assignment.md
 t/data/cli-utf8-raw.txt
 t/alternative_empty_array.t
 t/search_index.t
@@ -300,4 +301,5 @@ t/v3_shared_first_projected_key.t
 t/v3_shared_median_calculation.t
 t/v3_practical_path_audit.t
 t/v3_arithmetic_contract.t
+t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t

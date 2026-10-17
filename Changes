@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Reject unsupported bracket targets and optional numeric-index suffixes in plain/compound assignment before partial-prefix mutation; audit and document retained assignment differences.
     - Apply strict v3 arithmetic types and errors in simple select predicates, preserve select streams in constructors, and document the practical arithmetic contract.
     - Share drop()/tail() suffix-array dispatch while retaining zero, length, oversized count and non-array v2 behavior.
     - Record a practical v2/v3/jq path audit with live differential and Library checks; document retained scalar-field and string-slice differences.
