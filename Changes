@@ -8,6 +8,7 @@
     - Share arrays/objects/scalars type-filter dispatch while retaining exact scalar, boolean and stream behavior.
     - Share first/last array endpoint dispatch while preserving null slots, element types and v2 non-array fallbacks.
     - Reuse the one-argument map wrapper for ceil/floor/round while preserving numeric recursion, coercion and output streams.
+    - Inline escaped literal split separators while keeping regex metacharacter, UTF-8 and stream behavior.
     - Simplify product aggregation by using the multiplicative identity for empty/all-null arrays without a redundant seen flag.
     - Reuse the existing stream map wrapper for titlecase/upper/lower/ascii_upcase/ascii_downcase without changing case conversion semantics.
     - Reuse literal argument decoding for string arguments while preserving JSON null-to-empty and legacy text fallback behavior.
