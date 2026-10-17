@@ -16,10 +16,8 @@ sub register {
         [ascii_downcase => \&JQ::Lite::Util::_apply_ascii_case_transform, 'lower'],
     ) {
         my ($name, $function, $mode) = @{$spec};
-        $register->([$name, "$name()"], sub {
-            my ($owner, $inputs) = @_;
-            return [ map { $function->($_, $mode) } @{$inputs} ];
-        });
+        $register->([$name, "$name()"],
+            _map(sub { $function->($_[0], $mode) }));
     }
     $register->(['trim', 'trim()'], _map(\&JQ::Lite::Util::_apply_trim));
     $register->(['explode', 'explode()'], _map(\&JQ::Lite::Util::_apply_explode));
