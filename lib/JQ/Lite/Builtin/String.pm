@@ -17,14 +17,14 @@ sub register {
     ) {
         my ($name, $function, $mode) = @{$spec};
         $register->([$name, "$name()"],
-            _map(sub { $function->($_[0], $mode) }));
+            JQ::Lite::Builtin::_stream_map(sub { $function->($_[0], $mode) }));
     }
-    $register->(['trim', 'trim()'], _map(\&JQ::Lite::Util::_apply_trim));
-    $register->(['explode', 'explode()'], _map(\&JQ::Lite::Util::_apply_explode));
-    $register->(['implode', 'implode()'], _map(\&JQ::Lite::Util::_apply_implode));
-    $register->(['tostring', 'tostring()'], _map(\&JQ::Lite::Util::_apply_tostring));
-    $register->(['tojson', 'tojson()'], _map(\&JQ::Lite::Util::_apply_tojson));
-    $register->(['fromjson', 'fromjson()'], _map(\&JQ::Lite::Util::_apply_fromjson));
+    $register->(['trim', 'trim()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_trim));
+    $register->(['explode', 'explode()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_explode));
+    $register->(['implode', 'implode()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_implode));
+    $register->(['tostring', 'tostring()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_tostring));
+    $register->(['tojson', 'tojson()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_tojson));
+    $register->(['fromjson', 'fromjson()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_fromjson));
     $register->(qr/^ltrimstr\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_trimstr, 'left'));
     $register->(qr/^rtrimstr\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_trimstr, 'right'));
     $register->(qr/^startswith\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_string_predicate, 'start'));
@@ -51,14 +51,6 @@ sub _string_argument {
         my ($owner, $inputs, $argument) = @_;
         my $needle = JQ::Lite::Util::_parse_string_argument($argument);
         return [ map { $function->($_, $needle, $mode) } @{$inputs} ];
-    };
-}
-
-sub _map {
-    my ($function) = @_;
-    return sub {
-        my ($owner, $inputs) = @_;
-        return [ map { $function->($_) } @{$inputs} ];
     };
 }
 
