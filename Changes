@@ -6,6 +6,7 @@
     - Share arrays/objects/scalars type-filter dispatch while retaining exact scalar, boolean and stream behavior.
     - Share first/last array endpoint dispatch while preserving null slots, element types and v2 non-array fallbacks.
     - Reuse the one-argument map wrapper for ceil/floor/round while preserving numeric recursion, coercion and output streams.
+    - Reuse string-argument dispatch for split while preserving literal delimiter parsing and flattened array results.
     - Share ltrimstr/rtrimstr/startswith/endswith string-argument dispatch while preserving mode-specific string and array behavior.
     - Share contains/contains_subset/inside literal-argument dispatch while retaining jq-type errors and distinct legacy membership/duplicate semantics.
     - Share keys/keys_unsorted container enumeration while preserving sorted/unsorted order, key spelling, array indexes and distinct scalar errors.
