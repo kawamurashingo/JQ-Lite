@@ -298,6 +298,7 @@ t/v3_shared_containment_dispatch.t
 t/v3_shared_search_dispatch.t
 t/v3_shared_string_argument_dispatch.t
 t/v3_shared_split_argument_dispatch.t
+t/v3_recursive_split_boolean_dispatch.t
 t/v3_shared_numeric_stream_mapping.t
 t/v3_shared_array_endpoints.t
 t/v3_shared_type_filter_dispatch.t
