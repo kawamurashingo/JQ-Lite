@@ -300,6 +300,7 @@ t/v3_shared_string_argument_dispatch.t
 t/v3_shared_case_transform_stream_map.t
 t/v3_product_multiplicative_identity.t
 t/v3_shared_split_argument_dispatch.t
+t/v3_quoted_literal_split_separator.t
 t/v3_recursive_split_boolean_dispatch.t
 t/v3_shared_literal_string_argument_parsing.t
 t/v3_shared_numeric_stream_mapping.t
