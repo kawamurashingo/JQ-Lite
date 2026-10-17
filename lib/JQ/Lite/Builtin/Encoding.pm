@@ -18,7 +18,7 @@ sub register {
     );
     for my $name (sort keys %builtins) {
         my $function = $builtins{$name};
-        $register->([$name, "$name()"], JQ::Lite::Builtin::_stream_map($function));
+        $register->([$name, "$name()"], JQ::Lite::Util::_stream_map($function));
     }
 }
 
