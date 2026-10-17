@@ -36,10 +36,7 @@ sub register {
 
 sub _numeric {
     my ($function) = @_;
-    return sub {
-        my ($owner, $inputs) = @_;
-        return [ map { JQ::Lite::Util::_apply_numeric_function($_, $function) } @{$inputs} ];
-    };
+    return _map(sub { JQ::Lite::Util::_apply_numeric_function($_[0], $function) });
 }
 
 sub _map {
