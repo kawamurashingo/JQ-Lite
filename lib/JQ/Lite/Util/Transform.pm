@@ -2091,9 +2091,7 @@ sub _apply_split {
         return [ split(//, $value) ];
     }
 
-    my $pattern = quotemeta $separator;
-    my @parts = split /$pattern/, $value, -1;
-    return [ @parts ];
+    return [ split(/\Q$separator\E/, $value, -1) ];
 }
 
 sub _apply_explode {
