@@ -1880,7 +1880,7 @@ sub _apply_tsv {
     return _apply_delimited($_[0], "\t", \&_format_tsv_field);
 }
 
-sub _base64_input_text {
+sub _encoding_input_text {
     my ($value, $decoding) = @_;
 
     return $decoding ? '' : 'null' if !defined $value;
@@ -1891,7 +1891,7 @@ sub _base64_input_text {
 }
 
 sub _apply_base64 {
-    return encode_base64(_base64_input_text($_[0], 0), '');
+    return encode_base64(_encoding_input_text($_[0], 0), '');
 }
 
 sub _apply_base64d {
@@ -1902,7 +1902,7 @@ sub _apply_base64d {
         if defined($value) && !JSON::PP::is_bool($value)
             && !ref($value) && !_is_string_scalar($value);
 
-    my $text = _base64_input_text($value, 1);
+    my $text = _encoding_input_text($value, 1);
 
     $text =~ s/\s+//g;
 
@@ -1927,24 +1927,7 @@ sub _apply_base64d {
 sub _apply_uri {
     my ($value) = @_;
 
-    my $text;
-
-    if (!defined $value) {
-        $text = 'null';
-    }
-    elsif (JSON::PP::is_bool($value)) {
-        $text = $value ? 'true' : 'false';
-    }
-    elsif (!ref $value) {
-        $text = "$value";
-    }
-    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        $text = _encode_json($value);
-    }
-    else {
-        $text = "$value";
-    }
-
+    my $text = _encoding_input_text($value, 0);
     my $encoded = is_utf8($text, 1)
         ? encode('UTF-8', $text)
         : $text;

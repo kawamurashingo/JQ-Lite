@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Reuse shared input-to-text coercion for @uri and @base64 while retaining URI escaping and the @base64d null policy.
     - Remove duplicate path-index and scalar-leaf aliases; getpath/setpath share the same coercion while retaining distinct bounds behavior.
     - Add public Library API compatibility regression coverage for constructor options, ordered result lists, JSON result types and structured error classes.
     - Share median_by() numeric projection with sum_by()/avg_by() while keeping numeric counting, addition order and v2 passthrough behavior.
