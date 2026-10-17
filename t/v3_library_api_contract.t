@@ -11,10 +11,9 @@ my $jq = JQ::Lite->new;
 isa_ok($jq, 'JQ::Lite', 'default constructor');
 
 my $configured = JQ::Lite->new(
-    raw  => 1,
     vars => { greeting => 'hello', user => { name => 'Ada' } },
 );
-isa_ok($configured, 'JQ::Lite', 'documented constructor options');
+isa_ok($configured, 'JQ::Lite', 'constructor with predeclared variables');
 is_deeply([ $configured->run_query('{}', '$greeting') ],
     ['hello'], 'predeclared scalar variable');
 is_deeply([ $configured->run_query('{}', '$user.name') ],
