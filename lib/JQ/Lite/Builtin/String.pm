@@ -32,7 +32,7 @@ sub register {
     $register->(qr/^split\((.+)\)$/, _string_argument(\&JQ::Lite::Util::_apply_split, undef));
     $register->(qr/^substr(?:\((.*)\))?$/, sub {
         my ($owner, $inputs, $arguments) = @_;
-        my @args = JQ::Lite::Util::_parse_arguments(defined($arguments) ? $arguments : '');
+        my @args = JQ::Lite::Util::_parse_arguments($arguments);
         return [ map { JQ::Lite::Util::_apply_substr($_, @args) } @{$inputs} ];
     });
     $register->(qr/^replace\((.+)\)$/, sub {
