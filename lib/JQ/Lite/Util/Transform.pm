@@ -2082,13 +2082,6 @@ sub _apply_split {
         my @parts;
 
         for my $element (@$value) {
-            if (JSON::PP::is_bool($element)) {
-                my $stringified = $element ? 'true' : 'false';
-                my $result = _apply_split($stringified, $separator);
-                push @parts, ref($result) eq 'ARRAY' ? @$result : $result;
-                next;
-            }
-
             my $result = _apply_split($element, $separator);
             push @parts, ref($result) eq 'ARRAY' ? @$result : $result;
         }
