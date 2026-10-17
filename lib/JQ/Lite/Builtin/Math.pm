@@ -34,8 +34,6 @@ sub register {
     });
 }
 
-# Numeric builtins share stream mapping with other one-argument builtins.
-# Preserve the recursive numeric handler and its existing type coercions.
 sub _numeric {
     my ($function) = @_;
     return _map(sub { JQ::Lite::Util::_apply_numeric_function($_[0], $function) });
