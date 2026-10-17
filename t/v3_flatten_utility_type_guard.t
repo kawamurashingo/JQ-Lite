@@ -106,7 +106,7 @@ for my $spec (
 }
 
 is_deeply(results('[[[1,[2]]],null,{"keep":[[3]]},true]',
-    '.[] | flatten'), [[[1,[2]]], undef, {keep => [[3]]}, $truth],
+    '.[] | flatten'), [[1,[2]], undef, {keep => [[3]]}, $truth],
     'flatten preserves order for mixed value streams');
 is_deeply(results('[[[1,[2]]],null,{"keep":[[3]]},true]',
     '.[] | flatten_all'), [[1,2], undef, {keep => [[3]]}, $truth],
