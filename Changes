@@ -3,6 +3,7 @@
     - Share index()/rindex()/indices() filter argument decoding and dispatch while retaining first/last/all-match, UTF-8 and v2 fallback behavior.
     - Let the common argument parser handle omitted/empty flatten_depth captures while preserving depth fallback and stream behavior.
     - Delegate flatten input type checks to its utility to retain non-array passthrough without redundant builtin guards.
+    - Return the initial empty hash from merge_objects directly, removing redundant presence tracking while retaining merge precedence.
     - Share to_entries/from_entries/merge_objects stream registration while retaining entry reconstruction, errors and object merge behavior.
     - Simplify guaranteed-array flatten recursion and share one-level/full-depth builtin registration without changing output streams.
     - Share bounded and unlimited flatten recursion while retaining depth stopping rules, nested values and stream behavior.
