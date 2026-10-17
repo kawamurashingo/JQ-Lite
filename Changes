@@ -1,6 +1,7 @@
 3.00_01  2026-09-23
     [Developer release]
     - Share index()/rindex()/indices() filter argument decoding and dispatch while retaining first/last/all-match, UTF-8 and v2 fallback behavior.
+    - Reuse the one-argument map wrapper for ceil/floor/round while preserving numeric recursion, coercion and output streams.
     - Share ltrimstr/rtrimstr/startswith/endswith string-argument dispatch while preserving mode-specific string and array behavior.
     - Share contains/contains_subset/inside literal-argument dispatch while retaining jq-type errors and distinct legacy membership/duplicate semantics.
     - Share keys/keys_unsorted container enumeration while preserving sorted/unsorted order, key spelling, array indexes and distinct scalar errors.
