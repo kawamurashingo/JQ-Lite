@@ -8,6 +8,7 @@ use JQ::Lite::Util ();
 
 sub register {
     my ($class, $register) = @_;
+    my $map = \&JQ::Lite::Builtin::_stream_map;
 
     $register->('abs', sub {
         my ($owner, $inputs) = @_;
@@ -22,8 +23,8 @@ sub register {
     $register->(['ceil', 'ceil()'], _numeric(\&JQ::Lite::Util::_ceil));
     $register->(['floor', 'floor()'], _numeric(\&JQ::Lite::Util::_floor));
     $register->(['round', 'round()'], _numeric(\&JQ::Lite::Util::_round));
-    $register->(['to_number', 'to_number()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_apply_to_number));
-    $register->(['tonumber', 'tonumber()'], JQ::Lite::Builtin::_stream_map(\&JQ::Lite::Util::_tonumber));
+    $register->(['to_number', 'to_number()'], $map->(\&JQ::Lite::Util::_apply_to_number));
+    $register->(['tonumber', 'tonumber()'], $map->(\&JQ::Lite::Util::_tonumber));
     $register->(qr/^clamp\((.*)\)$/, sub {
         my ($owner, $inputs, $arguments) = @_;
         my @args = JQ::Lite::Util::_parse_arguments($arguments);
