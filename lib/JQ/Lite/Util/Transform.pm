@@ -1698,38 +1698,24 @@ sub _group_by {
     return \@groups;
 }
 
+# An undefined depth means unlimited recursion; numeric depths retain
+# the existing zero/negative stopping rule.
 sub _flatten_all {
-    my ($value) = @_;
-
-    return $value unless ref $value eq 'ARRAY';
-
-    my @flattened;
-    for my $item (@$value) {
-        if (ref $item eq 'ARRAY') {
-            my $flattened = _flatten_all($item);
-            if (ref $flattened eq 'ARRAY') {
-                push @flattened, @$flattened;
-            } else {
-                push @flattened, $flattened;
-            }
-        } else {
-            push @flattened, $item;
-        }
-    }
-
-    return \@flattened;
+    return _flatten_depth($_[0], undef);
 }
 
 sub _flatten_depth {
     my ($value, $depth) = @_;
 
     return $value unless ref $value eq 'ARRAY';
-    return $value if $depth <= 0;
+    return $value if defined($depth) && $depth <= 0;
 
     my @flattened;
     for my $item (@$value) {
         if (ref $item eq 'ARRAY') {
-            my $flattened = _flatten_depth($item, $depth - 1);
+            my $flattened = _flatten_depth(
+                $item, defined($depth) ? $depth - 1 : undef
+            );
             if (ref $flattened eq 'ARRAY') {
                 push @flattened, @$flattened;
             } else {
