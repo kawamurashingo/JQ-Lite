@@ -1301,7 +1301,7 @@ sub apply {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
                     my @pairs;
-                    for my $idx (0 .. $#$arr) {
+                    for (my $idx = 0; $idx < @$arr; $idx++) {
                         push @pairs, { index => $idx, value => $arr->[$idx] };
                     }
                     \@pairs;
@@ -1335,14 +1335,13 @@ sub apply {
                         $_;
                     }
                     else {
-                        my @lengths = map { scalar(@$_) } @$outer;
-                        my $limit   = @lengths ? min(@lengths) : 0;
+                        my $limit = min(map { scalar(@$_) } @$outer);
 
                         if ($limit <= 0) {
                             [];
                         } else {
                             my @transposed;
-                            for my $idx (0 .. $limit - 1) {
+                            for (my $idx = 0; $idx < $limit; $idx++) {
                                 push @transposed, [ map { $_->[$idx] } @$outer ];
                             }
                             \@transposed;
