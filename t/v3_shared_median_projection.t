@@ -154,8 +154,8 @@ my @aggregate_cases = (
         'no eligible numeric maximum'],
     ['[null,"bad",{},[]]', 'median', '[null]',
         'no eligible numeric median'],
-    ['[true,"2",null,false,4]', 'median', '[1]',
-        'odd numeric count'],
+    ['[true,"2",null,false,4]', 'median', '[1.5]',
+        'even numeric count after null removal'],
     ['[{"n":"2"},{"n":false},{"n":4},{"n":null}]',
         'median_by(.n)', '[2]', 'projected numbers and booleans'],
 );
