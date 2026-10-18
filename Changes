@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Avoid JSON round-trip cloning of compound-assignment old values while retaining a local scalar copy to preserve numeric-looking string flags during coercion.
     - Reuse the leaf found during update-assignment path validation instead of parsing and reading the same path twice; preserve missing, null, array and deletion semantics.
     - Avoid temporary index lists in enumerate and transpose, and find the shortest transpose row without a temporary lengths list.
     - Reuse unary stream mapping for keys and keys_unsorted while preserving hash ordering, array indexes and distinct invalid-input behavior.

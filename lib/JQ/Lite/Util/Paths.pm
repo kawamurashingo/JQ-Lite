@@ -427,7 +427,7 @@ sub _apply_assignment {
     my $value = _resolve_assignment_value($self, $item, $value_spec);
 
     if ($operator ne '=') {
-        my $current = _clone_for_assignment(_get_path_value($item, $path));
+        my $current = _get_path_value($item, $path);
         my $current_num = _coerce_number($current);
         my $value_num   = _coerce_number($value);
 
