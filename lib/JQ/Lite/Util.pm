@@ -11,19 +11,15 @@ use Encode qw(encode is_utf8);
 use B ();
 use JQ::Lite::Expression ();
 use JQ::Lite::Error ();
+use JQ::Lite::Util::Stream ();
 
 require JQ::Lite::Util::Parsing;
 require JQ::Lite::Util::Paths;
 require JQ::Lite::Util::Transform;
 
-# Unary builtins preserve input stream order and produce one output per input.
-# Keep mapping separate from each builtin's scalar transformation.
+# Keep the existing internal utility entry point for other builtins.
 sub _stream_map {
-    my ($function) = @_;
-    return sub {
-        my ($owner, $inputs) = @_;
-        return [ map { $function->($_) } @$inputs ];
-    };
+    return JQ::Lite::Util::Stream::_stream_map(@_);
 }
 
 my $decode_json_impl = \&_decode_json;
