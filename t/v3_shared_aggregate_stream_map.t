@@ -128,4 +128,58 @@ for my $case (
         "standalone Aggregate registration works for $case->[0]");
 }
 
+
+# Sum and average share a streaming numeric accumulator; jq and this
+# practical-v2 subset intentionally have distinct empty/non-array behavior.
+my @sum_avg_regressions = (
+    ['[null]', 'sum', '[0]', 'null-only array contributes zero'],
+    ['[true,false,"12",3]', 'sum', '[16]',
+        'booleans and numeric-looking string sum'],
+    ['[true,false,"12",3]', 'add', '[16]',
+        'add alias shares numeric coercion'],
+    ['[true,false,"12",3]', 'avg', '[4]',
+        'average divides by all array elements'],
+    ['[-2,0.5,1.5]', 'sum', '[0]',
+        'negative and fractional members sum to zero'],
+    ['[-2,0.5,1.5]', 'avg', '[0]',
+        'negative and fractional members average to zero'],
+    ['[null,4]', 'avg', '[2]',
+        'null member still contributes to average denominator'],
+    ['[]', 'sum', '[null]', 'empty sum remains JSON null'],
+    ['[]', 'add', '[null]', 'empty add remains JSON null'],
+    ['[]', 'avg', '[0]', 'empty average remains zero'],
+    ['{"n":5}', 'sum', '[{"n":5}]', 'non-array sum passthrough'],
+    ['"12"', 'avg', '[0]', 'non-array average stays zero'],
+    ['[[1,2],[3,4]]', '.[] | avg', '[1.5,3.5]',
+        'two streamed averages retain order'],
+);
+for my $case (@sum_avg_regressions) {
+    my ($input, $filter, $expected, $description) = @$case;
+    is_deeply(run($input, $filter), $json->decode($expected),
+        "numeric accumulator: $description");
+}
+
+my $long_array = [0 .. 256];
+my $long_json = $json->encode($long_array);
+is_deeply(run($long_json, 'sum'), [32896],
+    '257-element array sum is complete');
+is_deeply(run($long_json, 'add'), [32896],
+    '257-element array add retains alias behavior');
+is_deeply(run($long_json, 'avg'), [128],
+    '257-element array average uses every element');
+
+# Verify numeric coercion never mutates an existing numeric-string SV:
+# this is observable via the original array's JSON encoding.
+my $typed_array = ['12', '3.5', JSON::PP::true, undef];
+my $typed_before = $json->encode($typed_array);
+for my $filter (qw(sum add avg)) {
+    my ($found, $output) =
+        JQ::Lite::Builtin->dispatch($jq, $filter, [$typed_array]);
+    ok($found, "$filter direct dispatch retains registration");
+    is_deeply($output, [$filter eq 'avg' ? 16.5 / 4 : 16.5],
+        "$filter directly computes mixed numeric array");
+    is($json->encode($typed_array), $typed_before,
+        "$filter numeric coercion preserves input JSON string types");
+}
+
 done_testing;
