@@ -47,7 +47,7 @@ my @balance_scanner_cases = (
     ['[{(]}', 0, 'mismatched nested closers'],
     ['( "[(])" )', 1, 'quoted bracket punctuation'],
     ['("unterminated)', 0, 'unterminated quote before closing paren'],
-    ['("a\\\"b")', 1, 'escaped double quote'],
+    ['("a\"b")', 1, 'escaped double quote'],
     ["('a\\\\b')", 1, 'escaped backslash in single-quoted text'],
     [$deep_open . '{["brackets ) ] inside quotes"]}' . $deep_close,
         1, 'deeply nested parenthesis pair'],
