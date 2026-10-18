@@ -38,21 +38,22 @@ sub type_of {
     return 'string';
 }
 
+# Reuse the fixed jq type ordering across recursive array/object comparisons.
+my %TYPE_RANK = (
+    null    => 0,
+    boolean => 1,
+    number  => 2,
+    string  => 3,
+    array   => 4,
+    object  => 5,
+);
+
 sub compare {
     my ($left, $right) = @_;
 
-    my %rank = (
-        null    => 0,
-        boolean => 1,
-        number  => 2,
-        string  => 3,
-        array   => 4,
-        object  => 5,
-    );
-
     my $left_type  = type_of($left);
     my $right_type = type_of($right);
-    return $rank{$left_type} <=> $rank{$right_type}
+    return $TYPE_RANK{$left_type} <=> $TYPE_RANK{$right_type}
         if $left_type ne $right_type;
 
     return 0 if $left_type eq 'null';
