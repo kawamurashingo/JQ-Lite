@@ -138,6 +138,8 @@ subtest 'compound numeric coercion keeps scalar and container contracts' => sub 
             'multiply by zero'],
         [{ n => 0 }, '.n /= 0', { n => 0 },
             'division by zero does not mutate value'],
+        [{ n => '12' }, '.n /= 0', { n => '12' },
+            'zero division retains numeric-looking string'],
         [{ n => 'not-a-number' }, '.n += 4', { n => 'not-a-number' },
             'nonnumeric string passthrough'],
         [{ n => [1,2] }, '.n *= 3', { n => [1,2] },
@@ -163,6 +165,13 @@ subtest 'compound numeric coercion keeps scalar and container contracts' => sub 
         is_deeply(\@result, [$expected], "$label: result unchanged");
         is(encode_json($input), $before, "$label: source untouched");
     }
+
+    # Numeric conversion of an SV in place can change how JSON::PP
+    # encodes a numeric-looking string. The local scalar copy above must
+    # protect the original leaf on a no-op compound assignment.
+    my ($unchanged_string) = apply_query({ n => '12' }, '.n /= 0');
+    is(encode_json($unchanged_string), '{"n":"12"}',
+        'division-by-zero leaves numeric-looking string JSON quoted');
 };
 
 done_testing();
