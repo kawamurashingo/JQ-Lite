@@ -133,4 +133,78 @@ my %registered = map { $_ => 1 } JQ::Lite::Builtin->registered_names;
 ok($registered{merge_objects}, 'bare exact registry key remains');
 ok($registered{'merge_objects()'}, 'parenthesized registry alias remains');
 
+
+# Incremental hash assignment must preserve all historical merge outcomes.
+# Test multiple overwrite rounds, nulls, booleans, numeric-looking keys,
+# and elements that are not objects, including both public names.
+my @incremental_cases = (
+    ['[{"first":1},{"second":2}]', '{"first":1,"second":2}',
+        'disjoint fields'],
+    ['[{"a":1},{"a":null}]', '{"a":null}',
+        'later explicit null wins'],
+    ['[{"a":true},{"a":false}]', '{"a":false}',
+        'later false wins'],
+    ['[{"a":{"old":1}},{"a":{"new":2}}]', '{"a":{"new":2}}',
+        'later nested object replaces earlier'],
+    ['[{"nested":[1,2]},{"other":7}]',
+        '{"nested":[1,2],"other":7}', 'nested values remain opaque'],
+    ['[{},{"x":2},{}]', '{"x":2}', 'interleaved empty hashes'],
+    ['[null,5,["skip"],{"x":1},false,{"y":2}]',
+        '{"x":1,"y":2}', 'non-object elements skipped'],
+    ['[{"01":"leading"},{"1":"numeric"}]',
+        '{"01":"leading","1":"numeric"}', 'distinct numeric-looking keys'],
+    ['[{"a":"v"},{"a":0},{"a":"w"}]', '{"a":"w"}',
+        'multiple replacements retain final string'],
+    ['[{"a":null},{"b":null}]', '{"a":null,"b":null}',
+        'disjoint null-valued fields'],
+);
+for my $case (@incremental_cases) {
+    my ($input, $expected_raw, $label) = @$case;
+    my $want = $json->decode($expected_raw);
+    is_deeply(JQ::Lite::Util::_apply_merge_objects($json->decode($input)),
+        $want, "incremental direct merge: $label");
+    is_deeply(run($input, 'merge_objects'), [$want],
+        "incremental public merge: $label");
+    is_deeply(run($input, 'merge_objects()'), [$want],
+        "incremental parenthesized merge: $label");
+}
+
+# A long sequence of mostly unique fields previously rebuilt the entire
+# accumulated hash on every element. Verify all keys remain present,
+# rightmost precedence and shallow reference identity for nested values.
+my @many_objects = map {
+    { "item_$_" => $_, common => $_, nested => { source => $_ } }
+} (0 .. 256);
+splice @many_objects, 3, 0, undef, JSON::PP::false, ['ignored'];
+my %expected_many = (common => 256, nested => { source => 256 });
+for my $i (0 .. 256) {
+    $expected_many{"item_$i"} = $i;
+}
+my $many_merged = JQ::Lite::Util::_apply_merge_objects(\@many_objects);
+is_deeply($many_merged, \%expected_many,
+    '257 object updates retain all unique fields and last values');
+is(scalar(keys %$many_merged), 259,
+    'incremental long merge retains all 257 unique and two shared keys');
+is($many_merged->{common}, 256, 'long merge keeps last overwritten field');
+is($many_merged->{item_0}, 0, 'first unique field remains');
+is($many_merged->{item_256}, 256, 'last unique field remains');
+is(refaddr($many_merged->{nested}), refaddr($many_objects[-1]{nested}),
+    'latest nested object is retained by reference');
+isnt(refaddr($many_merged), refaddr($many_objects[0]),
+    'merge creates a new result rather than modifying first source hash');
+is_deeply($many_objects[0],
+    { item_0 => 0, common => 0, nested => { source => 0 } },
+    'first source hash is not changed by subsequent overwrites');
+is_deeply($many_objects[-1],
+    { item_256 => 256, common => 256, nested => { source => 256 } },
+    'last source hash is not modified by merging');
+my $large_input = $json->encode(\@many_objects);
+is_deeply(run($large_input, 'merge_objects'), [\%expected_many],
+    'public long merge retains complete key/value set');
+is_deeply(run($large_input, 'merge_objects()'), [\%expected_many],
+    'parenthesized long merge retains complete key/value set');
+is_deeply(run('[[{"x":1},{"x":2}],[],[{"a":7},false,{"b":8}]]',
+    '.[] | merge_objects'), [{x=>2},{},{a=>7,b=>8}],
+    'incremental merge preserves independent upstream stream results');
+
 done_testing;

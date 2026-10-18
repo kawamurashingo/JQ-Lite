@@ -194,7 +194,10 @@ sub _apply_merge_objects {
 
         for my $element (@$value) {
             next unless ref $element eq 'HASH';
-            %merged = (%merged, %$element);
+            # Only copy fields from the next object, not the full result.
+            for my $key (keys %$element) {
+                $merged{$key} = $element->{$key};
+            }
         }
 
         return \%merged;
