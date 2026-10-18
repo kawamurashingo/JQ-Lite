@@ -30,7 +30,10 @@ sub register {
         my $min = @args ? JQ::Lite::Util::_normalize_numeric_bound($args[0]) : undef;
         my $max = @args > 1 ? JQ::Lite::Util::_normalize_numeric_bound($args[1]) : undef;
         ($min, $max) = ($max, $min) if defined($min) && defined($max) && $min > $max;
-        return [ map { JQ::Lite::Util::_apply_clamp($_, $min, $max) } @{$inputs} ];
+        my $handler = $map->(sub {
+            JQ::Lite::Util::_apply_clamp($_[0], $min, $max)
+        });
+        return $handler->($owner, $inputs);
     });
 }
 
