@@ -33,6 +33,7 @@ lib/JQ/Lite/Parser.pm
 lib/JQ/Lite/Util.pm
 lib/JQ/Lite/Util/Parsing.pm
 lib/JQ/Lite/Util/Paths.pm
+lib/JQ/Lite/Util/Stream.pm
 lib/JQ/Lite/Util/Transform.pm
 LICENSE
 Makefile.PL
@@ -317,6 +318,7 @@ t/v3_shared_numeric_stream_mapping.t
 t/v3_shared_scalar_flags.t
 t/v3_shared_array_endpoints.t
 t/v3_shared_type_filter_dispatch.t
+t/v3_shared_type_stream_map.t
 t/v3_shared_flatten_recursion.t
 t/v3_flatten_shared_dispatch_cleanup.t
 t/v3_flatten_utility_type_guard.t
