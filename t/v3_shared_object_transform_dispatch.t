@@ -191,4 +191,85 @@ is_deeply(results('[[3,2],[],[9]]', '.[] | to_entries'),
     [ [{key=>0,value=>3},{key=>1,value=>2}], [], [{key=>0,value=>9}] ],
     'to_entries keeps output order with empty arrays inside streams');
 
+
+# Rebuild contiguous numeric keys without constructing a second index range.
+# Retain the old array-vs-object detection, key-order independence and
+# last-write-wins behavior for duplicate object keys.
+for my $size (0, 1, 9, 257) {
+    my @values = map { $_ % 13 == 0 ? undef : $_ } (0 .. $size - 1);
+    my @entries = map { { key => $_, value => $values[$_] } }
+        (0 .. $#values);
+    my $expected = $size ? \@values : {};
+    my $raw = $json->encode(\@entries);
+    my $direct = JQ::Lite::Util::_from_entries(\@entries);
+    is_deeply($direct, $expected,
+        "direct from_entries reconstructs $size contiguous keys");
+    is_deeply(results($raw, 'from_entries'), [$expected],
+        "public from_entries reconstructs $size contiguous keys");
+    is(ref($direct), $size ? 'ARRAY' : 'HASH',
+        "from_entries preserves result kind for $size keys");
+    is(scalar(@entries), $size,
+        "from_entries preserves $size original entry wrappers");
+}
+
+my @key_shapes = (
+    ['[{"key":2,"value":"c"},{"key":0,"value":"a"},'
+        . '{"key":1,"value":"b"}]',
+      '["a","b","c"]', 'unordered contiguous numeric keys become array'],
+    ['[{"key":0,"value":"zero"},{"key":2,"value":"two"}]',
+      '{"0":"zero","2":"two"}', 'sparse numeric keys remain object'],
+    ['[{"key":1,"value":"one"}]',
+      '{"1":"one"}', 'numeric keys not starting at zero remain object'],
+    ['[{"key":0,"value":"one"},{"key":0,"value":"two"}]',
+      '{"0":"two"}', 'duplicate key remains object and last value wins'],
+    ['[{"key":"0","value":"zero"},{"key":"01","value":"leading"}]',
+      '{"0":"zero","01":"leading"}', 'leading-zero key remains object'],
+    ['[{"key":0,"value":"zero"},{"key":"name","value":"N"}]',
+      '{"0":"zero","name":"N"}', 'mixed numeric and text keys remain object'],
+    ['[{"key":"-1","value":"negative"},{"key":"0","value":"zero"}]',
+      '{"-1":"negative","0":"zero"}', 'negative key remains object'],
+    ['[["1","b"],["0","a"]]',
+      '["a","b"]', 'tuple-form string keys reconstruct array'],
+);
+for my $case (@key_shapes) {
+    my ($raw, $expected_raw, $label) = @$case;
+    my $entries = $json->decode($raw);
+    my $expected = $json->decode($expected_raw);
+    is_deeply(JQ::Lite::Util::_from_entries($entries), $expected,
+        "direct from_entries: $label");
+    is_deeply(results($raw, 'from_entries'), [$expected],
+        "public from_entries: $label");
+}
+
+# Reconstruction remains shallow; nested values are not copied or coerced.
+my $shared_object = { nested => [1, 2] };
+my $shared_array = [-3, 5];
+my $shared_boolean = JSON::PP::true;
+my $value_entries = [
+    { key => '2', value => $shared_object },
+    { key => '0', value => $shared_boolean },
+    { key => '1', value => $shared_array },
+];
+my $rebuilt = JQ::Lite::Util::_from_entries($value_entries);
+is_deeply($rebuilt, [$shared_boolean, $shared_array, $shared_object],
+    'reconstruction respects numeric order with heterogeneous values');
+is(refaddr($rebuilt->[0]), refaddr($shared_boolean),
+    'boolean reference retained after numeric-key reconstruction');
+is(refaddr($rebuilt->[1]), refaddr($shared_array),
+    'array reference retained after numeric-key reconstruction');
+is(refaddr($rebuilt->[2]), refaddr($shared_object),
+    'object reference retained after numeric-key reconstruction');
+is_deeply($shared_array, [-3, 5],
+    'reconstruction does not change nested array values');
+is_deeply($shared_object, { nested => [1, 2] },
+    'reconstruction does not change nested object values');
+
+is_deeply(results(
+    '[[{"key":1,"value":"b"},{"key":0,"value":"a"}],'
+        . '[],[{"key":0,"value":false}],'
+        . '[{"key":"x","value":4}]]',
+    '.[] | from_entries'
+), $json->decode('[["a","b"],{},[false],{"x":4}]'),
+    'from_entries retains stream cardinality and array/object ordering');
+
 done_testing;
