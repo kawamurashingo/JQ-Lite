@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use JSON::PP ();
+use Scalar::Util qw(refaddr);
 use JQ::Lite;
 use JQ::Lite::Util ();
 use FindBin ();
@@ -212,5 +213,87 @@ like("$invalid_error", qr/from_entries\(\): argument must be an array/,
 
 is_deeply(run('["z","a"]', '.[] | upper'), ['Z','A'],
     'instance remains reusable after an error');
+
+
+# Parameterized unary Array builtins must also use the same one-input/one-
+# output stream policy. Parameter captures must be local to each dispatch,
+# and non-array objects and booleans must retain their reference identity.
+my $nth_leaf = { leaf => 7 };
+my $nth_bool = JSON::PP::true;
+my @nth_inputs = (
+    [10, $nth_leaf], [], [undef, $nth_bool], { ignored => 1 },
+    undef, [3, 4],
+);
+for my $case (
+    ['nth(0)', [10,undef,undef,undef,undef,3], 'first index'],
+    ['nth(1)', [$nth_leaf,undef,$nth_bool,undef,undef,4], 'second index'],
+    ['nth(9)', [undef,undef,undef,undef,undef,undef],
+        'out-of-range index'],
+    ['nth(0)', [10,undef,undef,undef,undef,3],
+        'repeated earlier index after changing captures'],
+) {
+    my ($filter, $expected, $label) = @$case;
+    my ($found, $result) = JQ::Lite::Builtin->dispatch(
+        $jq, $filter, \@nth_inputs
+    );
+    ok($found, "$filter: parameterized handler registered");
+    is_deeply($result, $expected, "$filter: $label preserves stream order");
+}
+my ($nth_ok, $nth_refs) = JQ::Lite::Builtin->dispatch(
+    $jq, 'nth(1)', \@nth_inputs
+);
+ok($nth_ok, 'nth(1) remains registered for reference checks');
+is(refaddr($nth_refs->[0]), refaddr($nth_leaf),
+    'nth returns original selected object reference');
+is(refaddr($nth_refs->[2]), refaddr($nth_bool),
+    'nth returns original selected JSON boolean reference');
+my ($nth_empty, $nth_nothing) =
+    JQ::Lite::Builtin->dispatch($jq, 'nth(0)', []);
+ok($nth_empty, 'nth registered for an empty direct stream');
+is_deeply($nth_nothing, [], 'nth emits nothing for empty input stream');
+
+my $flatten_object = { nested => [[9]] };
+my $flatten_bool = JSON::PP::false;
+my $first_nested = [1, [2, [3]]];
+my @flatten_inputs =
+    ($first_nested, [], undef, $flatten_object, $flatten_bool, [4,[5]]);
+for my $case (
+    ['flatten_depth', [ [1,2,[3]],[],undef,$flatten_object,$flatten_bool,[4,5] ],
+        'no argument defaults to one'],
+    ['flatten_depth()', [ [1,2,[3]],[],undef,$flatten_object,$flatten_bool,[4,5] ],
+        'empty argument defaults to one'],
+    ['flatten_depth(0)', [ $first_nested,[],undef,$flatten_object,$flatten_bool,[4,[5]] ],
+        'zero keeps nested arrays'],
+    ['flatten_depth(2)', [ [1,2,3],[],undef,$flatten_object,$flatten_bool,[4,5] ],
+        'two levels flatten fully'],
+    ['flatten_depth("bad")', [ [1,2,[3]],[],undef,$flatten_object,$flatten_bool,[4,5] ],
+        'nonnumeric depth falls back to one'],
+    ['flatten_depth(-1)', [ $first_nested,[],undef,$flatten_object,$flatten_bool,[4,[5]] ],
+        'negative depth clamps to zero'],
+    ['flatten_depth(1)', [ [1,2,[3]],[],undef,$flatten_object,$flatten_bool,[4,5] ],
+        'repeated depth after changing captures'],
+) {
+    my ($filter, $expected, $label) = @$case;
+    my ($found, $result) = JQ::Lite::Builtin->dispatch(
+        $jq, $filter, \@flatten_inputs
+    );
+    ok($found, "$filter: parameterized handler registered");
+    is_deeply($result, $expected, "$filter: $label preserves stream order");
+    is(refaddr($result->[3]), refaddr($flatten_object),
+        "$filter: opaque object identity preserved");
+    is(refaddr($result->[4]), refaddr($flatten_bool),
+        "$filter: opaque boolean identity preserved");
+}
+my ($flatten_zero, $flatten_empty) =
+    JQ::Lite::Builtin->dispatch($jq, 'flatten_depth(1)', []);
+ok($flatten_zero, 'flatten_depth registered for empty direct stream');
+is_deeply($flatten_empty, [], 'flatten_depth emits nothing for empty input');
+
+is_deeply(run('[[10,20],[],[30]]', '.[] | nth(1)'),
+    [20,undef,undef], 'nth stream composition preserves missing slots');
+is_deeply(run('[[1,[2,[3]]],null,[4,[5]]]',
+        '.[] | flatten_depth(2)'),
+    [[1,2,3],undef,[4,5]],
+    'flatten_depth stream composition preserves output cardinality');
 
 done_testing;

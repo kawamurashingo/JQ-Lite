@@ -45,11 +45,18 @@ sub register {
         $depth = 1 unless defined($depth) && looks_like_number($depth);
         $depth = int($depth);
         $depth = 0 if $depth < 0;
-        return [ map { JQ::Lite::Util::_flatten_depth($_, $depth) } @{$inputs} ];
+        my $handler = $map->(sub {
+            JQ::Lite::Util::_flatten_depth($_[0], $depth)
+        });
+        return $handler->($owner, $inputs);
     });
     $register->(qr/^nth\((\d+)\)$/, sub {
         my ($owner, $inputs, $index) = @_;
-        return [ map { ref($_) eq 'ARRAY' && $index < @{$_} ? $_->[$index] : undef } @{$inputs} ];
+        my $handler = $map->(sub {
+            ref($_[0]) eq 'ARRAY' && $index < @{$_[0]}
+                ? $_[0]->[$index] : undef
+        });
+        return $handler->($owner, $inputs);
     });
 }
 

@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Reuse the unary stream mapper for argument-taking flatten_depth and nth, preserving capture isolation, ordering, null slots and reference identity.
     - Accumulate add, sum and avg values without a temporary numeric map list, keeping List::Util overflow promotion plus null, boolean, string and empty-array rules.
     - Avoid JSON round-trip cloning of compound-assignment old values while retaining a local scalar copy to preserve numeric-looking string flags during coercion.
     - Reuse the leaf found during update-assignment path validation instead of parsing and reading the same path twice; preserve missing, null, array and deletion semantics.
