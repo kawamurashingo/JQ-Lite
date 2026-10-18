@@ -672,25 +672,28 @@ sub _apply_quantifier {
     my ($self, $value, $expr, $all) = @_;
 
     my $is_array = ref $value eq 'ARRAY';
-    my @items = $is_array ? @$value : ($value);
+    # No copy is necessary: inputs are only read and never modified.
+    my $items = $is_array ? $value : [$value];
 
     # An empty array is vacuously true for all(), false for any().
     return $all ? JSON::PP::true : JSON::PP::false
-        if $is_array && !@items;
+        if $is_array && !@$items;
 
-    for my $item (@items) {
+    for my $item (@$items) {
         my @evaluated = defined $expr
             ? $self->run_query(_encode_json($item), $expr)
             : ($item);
 
-        if ($all) {
-            # Preserve the v2 rule: a nonempty input element with no
-            # expression outputs makes all(expr) false.
-            return JSON::PP::false unless @evaluated;
-            return JSON::PP::false if grep { !_is_truthy($_) } @evaluated;
-        }
-        else {
-            return JSON::PP::true if grep { _is_truthy($_) } @evaluated;
+        # Preserve the v2 rule: an item without any expression outputs
+        # makes all(expr) false; any(expr) simply proceeds to the next.
+        return JSON::PP::false if $all && !@evaluated;
+
+        # Only existence of a matching truth value matters. Unlike scalar
+        # grep, stop testing outputs once all()/any() is decided.
+        for my $output (@evaluated) {
+            my $truthy = _is_truthy($output);
+            return JSON::PP::false if $all && !$truthy;
+            return JSON::PP::true if !$all && $truthy;
         }
     }
 
