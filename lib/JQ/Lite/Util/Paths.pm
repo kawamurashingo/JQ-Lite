@@ -82,7 +82,9 @@ sub _apply_update_assignment {
         }
     }
 
-    my $old = _clone_for_assignment(_get_path_value($root, $path));
+    # Validation already located the old leaf, including missing/null paths.
+    # Reuse it instead of parsing and traversing the same path again.
+    my $old = _clone_for_assignment($cursor);
     my ($has_replacement, $replacement)
         = _first_update_rhs_result($self, $old, $rhs);
     if (!$has_replacement) {
