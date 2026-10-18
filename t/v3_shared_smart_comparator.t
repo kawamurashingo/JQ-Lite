@@ -69,14 +69,14 @@ my @filters = (
     ['[{"k":10,"id":"ten-first"},{"k":2,"id":"two-first"},'
      . '{"k":10,"id":"ten-second"},{"k":2,"id":"two-second"}]',
      'group_by(.k)',
-     '[[{"k":2,"id":"two-first"},{"k":2,"id":"two-second"}],'
-     . '[{"k":10,"id":"ten-first"},{"k":10,"id":"ten-second"}]]',
+     '[[[{"k":2,"id":"two-first"},{"k":2,"id":"two-second"}],'
+     . '[{"k":10,"id":"ten-first"},{"k":10,"id":"ten-second"}]]]',
      'group_by numeric group ordering and stable tie order'],
     ['[{"k":"b","id":"b-first"},{"k":"a","id":"a-first"},'
      . '{"k":"b","id":"b-second"}]',
      'group_by(.k)',
-     '[[{"k":"a","id":"a-first"}],'
-     . '[{"k":"b","id":"b-first"},{"k":"b","id":"b-second"}]]',
+     '[[[{"k":"a","id":"a-first"}],'
+     . '[{"k":"b","id":"b-first"},{"k":"b","id":"b-second"}]]]',
      'group_by lexical group ordering and stable tie order'],
     ['[]', 'group_by(.)', '[[]]', 'group_by empty array'],
     ['[]', 'min_by(.)', '[null]', 'min_by empty array'],
