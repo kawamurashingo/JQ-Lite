@@ -2060,10 +2060,10 @@ sub _apply_implode {
     return undef if !defined $value;
 
     if (ref $value eq 'ARRAY') {
-        my $has_nested = grep { ref $_ } @$value;
-
-        if ($has_nested) {
-            return [ map { _apply_implode($_) } @$value ];
+        # Only presence of a reference matters: stop at the first one
+        # instead of counting every referenced array element with grep.
+        for my $item (@$value) {
+            return [ map { _apply_implode($_) } @$value ] if ref $item;
         }
 
         my $string = '';
