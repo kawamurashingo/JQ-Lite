@@ -102,4 +102,38 @@ is_deeply([ $jq->run_query(
 ) ], [JSON::PP::true, JSON::PP::false, JSON::PP::true],
     'ordered multi-result comparisons retain all outputs');
 
+# Array comparisons should not need an intermediate index list. Include
+# empty bounds, equal prefixes, early exits, and divergence at a late slot.
+# Nest a long array within both arrays and objects to exercise recursion.
+my @prefix = (0) x 256;
+my $long_left  = [@prefix, 1];
+my $long_right = [@prefix, 2];
+my @index_cases = (
+    [[], [], 0, 'two empty arrays'],
+    [[], [0], -1, 'empty left array'],
+    [[0], [], 1, 'empty right array'],
+    [[0], [0], 0, 'equal singletons'],
+    [[0,99], [1], -1, 'early differing array slot'],
+    [\@prefix, $long_left, -1, 'long shared prefix then extra left slot'],
+    [$long_left, \@prefix, 1, 'long shared prefix then extra right slot'],
+    [$long_left, $long_right, -1, 'last element difference'],
+    [[$long_left], [$long_right], -1, 'nested long array'],
+    [{items=>$long_left}, {items=>$long_right}, -1,
+        'long array nested in an object'],
+    [$long_left, [@$long_left], 0, 'equal long arrays'],
+);
+for my $case (@index_cases) {
+    my ($left, $right, $ordering, $label) = @$case;
+    is(JQ::Lite::Value::compare($left, $right) <=> 0, $ordering,
+        "$label: forward comparison");
+    is(JQ::Lite::Value::compare($right, $left) <=> 0, -$ordering,
+        "$label: reverse comparison");
+    is(JQ::Lite::Value::equal($left, $right) ? 1 : 0,
+       $ordering == 0 ? 1 : 0, "$label: equality");
+}
+is_deeply($long_left, [@prefix, 1],
+    'long-array comparisons do not modify left input');
+is_deeply($long_right, [@prefix, 2],
+    'long-array comparisons do not modify right input');
+
 done_testing;
