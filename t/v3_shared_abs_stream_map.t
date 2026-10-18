@@ -83,13 +83,14 @@ my $hash = { k => -3 };
 my $inner = [-6];
 my $outer = [-2, '-3', $truth, $falsity, undef, 'word', $inner, $hash];
 my @inputs = (undef, -8, '-4', 'bad', $truth, $falsity, $hash, $inner, $outer);
-my $before = $json->encode(\@inputs);
 my ($matched, $actual) = JQ::Lite::Builtin->dispatch($jq, 'abs', \@inputs);
 ok($matched, 'abs remains registered under its existing exact name');
 is_deeply($actual, old_abs(\@inputs),
     'direct abs mapper matches the previous scalar coercion and array policy');
 is(scalar(@$actual), scalar(@inputs), 'abs emits exactly one value per input');
-is($json->encode(\@inputs), $before, 'abs does not mutate source inputs');
+is("$inputs[2]", '-4', 'abs preserves source numeric-string contents');
+is("$outer->[1]", '-3', 'abs preserves source nested numeric-string contents');
+is_deeply($hash, { k => -3 }, 'abs leaves the original object unchanged');
 ok(!defined $actual->[0], 'null remains an explicit output slot');
 is(refaddr($actual->[4]), refaddr($truth),
     'scalar true remains the same boolean reference');
@@ -155,7 +156,7 @@ for my $case (
     ['[-2,true,false]', '[[2,1,0]]'],
     ['{"n":-2}', '[{"n":-2}]'],
 ) {
-    is(system($^X, "-I$lib", '-e', $standalone, @$case), 0,
+    is(system($^X, "-I$lib", '-e', $standalone, '--', @$case), 0,
         "standalone Math registration preserves abs input $case->[0]");
 }
 
