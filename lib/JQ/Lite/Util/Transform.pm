@@ -487,7 +487,9 @@ sub _apply_delpaths {
     for my $path (@ordered) {
         next unless ref $path eq 'ARRAY';
         next unless @$path;
-        _delete_path_inplace($clone, [@$path]);
+        # The callee already makes a private segment list before popping.
+        # Pass the original validated path, avoiding a second array copy.
+        _delete_path_inplace($clone, $path);
     }
 
     return $clone;
