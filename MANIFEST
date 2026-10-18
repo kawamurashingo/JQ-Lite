@@ -33,6 +33,7 @@ lib/JQ/Lite/Parser.pm
 lib/JQ/Lite/Util.pm
 lib/JQ/Lite/Util/Parsing.pm
 lib/JQ/Lite/Util/Paths.pm
+lib/JQ/Lite/Util/Stream.pm
 lib/JQ/Lite/Util/Transform.pm
 LICENSE
 Makefile.PL
