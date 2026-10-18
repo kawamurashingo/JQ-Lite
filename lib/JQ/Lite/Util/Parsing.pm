@@ -56,7 +56,11 @@ sub _are_brackets_balanced {
     my $string;
     my $escape = 0;
 
-    for my $char (split //, $text) {
+    # A global regex advances by one character without creating a split
+    # list or repeatedly seeking UTF-8 character offsets with substr.
+    pos($text) = 0;
+    while ($text =~ /\G(.)/sg) {
+        my $char = $1;
         if (defined $string) {
             if ($escape) {
                 $escape = 0;
