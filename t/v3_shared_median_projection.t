@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use JSON::PP ();
+use Scalar::Util ();
 use JQ::Lite;
 use JQ::Lite::Util ();
 
@@ -91,5 +92,90 @@ is_deeply(output(
 ), [3, undef, 1, {n=>7}, undef], 'ordered upstream streams and passthrough');
 is_deeply(output('null', 'empty | median_by(.)'), [],
     'empty upstream produces no median_by output');
+
+
+# The extractor previously filtered with grep and coerced with map.
+# Compare with that exact legacy pipeline so coercion, ordering and numeric
+# scalar flags remain consistent across supported Perl/JSON::PP versions.
+my @extractor_cases = (
+    ['[]', '[]', 'empty array'],
+    ['[1,2,-4.5,0]', '[1,2,-4.5,0]', 'numeric primitives'],
+    ['[true,false,true]', '[1,0,1]', 'boolean values'],
+    ['[null,false,true,"bad",3,"2.5",{},[]]',
+        '[0,1,3,2.5]', 'mixed types and original order'],
+    ['["1","2e2","-3.5","0"]', '[1,200,-3.5,0]',
+        'numeric-looking JSON strings'],
+    ['[[],{},null,"bad",""]', '[]', 'no valid numeric entries'],
+    ['[[1],[2],{"n":3},4]', '[4]', 'opaque containers ignored'],
+    ['[0,0,0,1]', '[0,0,0,1]', 'duplicate and zero entries'],
+    ['[1e-3,2e2,-5.5]', '[0.001,200,-5.5]',
+        'scientific and fractional JSON numbers'],
+    ['[false,null,false,true]', '[0,0,1]',
+        'null skipped without dropping false'],
+    ['null', '[]', 'non-array null fallback'],
+    ['"12"', '[]', 'non-array numeric string fallback'],
+    ['{"n":2}', '[]', 'non-array object fallback'],
+);
+for my $case (@extractor_cases) {
+    my ($raw, $expected, $label) = @$case;
+    my $before = $json->decode($raw);
+    my $after = $json->decode($raw);
+    my @legacy = ref($before) eq 'ARRAY'
+        ? map {
+            JSON::PP::is_bool($_) ? ($_ ? 1 : 0) : 0 + $_;
+        } grep {
+            defined $_ && (JSON::PP::is_bool($_)
+                || (!ref $_ && Scalar::Util::looks_like_number($_)));
+        } @$before
+        : ();
+    my @new = JQ::Lite::Util::_extract_numeric_values($after);
+    is_deeply(\@new, \@legacy,
+        "numeric extraction matches legacy projection: $label");
+    is_deeply(\@new, $json->decode($expected),
+        "numeric extraction retains eligible elements: $label");
+    is($json->encode($after), $json->encode($before),
+        "numeric extraction preserves legacy scalar flags: $label");
+}
+
+# Preserve the extractor's downstream consumers, whose empty and invalid
+# input policies are intentionally different.
+my @aggregate_cases = (
+    ['[null,false,true,"bad",3,"2.5",{},[]]',
+        'min', '[0]', 'minimum of mixed inputs'],
+    ['[null,false,true,"bad",3,"2.5",{},[]]',
+        'max', '[3]', 'maximum of mixed inputs'],
+    ['[null,false,true,"bad",3,"2.5",{},[]]',
+        'median', '[1.75]', 'even median of mixed inputs'],
+    ['[null,false,true,"bad",3,"2.5",{},[]]',
+        'percentile(50)', '[1.75]', 'midpoint percentile'],
+    ['[null,"bad",{},[]]', 'min', '[null]',
+        'no eligible numeric minimum'],
+    ['[null,"bad",{},[]]', 'max', '[null]',
+        'no eligible numeric maximum'],
+    ['[null,"bad",{},[]]', 'median', '[null]',
+        'no eligible numeric median'],
+    ['[true,"2",null,false,4]', 'median', '[1.5]',
+        'even numeric count after null removal'],
+    ['[{"n":"2"},{"n":false},{"n":4},{"n":null}]',
+        'median_by(.n)', '[2]', 'projected numbers and booleans'],
+);
+for my $case (@aggregate_cases) {
+    my ($raw, $filter, $expected, $label) = @$case;
+    is_deeply(output($raw, $filter), $json->decode($expected),
+        "$filter after single-pass extraction: $label");
+}
+is_deeply(output(
+    '[[null,false,true,"bad",3,"2.5",{},[]],[],[5,"1",2]]',
+    '.[] | min'
+), [0,undef,1], 'minimum preserves stream order and empty-array null');
+is_deeply(output(
+    '[[null,false,true,"bad",3,"2.5",{},[]],[],[5,"1",2]]',
+    '.[] | median'
+), [1.75,[],2], 'median preserves stream order and empty-array passthrough');
+
+my @long_numbers = (0 .. 256);
+my @projected = JQ::Lite::Util::_extract_numeric_values(\@long_numbers);
+is_deeply(\@projected, \@long_numbers,
+    '257-element numeric extraction keeps every input value');
 
 done_testing;
