@@ -7,18 +7,19 @@ use JQ::Lite::Util ();
 
 sub register {
     my ($class, $register) = @_;
+    my $map = \&JQ::Lite::Util::_stream_map;
 
     # Only hash key order and invalid-input behavior differ.
     for my $sorted (1, 0) {
         my $name = $sorted ? 'keys' : 'keys_unsorted';
-        $register->($sorted ? $name : [$name, "$name()"], sub {
-            my ($owner, $inputs) = @_;
-            return [ map {
-                ref($_) eq 'HASH' ? [ $sorted ? sort(keys %{$_}) : keys %{$_} ]
-                    : ref($_) eq 'ARRAY' ? [ 0 .. $#{$_} ]
-                    : $sorted ? die 'keys(): argument must be an object or array' : undef
-            } @{$inputs} ];
-        });
+        $register->($sorted ? $name : [$name, "$name()"], $map->(sub {
+            my ($value) = @_;
+            return [ $sorted ? sort(keys %$value) : keys %$value ]
+                if ref($value) eq 'HASH';
+            return [ 0 .. $#$value ] if ref($value) eq 'ARRAY';
+            die 'keys(): argument must be an object or array' if $sorted;
+            return undef;
+        }));
     }
     for my $spec (
         [to_entries    => \&JQ::Lite::Util::_to_entries],
