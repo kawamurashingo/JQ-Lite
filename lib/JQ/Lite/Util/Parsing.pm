@@ -346,8 +346,6 @@ sub _split_top_level_comparison {
     my ($text) = @_;
     return unless defined $text && $text =~ /(?:==|!=|[<>])/;
 
-    my %close = ('(' => ')', '[' => ']', '{' => '}');
-    my %open = reverse %close;
     my (@stack, $quote, $escape, @comparison);
 
     for (my $i = 0; $i < length($text); $i++) {
@@ -359,8 +357,8 @@ sub _split_top_level_comparison {
             next;
         }
         if ($char eq q{"} || $char eq q{'}) { $quote = $char; next; }
-        if (exists $close{$char}) { push @stack, $char; next; }
-        if (exists $open{$char}) { pop @stack if @stack; next; }
+        if (exists $BRACKET_PAIRS{$char}) { push @stack, $char; next; }
+        if (exists $BRACKET_CLOSING{$char}) { pop @stack if @stack; next; }
         next if @stack;
 
         my $tail = substr($text, $i);
@@ -389,8 +387,6 @@ sub _split_top_level_keyword {
     my ($text, $keyword) = @_;
     return ($text) unless defined $text && defined $keyword && length $keyword;
 
-    my %close = ('(' => ')', '[' => ']', '{' => '}');
-    my %open = reverse %close;
     my (@stack, $quote, $escape, @parts);
     my $start = 0;
 
@@ -403,8 +399,8 @@ sub _split_top_level_keyword {
             next;
         }
         if ($char eq q{"} || $char eq q{'}) { $quote = $char; next; }
-        if (exists $close{$char}) { push @stack, $char; next; }
-        if (exists $open{$char}) { pop @stack if @stack; next; }
+        if (exists $BRACKET_PAIRS{$char}) { push @stack, $char; next; }
+        if (exists $BRACKET_CLOSING{$char}) { pop @stack if @stack; next; }
         next if @stack;
 
         my $before = $i > 0 ? substr($text, $i - 1, 1) : '';

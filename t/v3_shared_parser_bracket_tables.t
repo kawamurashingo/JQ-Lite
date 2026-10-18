@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use JSON::PP ();
 use JQ::Lite;
 use JQ::Lite::Util ();
 
@@ -119,5 +120,90 @@ is_deeply([$jq->run_query('{"name":"A"}', '{name: .name}')],
     [{name=>'A'}], 'public object-colon parsing');
 is_deeply([$jq->run_query('[1,2]', 'reduce .[] as $x (0; . + $x)')],
     [3], 'public semicolon/reduce parsing');
+
+
+# Comparison and keyword scanners have their own semantics; only their
+# bracket lookup now shares the already-initialized table.
+my @comparisons = (
+    [undef, [], 'undefined input'],
+    ['', [], 'empty input'],
+    ['plain', [], 'no comparison operator'],
+    ['1==2', ['1','==','2'], 'adjacent operands'],
+    ['1 != 2', ['1 ','!=',' 2'], 'not equal'],
+    ['.a >= .b', ['.a ','>=',' .b'], 'greater than or equal'],
+    ['.a <= .b', ['.a ','<=',' .b'], 'less than or equal'],
+    ['.a > .b', ['.a ','>',' .b'], 'greater than'],
+    ['.a < .b', ['.a ','<',' .b'], 'less than'],
+    ['[1,2] == [2]', ['[1,2] ','==',' [2]'], 'nested arrays'],
+    ['{"x":1} == {"x":2}', ['{"x":1} ','==',' {"x":2}'],
+        'nested objects'],
+    ['"a>b" == "z"', ['"a>b" ','==',' "z"'],
+        'quoted operator'],
+    ['(.a > 0) == true', ['(.a > 0) ','==',' true'],
+        'parenthesized comparison'],
+    ['["x == y"] == []', ['["x == y"] ','==',' []'],
+        'quoted comparison inside array'],
+    ['a == ', [], 'missing right operand'],
+    [' == b', [], 'missing left operand'],
+    ['a == b and c == d', [], 'compound and uses conditional evaluator'],
+    ['a == b or c == d', [], 'compound or uses conditional evaluator'],
+    ['a == b == c', ['a ','==',' b == c'],
+        'first top-level comparison wins'],
+);
+for my $case (@comparisons) {
+    my ($input, $expected, $label) = @$case;
+    for my $attempt (1, 2) {
+        is_deeply([JQ::Lite::Util::_split_top_level_comparison($input)],
+            $expected, "comparison split: $label ($attempt)");
+    }
+}
+
+my @keywords = (
+    [undef, 'and', [undef], 'undefined input retained'],
+    ['', 'and', [''], 'empty input retained'],
+    ['a', undef, ['a'], 'undefined keyword retained'],
+    ['a', '', ['a'], 'empty keyword retained'],
+    ['a and b', 'and', ['a ',' b'], 'simple and'],
+    ['a or b', 'or', ['a ',' b'], 'simple or'],
+    ['and b', 'and', ['',' b'], 'leading keyword'],
+    ['a and', 'and', ['a ',''], 'trailing keyword'],
+    ['a and b and c', 'and', ['a ',' b ',' c'],
+        'multiple keyword separators'],
+    ['a xor b or c', 'or', ['a xor b ',' c'],
+        'word boundary before or'],
+    ['candy and b', 'and', ['candy ',' b'],
+        'do not split keyword suffix'],
+    ['a andrew b', 'and', ['a andrew b'],
+        'do not split keyword prefix'],
+    ['a and(b)', 'and', ['a and(b)'],
+        'keyword without whitespace after it'],
+    ['a (x and y) and b', 'and', ['a (x and y) ',' b'],
+        'parenthesized keyword'],
+    ['a ["and"] and b', 'and', ['a ["and"] ',' b'],
+        'array and quoted keyword'],
+    ['a {"k":"and"} and b', 'and', ['a {"k":"and"} ',' b'],
+        'object and quoted keyword'],
+    ['a "and" and b', 'and', ['a "and" ',' b'],
+        'top-level string keyword'],
+    ['a and b', 'or', ['a and b'],
+        'independent keyword calls'],
+);
+for my $case (@keywords) {
+    my ($input, $keyword, $expected, $label) = @$case;
+    for my $attempt (1, 2) {
+        is_deeply([JQ::Lite::Util::_split_top_level_keyword($input, $keyword)],
+            $expected, "keyword split: $label ($attempt)");
+    }
+
+}
+
+# Public comparisons and boolean conditions still use their original
+# evaluators; they must not pick up state from any other splitter.
+is_deeply([$jq->run_query('{"a":1,"b":2}', '.a < .b')],
+    [JSON::PP::true], 'public comparison remains valid');
+is_deeply([$jq->run_query('{"a":1,"b":2}', '.a == 1 and .b == 2')],
+    [JSON::PP::true], 'public and condition remains valid');
+is_deeply([$jq->run_query('{"a":1,"b":2}', '.a == 0 or .b == 2')],
+    [JSON::PP::true], 'public or condition remains valid');
 
 done_testing;
