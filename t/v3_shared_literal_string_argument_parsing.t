@@ -106,4 +106,78 @@ ok(!$ok, 'contains keeps type mismatch errors with literal numeric arguments');
 like("$@", qr/argument|cannot contain|number|array/i,
     'contains retains an informative type mismatch error');
 
+
+# Parameterized object builtins use the unary stream mapper without
+# changing each predicate's semantics. Decode arguments anew per dispatch,
+# and verify the result/order both directly and in a public .[] stream.
+my @object_stream_cases = (
+    ['[{"x":1},{"y":2},[9,8],null,7]', 'has("x")',
+        '[true,false,false,false,false]', 'object key'],
+    ['[{"x":1},{"y":2},[9,8],null,7]', 'has("y")',
+        '[false,true,false,false,false]', 'changed key'],
+    ['[{"x":1},{"y":2},[9,8],null,7]', 'has(0)',
+        '[false,false,true,false,false]', 'array numeric index'],
+    ['[{"x":1},{"y":2},[9,8],null,7]', 'has("0")',
+        '[false,false,false,false,false]', 'array numeric string not index'],
+    ['[{"x":1},{"y":2},[9,8],null,7]', 'has(null)',
+        '[false,false,false,false,false]', 'null key'],
+    ['[[1,2,3],[1,2],[2],[]]', 'contains([2])',
+        '[true,true,true,false]', 'jq array subset'],
+    ['[[1,2,3],[1,2],[2],[]]', 'contains([1,1])',
+        '[true,true,false,false]', 'jq array repeated-needle reuse'],
+    ['[[1,1],[1,2],[1],[]]', 'contains_subset([1,1])',
+        '[true,false,false,false]', 'multiset duplicate counting'],
+    ['[[1,1],[1,2],[1],[]]', 'contains_subset([1])',
+        '[true,true,true,false]', 'changed multiset needle'],
+    ['[1,2,3]', 'inside([1,2])',
+        '[true,true,false]', 'legacy inside membership direction'],
+    ['[1,2,3]', 'inside([2,3])',
+        '[false,true,true]', 'changed legacy container'],
+    ['["ab","ba","zzz"]', 'contains("b")',
+        '[true,true,false]', 'string literal containment'],
+    ['["ab","ba","zzz"]', 'contains("a")',
+        '[true,true,false]', 'changed string needle'],
+    ['[{"a":1,"b":2},{"a":2},{}]', 'contains({"a":1})',
+        '[true,false,false]', 'nested object containment'],
+    ['[{"x":1},{"y":2},[9,8],null,7]', 'has("x")',
+        '[true,false,false,false,false]', 'repeated key after other calls'],
+    ['[[1,1],[1,2],[1],[]]', 'contains_subset([1,1])',
+        '[true,false,false,false]', 'repeated multiset after other calls'],
+);
+for my $case (@object_stream_cases) {
+    my ($input, $filter, $expected, $label) = @$case;
+    my $decoded = $json->decode($input);
+    my $before = $json->encode($decoded);
+    my $wanted = $json->decode($expected);
+    my ($matched, $outputs) = JQ::Lite::Builtin->dispatch(
+        $jq, $filter, $decoded
+    );
+    ok($matched, "$filter registered for $label");
+    is_deeply($outputs, $wanted, "$filter direct stream: $label");
+    is_deeply(run($input, ".[] | $filter"), $wanted,
+        "$filter public pipeline: $label");
+    is($json->encode($decoded), $before,
+        "$filter leaves input unchanged: $label");
+}
+
+for my $filter (
+    'has("a")', 'has(0)', 'contains([1])',
+    'contains_subset([1])', 'inside([1,2])'
+) {
+    my ($matched, $outputs) =
+        JQ::Lite::Builtin->dispatch($jq, $filter, []);
+    ok($matched, "$filter registered for empty stream");
+    is_deeply($outputs, [], "$filter does not create empty-stream outputs");
+}
+
+# Preserve the jq-style type error; the common mapper must not swallow
+# exceptions raised by the containment implementation.
+my $type_ok = eval {
+    JQ::Lite::Builtin->dispatch($jq, 'contains("x")', [[1], [2]]);
+    1;
+};
+ok(!$type_ok, 'contains still rejects mismatched array/string types');
+like("$@", qr/Cannot check whether array contains string/,
+    'contains preserves existing type mismatch error wording');
+
 done_testing;
