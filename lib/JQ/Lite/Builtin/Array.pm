@@ -19,8 +19,10 @@ sub register {
     }
     $register->('rest', $map->(sub {
         my ($value) = @_;
-        return ref($value) eq 'ARRAY'
-            ? (@$value ? [ @$value[1 .. $#$value] ] : []) : $value;
+        return $value unless ref($value) eq 'ARRAY';
+        my @tail = @$value;
+        shift @tail;
+        return \@tail;
     }));
     $register->('reverse', $map->(sub {
         my ($value) = @_;
