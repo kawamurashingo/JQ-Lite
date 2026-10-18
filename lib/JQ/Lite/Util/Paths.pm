@@ -46,7 +46,7 @@ sub _apply_update_assignment {
     # setter intentionally ignores invalid intermediates, but |= must not
     # report a successful update where no mutation occurred.
     my $cursor = $root;
-    for my $i (0 .. $#segments) {
+    for (my $i = 0; $i < @segments; $i++) {
         my $segment = $segments[$i];
         my $type = $segment->{type};
 
@@ -299,7 +299,7 @@ sub _delete_update_assignment_path {
     my ($root, $segments) = @_;
 
     my $cursor = $root;
-    for my $i (0 .. $#$segments - 1) {
+    for (my $i = 0; $i < @$segments - 1; $i++) {
         my $segment = $segments->[$i];
         if ($segment->{type} eq 'key') {
             return unless ref($cursor) eq 'HASH'
@@ -467,7 +467,7 @@ sub _get_path_value {
     return undef unless @segments;
 
     my $cursor = $target;
-    for my $index (0 .. $#segments) {
+    for (my $index = 0; $index < @segments; $index++) {
         my $segment = $segments[$index];
         my $is_last = ($index == $#segments);
 
@@ -554,7 +554,7 @@ sub _set_path_value {
     return unless @segments;
 
     my $cursor = $target;
-    for my $index (0 .. $#segments) {
+    for (my $index = 0; $index < @segments; $index++) {
         my $segment = $segments[$index];
         my $is_last = ($index == $#segments);
 

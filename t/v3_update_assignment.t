@@ -130,4 +130,46 @@ subtest 'unsupported update streams and invalid target types are explicit errors
     }
 };
 
+
+subtest 'fixed-index traversal preserves nested update and deletion contracts' => sub {
+    my $input = '{"root":[{"detail":{"value":1,"keep":2}},{"detail":{"value":3,"keep":4}}]}';
+    is_deeply(results($input, '.root[1].detail.value |= . + 7'),
+        [{ root => [
+            { detail => { value => 1, keep => 2 } },
+            { detail => { value => 10, keep => 4 } },
+        ] }], 'mixed key and index path updates only selected leaf');
+
+    is_deeply(results($input, '.root[0].detail.value |= empty'),
+        [{ root => [
+            { detail => { keep => 2 } },
+            { detail => { value => 3, keep => 4 } },
+        ] }], 'nested key deletion retains sibling branches');
+
+    is_deeply(results($input, '.root[1].detail.absent |= empty'),
+        [{ root => [
+            { detail => { value => 1, keep => 2 } },
+            { detail => { value => 3, keep => 4 } },
+        ] }], 'missing nested deletion does not create a new key');
+
+    is_deeply(results('{"root":[{"items":[10,20,30]}]}',
+        '.root[0].items[1] |= empty'),
+        [{ root => [{ items => [10,30] }] }],
+        'deep array deletion splices just its selected index');
+
+    is_deeply(results('{"root":[{"items":[10,20]}]}',
+        '.root[0].items[4] |= empty'),
+        [{ root => [{ items => [10,20] }] }],
+        'out-of-range deep deletion leaves array unchanged');
+
+    is_deeply(results('{"root":[{"detail":{"value":null}}]}',
+        '.root[0].detail.value |= 9'),
+        [{ root => [{ detail => { value => 9 } }] }],
+        'explicit null deep leaf is replaced, not dropped');
+
+    is_deeply(results('{"root":[{"detail":{"value":1}}]}',
+        '.root[0].detail.value |= false'),
+        [{ root => [{ detail => { value => JSON::PP::false } }] }],
+        'false deep replacement preserves the JSON boolean');
+};
+
 done_testing;

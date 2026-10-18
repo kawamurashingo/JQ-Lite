@@ -77,4 +77,39 @@ is_deeply(results('[10,20,30]', 'getpath([-5])'), [undef],
 is_deeply(results('[10,20,30]', 'setpath([-5]; 7)'), [[10,20,30]],
     'out-of-range negative index is ignored by set');
 
+
+# Direct private path helpers are exercised because getpath/setpath have
+# separate public dispatch code; this specifically guards their index walks.
+my $direct = {
+    config => [
+        { detail => { value => 2 }, keep => 'yes' },
+        { detail => { value => undef } },
+    ],
+};
+is(JQ::Lite::Util::_get_path_value($direct, 'config[0].detail.value'),
+    2, 'private get reads a mixed nested path');
+ok(!defined(JQ::Lite::Util::_get_path_value(
+        $direct, 'config[1].detail.value')),
+    'private get retains a defined null leaf');
+ok(!defined(JQ::Lite::Util::_get_path_value(
+        $direct, 'config[4].detail.value')),
+    'private get retains out-of-range null semantics');
+ok(!defined(JQ::Lite::Util::_get_path_value($direct, '')),
+    'private get rejects an empty path');
+
+JQ::Lite::Util::_set_path_value($direct, 'config[0].detail.value', 8);
+is(JQ::Lite::Util::_get_path_value($direct, 'config[0].detail.value'),
+    8, 'private set overwrites the selected mixed path');
+is($direct->{config}[0]{keep}, 'yes',
+    'private set leaves sibling fields unchanged');
+JQ::Lite::Util::_set_path_value($direct, 'config[1].extra.flag', 1);
+is_deeply($direct->{config}[1],
+    { detail => { value => undef }, extra => { flag => 1 } },
+    'private set creates a missing nested object field');
+JQ::Lite::Util::_set_path_value($direct, '', 100);
+is(scalar(@{ $direct->{config} }), 2,
+    'private set with empty path leaves array length unchanged');
+is(JQ::Lite::Util::_get_path_value($direct, 'config[1].extra.flag'),
+    1, 'private set with empty path does not mutate existing nested values');
+
 done_testing;
