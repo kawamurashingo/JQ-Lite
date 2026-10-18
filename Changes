@@ -1,6 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
-    - Scan balanced brackets by character index instead of splitting a whole character list, retaining quote, escape, Unicode and nested-wrapper rules.
+    - Scan balanced brackets incrementally with a character regex instead of a temporary split list, avoiding quadratic UTF-8 indexed substr lookups while retaining quote and escape rules.
     - Build rest() output from a shallow array copy instead of constructing a numeric index slice; preserve empty arrays, JSON types and nested references.
     - Reuse the unary stream mapper for argument-taking flatten_depth and nth, preserving capture isolation, ordering, null slots and reference identity.
     - Accumulate add, sum and avg values without a temporary numeric map list, keeping List::Util overflow promotion plus null, boolean, string and empty-array rules.

@@ -60,12 +60,28 @@ my @balance_scanner_cases = (
     ['(' . $unicode . ']', 0, 'mismatched close after Unicode'],
     [('x' x 2048) . '[]',
         1, 'long nonbracket prefix'],
+    ['(' . ($unicode x 32768) . ')',
+        1, '32K Unicode code points stay balanced'],
+    ['(' . ($unicode x 32768) . ']',
+        0, '32K Unicode code points with mismatched closing bracket'],
+    ["(\n[\n]\n)", 1, 'newlines outside quotes are visited'],
+    ["(\"first\n([)] second\")", 1,
+        'newlines and mismatched brackets inside quoted text'],
 );
 for my $case (@balance_scanner_cases) {
     my ($input, $expected, $label) = @$case;
     is(JQ::Lite::Util::_are_brackets_balanced($input) ? 1 : 0,
         $expected, "sequential bracket scan: $label");
 }
+# The balance check must scan from the start even if its caller has
+# previously matched the same scalar, without changing the caller's pos.
+my $with_prior_match = '(' . $unicode . ')';
+$with_prior_match =~ /./g;
+is(JQ::Lite::Util::_are_brackets_balanced($with_prior_match) ? 1 : 0,
+    1, 'balance scan starts at zero regardless of caller regex position');
+is(pos($with_prior_match), 1,
+    'balance scan leaves caller regex position untouched');
+
 my @wrapped_scanner_cases = (
     ['((.a))', '.a', 'multiple wrapper parentheses'],
     [' ( ( x ) ) ', 'x', 'whitespace around nested wrappers'],
