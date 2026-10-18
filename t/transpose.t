@@ -32,6 +32,7 @@ for my $case (
     ['[[]]', [], 'empty inner row'],
     ['[[1,2],[]]', [], 'mixed empty and nonempty rows'],
     ['[[1],[2],[3]]', [[1,2,3]], 'single column with three rows'],
+    ['[[1,2,3]]', [[1],[2],[3]], 'single input row'],
     ['[[1,2,3],[4,5]]', [[1,4],[2,5]], 'jagged rows'],
     ['[[null,1],[false,2]]', [
         [undef, JSON::PP::false], [1,2]
@@ -59,5 +60,20 @@ my @stream_results = $jq->run_query(
 is_deeply(\@stream_results, [
     [[1,3],[2,4]], [], [[5,6]], 'plain'
 ], 'transpose preserves multi-input stream positions and values');
+
+
+# Many rows: the minimum length appears in the last row rather than the first.
+my $tall_rows = [ (map { [$_, $_ + 1, $_ + 2] } 0 .. 255), [256] ];
+my @tall_result = $jq->run_query(encode_json($tall_rows), 'transpose');
+is(scalar(@tall_result), 1, 'tall transpose emits a single result');
+is(scalar(@{ $tall_result[0] }), 1, 'last short row limits the column count');
+is_deeply($tall_result[0][0], [0 .. 256],
+    'tall transpose preserves all 257 row values in input order');
+
+my @middle_empty = $jq->run_query(
+    '[[1,2],[],[3,4]]', 'transpose()'
+);
+is_deeply(\@middle_empty, [[]],
+    'middle empty row yields an empty result without losing stream slot');
 
 done_testing();

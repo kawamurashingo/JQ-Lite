@@ -3,7 +3,7 @@ package JQ::Lite::Filters;
 use strict;
 use warnings;
 
-use List::Util qw(sum min);
+use List::Util qw(sum);
 use JQ::Lite::Util ();
 use JQ::Lite::Value ();
 use JQ::Lite::Builtin ();
@@ -1335,7 +1335,11 @@ sub apply {
                         $_;
                     }
                     else {
-                        my $limit = min(map { scalar(@$_) } @$outer);
+                        my $limit = scalar(@{ $outer->[0] });
+                        for (my $row = 1; $row < @$outer; $row++) {
+                            my $length = scalar(@{ $outer->[$row] });
+                            $limit = $length if $length < $limit;
+                        }
 
                         if ($limit <= 0) {
                             [];
