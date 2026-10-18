@@ -13,7 +13,7 @@ sub register {
     $register->(['add', 'sum'], $map->(sub {
         my ($value) = @_;
         return ref($value) eq 'ARRAY'
-            ? sum(map { 0 + $_ } @$value) : $value;
+            ? _coerced_sum($value) : $value;
     }));
     $register->('product', $map->(sub {
         my ($value) = @_;
@@ -31,7 +31,7 @@ sub register {
     $register->('avg', $map->(sub {
         my ($value) = @_;
         return ref($value) eq 'ARRAY' && @$value
-            ? sum(map { 0 + $_ } @$value) / scalar(@$value) : 0;
+            ? _coerced_sum($value) / scalar(@$value) : 0;
     }));
     $register->('median', $map->(sub {
         my ($value) = @_;
@@ -40,6 +40,23 @@ sub register {
             JQ::Lite::Util::_extract_numeric_values($value)
         );
     }));
+}
+
+# Coerce a local copy so JSON numeric strings keep their scalar flags.
+# Sum pairwise with List::Util to preserve its integer-overflow promotion
+# (plain += can retain a wider integer instead of promoting to a float).
+# For add/sum, the empty array still produces undef (JSON null).
+sub _coerced_sum {
+    my ($values) = @_;
+    return undef unless @$values;
+
+    my $total;
+    for my $value (@$values) {
+        my $number = $value;
+        $number = 0 + $number;
+        $total = defined($total) ? sum($total, $number) : sum($number);
+    }
+    return $total;
 }
 
 sub _extreme {

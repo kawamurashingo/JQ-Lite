@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use JSON::PP ();
+use List::Util qw(sum);
 use Scalar::Util qw(refaddr);
 use FindBin ();
 use File::Spec ();
@@ -126,6 +127,92 @@ for my $case (
 ) {
     is(system($^X, "-I$lib", '-e', $standalone, @$case), 0,
         "standalone Aggregate registration works for $case->[0]");
+}
+
+
+# Sum and average share a streaming numeric accumulator; jq and this
+# practical-v2 subset intentionally have distinct empty/non-array behavior.
+my @sum_avg_regressions = (
+    ['[null]', 'sum', '[0]', 'null-only array contributes zero'],
+    ['[true,false,"12",3]', 'sum', '[16]',
+        'booleans and numeric-looking string sum'],
+    ['[true,false,"12",3]', 'add', '[16]',
+        'add alias shares numeric coercion'],
+    ['[true,false,"12",3]', 'avg', '[4]',
+        'average divides by all array elements'],
+    ['[-2,0.5,1.5]', 'sum', '[0]',
+        'negative and fractional members sum to zero'],
+    ['[-2,0.5,1.5]', 'avg', '[0]',
+        'negative and fractional members average to zero'],
+    ['[null,4]', 'avg', '[2]',
+        'null member still contributes to average denominator'],
+    ['[]', 'sum', '[null]', 'empty sum remains JSON null'],
+    ['[]', 'add', '[null]', 'empty add remains JSON null'],
+    ['[]', 'avg', '[0]', 'empty average remains zero'],
+    ['{"n":5}', 'sum', '[{"n":5}]', 'non-array sum passthrough'],
+    ['"12"', 'avg', '[0]', 'non-array average stays zero'],
+    ['[[1,2],[3,4]]', '.[] | avg', '[1.5,3.5]',
+        'two streamed averages retain order'],
+);
+for my $case (@sum_avg_regressions) {
+    my ($input, $filter, $expected, $description) = @$case;
+    is_deeply(run($input, $filter), $json->decode($expected),
+        "numeric accumulator: $description");
+}
+
+my $long_array = [0 .. 256];
+my $long_json = $json->encode($long_array);
+is_deeply(run($long_json, 'sum'), [32896],
+    '257-element array sum is complete');
+is_deeply(run($long_json, 'add'), [32896],
+    '257-element array add retains alias behavior');
+is_deeply(run($long_json, 'avg'), [128],
+    '257-element array average uses every element');
+
+# Verify numeric coercion never mutates an existing numeric-string SV:
+# this is observable via the original array's JSON encoding.
+my $typed_array = ['12', '3.5', JSON::PP::true, undef];
+my $typed_before = $json->encode($typed_array);
+for my $filter (qw(sum add avg)) {
+    my ($found, $output) =
+        JQ::Lite::Builtin->dispatch($jq, $filter, [$typed_array]);
+    ok($found, "$filter direct dispatch retains registration");
+    is_deeply($output, [$filter eq 'avg' ? 16.5 / 4 : 16.5],
+        "$filter directly computes mixed numeric array");
+    is($json->encode($typed_array), $typed_before,
+        "$filter numeric coercion preserves input JSON string types");
+}
+
+
+# The previous List::Util::sum(map { 0 + $_ } ...) behavior is the oracle
+# for integer overflow and signed/unsigned promotion on the running Perl.
+# Numeric formatting in JSON distinguishes floating promotion from a
+# retained integer; test this on 32-bit and 64-bit Perl without hardcoding
+# either platform's boundary result.
+for my $boundary (
+    ['[9223372036854775807,1]', 'positive signed boundary'],
+    ['[9223372036854775807,1,-9223372036854775807]',
+        'mixed signs after positive overflow'],
+    ['[9223372036854775808]', 'unsigned high singleton'],
+    ['[18446744073709551615,1]', 'unsigned boundary'],
+    ['[-9223372036854775808,-1]', 'negative signed boundary'],
+    ['[2147483647,1,-2147483647]', '32-bit signed boundary'],
+) {
+    my ($input, $label) = @$boundary;
+    my $old_array = $json->decode($input);
+    my $legacy = sum(map { 0 + $_ } @$old_array);
+    my $expected_avg = $legacy / @$old_array;
+
+    for my $filter (qw(add sum avg)) {
+        my $expected = $filter eq 'avg' ? $expected_avg : $legacy;
+        my $old_json = $json->encode([$expected]);
+        my $new_array = $json->decode($input);
+        my ($found, $outputs) =
+            JQ::Lite::Builtin->dispatch($jq, $filter, [$new_array]);
+        ok($found, "$filter is registered: $label");
+        is($json->encode($outputs), $old_json,
+            "$filter preserves legacy List::Util overflow: $label");
+    }
 }
 
 done_testing;
