@@ -1395,8 +1395,12 @@ sub apply {
 
         # support for pick(key1, key2, ...)
         if ($part =~ /^pick\((.*)\)$/) {
-            my @keys = map { defined $_ ? "$_" : undef } JQ::Lite::Util::_parse_arguments($1);
-            @keys = grep { defined $_ } @keys;
+            # Filter nulls while stringifying once, without materializing
+            # an intermediate list of converted arguments.
+            my @keys;
+            for my $arg (JQ::Lite::Util::_parse_arguments($1)) {
+                push @keys, "$arg" if defined $arg;
+            }
 
             @next_results = map { JQ::Lite::Util::_apply_pick($_, \@keys) } @results;
             @$out_ref = @next_results;
