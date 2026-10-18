@@ -38,17 +38,19 @@ sub _decode_json {
     return $JSON_DECODER->decode($text);
 }
 
+# Fixed bracket pairs are shared by independent parser scans. Their quote,
+# nesting, and early-return policies stay local to each parser.
+my %BRACKET_PAIRS = (
+    '(' => ')',
+    '[' => ']',
+    '{' => '}',
+);
+my %BRACKET_CLOSING = reverse %BRACKET_PAIRS;
+
 sub _are_brackets_balanced {
     my ($text) = @_;
 
     return 1 unless defined $text && length $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
 
     my @stack;
     my $string;
@@ -78,15 +80,15 @@ sub _are_brackets_balanced {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return 0 unless @stack;
             my $open = pop @stack;
-            return 0 unless $pairs{$open} eq $char;
+            return 0 unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
     }
@@ -116,13 +118,6 @@ sub _split_top_level_delimiter {
     my ($text, $delimiter) = @_;
 
     return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
 
     my @stack;
     my $string;
@@ -156,15 +151,15 @@ sub _split_top_level_delimiter {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return unless @stack;
             my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
+            return unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
 
@@ -191,13 +186,6 @@ sub _split_top_level_pipes {
     my ($text) = @_;
 
     return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
 
     my @stack;
     my $string;
@@ -233,7 +221,7 @@ sub _split_top_level_pipes {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
@@ -252,10 +240,10 @@ sub _split_top_level_pipes {
             }
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return unless @stack;
             my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
+            return unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
 
@@ -289,13 +277,6 @@ sub _split_top_level_operator {
 
     return unless defined $text && defined $operator && length($operator) == 1;
 
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
     my @stack;
     my $string;
     my $escape = 0;
@@ -326,15 +307,15 @@ sub _split_top_level_operator {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return if !@stack;
             my $open = pop @stack;
-            return if $pairs{$open} ne $char;
+            return if $BRACKET_PAIRS{$open} ne $char;
             next;
         }
 
