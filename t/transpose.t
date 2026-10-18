@@ -26,4 +26,54 @@ $json = encode_json({ void => [] });
 @result = $jq->run_query($json, '.void | transpose');
 $expected = [];
 is_deeply($result[0], $expected, 'transpose handles empty arrays');
+
+# Both spellings preserve truncation, empty shapes and scalar passthrough.
+for my $case (
+    ['[[]]', [], 'empty inner row'],
+    ['[[1,2],[]]', [], 'mixed empty and nonempty rows'],
+    ['[[1],[2],[3]]', [[1,2,3]], 'single column with three rows'],
+    ['[[1,2,3]]', [[1],[2],[3]], 'single input row'],
+    ['[[1,2,3],[4,5]]', [[1,4],[2,5]], 'jagged rows'],
+    ['[[null,1],[false,2]]', [
+        [undef, JSON::PP::false], [1,2]
+    ], 'null and boolean values'],
+    ['[[1,2],3]', [[1,2],3], 'mixed outer array passes through'],
+    ['null', undef, 'null passes through'],
+    ['"raw"', 'raw', 'string passes through'],
+) {
+    my ($input, $expected, $label) = @$case;
+    my @mapped = $jq->run_query($input, 'transpose()');
+    is_deeply(\@mapped, [$expected], $label);
+}
+
+my $wide_rows = [[0 .. 256], [257 .. 513]];
+my @wide_result = $jq->run_query(encode_json($wide_rows), 'transpose');
+is(scalar(@wide_result), 1, 'wide transpose yields a single array');
+is(scalar(@{ $wide_result[0] }), 257, 'wide transpose keeps all columns');
+is_deeply($wide_result[0][0], [0,257], 'wide transpose first column');
+is_deeply($wide_result[0][256], [256,513], 'wide transpose final column');
+
+my @stream_results = $jq->run_query(
+    encode_json([[[1,2],[3,4]], [], [[5],[6]], 'plain']),
+    '.[] | transpose()'
+);
+is_deeply(\@stream_results, [
+    [[1,3],[2,4]], [], [[5,6]], 'plain'
+], 'transpose preserves multi-input stream positions and values');
+
+
+# Many rows: the minimum length appears in the last row rather than the first.
+my $tall_rows = [ (map { [$_, $_ + 1, $_ + 2] } 0 .. 255), [256] ];
+my @tall_result = $jq->run_query(encode_json($tall_rows), 'transpose');
+is(scalar(@tall_result), 1, 'tall transpose emits a single result');
+is(scalar(@{ $tall_result[0] }), 1, 'last short row limits the column count');
+is_deeply($tall_result[0][0], [0 .. 256],
+    'tall transpose preserves all 257 row values in input order');
+
+my @middle_empty = $jq->run_query(
+    '[[1,2],[],[3,4]]', 'transpose()'
+);
+is_deeply(\@middle_empty, [[]],
+    'middle empty row yields an empty result without losing stream slot');
+
 done_testing();
