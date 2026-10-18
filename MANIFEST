@@ -319,6 +319,7 @@ t/v3_shared_scalar_flags.t
 t/v3_shared_array_endpoints.t
 t/v3_shared_type_filter_dispatch.t
 t/v3_shared_type_stream_map.t
+t/v3_static_value_type_rank.t
 t/v3_shared_flatten_recursion.t
 t/v3_flatten_shared_dispatch_cleanup.t
 t/v3_flatten_utility_type_guard.t
