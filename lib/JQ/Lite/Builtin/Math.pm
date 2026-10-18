@@ -10,16 +10,15 @@ sub register {
     my ($class, $register) = @_;
     my $map = \&JQ::Lite::Util::_stream_map;
 
-    $register->('abs', sub {
-        my ($owner, $inputs) = @_;
-        return [ map {
-            !defined($_) ? undef
-                : !ref($_) ? (looks_like_number($_) ? abs($_) : $_)
-                : ref($_) eq 'ARRAY'
-                    ? [ map { looks_like_number($_) ? abs($_) : $_ } @{$_} ]
-                    : $_
-        } @{$inputs} ];
-    });
+    $register->('abs', $map->(sub {
+        my ($value) = @_;
+        return undef unless defined $value;
+        return looks_like_number($value) ? abs($value) : $value
+            unless ref $value;
+        return [ map { looks_like_number($_) ? abs($_) : $_ } @$value ]
+            if ref $value eq 'ARRAY';
+        return $value;
+    }));
     $register->(['ceil', 'ceil()'], _numeric(\&JQ::Lite::Util::_ceil));
     $register->(['floor', 'floor()'], _numeric(\&JQ::Lite::Util::_floor));
     $register->(['round', 'round()'], _numeric(\&JQ::Lite::Util::_round));
