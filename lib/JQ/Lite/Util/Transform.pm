@@ -119,11 +119,17 @@ sub _extract_numeric_values {
 
     return () unless ref $values eq 'ARRAY';
 
-    return map {
-        JSON::PP::is_bool($_) ? ($_ ? 1 : 0) : 0 + $_;
-    } grep {
-        defined $_ && (JSON::PP::is_bool($_) || (!ref $_ && looks_like_number($_)));
-    } @$values;
+    # Filter and coerce in one traversal; the result list is still needed
+    # by callers, but the intermediate grep list is not.
+    my @numbers;
+    for my $value (@$values) {
+        next unless defined $value
+            && (JSON::PP::is_bool($value)
+                || (!ref $value && looks_like_number($value)));
+        push @numbers, JSON::PP::is_bool($value)
+            ? ($value ? 1 : 0) : 0 + $value;
+    }
+    return @numbers;
 }
 
 # Share only the numeric median; callers retain their own input policies.
