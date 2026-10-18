@@ -63,7 +63,8 @@ sub compare {
 
     if ($left_type eq 'array') {
         my $limit = @{$left} < @{$right} ? @{$left} : @{$right};
-        for my $index ($limit ? (0 .. $limit - 1) : ()) {
+        # Avoid allocating an index range for every recursive comparison.
+        for (my $index = 0; $index < $limit; $index++) {
             my $ordering = compare($left->[$index], $right->[$index]);
             return $ordering if $ordering;
         }
