@@ -266,4 +266,87 @@ ok(!defined JQ::Lite::Util::_apply_delpaths(
 is($codec->encode($no_path_input), $no_path_before,
     'root and empty path handling never mutate original input');
 
+
+# The deletion walker previously copied the entire path, popped its final
+# segment and traversed the remainder. The indexed walk must produce the
+# same result without modifying the caller's array, including one-segment
+# and empty paths (which must not enter the traversal loop).
+my @walker_cases = (
+    ['{"a":1,"keep":2}', '["a"]', '{"keep":2}',
+        'single root object key'],
+    ['{"a":{"b":1,"c":2}}', '["a","b"]', '{"a":{"c":2}}',
+        'nested object property'],
+    ['{"a":[10,20,30]}', '["a",1]', '{"a":[10,30]}',
+        'array middle index'],
+    ['{"a":[10,20,30]}', '["a",-1]', '{"a":[10,20]}',
+        'negative last array index'],
+    ['{"a":[{"x":1,"z":2},{"x":3}]}', '["a",0,"x"]',
+        '{"a":[{"z":2},{"x":3}]}',
+        'object inside array inside object'],
+    ['{"a":[10,20,30]}', '["a",false]', '{"a":[20,30]}',
+        'false array index'],
+    ['{"a":[10,20,30]}', '["a",true]', '{"a":[10,30]}',
+        'true array index'],
+    ['{"":0,"other":2}', '[""]', '{"other":2}',
+        'empty object key'],
+    ['{"a.b":{"":1,"x":2}}', '["a.b",""]', '{"a.b":{"x":2}}',
+        'literal dotted and empty keys'],
+    ['{"a":{"b":1}}', '["a","missing"]', '{"a":{"b":1}}',
+        'missing leaf key'],
+    ['{"a":[1,2]}', '["a",7]', '{"a":[1,2]}',
+        'out-of-range array member'],
+    ['{"a":[1,2]}', '["a","bad"]', '{"a":[1,2]}',
+        'invalid array index'],
+    ['{"a":null}', '["a","x"]', '{"a":null}',
+        'null intermediate scalar'],
+    ['{"a":[1,null,2]}', '["a",1,"x"]', '{"a":[1,null,2]}',
+        'null nested array member'],
+    ['{"a":1}', '[]', '{"a":1}',
+        'empty path is a no-op'],
+    ['{"a":1}', '[null]', '{"a":1}',
+        'undefined final key is ignored'],
+    ['"scalar"', '["a"]', '"scalar"',
+        'non-container root is unchanged'],
+    ['{"\u65e5\u672c":{"\u8449":3,"stay":4}}',
+        '["\u65e5\u672c","\u8449"]',
+        '{"\u65e5\u672c":{"stay":4}}',
+        'Unicode object key path'],
+);
+for my $case (@walker_cases) {
+    my ($source_json, $path_json, $expected_json, $label) = @$case;
+    my $target = $codec->decode($source_json);
+    my $path = $codec->decode($path_json);
+    my $path_before = $codec->encode($path);
+    my $target_identity = ref($target) ? refaddr($target) : undef;
+
+    JQ::Lite::Util::_delete_path_inplace($target, $path);
+
+    is_deeply($target, $codec->decode($expected_json),
+        "in-place deletion: $label");
+    is($codec->encode($path), $path_before,
+        "in-place deletion preserves path segments: $label");
+    is(ref($target) ? refaddr($target) : undef, $target_identity,
+        "in-place deletion preserves root identity: $label");
+}
+
+# A deep path used to allocate a temporary O(depth) segment array. A
+# 97-segment path now walks the input directly, removing only its leaf.
+my $deep_target = {drop=>1,keep=>2};
+my @deep_segments = (('next') x 96, 'drop');
+for (1 .. 96) {
+    $deep_target = {next=>$deep_target};
+}
+my $deep_path = [@deep_segments];
+my $deep_before = $codec->encode($deep_path);
+my $deep_root_addr = refaddr($deep_target);
+JQ::Lite::Util::_delete_path_inplace($deep_target, $deep_path);
+my $deep_leaf = $deep_target;
+$deep_leaf = $deep_leaf->{next} for 1 .. 96;
+is_deeply($deep_leaf, {keep=>2},
+    '97-segment path removes only the nested leaf');
+is($codec->encode($deep_path), $deep_before,
+    '97-segment path remains untouched');
+is(refaddr($deep_target), $deep_root_addr,
+    '97-segment deletion retains the original root object');
+
 done_testing;
