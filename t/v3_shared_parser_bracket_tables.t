@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use JSON::PP ();
 use JQ::Lite;
 use JQ::Lite::Util ();
 
