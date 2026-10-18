@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Compare sorted object keys without an intermediate array-comparison call, retaining jq type ordering, prefix rules and nested value semantics.
     - Filter and coerce numeric aggregate inputs in one pass instead of allocating an intermediate grep list, preserving booleans, numeric strings and per-consumer results.
     - Reuse the unary stream mapper in argument-taking clamp while retaining numeric bound normalization, recursive values and empty-stream behavior.
     - Reuse unary stream mapping for argument-taking has, contains, contains_subset and inside while retaining their distinct matching, error and capture rules.

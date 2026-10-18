@@ -136,4 +136,111 @@ is_deeply($long_left, [@prefix, 1],
 is_deeply($long_right, [@prefix, 2],
     'long-array comparisons do not modify right input');
 
+
+# Object key lists formerly recursed through compare()'s array branch.
+# The legacy array-key comparison below remains an independent oracle for
+# prefix ordering and scalar type/flag behavior of sorted hash keys.
+my $canonical = JSON::PP->new->allow_nonref->canonical;
+sub legacy_object_compare {
+    my ($left, $right) = @_;
+    my @left_keys = sort keys %$left;
+    my @right_keys = sort keys %$right;
+    my $key_order = JQ::Lite::Value::compare(\@left_keys, \@right_keys);
+    return $key_order if $key_order;
+    for my $key (@left_keys) {
+        my $order = JQ::Lite::Value::compare($left->{$key}, $right->{$key});
+        return $order if $order;
+    }
+    return 0;
+}
+
+my @object_key_cases = (
+    ['{}', '{}', 0, 'two empty objects'],
+    ['{}', '{"a":1}', -1, 'empty left key list'],
+    ['{"a":1}', '{}', 1, 'empty right key list'],
+    ['{"a":1}', '{"a":1}', 0, 'same singleton'],
+    ['{"a":1}', '{"a":1,"b":2}', -1, 'equal key prefix, shorter left'],
+    ['{"a":1,"b":2}', '{"a":1}', 1, 'equal key prefix, shorter right'],
+    ['{"a":99}', '{"b":0}', -1, 'key differs before values'],
+    ['{"b":0}', '{"a":99}', 1, 'reverse key order'],
+    ['{"a":1,"b":3}', '{"a":1,"b":4}', -1,
+        'equal key lists compare values'],
+    ['{"b":2,"a":1}', '{"a":1,"b":2}', 0,
+        'insertion order does not matter'],
+    ['{"01":1}', '{"1":1}', -1, 'numeric-looking string keys'],
+    ['{"1":1}', '{"2":1}', -1, 'numeric-looking lexical keys'],
+    ['{"10":1}', '{"2":1}', -1, 'numeric-looking lexical sorting'],
+    ['{"":0}', '{"0":0}', -1, 'empty key before numeric-like key'],
+    ['{"\u65e5":1}', '{"\u672c":1}', -1, 'Unicode key ordering'],
+    ['{"a":{"inner":[1,false]}}', '{"a":{"inner":[1,true]}}', -1,
+        'nested value comparison after identical keys'],
+    ['{"a":null}', '{"a":false}', -1,
+        'different value type ranks after identical keys'],
+);
+for my $case (@object_key_cases) {
+    my ($left_raw, $right_raw, $expected, $label) = @$case;
+    my $left = $decoder->decode($left_raw);
+    my $right = $decoder->decode($right_raw);
+    my $left_before = $canonical->encode($left);
+    my $right_before = $canonical->encode($right);
+    my $old = legacy_object_compare($left, $right);
+    my $new = JQ::Lite::Value::compare($left, $right);
+    is($new <=> 0, $expected, "direct object ordering: $label");
+    is($new <=> 0, $old <=> 0,
+        "object key ordering agrees with legacy array comparison: $label");
+    is(JQ::Lite::Value::compare($right, $left) <=> 0, -$expected,
+        "object comparison is antisymmetric: $label");
+    is(JQ::Lite::Value::equal($left, $right) ? 1 : 0,
+        $expected == 0 ? 1 : 0, "object equality: $label");
+    is($canonical->encode($left), $left_before,
+        "left object preserved: $label");
+    is($canonical->encode($right), $right_before,
+        "right object preserved: $label");
+}
+
+# Long shared key prefixes should stop at a differing late key, or
+# compare values only after every sorted key has matched.
+my %base_object = map { sprintf("k%03d", $_) => $_ } 0 .. 256;
+my %changed_value = %base_object;
+$changed_value{k256} = 900;
+my %changed_key = %base_object;
+delete $changed_key{k256};
+$changed_key{k999} = 256;
+my %shorter = %base_object;
+delete $shorter{k256};
+my @large_objects = (
+    [\%base_object, \%changed_value, -1, '257 keys with late value difference'],
+    [\%base_object, \%changed_key, -1, '257 keys with late key difference'],
+    [\%base_object, \%shorter, 1, '257 versus 256 keys'],
+    [\%base_object, { %base_object }, 0, 'identical 257-key objects'],
+    [{wrap => \%base_object}, {wrap => \%changed_value}, -1,
+        'large keyed objects nested in objects'],
+    [[\%base_object], [\%changed_value], -1,
+        'large keyed objects nested in arrays'],
+);
+for my $case (@large_objects) {
+    my ($left, $right, $expected, $label) = @$case;
+    is(JQ::Lite::Value::compare($left, $right) <=> 0, $expected,
+        "large object key comparison: $label");
+    is(JQ::Lite::Value::compare($right, $left) <=> 0, -$expected,
+        "large object reverse comparison: $label");
+    is(JQ::Lite::Value::equal($left, $right) ? 1 : 0,
+        $expected == 0 ? 1 : 0, "large object equality: $label");
+}
+is_deeply(\%base_object, { map { sprintf("k%03d", $_) => $_ } 0 .. 256 },
+    'key comparisons never modify original large object');
+
+# The public evaluator delegates jq-style object comparisons to Value.
+for my $case (
+    ['{"a":1} < {"a":1,"b":2}', 'true'],
+    ['{"b":1} < {"a":999}', 'false'],
+    ['{"a":[1,2]} < {"a":[1,3]}', 'true'],
+    ['{"b":2,"a":1} == {"a":1,"b":2}', 'true'],
+    ['{"a":1} == {"a":"1"}', 'false'],
+) {
+    my ($filter, $want) = @$case;
+    is_deeply([ $jq->run_query('null', $filter) ],
+        [$decoder->decode($want)], "public object comparison: $filter");
+}
+
 done_testing;
