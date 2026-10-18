@@ -33,7 +33,10 @@ sub register {
         my ($owner, $inputs, $arguments) = @_;
         my @args = JQ::Lite::Util::_parse_arguments($arguments);
         my $needle = @args ? $args[0] : undef;
-        return [ map { JQ::Lite::Util::_apply_has($_, $needle) } @{$inputs} ];
+        my $handler = $map->(sub {
+            JQ::Lite::Util::_apply_has($_[0], $needle)
+        });
+        return $handler->($owner, $inputs);
     });
     # Share literal argument decoding, not containment semantics:
     # contains is jq-style, contains_subset counts duplicates, and inside
@@ -46,7 +49,8 @@ sub register {
             : $name eq 'contains_subset'
                 ? \&JQ::Lite::Util::_apply_contains_subset
                 : \&JQ::Lite::Util::_apply_inside;
-        return [ map { $apply->($_, $needle) } @{$inputs} ];
+        my $handler = $map->(sub { $apply->($_[0], $needle) });
+        return $handler->($owner, $inputs);
     });
 }
 
