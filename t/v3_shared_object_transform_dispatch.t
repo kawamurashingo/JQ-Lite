@@ -182,7 +182,6 @@ is_deeply(results($json->encode($mixed), 'to_entries'),
 is_deeply(JQ::Lite::Util::_to_entries({ z => 2, a => 1 }),
     [{ key => 'a', value => 1 }, { key => 'z', value => 2 }],
     'object entry keys remain sorted');
-my $passthrough = { q => 9 };
 my $scalar = 'word';
 is(JQ::Lite::Util::_to_entries($scalar), $scalar,
     'non-container text still passes through');
