@@ -1819,16 +1819,21 @@ sub _match_against_regex {
     };
 }
 
+# The supported modifier alphabet never changes between calls. Keep the
+# membership table outside _build_regex instead of rebuilding it for each
+# test()/match() invocation.
+my %REGEX_ALLOWED_FLAGS = map { $_ => 1 } qw(i m s x);
+
 sub _build_regex {
     my ($pattern, $flags) = @_;
 
     $pattern = '' unless defined $pattern;
     $flags   = '' unless defined $flags;
 
-    my %allowed = map { $_ => 1 } qw(i m s x);
     my %enabled;
     for my $flag (split //, $flags) {
-        return (undef, "unknown regex flag '$flag'") unless $allowed{$flag};
+        return (undef, "unknown regex flag '$flag'")
+            unless $REGEX_ALLOWED_FLAGS{$flag};
         $enabled{$flag} = 1;
     }
 
