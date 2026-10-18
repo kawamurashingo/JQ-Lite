@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Reuse parser bracket lookups in comparison and boolean-keyword splitters, preserving their independent parsing policies.
     - Reuse fixed bracket-pair lookups across top-level parser scans without changing quote, nesting, or split behavior.
     - Avoid temporary array index lists in indices and recursive containment while preserving match order and duplicate rules.
     - Reuse the stateless projected-key comparator across min_by/max_by and group_by without changing numeric or lexical ordering.
