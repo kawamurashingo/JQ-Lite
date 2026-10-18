@@ -73,8 +73,15 @@ sub compare {
 
     my @left_keys  = sort keys %{$left};
     my @right_keys = sort keys %{$right};
-    my $key_ordering = compare(\@left_keys, \@right_keys);
-    return $key_ordering if $key_ordering;
+    # Compare the keys directly instead of recursively comparing two
+    # temporary array references. Retain compare()'s type/flag behavior
+    # for every key, and the short-prefix ordering of arrays.
+    my $limit = @left_keys < @right_keys ? @left_keys : @right_keys;
+    for (my $index = 0; $index < $limit; $index++) {
+        my $ordering = compare($left_keys[$index], $right_keys[$index]);
+        return $ordering if $ordering;
+    }
+    return @left_keys <=> @right_keys if @left_keys != @right_keys;
     for my $key (@left_keys) {
         my $ordering = compare($left->{$key}, $right->{$key});
         return $ordering if $ordering;
