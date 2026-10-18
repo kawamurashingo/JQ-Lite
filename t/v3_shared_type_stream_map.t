@@ -137,6 +137,13 @@ use warnings;
 use JSON::PP ();
 require JQ::Lite::Builtin::Type;
 die 'parent loaded' if exists $INC{'JQ/Lite/Builtin.pm'};
+die 'monolithic Util loaded' if exists $INC{'JQ/Lite/Util.pm'};
+die 'Expression loaded' if exists $INC{'JQ/Lite/Expression.pm'};
+die 'unneeded Parsing loaded' if exists $INC{'JQ/Lite/Util/Parsing.pm'};
+die 'unneeded Paths loaded' if exists $INC{'JQ/Lite/Util/Paths.pm'};
+die 'unneeded Transform loaded' if exists $INC{'JQ/Lite/Util/Transform.pm'};
+die 'lightweight mapper missing'
+    unless exists $INC{'JQ/Lite/Util/Stream.pm'};
 my ($name, $input, $expected) = @ARGV;
 my %handlers;
 JQ::Lite::Builtin::Type->register(sub {
@@ -151,6 +158,9 @@ my $got = $handlers{$name}->(undef, [$json->decode($input)]);
 die 'incorrect standalone handler result'
     if $json->encode($got) ne $json->encode($json->decode($expected));
 die 'parent loaded after register' if exists $INC{'JQ/Lite/Builtin.pm'};
+die 'Util loaded after register' if exists $INC{'JQ/Lite/Util.pm'};
+die 'Expression loaded after register'
+    if exists $INC{'JQ/Lite/Expression.pm'};
 PERL
 for my $case (
     ['length','[1,null]','[2]'],
@@ -164,5 +174,24 @@ for my $case (
     is(system($^X, "-I$lib", '-e', $standalone, @$case), 0,
         "standalone Type registration: $case->[0]");
 }
+
+# Requiring Type after Expression must not replace the Expression evaluator.
+# This catches the global patching side effect caused by loading full Util.
+my $expression_isolation = <<'PERL';
+use strict;
+use warnings;
+use Scalar::Util qw(refaddr);
+require JQ::Lite::Expression;
+die 'Util already loaded' if exists $INC{'JQ/Lite/Util.pm'};
+my $before = refaddr(\&JQ::Lite::Expression::evaluate);
+require JQ::Lite::Builtin::Type;
+die 'Expression evaluator was replaced'
+    if refaddr(\&JQ::Lite::Expression::evaluate) != $before;
+die 'Util loaded as a side effect' if exists $INC{'JQ/Lite/Util.pm'};
+die 'stream mapper not loaded'
+    unless exists $INC{'JQ/Lite/Util/Stream.pm'};
+PERL
+is(system($^X, "-I$lib", '-e', $expression_isolation), 0,
+    'standalone Type preserves previously loaded Expression evaluator');
 
 done_testing;
