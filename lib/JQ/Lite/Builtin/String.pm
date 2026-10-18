@@ -34,14 +34,20 @@ sub register {
     $register->(qr/^substr(?:\((.*)\))?$/, sub {
         my ($owner, $inputs, $arguments) = @_;
         my @args = JQ::Lite::Util::_parse_arguments($arguments);
-        return [ map { JQ::Lite::Util::_apply_substr($_, @args) } @{$inputs} ];
+        my $handler = $map->(sub {
+            JQ::Lite::Util::_apply_substr($_[0], @args)
+        });
+        return $handler->($owner, $inputs);
     });
     $register->(qr/^replace\((.+)\)$/, sub {
         my ($owner, $inputs, $arguments) = @_;
         my ($search, $replacement) = JQ::Lite::Util::_parse_arguments($arguments);
         $search = '' unless defined $search;
         $replacement = '' unless defined $replacement;
-        return [ map { JQ::Lite::Util::_apply_replace($_, $search, $replacement) } @{$inputs} ];
+        my $handler = $map->(sub {
+            JQ::Lite::Util::_apply_replace($_[0], $search, $replacement)
+        });
+        return $handler->($owner, $inputs);
     });
 }
 
@@ -51,7 +57,10 @@ sub _string_argument {
     return sub {
         my ($owner, $inputs, $argument) = @_;
         my $needle = JQ::Lite::Util::_parse_string_argument($argument);
-        return [ map { $function->($_, $needle, $mode) } @{$inputs} ];
+        my $handler = JQ::Lite::Util::_stream_map(sub {
+            $function->($_[0], $needle, $mode)
+        });
+        return $handler->($owner, $inputs);
     };
 }
 
