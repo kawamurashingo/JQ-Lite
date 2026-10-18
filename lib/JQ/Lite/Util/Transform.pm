@@ -1492,20 +1492,22 @@ sub _compare_values {
     return 0;
 }
 
-sub _smart_cmp {
-    return sub {
-        my ($a, $b) = @_;
+# This comparison has no captured state; reuse one callback across
+# min_by/max_by and group_by instead of allocating it on every call.
+my $SMART_CMP = sub {
+    my ($a, $b) = @_;
 
-        my $num_a = ($a =~ /^-?\d+(?:\.\d+)?$/);
-        my $num_b = ($b =~ /^-?\d+(?:\.\d+)?$/);
+    my $num_a = ($a =~ /^-?\d+(?:\.\d+)?$/);
+    my $num_b = ($b =~ /^-?\d+(?:\.\d+)?$/);
 
-        if ($num_a && $num_b) {
-            return $a <=> $b;
-        } else {
-            return "$a" cmp "$b";  # explicitly perform string comparison
-        }
-    };
-}
+    if ($num_a && $num_b) {
+        return $a <=> $b;
+    } else {
+        return "$a" cmp "$b";  # explicitly perform string comparison
+    }
+};
+
+sub _smart_cmp { return $SMART_CMP; }
 
 sub _extreme_by {
     my ($array_ref, $key_path, $use_entire_item, $mode) = @_;
