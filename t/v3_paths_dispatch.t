@@ -157,4 +157,95 @@ SKIP: {
         'public delpaths per-stream output order preserved');
 }
 
+
+# _delete_path_inplace copies its own segments before removing the final
+# segment. _apply_delpaths should pass the sorted, validated path reference
+# directly rather than cloning each path first. Capture both ends of the
+# private call and verify identity and nonmutation, even on old Perl where
+# the public delpaths parser is currently gated.
+my $real_delpaths_sort = \&JQ::Lite::Util::_sort_paths_for_deletion;
+my $real_delete_path = \&JQ::Lite::Util::_delete_path_inplace;
+my @copy_cases = (
+    ['{"a":[0,1,2,3],"keep":true}',
+     '[["a",1],["a",3]]',
+     {a=>[0,2],keep=>JSON::PP::true},2,
+     'descending array sibling deletion'],
+    ['{"a":{"b":1,"c":2},"d":3}',
+     '[["a","b"],["a"]]',
+     {d=>3},2,
+     'nested path removed before parent'],
+    ['{"a":[10,20,30]}',
+     '[["a",1],["a",1]]',
+     {a=>[10]},2,
+     'repeated array index removes twice'],
+    ['{"a":[4,5,6],"n":null}',
+     '[["a",false],["a",true]]',
+     {a=>[6],n=>undef},2,
+     'boolean path indices and null fields'],
+    ['{"":"v","a.b":{"x":1},"keep":3}',
+     '[[""],["a.b","x"]]',
+     {'a.b'=>{},keep=>3},2,
+     'empty and dotted object keys'],
+    ['{"a":["p","q","r"],"z":1}',
+     '[["a",-1],["a",0]]',
+     {a=>['q'],z=>1},2,
+     'negative and positive array indices'],
+    ['{"a":[1,2],"other":{"x":3}}',
+     '[["a",90],["other","missing"]]',
+     {a=>[1,2],other=>{x=>3}},2,
+     'nonexistent deletion targets'],
+);
+my $many_paths = [map { ['a',$_] } 0 .. 63];
+push @copy_cases, [
+    $codec->encode({a=>[0 .. 63]}), $codec->encode($many_paths),
+    {a=>[]},64, '64 distinct array indices'
+];
+
+for my $case (@copy_cases) {
+    my ($json, $filter, $expected, $count, $label) = @$case;
+    my $input = $codec->decode($json);
+    my $before = $codec->encode($input);
+    my (@sorted, @snapshots, @received);
+    my ($actual, $ok, $failure);
+    {
+        no warnings 'redefine';
+        local *JQ::Lite::Util::_sort_paths_for_deletion = sub {
+            @sorted = $real_delpaths_sort->(@_);
+            @snapshots = map { $codec->encode($_) } @sorted;
+            return @sorted;
+        };
+        local *JQ::Lite::Util::_delete_path_inplace = sub {
+            my ($target, $path) = @_;
+            push @received, $path;
+            return $real_delete_path->($target, $path);
+        };
+        $ok = eval {
+            $actual = JQ::Lite::Util::_apply_delpaths($jq, $input, $filter);
+            1;
+        };
+        $failure = $@;
+    }
+    ok($ok, "delpaths direct helper runs: $label") or diag($failure);
+    is_deeply($actual, $expected, "delpaths result: $label");
+    is($codec->encode($input), $before,
+        "delpaths leaves original input unchanged: $label");
+    is(scalar @received, $count,
+        "delpaths visits all normalized paths: $label");
+    is_deeply([map { refaddr($_) } @received],
+        [map { refaddr($_) } @sorted],
+        "delpaths forwards original sorted path identities: $label");
+    is_deeply([map { $codec->encode($_) } @sorted], \@snapshots,
+        "delpaths never changes validated path arrays: $label");
+}
+
+my $no_path_input = {a=>[1,2]};
+my $no_path_before = $codec->encode($no_path_input);
+is_deeply(JQ::Lite::Util::_apply_delpaths($jq, $no_path_input, '[]'),
+    $no_path_input, 'empty path list keeps its input');
+ok(!defined JQ::Lite::Util::_apply_delpaths(
+    $jq, $no_path_input, '[[]]'
+), 'root deletion remains null');
+is($codec->encode($no_path_input), $no_path_before,
+    'root and empty path handling never mutate original input');
+
 done_testing;
