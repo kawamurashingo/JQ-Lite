@@ -120,4 +120,49 @@ subtest 'compound assignments on numbers' => sub {
     };
 };
 
+
+# A compound assignment only coerces the old leaf to a number. JSON
+# cloning that leaf is unnecessary, including for arrays/objects that the
+# existing conversion rejects without changing the original value.
+subtest 'compound numeric coercion keeps scalar and container contracts' => sub {
+    my @cases = (
+        [{ n => undef }, '.n += 5', { n => 5 },
+            'missing arithmetic value from null'],
+        [{ n => JSON::PP::true }, '.n += 2', { n => 3 },
+            'boolean true coerces to one'],
+        [{ n => JSON::PP::false }, '.n -= 2', { n => -2 },
+            'boolean false coerces to zero'],
+        [{ n => '12' }, '.n /= 3', { n => 4 },
+            'numeric-looking string remains numeric'],
+        [{ n => 2 }, '.n *= 0', { n => 0 },
+            'multiply by zero'],
+        [{ n => 0 }, '.n /= 0', { n => 0 },
+            'division by zero does not mutate value'],
+        [{ n => 'not-a-number' }, '.n += 4', { n => 'not-a-number' },
+            'nonnumeric string passthrough'],
+        [{ n => [1,2] }, '.n *= 3', { n => [1,2] },
+            'array old value remains unchanged'],
+        [{ n => { inner => 1 } }, '.n -= 2',
+            { n => { inner => 1 } },
+            'object old value remains unchanged'],
+        [{ group => [{ n => 4 }, { n => 10 }] },
+            '.group[1].n -= 3',
+            { group => [{ n => 4 }, { n => 7 }] },
+            'nested object under indexed array'],
+        [{ group => [{ n => 4 }, { n => 10 }] },
+            '.group[0].n *= 3',
+            { group => [{ n => 12 }, { n => 10 }] },
+            'first indexed array element'],
+        [[1,2,3], '.[-1] *= 4', [1,2,12],
+            'negative root array index'],
+    );
+    for my $case (@cases) {
+        my ($input, $query, $expected, $label) = @$case;
+        my $before = encode_json($input);
+        my @result = apply_query($input, $query);
+        is_deeply(\@result, [$expected], "$label: result unchanged");
+        is(encode_json($input), $before, "$label: source untouched");
+    }
+};
+
 done_testing();
