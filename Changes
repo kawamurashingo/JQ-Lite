@@ -1,6 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
-    - Iterate ordinary path lookup, assignment and update-deletion segments by index without allocating temporary integer ranges; keep missing, null and nested array semantics.
+    - Reuse the leaf found during update-assignment path validation instead of parsing and reading the same path twice; preserve missing, null, array and deletion semantics.
     - Avoid temporary index lists in enumerate and transpose, and find the shortest transpose row without a temporary lengths list.
     - Reuse unary stream mapping for keys and keys_unsorted while preserving hash ordering, array indexes and distinct invalid-input behavior.
     - Merge object fields incrementally instead of rebuilding the accumulated hash for every array element, retaining last-wins and shallow values.

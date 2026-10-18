@@ -161,6 +161,11 @@ subtest 'fixed-index traversal preserves nested update and deletion contracts' =
         [{ root => [{ items => [10,20] }] }],
         'out-of-range deep deletion leaves array unchanged');
 
+    is_deeply(results('{"root":[{"detail":null}]}',
+        '.root[0].detail.value |= . + 1'),
+        [{ root => [{ detail => { value => 1 } }] }],
+        'null intermediate creates a container while RHS sees a null leaf');
+
     is_deeply(results('{"root":[{"detail":{"value":null}}]}',
         '.root[0].detail.value |= 9'),
         [{ root => [{ detail => { value => 9 } }] }],

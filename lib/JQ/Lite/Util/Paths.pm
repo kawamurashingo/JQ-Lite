@@ -46,7 +46,7 @@ sub _apply_update_assignment {
     # setter intentionally ignores invalid intermediates, but |= must not
     # report a successful update where no mutation occurred.
     my $cursor = $root;
-    for (my $i = 0; $i < @segments; $i++) {
+    for my $i (0 .. $#segments) {
         my $segment = $segments[$i];
         my $type = $segment->{type};
 
@@ -82,7 +82,9 @@ sub _apply_update_assignment {
         }
     }
 
-    my $old = _clone_for_assignment(_get_path_value($root, $path));
+    # Validation already located the old leaf, including missing/null paths.
+    # Reuse it instead of parsing and traversing the same path again.
+    my $old = _clone_for_assignment($cursor);
     my ($has_replacement, $replacement)
         = _first_update_rhs_result($self, $old, $rhs);
     if (!$has_replacement) {
@@ -299,7 +301,7 @@ sub _delete_update_assignment_path {
     my ($root, $segments) = @_;
 
     my $cursor = $root;
-    for (my $i = 0; $i < @$segments - 1; $i++) {
+    for my $i (0 .. $#$segments - 1) {
         my $segment = $segments->[$i];
         if ($segment->{type} eq 'key') {
             return unless ref($cursor) eq 'HASH'
@@ -467,7 +469,7 @@ sub _get_path_value {
     return undef unless @segments;
 
     my $cursor = $target;
-    for (my $index = 0; $index < @segments; $index++) {
+    for my $index (0 .. $#segments) {
         my $segment = $segments[$index];
         my $is_last = ($index == $#segments);
 
@@ -554,7 +556,7 @@ sub _set_path_value {
     return unless @segments;
 
     my $cursor = $target;
-    for (my $index = 0; $index < @segments; $index++) {
+    for my $index (0 .. $#segments) {
         my $segment = $segments[$index];
         my $is_last = ($index == $#segments);
 
