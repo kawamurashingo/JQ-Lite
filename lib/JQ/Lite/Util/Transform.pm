@@ -579,11 +579,12 @@ sub _delete_path_inplace {
     return unless ref $path eq 'ARRAY';
     return unless @$path;
 
-    my @segments = @$path;
-    my $last     = pop @segments;
-
+    # Walk all but the final segment without cloning the path array.
+    # Only the target container is modified; the path stays read-only.
+    my $last   = $path->[-1];
     my $cursor = $value;
-    for my $segment (@segments) {
+    for my $index (0 .. $#$path - 1) {
+        my $segment = $path->[$index];
         if (ref $cursor eq 'HASH') {
             my $key = _coerce_hash_key($segment);
             return unless defined $key;
