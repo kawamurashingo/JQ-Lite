@@ -496,15 +496,27 @@ sub _apply_delpaths {
 sub _sort_paths_for_deletion {
     my (@paths) = @_;
 
-    return sort {
-        my $depth_cmp = @$b <=> @$a;
+    # Sorting compares each path repeatedly. Cache the depth and parent
+    # signature once per path, preserving the existing comparison rules.
+    my @decorated = map {
+        {
+            path   => $_,
+            depth  => scalar(@$_),
+            prefix => _path_prefix_key($_),
+        }
+    } @paths;
+
+    return map { $_->{path} } sort {
+        my $depth_cmp = $b->{depth} <=> $a->{depth};
         return $depth_cmp if $depth_cmp;
 
-        my $prefix_cmp = _path_prefix_key($a) cmp _path_prefix_key($b);
+        my $prefix_cmp = $a->{prefix} cmp $b->{prefix};
         return $prefix_cmp if $prefix_cmp;
 
-        return _compare_path_segments($b->[-1], $a->[-1]);
-    } @paths;
+        return _compare_path_segments(
+            $b->{path}[-1], $a->{path}[-1]
+        );
+    } @decorated;
 }
 
 sub _path_prefix_key {
