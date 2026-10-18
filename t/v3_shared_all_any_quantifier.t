@@ -167,12 +167,12 @@ for my $case (
     is($checked, $number_checked, "$label: stops checking later values");
 }
 
-my $wide = [(JSON::PP::true) x 256, JSON::PP::false];
+my $wide = [(map { JSON::PP::true } 1 .. 256), JSON::PP::false];
 my $wide_id = refaddr($wide);
 my $wide_json = $codec->encode($wide);
-is(JQ::Lite::Util::_apply_all($jq, $wide) ? 1 : 0, 0,
+is(JQ::Lite::Util::_apply_all($jq, $wide, undef) ? 1 : 0, 0,
     'all stops on the final false of a 257-element array');
-is(JQ::Lite::Util::_apply_any($jq, $wide) ? 1 : 0, 1,
+is(JQ::Lite::Util::_apply_any($jq, $wide, undef) ? 1 : 0, 1,
     'any accepts the first true of a 257-element array');
 is(refaddr($wide), $wide_id, 'large caller array identity unchanged');
 is($codec->encode($wide), $wide_json, 'large caller array is not mutated');
