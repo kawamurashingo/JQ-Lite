@@ -81,7 +81,7 @@ is_deeply($unsorted_stream->[4], ['x'],
     'last object output remains in the original stream position');
 
 my $obj = { z => { nested => [-3] }, a => JSON::PP::true };
-my $array = [null_value(), 9, JSON::PP::false];
+my $array = [undef, 9, JSON::PP::false];
 my $empty_hash = {};
 my @valid = ($obj, $array, [], $empty_hash);
 my @all = (@valid, undef, JSON::PP::true, JSON::PP::false, 17, 'word');
@@ -182,4 +182,3 @@ for my $case (
 
 done_testing;
 
-sub null_value { return undef }
