@@ -469,7 +469,9 @@ sub _get_path_value {
     return undef unless @segments;
 
     my $cursor = $target;
-    for my $index (0 .. $#segments) {
+    # Traverse the parsed segments directly without allocating an
+    # intermediate list of path indices.
+    for (my $index = 0; $index < @segments; $index++) {
         my $segment = $segments[$index];
         my $is_last = ($index == $#segments);
 
@@ -556,7 +558,9 @@ sub _set_path_value {
     return unless @segments;
 
     my $cursor = $target;
-    for my $index (0 .. $#segments) {
+    # Traverse the parsed segments directly without allocating an
+    # intermediate list of path indices.
+    for (my $index = 0; $index < @segments; $index++) {
         my $segment = $segments[$index];
         my $is_last = ($index == $#segments);
 

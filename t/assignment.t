@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use JSON::PP qw(encode_json);
 use JQ::Lite;
+use JQ::Lite::Util ();
 
 my $jq = JQ::Lite->new;
 
@@ -173,5 +174,123 @@ subtest 'compound numeric coercion keeps scalar and container contracts' => sub 
     is(encode_json($unchanged_string), '{"n":"12"}',
         'division-by-zero leaves numeric-looking string JSON quoted');
 };
+
+
+# _get_path_value and _set_path_value share the parsed-segment loop.
+# Retain direct internal contracts for empty/missing paths, negative array
+# indexes, mixed key/index paths, and early exits on invalid containers.
+my $path_fixture = {
+    outer => [
+        { inner => { leaf => 9 } },
+        { inner => { leaf => JSON::PP::false } },
+    ],
+    text => 'raw',
+    null => undef,
+};
+my $path_before = encode_json($path_fixture);
+my @get_segment_cases = (
+    ['outer[0].inner.leaf', 9, 'first mixed path'],
+    ['outer[1].inner.leaf', JSON::PP::false, 'JSON false leaf'],
+    ['outer[-1].inner.leaf', JSON::PP::false, 'negative last array index'],
+    ['.outer[0].inner.leaf', 9, 'leading dot'],
+    ['outer[0].inner', { leaf => 9 }, 'object leaf'],
+    ['outer[2].inner.leaf', undef, 'out of range index'],
+    ['outer[-3].inner.leaf', undef, 'negative out of range index'],
+    ['outer[0].missing.leaf', undef, 'missing intermediate object key'],
+    ['outer[0].inner.missing', undef, 'missing final object key'],
+    ['outer[0].inner.leaf.child', undef, 'scalar intermediate'],
+    ['text.child', undef, 'scalar root child'],
+    ['null.child', undef, 'null intermediate'],
+    ['outer[0][0]', undef, 'object cannot be indexed numerically'],
+    ['', undef, 'empty path'],
+    [undef, undef, 'undefined path'],
+);
+for my $case (@get_segment_cases) {
+    my ($path, $expected, $label) = @$case;
+    is_deeply(JQ::Lite::Util::_get_path_value($path_fixture, $path),
+        $expected, "indexed-path getter: $label");
+}
+is(encode_json($path_fixture), $path_before,
+    'getter leaves the original container and JSON types unchanged');
+
+my @set_segment_cases = (
+    [{}, 'meta.flag', JSON::PP::true,
+        { meta => { flag => JSON::PP::true } },
+        'create nested object fields'],
+    [{ meta => undef }, 'meta.flag', 7,
+        { meta => { flag => 7 } }, 'replace null intermediate'],
+    [{ meta => { flag => 1, keep => 2 } }, 'meta.flag', 9,
+        { meta => { flag => 9, keep => 2 } },
+        'update leaf and retain siblings'],
+    [{}, 'entries[0].name', 'a',
+        { entries => [{ name => 'a' }] }, 'create nested array'],
+    [{ entries => [] }, 'entries[2].name', 'last',
+        { entries => [undef, undef, { name => 'last' }] },
+        'extend array with null slots'],
+    [{ entries => [{ name => 'a' }, { name => 'b' }] },
+        'entries[-1].name', 'last',
+        { entries => [{ name => 'a' }, { name => 'last' }] },
+        'negative index updates last array entry'],
+    [{ entries => [{ name => 'a' }, { name => 'b' }] },
+        'entries[-3].name', 'invalid',
+        { entries => [{ name => 'a' }, { name => 'b' }] },
+        'too negative index leaves array unchanged'],
+    [{ entries => [{ name => 'a' }] }, 'entries[0].name', undef,
+        { entries => [{ name => undef }] }, 'write explicit JSON null'],
+    [{ plain => 2 }, 'plain.child', 7,
+        { plain => 2 }, 'do not replace numeric intermediate'],
+    [{ entries => {} }, 'entries[0]', 8,
+        { entries => {} }, 'do not index object with array segment'],
+    [[], '[0].value', 3, [{ value => 3 }],
+        'root array segment'],
+    [{}, '', 5, {}, 'empty path leaves source unchanged'],
+);
+for my $case (@set_segment_cases) {
+    my ($input, $path, $value, $expected, $label) = @$case;
+    JQ::Lite::Util::_set_path_value($input, $path, $value);
+    is_deeply($input, $expected, "indexed-path setter: $label");
+}
+
+# Deeply nested key paths should traverse every segment without generating
+# a range, both when creating a leaf and reading it back.
+my $deep_root = {};
+my $deep_path = join '.', map { "level$_" } 0 .. 95;
+JQ::Lite::Util::_set_path_value($deep_root, $deep_path, 42);
+is(JQ::Lite::Util::_get_path_value($deep_root, $deep_path), 42,
+    '96-segment setter/getter roundtrip');
+is_deeply(JQ::Lite::Util::_get_path_value($deep_root, $deep_path . '.absent'),
+    undef, 'deep path early exit on missing child');
+
+# The public assignment entry point still uses these internal path
+# walkers without mutating the user-provided source.
+my @assignment_walk_cases = (
+    [{ group => [{ n => 2 }, { n => 4 }] },
+        '.group[1].n += 3',
+        { group => [{ n => 2 }, { n => 7 }] },
+        'compound assignment to nested indexed leaf'],
+    [{ group => [{ n => 2 }, { n => 4 }] },
+        '.group[0].n = 11',
+        { group => [{ n => 11 }, { n => 4 }] },
+        'plain assignment to first indexed leaf'],
+    [{ group => [{ n => 2 }, { n => 4 }] },
+        '.group[-1].n *= 2',
+        { group => [{ n => 2 }, { n => 8 }] },
+        'negative array index in compound assignment'],
+    [{ root => { a => { b => 1 } } },
+        '.root.a.b += 1',
+        { root => { a => { b => 2 } } },
+        'nested object compound assignment'],
+    [{ root => { a => 1 } }, '.root.a = null',
+        { root => { a => undef } },
+        'assign explicit null leaf'],
+);
+for my $case (@assignment_walk_cases) {
+    my ($source, $query, $expected, $label) = @$case;
+    my $original = encode_json($source);
+    is_deeply([apply_query($source, $query)], [$expected],
+        "public indexed-path assignment: $label");
+    is(encode_json($source), $original,
+        "public assignment does not mutate original source: $label");
+}
 
 done_testing();
