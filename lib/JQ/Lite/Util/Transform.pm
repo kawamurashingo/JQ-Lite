@@ -2481,7 +2481,7 @@ sub _apply_indices {
 
     if (ref $value eq 'ARRAY') {
         my @matches;
-        for my $i (0 .. $#$value) {
+        for (my $i = 0; $i < @$value; $i++) {
             push @matches, $i if _values_equal($value->[$i], $needle);
         }
         return \@matches;
@@ -2599,7 +2599,7 @@ sub _array_contains {
     if (($mode eq 'subset' || $mode eq 'jq') && ref $needle eq 'ARRAY') {
         my @used;
         NEEDLE: for my $expected (@$needle) {
-            for my $i (0 .. $#$haystack) {
+            for (my $i = 0; $i < @$haystack; $i++) {
                 next if $mode eq 'subset' && $used[$i];
                 if (_deep_contains($haystack->[$i], $expected, $mode)) {
                     $used[$i] = 1 if $mode eq 'subset';
