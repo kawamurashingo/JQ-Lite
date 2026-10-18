@@ -155,7 +155,7 @@ my @incremental_cases = (
         '{"01":"leading","1":"numeric"}', 'distinct numeric-looking keys'],
     ['[{"a":"v"},{"a":0},{"a":"w"}]', '{"a":"w"}',
         'multiple replacements retain final string'],
-    ['[{"a":null},{"b":null}]', '{"a":null,"b":null"}',
+    ['[{"a":null},{"b":null}]', '{"a":null,"b":null}',
         'disjoint null-valued fields'],
 );
 for my $case (@incremental_cases) {
