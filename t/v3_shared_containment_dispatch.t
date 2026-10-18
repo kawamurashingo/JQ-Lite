@@ -82,4 +82,57 @@ is_deeply([ $jq->run_query('[[1,2],[1],[3,4]]',
     $json->decode('[true,true,false]'),
     'contains preserves input stream order');
 
+
+# Direct array containment iterates only existing slots. Guard the distinct
+# jq (reusable candidate) and v2 subset (consume each candidate) policies.
+my @array_cases = (
+    ['[]',       'contains([])',                1, 'empty jq needle'],
+    ['[]',       'contains([1])',               0, 'empty jq haystack'],
+    ['[]',       'contains_subset([])',         1, 'empty legacy needle'],
+    ['[]',       'contains_subset([1])',        0, 'empty legacy haystack'],
+    ['[1]',      'contains([1,1])',             1, 'jq reuses a matching slot'],
+    ['[1]',      'contains_subset([1,1])',      0, 'legacy duplicates need distinct slots'],
+    ['[1,1]',    'contains_subset([1,1])',      1, 'enough legacy duplicates'],
+    ['[1,2,1]',  'contains_subset([1,1,2])',    1, 'unordered duplicate matching'],
+    ['[[1,2,3]]','contains([[1,3]])',          1, 'nested jq array containment'],
+    ['[{"a":[1,2,3]}]', 'contains([{"a":[1,3]}])',
+                 1, 'nested jq object and array containment'],
+    ['["1"]',    'contains([1])',               0, 'jq distinguishes text and number'],
+    ['["1"]',    'contains_subset([1])',        1, 'v2 subset numeric-text coercion'],
+);
+for my $case (@array_cases) {
+    my ($input, $filter, $expected, $label) = @$case;
+    is_deeply([ $jq->run_query($input, $filter) ],
+        [$expected ? JSON::PP::true : JSON::PP::false],
+        "$filter: $label");
+}
+
+my $long_once = [(0) x 256, 1];
+my $long_twice = [(0) x 256, 1, 1];
+for my $case (
+    [$long_once,  'contains([1,1])',        1, 'jq long array reuses final value'],
+    [$long_once,  'contains_subset([1,1])', 0, 'legacy long array exhausts unique match'],
+    [$long_twice, 'contains_subset([1,1])', 1, 'legacy long array finds both duplicates'],
+    [$long_twice, 'contains([2])',          0, 'jq long array missing candidate'],
+) {
+    my ($data, $filter, $expected, $label) = @$case;
+    my $raw = $json->encode($data);
+    is_deeply([ $jq->run_query($raw, $filter) ],
+        [$expected ? JSON::PP::true : JSON::PP::false], $label);
+    is($json->encode($data), $raw, "$label leaves original array intact");
+}
+for my $case (
+    [[], [], 'jq', 1, 'jq empty/empty'],
+    [[], [1], 'jq', 0, 'jq empty/missing'],
+    [[1], [1,1], 'jq', 1, 'jq candidate reuse'],
+    [[1], [1,1], 'subset', 0, 'legacy candidate reuse forbidden'],
+    [[1,1], [1,1], 'subset', 1, 'legacy repeated matches'],
+    [$long_once, [1,1], 'subset', 0, 'long legacy missing duplicate'],
+    [$long_twice, [1,1], 'subset', 1, 'long legacy enough duplicates'],
+) {
+    my ($haystack, $needle, $mode, $expected, $label) = @$case;
+    is(JQ::Lite::Util::_array_contains($haystack, $needle, $mode) ? 1 : 0,
+        $expected, "direct array containment: $label");
+}
+
 done_testing;
