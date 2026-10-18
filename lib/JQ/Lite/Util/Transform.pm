@@ -215,7 +215,11 @@ sub _to_entries {
     }
 
     if (ref $value eq 'ARRAY') {
-        return [ map { { key => $_, value => $value->[$_] } } 0 .. $#$value ];
+        my @entries;
+        for (my $index = 0; $index < @$value; $index++) {
+            push @entries, { key => $index, value => $value->[$index] };
+        }
+        return \@entries;
     }
 
     return $value;

@@ -2,6 +2,8 @@ use strict;
 use warnings;
 use Test::More;
 use JSON::PP ();
+use Scalar::Util qw(refaddr);
+use JQ::Lite::Util ();
 use JQ::Lite;
 use JQ::Lite::Builtin ();
 
@@ -120,5 +122,73 @@ for my $name (qw(to_entries from_entries merge_objects)) {
     ok($registered{$name}, "$name exact spelling remains registered");
     ok($registered{"$name()"}, "$name() alias remains registered");
 }
+
+
+# Array to_entries now constructs entries directly by index. Protect
+# empty arrays, ordered numeric keys, long inputs and roundtrips.
+for my $size (0, 1, 9, 257) {
+    my @items = map { $_ % 7 == 0 ? undef : $_ } (0 .. $size - 1);
+    my $input = $json->encode(\@items);
+    my $expected = [
+        map { { key => $_, value => $items[$_] } } (0 .. $#items)
+    ];
+    my $direct = JQ::Lite::Util::_to_entries(\@items);
+    is_deeply($direct, $expected,
+        "direct to_entries preserves ordered $size-element array");
+    is_deeply(results($input, 'to_entries'), [$expected],
+        "public to_entries preserves ordered $size-element array");
+    is_deeply([ map { $_->{key} } @$direct ], [ 0 .. $#items ],
+        "to_entries assigns consecutive numeric keys for $size items");
+    is(scalar(@$direct), $size,
+        "to_entries returns exactly $size entries");
+    if ($size) {
+        is_deeply(results($input, 'to_entries | from_entries'), [\@items],
+            "to_entries/from_entries roundtrip for $size contiguous items");
+    }
+}
+
+# The entry wrappers are new, but their values still reference the same
+# original nested objects/arrays and JSON::PP boolean instances.
+my $nested_object = { k => [2, 3] };
+my $nested_array = [-4, 5];
+my $true = JSON::PP::true;
+my $false = JSON::PP::false;
+my $mixed = [undef, $true, $false, '007', $nested_object, $nested_array];
+my $mixed_direct = JQ::Lite::Util::_to_entries($mixed);
+is_deeply([ map { $_->{key} } @$mixed_direct ], [0,1,2,3,4,5],
+    'mixed array entries preserve every numeric key');
+is(refaddr($mixed_direct->[1]{value}), refaddr($true),
+    'true retains its boolean reference');
+is(refaddr($mixed_direct->[2]{value}), refaddr($false),
+    'false retains its boolean reference');
+is($mixed_direct->[3]{value}, '007',
+    'numeric-looking string keeps its text');
+is(refaddr($mixed_direct->[4]{value}), refaddr($nested_object),
+    'nested object retains reference identity');
+is(refaddr($mixed_direct->[5]{value}), refaddr($nested_array),
+    'nested array retains reference identity');
+isnt(refaddr($mixed_direct->[4]), refaddr($nested_object),
+    'entry itself is a new wrapper object');
+is_deeply($mixed, [undef, $true, $false, '007', $nested_object, $nested_array],
+    'array conversion does not alter caller values');
+is_deeply(results($json->encode($mixed), 'to_entries'),
+    [ $json->decode('[{"key":0,"value":null},{"key":1,"value":true},'
+        . '{"key":2,"value":false},{"key":3,"value":"007"},'
+        . '{"key":4,"value":{"k":[2,3]}},'
+        . '{"key":5,"value":[-4,5]}]') ],
+    'public mixed array conversion preserves value types');
+
+# The unchanged object sorting and scalar fallback paths stay intact.
+is_deeply(JQ::Lite::Util::_to_entries({ z => 2, a => 1 }),
+    [{ key => 'a', value => 1 }, { key => 'z', value => 2 }],
+    'object entry keys remain sorted');
+my $scalar = 'word';
+is(JQ::Lite::Util::_to_entries($scalar), $scalar,
+    'non-container text still passes through');
+ok(!defined JQ::Lite::Util::_to_entries(undef),
+    'null still passes through');
+is_deeply(results('[[3,2],[],[9]]', '.[] | to_entries'),
+    [ [{key=>0,value=>3},{key=>1,value=>2}], [], [{key=>0,value=>9}] ],
+    'to_entries keeps output order with empty arrays inside streams');
 
 done_testing;
