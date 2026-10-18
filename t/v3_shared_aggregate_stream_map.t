@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::More;
 use JSON::PP ();
+use List::Util qw(sum);
 use Scalar::Util qw(refaddr);
 use FindBin ();
 use File::Spec ();
@@ -180,6 +181,38 @@ for my $filter (qw(sum add avg)) {
         "$filter directly computes mixed numeric array");
     is($json->encode($typed_array), $typed_before,
         "$filter numeric coercion preserves input JSON string types");
+}
+
+
+# The previous List::Util::sum(map { 0 + $_ } ...) behavior is the oracle
+# for integer overflow and signed/unsigned promotion on the running Perl.
+# Numeric formatting in JSON distinguishes floating promotion from a
+# retained integer; test this on 32-bit and 64-bit Perl without hardcoding
+# either platform's boundary result.
+for my $boundary (
+    ['[9223372036854775807,1]', 'positive signed boundary'],
+    ['[9223372036854775807,1,-9223372036854775807]',
+        'mixed signs after positive overflow'],
+    ['[9223372036854775808]', 'unsigned high singleton'],
+    ['[18446744073709551615,1]', 'unsigned boundary'],
+    ['[-9223372036854775808,-1]', 'negative signed boundary'],
+    ['[2147483647,1,-2147483647]', '32-bit signed boundary'],
+) {
+    my ($input, $label) = @$boundary;
+    my $old_array = $json->decode($input);
+    my $legacy = sum(map { 0 + $_ } @$old_array);
+    my $expected_avg = $legacy / @$old_array;
+
+    for my $filter (qw(add sum avg)) {
+        my $expected = $filter eq 'avg' ? $expected_avg : $legacy;
+        my $old_json = $json->encode([$expected]);
+        my $new_array = $json->decode($input);
+        my ($found, $outputs) =
+            JQ::Lite::Builtin->dispatch($jq, $filter, [$new_array]);
+        ok($found, "$filter is registered: $label");
+        is($json->encode($outputs), $old_json,
+            "$filter preserves legacy List::Util overflow: $label");
+    }
 }
 
 done_testing;

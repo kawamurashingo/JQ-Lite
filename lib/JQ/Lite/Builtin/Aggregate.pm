@@ -3,7 +3,7 @@ package JQ::Lite::Builtin::Aggregate;
 use strict;
 use warnings;
 
-use List::Util qw(min max);
+use List::Util qw(sum min max);
 use JQ::Lite::Util ();
 
 sub register {
@@ -42,17 +42,19 @@ sub register {
     }));
 }
 
-# Consume each value in input order without a temporary numeric map list.
-# Coerce a local copy so numeric-looking JSON strings keep their flags.
-# For add/sum, the empty array must still produce undef (JSON null).
+# Coerce a local copy so JSON numeric strings keep their scalar flags.
+# Sum pairwise with List::Util to preserve its integer-overflow promotion
+# (plain += can retain a wider integer instead of promoting to a float).
+# For add/sum, the empty array still produces undef (JSON null).
 sub _coerced_sum {
     my ($values) = @_;
     return undef unless @$values;
 
-    my $total = 0;
+    my $total;
     for my $value (@$values) {
         my $number = $value;
-        $total += 0 + $number;
+        $number = 0 + $number;
+        $total = defined($total) ? sum($total, $number) : sum($number);
     }
     return $total;
 }
