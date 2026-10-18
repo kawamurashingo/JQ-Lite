@@ -2049,8 +2049,9 @@ sub _apply_explode {
 
     return $value if ref $value;
 
-    my @chars = split(//u, "$value");
-    return [ map { ord($_) } @chars ];
+    # unpack emits Unicode code points directly, without building a
+    # temporary character list before mapping ord() over it.
+    return [ unpack('U*', "$value") ];
 }
 
 sub _apply_implode {
