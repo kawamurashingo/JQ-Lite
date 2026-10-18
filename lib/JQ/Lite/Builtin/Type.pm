@@ -4,11 +4,11 @@ use strict;
 use warnings;
 
 use JQ::Lite::Value ();
-use JQ::Lite::Util ();
+use JQ::Lite::Util::Stream ();
 
 sub register {
     my ($class, $register) = @_;
-    my $map = \&JQ::Lite::Util::_stream_map;
+    my $map = \&JQ::Lite::Util::Stream::_stream_map;
 
     $register->('length', $map->(sub {
         my ($value) = @_;
