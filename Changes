@@ -1,6 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
-    - Iterate assignment path segments without allocating numeric index ranges in internal get/set walkers; retain mixed-path, negative-index and missing-leaf behavior.
+    - Add regression coverage for internal assignment get/set path walkers, retaining Perl's optimized foreach ranges and validating nested, negative-index and missing-leaf behavior.
     - Compare sorted object keys without an intermediate array-comparison call, retaining jq type ordering, prefix rules and nested value semantics.
     - Filter and coerce numeric aggregate inputs in one pass instead of allocating an intermediate grep list, preserving booleans, numeric strings and per-consumer results.
     - Reuse the unary stream mapper in argument-taking clamp while retaining numeric bound normalization, recursive values and empty-stream behavior.

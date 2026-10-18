@@ -251,8 +251,8 @@ for my $case (@set_segment_cases) {
     is_deeply($input, $expected, "indexed-path setter: $label");
 }
 
-# Deeply nested key paths should traverse every segment without generating
-# a range, both when creating a leaf and reading it back.
+# Deeply nested key paths must still traverse every segment in the
+# optimized foreach range, both when creating a leaf and reading it back.
 my $deep_root = {};
 my $deep_path = join '.', map { "level$_" } 0 .. 95;
 JQ::Lite::Util::_set_path_value($deep_root, $deep_path, 42);
