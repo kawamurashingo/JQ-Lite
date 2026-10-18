@@ -287,7 +287,10 @@ sub _from_entries {
         }
 
         if ($max_index + 1 == scalar(keys %result) && $max_index + 1 == scalar(@numeric_keys)) {
-            my @array = map { $result{$_} } 0 .. $max_index;
+            my @array;
+            for (my $index = 0; $index <= $max_index; $index++) {
+                push @array, $result{$index};
+            }
             return \@array;
         }
     }
