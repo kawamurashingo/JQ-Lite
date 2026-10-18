@@ -54,10 +54,8 @@ for my $name (qw(test match)) {
 # fixtures that only match when the corresponding single flag is enabled.
 my @modifier_letters = qw(i m s x);
 my @modifier_probes = (
-    ['i', 'Abc', '^abc
-, 0, 3, 'Abc'],
-    ['m', "a\nb", '^b
-, 2, 1, 'b'],
+    ['i', 'Abc', '^abc$', 0, 3, 'Abc'],
+    ['m', "a\nb", '^b$', 2, 1, 'b'],
     ['s', "a\nb", 'a.b', 0, 3, "a\nb"],
     ['x', 'ab', 'a b', 0, 2, 'ab'],
 );
@@ -128,8 +126,7 @@ for my $case (
         my $call = $name eq 'test'
             ? \&JQ::Lite::Util::_apply_test
             : \&JQ::Lite::Util::_apply_match;
-        my $ok = eval { $call->('Abc', '^abc
-, $flags); 1 };
+        my $ok = eval { $call->('Abc', '^abc$', $flags); 1 };
         ok(!$ok, "$name() rejects '$flags'");
         like("$@", qr/\Q$name\E\(\): invalid regular expression - unknown regex flag '\Q$offender\E'/,
             "$name() retains first invalid flag '$offender' error");
