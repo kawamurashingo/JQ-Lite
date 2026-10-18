@@ -1165,7 +1165,7 @@ sub _collect_paths {
     }
 
     if (ref $value eq 'ARRAY') {
-        for my $index (0 .. $#$value) {
+        for (my $index = 0; $index < @$value; $index++) {
             my $child = $value->[$index];
             my @next  = (@$current_path, $index);
             push @$paths, [@next];
@@ -1243,7 +1243,7 @@ sub _collect_leaf_paths {
     }
 
     if (ref $value eq 'ARRAY') {
-        for my $index (0 .. $#$value) {
+        for (my $index = 0; $index < @$value; $index++) {
             my $child = $value->[$index];
             my @next  = (@$current_path, $index);
 
