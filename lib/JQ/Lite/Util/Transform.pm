@@ -425,9 +425,8 @@ sub _apply_recurse {
 
         next unless @children;
 
-        for my $child (reverse @children) {
-            push @stack, $child;
-        }
+        # Push in reverse for depth-first, left-to-right traversal.
+        push @stack, reverse @children;
     }
 
     return @outputs;

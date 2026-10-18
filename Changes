@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Push reversed recurse() children to its depth-first stack in one operation, retaining sibling order, references and error propagation.
     - Normalize pick() arguments in a single pass instead of map-then-grep, retaining null exclusion, stringified keys and fallback argument parsing.
     - Stop scanning implode() arrays at the first nested reference instead of counting all referenced elements; preserve flat conversion, recursive arrays and opaque values.
     - Extract explode() Unicode code points directly with unpack('U*') instead of allocating an intermediate split character list; preserve byte, Unicode, boolean and nested-array behavior.
