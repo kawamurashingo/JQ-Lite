@@ -56,7 +56,11 @@ sub _are_brackets_balanced {
     my $string;
     my $escape = 0;
 
-    for my $char (split //, $text) {
+    # Walk one character at a time rather than materializing a full split
+    # list for each balance check (substr also respects Perl's UTF-8 flag).
+    my $length = length $text;
+    for (my $i = 0; $i < $length; ++$i) {
+        my $char = substr($text, $i, 1);
         if (defined $string) {
             if ($escape) {
                 $escape = 0;

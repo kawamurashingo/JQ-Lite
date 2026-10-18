@@ -32,6 +32,56 @@ for my $case (@balanced) {
     }
 }
 
+
+# Exercise the character-by-character balance scanner with a range of
+# lengths, nested delimiters, escaped quotes, and UTF-8-flagged scalars.
+# These cases are also used by _strip_wrapping_parens.
+my $unicode = "\x{96ea}";
+my $deep_open = '(' x 160;
+my $deep_close = ')' x 160;
+my @balance_scanner_cases = (
+    ['(', 0, 'single opener'],
+    [')', 0, 'single closer'],
+    ['[]{}()', 1, 'adjacent bracket groups'],
+    ['[{()}]', 1, 'mixed nested brackets'],
+    ['[{(]}', 0, 'mismatched nested closers'],
+    ['( "[(])" )', 1, 'quoted bracket punctuation'],
+    ['("unterminated)', 0, 'unterminated quote before closing paren'],
+    ['("a\\\"b")', 1, 'escaped double quote'],
+    ["('a\\\\b')", 1, 'escaped backslash in single-quoted text'],
+    [$deep_open . '{["brackets ) ] inside quotes"]}' . $deep_close,
+        1, 'deeply nested parenthesis pair'],
+    [$deep_open . '{["brackets ) ] inside quotes"]}' . substr($deep_close, 1),
+        0, 'one missing closer at depth 160'],
+    ['(' . ($unicode x 64) . ')',
+        1, 'multibyte Unicode outside quoted text'],
+    ['("' . $unicode . '([])")',
+        1, 'multibyte Unicode alongside quoted brackets'],
+    ['(' . $unicode . ']', 0, 'mismatched close after Unicode'],
+    [('x' x 2048) . '[]',
+        1, 'long nonbracket prefix'],
+);
+for my $case (@balance_scanner_cases) {
+    my ($input, $expected, $label) = @$case;
+    is(JQ::Lite::Util::_are_brackets_balanced($input) ? 1 : 0,
+        $expected, "sequential bracket scan: $label");
+}
+my @wrapped_scanner_cases = (
+    ['((.a))', '.a', 'multiple wrapper parentheses'],
+    [' ( ( x ) ) ', 'x', 'whitespace around nested wrappers'],
+    ['(["([)]"])', '["([)]"]', 'quote protects mismatched bracket text'],
+    ['(' . $unicode . ')', $unicode, 'Unicode wrapper'],
+    ['(a) + (b)', '(a) + (b)', 'nonwrapping sibling expressions'],
+    ['([)]', '([)]', 'mismatched internal brackets remain untouched'],
+    ['("unterminated)', '("unterminated)', 'unclosed quote stays unchanged'],
+    [$deep_open . 'x' . $deep_close, 'x', 'deep wrapping parentheses'],
+);
+for my $case (@wrapped_scanner_cases) {
+    my ($input, $expected, $label) = @$case;
+    is(JQ::Lite::Util::_strip_wrapping_parens($input),
+        $expected, "sequential wrapper scan: $label");
+}
+
 # Comma and semicolon must preserve empty parts and nested delimiters.
 for my $separator (',', ';') {
     my @cases = (
