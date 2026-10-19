@@ -2028,13 +2028,16 @@ sub _is_unquoted_csv_number {
 }
 
 sub _apply_split {
-    my ($value, $separator) = @_;
+    my ($value, $separator, $prepared) = @_;
 
     if (ref $value eq 'ARRAY') {
+        # Share the literal separator and compiled pattern across child
+        # arrays. Leave preparation lazy for null/object-only branches.
+        $prepared ||= [];
         my @parts;
 
         for my $element (@$value) {
-            my $result = _apply_split($element, $separator);
+            my $result = _apply_split($element, $separator, $prepared);
             push @parts, ref($result) eq 'ARRAY' ? @$result : $result;
         }
 
@@ -2049,13 +2052,18 @@ sub _apply_split {
         return $value;
     }
 
-    $separator = '' unless defined $separator;
-
-    if ($separator eq '') {
-        return [ split(//, $value) ];
+    my $pattern;
+    if ($prepared && @$prepared) {
+        ($separator, $pattern) = @$prepared;
+    }
+    else {
+        $separator = defined $separator ? "$separator" : '';
+        $pattern = $separator eq '' ? undef : qr/\Q$separator\E/;
+        @$prepared = ($separator, $pattern) if $prepared;
     }
 
-    return [ split(/\Q$separator\E/, $value, -1) ];
+    return [ split(//, $value) ] if $separator eq '';
+    return [ split($pattern, $value, -1) ];
 }
 
 sub _apply_explode {
