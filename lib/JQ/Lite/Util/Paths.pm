@@ -1159,11 +1159,13 @@ sub _collect_paths {
     if (ref $value eq 'HASH') {
         for my $key (sort keys %$value) {
             my $child = $value->{$key};
-            my @next  = (@$current_path, $key);
-            push @$paths, [@next];
+            # The output path is never mutated: reuse it as the prefix
+            # for recursion instead of making a second depth-sized copy.
+            my $next_path = [@$current_path, $key];
+            push @$paths, $next_path;
 
             if (ref $child eq 'HASH' || ref $child eq 'ARRAY') {
-                _collect_paths($child, \@next, $paths);
+                _collect_paths($child, $next_path, $paths);
             }
         }
         return;
@@ -1172,11 +1174,11 @@ sub _collect_paths {
     if (ref $value eq 'ARRAY') {
         for (my $index = 0; $index < @$value; $index++) {
             my $child = $value->[$index];
-            my @next  = (@$current_path, $index);
-            push @$paths, [@next];
+            my $next_path = [@$current_path, $index];
+            push @$paths, $next_path;
 
             if (ref $child eq 'HASH' || ref $child eq 'ARRAY') {
-                _collect_paths($child, \@next, $paths);
+                _collect_paths($child, $next_path, $paths);
             }
         }
         return;
