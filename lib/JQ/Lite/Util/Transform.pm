@@ -2111,10 +2111,13 @@ sub _apply_implode {
 }
 
 sub _apply_substr {
-    my ($value, @args) = @_;
+    my ($value, $start, $length, $prepared) = @_;
 
     if (ref $value eq 'ARRAY') {
-        return [ map { _apply_substr($_, @args) } @$value ];
+        # The bounds are constant for all leaves. Prepare them only on the
+        # first scalar leaf, preserving passthrough-only array behavior.
+        $prepared ||= [];
+        return [ map { _apply_substr($_, $start, $length, $prepared) } @$value ];
     }
 
     return undef if !defined $value;
@@ -2125,22 +2128,29 @@ sub _apply_substr {
         return $value;
     }
 
-    my ($start, $length) = @args;
-    if (defined $start && !looks_like_number($start)) {
-        die 'substr(): start index must be numeric';
+    if ($prepared && @$prepared) {
+        ($start, $length) = @$prepared;
     }
-    $start = 0 unless defined $start;
-    $start = int($start);
-
-    if (defined $length) {
-        if (!looks_like_number($length)) {
-            die 'substr(): length must be numeric';
+    else {
+        if (defined $start && !looks_like_number($start)) {
+            die 'substr(): start index must be numeric';
         }
-        $length = int($length);
-        return substr($value, $start, $length);
+        $start = 0 unless defined $start;
+        $start = int($start);
+
+        if (defined $length) {
+            if (!looks_like_number($length)) {
+                die 'substr(): length must be numeric';
+            }
+            $length = int($length);
+        }
+
+        @$prepared = ($start, $length) if $prepared;
     }
 
-    return substr($value, $start);
+    return defined $length
+        ? substr($value, $start, $length)
+        : substr($value, $start);
 }
 
 # Both forms reject text/invalid numeric bounds, but preserve their separate
