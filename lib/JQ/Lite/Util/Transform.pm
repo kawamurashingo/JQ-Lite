@@ -526,8 +526,13 @@ sub _path_prefix_key {
 
     return '' if !$path || @$path < 2;
 
-    my @segments = @$path[0 .. $#$path - 1];
-    return join "\x1f", map { _path_segment_key($_) } @segments;
+    # Keep the original delimiter and segment encoding without building
+    # a temporary array of parent segments or their encoded counterparts.
+    my $prefix = _path_segment_key($path->[0]);
+    for (my $i = 1; $i < $#$path; $i++) {
+        $prefix .= "\x1f" . _path_segment_key($path->[$i]);
+    }
+    return $prefix;
 }
 
 sub _path_segment_key {
