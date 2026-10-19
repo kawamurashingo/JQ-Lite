@@ -2111,13 +2111,21 @@ sub _apply_implode {
 }
 
 sub _apply_substr {
+    my ($value, @args) = @_;
+    # Extra user arguments are intentionally ignored, as in v2. Keep the
+    # internal recursion cache separate from the public positional arguments.
+    my ($start, $length) = @args;
+    return _apply_substr_cached($value, $start, $length,
+        ref $value eq 'ARRAY' ? [] : undef);
+}
+
+sub _apply_substr_cached {
     my ($value, $start, $length, $prepared) = @_;
 
     if (ref $value eq 'ARRAY') {
         # The bounds are constant for all leaves. Prepare them only on the
         # first scalar leaf, preserving passthrough-only array behavior.
-        $prepared ||= [];
-        return [ map { _apply_substr($_, $start, $length, $prepared) } @$value ];
+        return [ map { _apply_substr_cached($_, $start, $length, $prepared) } @$value ];
     }
 
     return undef if !defined $value;
