@@ -3,6 +3,9 @@ use warnings;
 use Test::More;
 use JSON::PP;
 use JQ::Lite;
+use JQ::Lite::Util ();
+use Scalar::Util ();
+use utf8;
 
 my $jq = JQ::Lite->new;
 
@@ -40,11 +43,6 @@ ok(!$non_numeric_start_ok && $@ =~ /substr\(\): start index must be numeric/,
 my $non_numeric_length_ok = eval { $jq->run_query($json, '.users[0].name | substr(0, "bar")') };
 ok(!$non_numeric_length_ok && $@ =~ /substr\(\): length must be numeric/,
     'substr() rejects non-numeric length argument');
-
-
-use JQ::Lite::Util ();
-use Scalar::Util ();
-use utf8;
 
 # Compare the new per-array bound cache against the original recursive
 # helper, including lazy rejection of bad bounds on scalar leaves only.
@@ -161,5 +159,12 @@ is_deeply(\@public_stream, [['bc','y'],['no','r']],
 
 my @public_empty = $jq->run_query('[1,2]', '.[] | empty | substr(1,2)');
 is_deeply(\@public_empty, [], 'public substr keeps empty upstream empty');
+
+is_deeply(JQ::Lite::Util::_apply_substr(['abcd','xyz'], 1, 2, 99),
+    ['bc','yz'], 'numeric extra argument is ignored in recursive substr');
+is_deeply(JQ::Lite::Util::_apply_substr(['abcd','xyz'], 1, 2, [99]),
+    ['bc','yz'], 'array-reference extra argument is ignored in recursive substr');
+is_deeply([ $jq->run_query('["abcd","xyz"]', 'substr(1,2,99)') ],
+    [['bc','yz']], 'public recursive substr ignores extra arguments');
 
 done_testing;
