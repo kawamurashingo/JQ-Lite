@@ -1237,13 +1237,15 @@ sub _collect_leaf_paths {
     if (ref $value eq 'HASH') {
         for my $key (sort keys %$value) {
             my $child = $value->{$key};
-            my @next  = (@$current_path, $key);
+            # Each child needs one path array: emit it for leaves or
+            # use it as a read-only prefix for recursive descendants.
+            my $next_path = [@$current_path, $key];
 
             if (_is_leaf_value($child)) {
-                push @$paths, [@next];
+                push @$paths, $next_path;
             }
             else {
-                _collect_leaf_paths($child, \@next, $paths);
+                _collect_leaf_paths($child, $next_path, $paths);
             }
         }
         return;
@@ -1252,13 +1254,13 @@ sub _collect_leaf_paths {
     if (ref $value eq 'ARRAY') {
         for (my $index = 0; $index < @$value; $index++) {
             my $child = $value->[$index];
-            my @next  = (@$current_path, $index);
+            my $next_path = [@$current_path, $index];
 
             if (_is_leaf_value($child)) {
-                push @$paths, [@next];
+                push @$paths, $next_path;
             }
             else {
-                _collect_leaf_paths($child, \@next, $paths);
+                _collect_leaf_paths($child, $next_path, $paths);
             }
         }
         return;
