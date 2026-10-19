@@ -967,8 +967,7 @@ sub _apply_setpath {
     my $result      = $value;
 
     for my $path (@paths) {
-        # _set_value_at_path copies the remaining segments before recursing;
-        # the validated path itself is read-only and needs no extra copy.
+        # The setter reads the validated path without modifying it.
         $result = _set_value_at_path($result, $path, $replacement);
     }
 
@@ -1044,20 +1043,28 @@ sub _evaluate_setpath_value {
 }
 
 sub _set_value_at_path {
-    my ($current, $path, $replacement) = @_;
+    my ($current, $path, $replacement, $offset) = @_;
 
-    return _deep_clone($replacement) unless @$path;
+    # Reuse the original read-only path at every recursion depth. The
+    # former @rest destructuring copied an ever-shorter tail on each call.
+    $offset = 0 unless defined $offset;
+    return _deep_clone($replacement) if $offset >= @$path;
 
-    my ($segment, @rest) = @$path;
+    my $segment  = $path->[$offset];
+    my $has_more = $offset < $#$path;
 
     if (ref $current eq 'HASH') {
         my $key = _coerce_hash_key($segment);
         return $current unless defined $key;
 
         my %copy = %$current;
-        if (@rest) {
-            my $next_value = exists $copy{$key} ? $copy{$key} : _guess_container_for_segment($rest[0]);
-            $copy{$key} = _set_value_at_path($next_value, \@rest, $replacement);
+        if ($has_more) {
+            my $next_value = exists $copy{$key}
+                ? $copy{$key}
+                : _guess_container_for_segment($path->[$offset + 1]);
+            $copy{$key} = _set_value_at_path(
+                $next_value, $path, $replacement, $offset + 1
+            );
         }
         else {
             $copy{$key} = _deep_clone($replacement);
@@ -1073,9 +1080,13 @@ sub _set_value_at_path {
         my @copy = @$current;
         _ensure_array_length(\@copy, $index);
 
-        if (@rest) {
-            my $next_value = defined $copy[$index] ? $copy[$index] : _guess_container_for_segment($rest[0]);
-            $copy[$index] = _set_value_at_path($next_value, \@rest, $replacement);
+        if ($has_more) {
+            my $next_value = defined $copy[$index]
+                ? $copy[$index]
+                : _guess_container_for_segment($path->[$offset + 1]);
+            $copy[$index] = _set_value_at_path(
+                $next_value, $path, $replacement, $offset + 1
+            );
         }
         else {
             $copy[$index] = _deep_clone($replacement);
@@ -1085,7 +1096,7 @@ sub _set_value_at_path {
     }
 
     my $container = _guess_container_for_segment($segment);
-    return _set_value_at_path($container, $path, $replacement);
+    return _set_value_at_path($container, $path, $replacement, $offset);
 }
 
 sub _coerce_hash_key {

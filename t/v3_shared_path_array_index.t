@@ -183,4 +183,189 @@ is_deeply(results('{"a":1}', 'setpath(["a"]; {"x":[1,2]})'),
 is_deeply(results('[10,20,30]', 'setpath([-2]; 0)'),
     [[10,0,30]], 'public setpath retains negative array indexing');
 
+
+# Before the indexed recursion, each nested setter call destructured the
+# remaining path into @rest. Compare its exact original implementation with
+# the new offset-based walker on diverse paths and preserve source isolation.
+sub legacy_set_value_at_path {
+    my ($current, $path, $replacement) = @_;
+
+    return JQ::Lite::Util::_deep_clone($replacement) unless @$path;
+    my ($segment, @rest) = @$path;
+
+    if (ref $current eq 'HASH') {
+        my $key = JQ::Lite::Util::_coerce_hash_key($segment);
+        return $current unless defined $key;
+
+        my %copy = %$current;
+        if (@rest) {
+            my $next_value = exists $copy{$key}
+                ? $copy{$key}
+                : JQ::Lite::Util::_guess_container_for_segment($rest[0]);
+            $copy{$key} = legacy_set_value_at_path(
+                $next_value, \@rest, $replacement
+            );
+        }
+        else {
+            $copy{$key} = JQ::Lite::Util::_deep_clone($replacement);
+        }
+        return \%copy;
+    }
+
+    if (ref $current eq 'ARRAY') {
+        my $index = JQ::Lite::Util::_normalize_array_index_segment(
+            $segment, scalar @$current
+        );
+        return $current unless defined $index;
+
+        my @copy = @$current;
+        JQ::Lite::Util::_ensure_array_length(\@copy, $index);
+        if (@rest) {
+            my $next_value = defined $copy[$index]
+                ? $copy[$index]
+                : JQ::Lite::Util::_guess_container_for_segment($rest[0]);
+            $copy[$index] = legacy_set_value_at_path(
+                $next_value, \@rest, $replacement
+            );
+        }
+        else {
+            $copy[$index] = JQ::Lite::Util::_deep_clone($replacement);
+        }
+        return \@copy;
+    }
+
+    my $container = JQ::Lite::Util::_guess_container_for_segment($segment);
+    return legacy_set_value_at_path($container, $path, $replacement);
+}
+
+my @indexed_set_cases = (
+    ['{"a":1,"b":2}', '["a"]', '9',
+        '{"a":9,"b":2}', 'one object segment'],
+    ['{"a":{"b":1,"c":2}}', '["a","b"]', '7',
+        '{"a":{"b":7,"c":2}}', 'nested object write'],
+    ['{"items":[{"x":1},{"x":2}]}', '["items",1,"x"]', '3',
+        '{"items":[{"x":1},{"x":3}]}', 'object-array-object nesting'],
+    ['[10,20,30]', '[1]', '0',
+        '[10,0,30]', 'array middle member'],
+    ['[10,20,30]', '[-1]', '0',
+        '[10,20,0]', 'negative final array member'],
+    ['[10,20,30]', '[-4]', '0',
+        '[10,20,30]', 'out-of-range negative index ignored'],
+    ['[10,20,30]', '[true]', '0',
+        '[10,0,30]', 'boolean index true v2 extension'],
+    ['[10,20,30]', '[false]', '0',
+        '[0,20,30]', 'boolean index false v2 extension'],
+    ['{"a":[]}', '["a",2]', '8',
+        '{"a":[null,null,8]}', 'padded array growth'],
+    ['{"a":1}', '["new","branch",0]', '5',
+        '{"a":1,"new":{"branch":[5]}}', 'missing mixed containers'],
+    ['{"a":null}', '["a","b"]', '4',
+        '{"a":{"b":4}}', 'null intermediate container'],
+    ['{"a":1}', '[]', '{"fresh":[1,2]}',
+        '{"fresh":[1,2]}', 'empty path replaces root'],
+    ['null', '["a"]', '8',
+        '{"a":8}', 'null root creates object'],
+    ['3', '[0]', '8',
+        '[8]', 'numeric root creates array'],
+    ['{"":{"a.b":1}}', '["","a.b"]', '12',
+        '{"":{"a.b":12}}', 'empty and dotted object keys'],
+    ['{"a":{"x":1}}', '["a","new"]', '{"nested":[1]}',
+        '{"a":{"x":1,"new":{"nested":[1]}}}',
+        'compound replacement'],
+    ['{"a":1}', '[null]', '8',
+        '{"a":1}', 'undefined object key remains ignored'],
+    ['{"a":[1,2]}', '["a","bad"]', '8',
+        '{"a":[1,2]}', 'invalid array index remains ignored'],
+    ['{"\u65e5\u672c":{"\u8449":1}}',
+        '["\u65e5\u672c","\u8449"]', '6',
+        '{"\u65e5\u672c":{"\u8449":6}}',
+        'Unicode nested object keys'],
+    ['{"data":[[1,2],[3,4]]}', '["data",-1,-2]', '11',
+        '{"data":[[1,2],[11,4]]}', 'negative nested array indices'],
+);
+for my $case (@indexed_set_cases) {
+    my ($raw, $raw_path, $raw_replacement, $raw_expected, $label) = @$case;
+    my $value = $codec->decode($raw);
+    my $path = $codec->decode($raw_path);
+    my $replacement = $codec->decode($raw_replacement);
+    my $value_before = $codec->encode($value);
+    my $path_before = $codec->encode($path);
+    my $replacement_before = $codec->encode($replacement);
+
+    my $legacy = legacy_set_value_at_path($value, $path, $replacement);
+    my $actual = JQ::Lite::Util::_set_value_at_path(
+        $value, $path, $replacement
+    );
+    is_deeply($actual, $legacy,
+        "indexed setter matches previous recursive tails: $label");
+    is_deeply($actual, $codec->decode($raw_expected),
+        "indexed setter retains expected value: $label");
+    is($codec->encode($value), $value_before,
+        "indexed setter leaves source input untouched: $label");
+    is($codec->encode($path), $path_before,
+        "indexed setter leaves supplied path unchanged: $label");
+    is($codec->encode($replacement), $replacement_before,
+        "indexed setter leaves replacement unchanged: $label");
+}
+
+# Watch recursion itself. All nested calls must use the SAME path array
+# and advance the offset, rather than construct shorter segment arrays.
+my $real_indexed_setter = \&JQ::Lite::Util::_set_value_at_path;
+my $spy_path = ['a','b',1];
+my (@seen_path_ids, @seen_offsets);
+my $spy_result;
+{
+    no warnings 'redefine';
+    local *JQ::Lite::Util::_set_value_at_path = sub {
+        push @seen_path_ids, refaddr($_[1]);
+        push @seen_offsets, defined $_[3] ? $_[3] : 0;
+        return $real_indexed_setter->(@_);
+    };
+    $spy_result = JQ::Lite::Util::_set_value_at_path(
+        {a=>{b=>[1,2]}}, $spy_path, 9
+    );
+}
+is_deeply($spy_result, {a=>{b=>[1,9]}},
+    'recursion instrumentation retains nested setter result');
+is_deeply(\@seen_offsets, [0,1,2],
+    'indexed recursion consumes segments without slicing tails');
+is(scalar(keys %{ { map { $_ => 1 } @seen_path_ids } }), 1,
+    'every nested setter call reuses the same path reference');
+
+# Stress a deep path that formerly allocated one shorter @rest per level.
+my $deep_set_source = {value=>1, keep=>2};
+my @deep_set_segments = ((map { 'next' } 1 .. 80), 'value');
+for (1 .. 80) {
+    $deep_set_source = { next => $deep_set_source };
+}
+my $deep_set_path = [@deep_set_segments];
+my $deep_set_before = $codec->encode($deep_set_source);
+my $deep_set_path_before = $codec->encode($deep_set_path);
+my $deep_legacy = legacy_set_value_at_path(
+    $deep_set_source, $deep_set_path, 99
+);
+my $deep_indexed = JQ::Lite::Util::_set_value_at_path(
+    $deep_set_source, $deep_set_path, 99
+);
+is_deeply($deep_indexed, $deep_legacy,
+    '81-segment setter matches old recursive tails');
+my $deep_set_leaf = $deep_indexed;
+$deep_set_leaf = $deep_set_leaf->{next} for 1 .. 80;
+is_deeply($deep_set_leaf, {value=>99,keep=>2},
+    '81-segment setter replaces only the deepest leaf');
+is($codec->encode($deep_set_source), $deep_set_before,
+    '81-segment setter does not mutate input data');
+is($codec->encode($deep_set_path), $deep_set_path_before,
+    '81-segment setter does not change its path');
+
+is_deeply(results('{"a":{"b":[1,2]}}',
+    'setpath(["a","b",1]; 9)'), [{a=>{b=>[1,9]}}],
+    'public setpath retains nested index updates');
+is_deeply(results('{"a":null}', 'setpath(["a","new"]; 5)'),
+    [{a=>{new=>5}}], 'public setpath retains null autovivification');
+is_deeply(results('[10,20,30]', 'setpath([-1]; 8)'),
+    [[10,20,8]], 'public setpath retains negative indices');
+is_deeply(results('[1,2]', 'empty | setpath([0]; 3)'),
+    [], 'public setpath preserves empty upstream streams');
+
 done_testing;
