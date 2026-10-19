@@ -174,7 +174,7 @@ my @cached_split_cases = (
         'unmatched nonempty separator'],
     ['[]', '","', '[]', 'empty root array'],
     ['[[],[],[]]', '","', '[]', 'empty nested arrays'],
-    ['["ab","c,d","ef"]', '"b"', '["a","c,d","ef"]',
+    ['["ab","c,d","ef"]', '"b"', '["a","","c,d","ef"]',
         'later siblings do not reuse first result'],
 );
 for my $case (@cached_split_cases) {
