@@ -162,7 +162,7 @@ for my $case (@preparation_cases) {
     package JQ::Lite::Test::ReplaceLiteralCounter;
     use overload '""' => sub {
         my $counter = $_[0];
-        $counter++;
+        $$counter++;
         return 'foo';
     }, fallback => 1;
 }
