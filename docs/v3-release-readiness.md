@@ -30,7 +30,7 @@ release candidate's result.
 | v3 working branch | `v3-dev` merge `f07a406a42450a98b86e8eaaff168b28955be611` (#857) | Not a release tag |
 | jq 1.7 fixtures | 4,037: 3,940 compatible, 74 known differences, 23 unsupported, 0 planned | Exact classifications in `t/data/jq-differential.jsonl`; only compatible outcomes are parity gates |
 | Implementation size | Stable: 22 `lib/**/*.pm` blobs / 242,573 bytes; initial v3 `40c05db`: 22 / 326,242; current v3: 23 / 307,417 | Git tree blob-size sum; includes comments/whitespace, excludes docs/tests/CLI; current extra module is `Util/Stream.pm` |
-| Most recent merged CI | PR #857 final HEAD: Push and PR Perl (5.14, 5.26, 5.38, latest), and Push and PR jq 1.7 differential jobs all succeeded | Evidence of the merged change, **not** fresh beta/RC/package validation |
+| Most recent merged CI | PR #857: Push tests on final branch HEAD and PR tests on its associated synthetic merge ref all succeeded (Perl 5.14, 5.26, 5.38, latest; jq 1.7 differential) | PR CI checks the merge result, not the branch HEAD directly. Evidence of the merged change, **not** fresh beta/RC/package validation |
 
 The 74 known-difference fixtures are **non-gating for jq parity**, not
 automatically approved release semantics. Cases marked unsupported do not
@@ -70,9 +70,15 @@ to the #619 release scope.
   including ordered outputs and success/runtime-error categories.
   Review changed fixture classifications and known differences rather than
   downgrading failing compatible fixtures to bypass the gate.
-- [ ] **Perl/CI:** verify *final candidate SHA* has successful **both Push
-  and PR** Perl jobs for 5.14, 5.26, 5.38 and latest; verify **both** jq
-  differential jobs. Resolve final-HEAD review findings, not only the
+- [ ] **Perl/CI:** identify the final candidate branch HEAD SHA and its
+  intended base SHA. Verify Push CI checks that exact head SHA, with all
+  Perl jobs (5.14, 5.26, 5.38, latest) and jq 1.7 differential passing.
+  Separately verify passing PR CI for that head/base pairing: current
+  `pull_request` workflows use `actions/checkout` without an explicit
+  `ref`, so PR jobs test GitHub's synthetic merge commit, **not** the
+  head commit directly. Record PR number, associated head/base/merge
+  SHAs, run URLs and tested checkout ref/SHA; reject stale results if
+  head or base changes. Resolve final-head review findings, not only
   findings from an earlier commit.
 - [ ] **Packaging/portability:** `t/manifest_coverage.t` passes;
   built distribution includes tests and docs. Verify `Makefile.PL` minimum
@@ -98,7 +104,10 @@ make disttest
 ```
 
 Run CI in the repository for the entire Perl matrix, not just the local
-interpreter. `make disttest` is still a pending **candidate** check; no
+interpreter. For each PR run, verify its tested merge ref/SHA separately
+from the Push head SHA; do not infer what `actions/checkout` tested from
+the run's reported `head_sha` alone. `make disttest` is still a pending
+**candidate** check; no
 distribution test is asserted successful by this snapshot. Do not ship a
 developer version `3.00_01` as the final stable version.
 
@@ -107,8 +116,8 @@ developer version `3.00_01` as the final stable version.
 | Gate | Candidate SHA / evidence URL | Result |
 | --- | --- | --- |
 | Practical-scope decisions (#623/#625/#626) | _pending_ | BLOCKED |
-| Full Perl matrix, Push + PR | _pending_ | NOT RUN ON CANDIDATE |
-| jq 1.7 differential, Push + PR | _pending_ | NOT RUN ON CANDIDATE |
+| Full Perl matrix, Push HEAD SHA + PR merge SHA and run URLs | _pending_ | NOT RUN ON CANDIDATE |
+| jq 1.7 differential, Push HEAD SHA + PR merge SHA and run URLs | _pending_ | NOT RUN ON CANDIDATE |
 | CLI/Library/distribution test + packaging | _pending_ | NOT RUN ON CANDIDATE |
 | Migration/README/Changes and version audit | _pending_ | NOT FINAL |
 | Final review and release approval | _pending_ | NOT APPROVED |
