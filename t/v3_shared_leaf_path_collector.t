@@ -4,6 +4,7 @@ use Test::More;
 use JSON::PP ();
 use JQ::Lite;
 use JQ::Lite::Util ();
+use Scalar::Util qw(refaddr);
 
 my $jq = JQ::Lite->new;
 
@@ -131,5 +132,133 @@ is_deeply(results($stream_input, '.[] | paths(scalars)'),
 is_deeply(results($stream_input, '.[] | leaf_paths'),
     [[], [[0],[1]], [[0]]],
     'leaf_paths keeps one result for every upstream array');
+
+
+# Historically _collect_paths built @next, copied it for each returned
+# path and used @next for recursion. Reusing the returned path directly
+# must preserve DFS order, avoid changing the caller's prefix, and keep
+# every returned path independent of its parent/siblings.
+sub legacy_all_paths {
+    my ($value, $prefix, $result) = @_;
+    if (ref $value eq 'HASH') {
+        for my $key (sort keys %$value) {
+            my $child = $value->{$key};
+            my @next = (@$prefix, $key);
+            push @$result, [@next];
+            legacy_all_paths($child, \@next, $result)
+                if ref $child eq 'HASH' || ref $child eq 'ARRAY';
+        }
+        return;
+    }
+    if (ref $value eq 'ARRAY') {
+        for (my $index = 0; $index < @$value; $index++) {
+            my $child = $value->[$index];
+            my @next = (@$prefix, $index);
+            push @$result, [@next];
+            legacy_all_paths($child, \@next, $result)
+                if ref $child eq 'HASH' || ref $child eq 'ARRAY';
+        }
+        return;
+    }
+    push @$result, [@$prefix];
+}
+
+my @all_paths_cases = (
+    ['{}', [], 'empty hash'],
+    ['[]', [], 'empty array'],
+    ['{"a":1}', [['a']], 'single object child'],
+    ['[1,2,3]', [[0],[1],[2]], 'flat array'],
+    ['{"b":{"c":3},"a":[1,2]}',
+        [['a'],['a',0],['a',1],['b'],['b','c']],
+        'sorted object keys and array descendants'],
+    ['[null,false,{"k":true}]',
+        [[0],[1],[2],[2,'k']],
+        'null Boolean and nested object'],
+    ['{"empty":[],"object":{}}',
+        [['empty'],['object']], 'empty child containers emitted'],
+    ['[[1,[2]],3]',
+        [[0],[0,0],[0,1],[0,1,0],[1]],
+        'nested array DFS'],
+    ['{"":{"a.b":2},"日本":[true,null]}',
+        [[''],['','a.b'],['日本'],['日本',0],['日本',1]],
+        'empty dotted and Unicode keys'],
+    ['{"a":[{"x":{"y":0}},{}]}',
+        [['a'],['a',0],['a',0,'x'],['a',0,'x','y'],['a',1]],
+        'deep array-to-object nesting'],
+    ['{"a":1,"b":{"x":2},"c":[3]}',
+        [['a'],['b'],['b','x'],['c'],['c',0]],
+        'alternating scalar and container siblings'],
+    ['{"a":[1,{"x":[false,true]}],"b":{}}',
+        [['a'],['a',0],['a',1],['a',1,'x'],['a',1,'x',0],
+            ['a',1,'x',1],['b']],
+        'nested Boolean leaves and empty hash'],
+);
+for my $case (@all_paths_cases) {
+    my ($raw, $expected, $label) = @$case;
+    my $value = $codec->decode($raw);
+    my $original = $codec->encode($value);
+    my @legacy;
+    legacy_all_paths($value, [], \@legacy);
+    my @current;
+    JQ::Lite::Util::_collect_paths($value, [], \@current);
+    is_deeply(\@current, \@legacy,
+        "all-path recursion matches original implementation: $label");
+    is_deeply(\@current, $expected,
+        "all-path DFS produces expected paths: $label");
+    is_deeply(results($raw, 'paths'), $expected,
+        "public paths emits identical stream: $label");
+    is($codec->encode($value), $original,
+        "all-path traversal does not mutate input: $label");
+
+    my @prefix = ('prefix', 7);
+    my @prefixed_paths;
+    JQ::Lite::Util::_collect_paths($value, \@prefix, \@prefixed_paths);
+    is_deeply(\@prefixed_paths,
+        [ map { ['prefix', 7, @$_] } @$expected ],
+        "all-path recursion preserves caller prefix: $label");
+    is_deeply(\@prefix, ['prefix', 7],
+        "all-path recursion leaves caller prefix untouched: $label");
+}
+
+# Each output is a distinct path array. Mutating one output must never
+# rewrite a sibling or a descendant, even when it served as the prefix
+# for a recursive visit.
+my $nested_source = { a => [ { x => 1 }, { y => 2 } ], z => 3 };
+my $nested_original = $codec->encode($nested_source);
+my @isolated;
+JQ::Lite::Util::_collect_paths($nested_source, [], \@isolated);
+my $isolated_before = $codec->encode(\@isolated);
+my %addresses = map { refaddr($_) => 1 } @isolated;
+is(scalar(keys %addresses), scalar(@isolated),
+    'each returned path owns an independent array');
+my $preserved_child = $codec->encode($isolated[1]);
+$isolated[0]->[0] = 'modified';
+is($codec->encode($isolated[1]), $preserved_child,
+    'modifying parent output never changes its descendant');
+isnt($codec->encode(\@isolated), $isolated_before,
+    'output paths remain individually mutable by callers');
+is($codec->encode($nested_source), $nested_original,
+    'mutating a collected path does not affect source objects');
+
+# A wide array exercises 257 sibling paths without sharing prefix storage.
+my $wide_source = [0 .. 256];
+my @wide;
+JQ::Lite::Util::_collect_paths($wide_source, [], \@wide);
+is_deeply(\@wide, [map { [$_] } 0 .. 256],
+    '257 siblings preserve their original numeric indexes');
+is(scalar(keys %{ { map { refaddr($_) => 1 } @wide } }), 257,
+    '257 sibling outputs contain unique path references');
+is_deeply(results($codec->encode($wide_source), 'paths'), \@wide,
+    'public paths keeps the entire wide-array stream');
+
+my (@scalar_root, @scalar_prefix);
+JQ::Lite::Util::_collect_paths(undef, [], \@scalar_root);
+JQ::Lite::Util::_collect_paths('value', ['here'], \@scalar_prefix);
+is_deeply(\@scalar_root, [[]],
+    'legacy private collector retains root-null empty path');
+is_deeply(\@scalar_prefix, [['here']],
+    'legacy private collector retains supplied scalar prefix');
+is_deeply(results('null', 'paths'), [],
+    'public paths continues to suppress null scalar roots');
 
 done_testing;
