@@ -967,7 +967,9 @@ sub _apply_setpath {
     my $result      = $value;
 
     for my $path (@paths) {
-        $result = _set_value_at_path($result, [@$path], $replacement);
+        # _set_value_at_path copies the remaining segments before recursing;
+        # the validated path itself is read-only and needs no extra copy.
+        $result = _set_value_at_path($result, $path, $replacement);
     }
 
     return $result;
