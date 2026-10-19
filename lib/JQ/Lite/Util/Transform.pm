@@ -2212,10 +2212,13 @@ sub _apply_bracket_slice {
 }
 
 sub _apply_replace {
-    my ($value, $search, $replacement) = @_;
+    my ($value, $search, $replacement, $prepared) = @_;
 
     if (ref $value eq 'ARRAY') {
-        return [ map { _apply_replace($_, $search, $replacement) } @$value ];
+        # Reuse literal search/replacement preparation across nested arrays.
+        # It stays lazy: passthrough-only arrays need no string conversion.
+        $prepared ||= [];
+        return [ map { _apply_replace($_, $search, $replacement, $prepared) } @$value ];
     }
 
     return $value if !defined $value;
@@ -2223,13 +2226,20 @@ sub _apply_replace {
 
     return $value if looks_like_number($value);
 
-    $search      = defined $search      ? "$search"      : '';
-    $replacement = defined $replacement ? "$replacement" : '';
+    my ($pattern, $replacement_text);
+    if ($prepared && @$prepared) {
+        ($pattern, $replacement_text) = @$prepared;
+    }
+    else {
+        my $search_text = defined $search ? "$search" : '';
+        $replacement_text = defined $replacement ? "$replacement" : '';
+        $pattern = $search_text eq '' ? undef : quotemeta $search_text;
+        @$prepared = ($pattern, $replacement_text) if $prepared;
+    }
 
-    return $value if $search eq '';
+    return $value unless defined $pattern;
 
-    my $pattern = quotemeta $search;
-    (my $copy = "$value") =~ s/$pattern/$replacement/g;
+    (my $copy = "$value") =~ s/$pattern/$replacement_text/g;
     return $copy;
 }
 
