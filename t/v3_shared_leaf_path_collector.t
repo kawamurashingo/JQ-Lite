@@ -262,4 +262,134 @@ is_deeply(\@scalar_prefix, [['here']],
 is_deeply(results('null', 'paths'), [],
     'public paths continues to suppress null scalar roots');
 
+
+# The pre-change collector constructed @next for each child, then copied
+# @next once more to emit a leaf. Reusing one path reference must retain
+# exact DFS order, distinct result arrays, and untouched caller prefixes.
+sub legacy_leaf_paths {
+    my ($value, $prefix, $out) = @_;
+    if (ref $value eq 'HASH') {
+        for my $key (sort keys %$value) {
+            my $child = $value->{$key};
+            my @next = (@$prefix, $key);
+            if (JQ::Lite::Util::_is_leaf_value($child)) {
+                push @$out, [@next];
+            }
+            else {
+                legacy_leaf_paths($child, \@next, $out);
+            }
+        }
+        return;
+    }
+    if (ref $value eq 'ARRAY') {
+        for (my $index = 0; $index < @$value; $index++) {
+            my $child = $value->[$index];
+            my @next = (@$prefix, $index);
+            if (JQ::Lite::Util::_is_leaf_value($child)) {
+                push @$out, [@next];
+            }
+            else {
+                legacy_leaf_paths($child, \@next, $out);
+            }
+        }
+        return;
+    }
+    push @$out, [@$prefix];
+}
+
+my @leaf_cases = (
+    ['{}', [], 'empty object'],
+    ['[]', [], 'empty array'],
+    ['{"a":1}', [['a']], 'one object leaf'],
+    ['[1,2,3]', [[0],[1],[2]], 'flat array leaves'],
+    ['{"b":{"c":3},"a":[1,2]}',
+        [['a',0],['a',1],['b','c']],
+        'sorted object fields and descendant leaves'],
+    ['[null,false,{"k":true}]',
+        [[0],[1],[2,'k']], 'null and Boolean leaves'],
+    ['{"empty":[],"object":{}}',
+        [], 'empty child containers are excluded'],
+    ['[[1,[2]],3]',
+        [[0,0],[0,1,0],[1]], 'nested array traversal'],
+    ['{"":{"a.b":2},"\u65e5\u672c":[true,null]}',
+        [['','a.b'],["\x{65e5}\x{672c}",0],
+            ["\x{65e5}\x{672c}",1]],
+        'empty dotted and Unicode keys'],
+    ['{"a":[{"x":{"y":0}},{}]}',
+        [['a',0,'x','y']], 'deep nested leaf and empty sibling'],
+    ['{"a":1,"b":{"x":2},"c":[3]}',
+        [['a'],['b','x'],['c',0]],
+        'alternating scalar and container fields'],
+    ['{"a":[1,{"x":[false,true]}],"b":{}}',
+        [['a',0],['a',1,'x',0],['a',1,'x',1]],
+        'nested Boolean leaves and empty hash'],
+    ['[[[],{}],{"q":null}]',
+        [[1,'q']], 'empty containers under nested arrays'],
+);
+for my $case (@leaf_cases) {
+    my ($raw, $expected, $label) = @$case;
+    my $value = $codec->decode($raw);
+    my $original = $codec->encode($value);
+    my (@legacy, @current);
+    legacy_leaf_paths($value, [], \@legacy);
+    JQ::Lite::Util::_collect_leaf_paths($value, [], \@current);
+
+    is_deeply(\@current, \@legacy,
+        "leaf path traversal matches previous implementation: $label");
+    is_deeply(\@current, $expected,
+        "leaf paths retain expected depth-first order: $label");
+    is_deeply(results($raw, 'leaf_paths'), [$expected],
+        "public leaf_paths retains one ordered array: $label");
+    is_deeply(results($raw, 'paths(scalars)'), $expected,
+        "public paths(scalars) retains ordered stream: $label");
+    is($codec->encode($value), $original,
+        "leaf collector leaves source unchanged: $label");
+
+    my @prefix = ('prefix', 7);
+    my @prefixed;
+    JQ::Lite::Util::_collect_leaf_paths($value, \@prefix, \@prefixed);
+    is_deeply(\@prefixed,
+        [map { ['prefix', 7, @$_] } @$expected],
+        "leaf traversal retains caller prefix in emitted paths: $label");
+    is_deeply(\@prefix, ['prefix', 7],
+        "leaf traversal does not mutate caller prefix: $label");
+}
+
+my $leaf_source = { a => [{x=>1},{x=>2}], b => [3] };
+my $leaf_source_before = $codec->encode($leaf_source);
+my @leaf_outputs;
+JQ::Lite::Util::_collect_leaf_paths($leaf_source, [], \@leaf_outputs);
+my %leaf_addresses = map { refaddr($_) => 1 } @leaf_outputs;
+is(scalar(keys %leaf_addresses), scalar(@leaf_outputs),
+    'every emitted leaf path owns a distinct array reference');
+my $unmodified_sibling = $codec->encode($leaf_outputs[1]);
+$leaf_outputs[0]->[0] = 'mutated';
+is($codec->encode($leaf_outputs[1]), $unmodified_sibling,
+    'mutating one leaf path does not change a sibling');
+is($codec->encode($leaf_source), $leaf_source_before,
+    'mutating an emitted leaf path does not affect source data');
+
+my $large_leaf_source = [0 .. 256];
+my @large_leaves;
+JQ::Lite::Util::_collect_leaf_paths($large_leaf_source, [], \@large_leaves);
+is_deeply(\@large_leaves, [map { [$_] } 0 .. 256],
+    '257 leaf paths preserve array index order');
+is(scalar(keys %{ {map { refaddr($_) => 1 } @large_leaves}}), 257,
+    '257 leaves have independent path references');
+is_deeply(results($codec->encode($large_leaf_source), 'leaf_paths'),
+    [\@large_leaves], 'public leaf_paths emits all 257 paths');
+
+my (@private_null, @private_scalar, @private_skipped);
+JQ::Lite::Util::_collect_leaf_paths(undef, [], \@private_null);
+JQ::Lite::Util::_collect_leaf_paths('scalar', ['root'], \@private_scalar);
+JQ::Lite::Util::_collect_scalar_paths('scalar', ['root'], \@private_skipped);
+is_deeply(\@private_null, [[]],
+    'private leaf collector retains null root path');
+is_deeply(\@private_scalar, [['root']],
+    'private leaf collector returns caller scalar prefix');
+is_deeply(\@private_skipped, [],
+    'private scalar-only collector suppresses scalar roots');
+is_deeply(results('null', 'leaf_paths'), [[[]]],
+    'public leaf_paths still returns the empty root path');
+
 done_testing;
