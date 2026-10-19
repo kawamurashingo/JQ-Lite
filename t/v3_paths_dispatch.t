@@ -349,4 +349,130 @@ is($codec->encode($deep_path), $deep_before,
 is(refaddr($deep_target), $deep_root_addr,
     '97-segment deletion retains the original root object');
 
+
+# The deletion sorter now builds each parent signature directly from its
+# input path. Compare against the pre-change slice/map/join implementation
+# to lock down exact delimiter bytes, scalar coercions and ref labels.
+sub old_parent_key {
+    my ($path) = @_;
+    return '' if !$path || @$path < 2;
+    my @segments = @$path[0 .. $#$path - 1];
+    return join "\x1f",
+        map { JQ::Lite::Util::_path_segment_key($_) } @segments;
+}
+my @prefix_cases = (
+    [undef, '', 'undefined path'],
+    [[], '', 'empty path'],
+    [['leaf'], '', 'single segment has no parent'],
+    [['a','leaf'], 'scalar:a', 'single hash parent'],
+    [[0,'leaf'], 'scalar:0', 'numeric zero parent'],
+    [[undef,'leaf'], 'undef', 'null parent segment'],
+    [[JSON::PP::true,'leaf'], 'bool:true', 'true parent segment'],
+    [[JSON::PP::false,'leaf'], 'bool:false', 'false parent segment'],
+    [[{},'leaf'], 'ref:HASH', 'hash reference parent'],
+    [[[],'leaf'], 'ref:ARRAY', 'array reference parent'],
+    [['','leaf'], 'scalar:', 'empty-string parent'],
+    [['a','b','leaf'], "scalar:a\x1fscalar:b",
+        'two object parents'],
+    [['a',1,'leaf'], "scalar:a\x1fscalar:1",
+        'mixed string and integer parents'],
+    [['a',-3,'leaf'], "scalar:a\x1fscalar:-3",
+        'negative numeric parent'],
+    [["a\x1fb",'leaf'], "scalar:a\x1fb",
+        'embedded delimiter character remains unescaped'],
+    [['a','','leaf'], "scalar:a\x1fscalar:",
+        'empty intermediate key'],
+    [['a.b','c','leaf'], "scalar:a.b\x1fscalar:c",
+        'dots are not path separators in parent keys'],
+    [["\x{65e5}\x{672c}","\x{8449}",'leaf'],
+        "scalar:\x{65e5}\x{672c}\x1fscalar:\x{8449}",
+        'Unicode key bytes and order'],
+    [[1,undef,JSON::PP::true,{},'leaf'],
+        "scalar:1\x1fundef\x1fbool:true\x1fref:HASH",
+        'numeric, null, Boolean and object parent mix'],
+    [[JSON::PP::false,JSON::PP::true,'leaf'],
+        "bool:false\x1fbool:true",
+        'both Boolean parent values'],
+    [[1,'2','leaf'], "scalar:1\x1fscalar:2",
+        'numeric-looking string parent'],
+);
+for my $case (@prefix_cases) {
+    my ($path, $expected, $label) = @$case;
+    my $before = $codec->encode($path);
+    is(JQ::Lite::Util::_path_prefix_key($path), old_parent_key($path),
+        "parent prefix exact legacy equivalence: $label");
+    is(JQ::Lite::Util::_path_prefix_key($path), $expected,
+        "parent prefix exact expected text: $label");
+    is($codec->encode($path), $before,
+        "parent prefix does not mutate path: $label");
+}
+
+# Lock down the complete deletion ordering using the original prefix
+# implementation inside the reference sort, not the current helper.
+sub old_parent_deletion_sort {
+    return sort {
+        my $depth = @$b <=> @$a;
+        return $depth if $depth;
+        my $parent = old_parent_key($a) cmp old_parent_key($b);
+        return $parent if $parent;
+        return JQ::Lite::Util::_compare_path_segments(
+            $b->[-1], $a->[-1]
+        );
+    } @_;
+}
+my @prefix_sort_cases = (
+    ['mixed depths',
+        [['z'],['a'],['a',2],['a',0],['b','c','d'],['b','c']]],
+    ['array index siblings',
+        [['a',0],['a',2],['a',1],['a',-1],['a','1']]],
+    ['embedded delimiter and punctuation',
+        [['a.b','c','x'],['a','b.c','x'],["a\x1fb",'x'],
+         ['a','b','x'],['','x']]],
+    ['different segment types',
+        [[JSON::PP::true,'x'],[JSON::PP::false,'x'],
+         [undef,'x'],[{},'x'],[[],'x']]],
+    ['repeated paths',
+        [['a',1],['a',1],['a',1],['a',2],['a',0]]],
+    ['Unicode and nested paths',
+        [["\x{65e5}\x{672c}",0,'x'],
+         ["\x{65e5}\x{672c}",2,'x'],['a',3,'x'],
+         ['a',1,'x'],['z']]],
+    ['parent versus descendant',
+        [['a'],['a','b'],['a','b','c'],['a','b','d'],
+         ['a','z'],['z','x']]],
+);
+for my $case (@prefix_sort_cases) {
+    my ($label, $paths) = @$case;
+    my $before = $codec->encode($paths);
+    my @old = old_parent_deletion_sort(@$paths);
+    my @new = JQ::Lite::Util::_sort_paths_for_deletion(@$paths);
+    is_deeply(\@new, \@old,
+        "deletion ordering matches original parent encoding: $label");
+    is_deeply([map { refaddr($_) } @new],
+        [map { refaddr($_) } @old],
+        "deletion sorting preserves original path identities: $label");
+    is($codec->encode($paths), $before,
+        "deletion sorting never mutates input: $label");
+}
+
+my $long_prefix_path = [(map { "part$_" } 0 .. 255), 'leaf'];
+my $long_prefix_before = $codec->encode($long_prefix_path);
+is(JQ::Lite::Util::_path_prefix_key($long_prefix_path),
+    old_parent_key($long_prefix_path),
+    '257-segment prefix matches original encoding');
+is($codec->encode($long_prefix_path), $long_prefix_before,
+    'long prefix computation does not modify input');
+
+my @wide_prefix_paths = (
+    map { ['items',$_] } 0 .. 256
+);
+push @wide_prefix_paths, ['z'], ['a','child'], ['z','other'];
+my @old_wide = old_parent_deletion_sort(@wide_prefix_paths);
+my @new_wide = JQ::Lite::Util::_sort_paths_for_deletion(@wide_prefix_paths);
+is_deeply(\@new_wide, \@old_wide,
+    '260 deletion paths retain original order');
+is_deeply([map { refaddr($_) } @new_wide],
+    [map { refaddr($_) } @old_wide],
+    '260 deletion paths retain original references');
+
 done_testing;
