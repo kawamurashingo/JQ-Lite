@@ -97,6 +97,24 @@ recursively contained.
   assignment targets. V3 rejects unsupported bracket spellings instead of
   discarding the bracket and writing a prefix.
 
+For the proposed 3.0 release scope, keep **ordinary `=`**, **update
+`|=`** and **compound setters** distinct. For example:
+
+- `{"n":"2"} | .n += 2` continues to return `{"n":4}` by v2
+  coercion. To request strict type checking instead, use
+  `.n |= . + 2` (a string-plus-number error), or explicitly normalize
+  first with `.n |= tonumber | .n |= . + 2` when appropriate.
+- `{"n":10} | .n /= 0` keeps the original root rather than raising
+  jq's zero-divisor error. In the supported update subset,
+  `.n |= . / 0` raises a structured runtime error.
+- `null | .a = 2` still returns null, while
+  `null | .a |= 2` creates `{"a":2}`. Do not substitute one
+  operator for the other when handling a missing root.
+- Unsupported plain/compound selector targets such as
+  `.a[0:1] = [9]` now fail instead of mutating a prefix. Multi-target
+  assignment and other unpromised stream forms are not a 3.0
+  compatibility guarantee.
+
 See the [assignment audit](v3-assignment.md) before changing a setter.
 The broader multi-path/plain-RHS and invalid-target choices remain open
 under [#626](https://github.com/kawamurashingo/JQ-Lite/issues/626).
