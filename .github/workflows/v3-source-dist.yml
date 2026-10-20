@@ -29,8 +29,24 @@ jobs:
           perl-version: ${{ matrix.perl }}
 
       - name: Show candidate checkout and Perl
+        env:
+          CI_EVENT: ${{ github.event_name }}
+          CI_RUN_SHA: ${{ github.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          git rev-parse HEAD
+          echo "CI event: $CI_EVENT"
+          echo "CI run SHA: $CI_RUN_SHA"
+          checked_out_sha="$(git rev-parse HEAD)"
+          echo "Checked-out SHA: $checked_out_sha"
+          test "$checked_out_sha" = "$CI_RUN_SHA"
+          if [ "$CI_EVENT" = 'pull_request' ]; then
+            test -n "$PR_HEAD_SHA"
+            test -n "$PR_BASE_SHA"
+            echo "PR head SHA: $PR_HEAD_SHA"
+            echo "PR base SHA: $PR_BASE_SHA"
+            echo "PR synthetic merge SHA: $checked_out_sha"
+          fi
           perl -v
 
       - name: Build and test source distribution
@@ -68,12 +84,19 @@ jobs:
           mapfile -t dirs < <(find "$extract" -mindepth 1 -maxdepth 1 -type d)
           test "${#dirs[@]}" -eq 1
           cd "${dirs[0]}"
+          # Run the complete suite against the *actual tarball contents*.
+          # MakeMaker disttest recreates a distdir from MANIFEST; it is not
+          # itself a test of the already-generated .tar.gz archive.
           perl Makefile.PL INSTALL_BASE="$install"
           make
+          make test
           make install
           test -f "$install/lib/perl5/JQ/Lite.pm"
           test -x "$install/bin/jq-lite"
 
+          # Leave the extracted tree before testing the installation, so
+          # Perl 5.14's default '.' include path cannot use source modules.
+          cd "$RUNNER_TEMP"
           # Only the freshly installed package is on Perl's non-core path.
           export PERL5LIB="$install/lib/perl5"
           perl -MJQ::Lite -e '
