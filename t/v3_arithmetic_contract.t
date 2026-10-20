@@ -18,6 +18,32 @@ while (my $line = <$fh>) {
 close $fh;
 ok(@cases, 'arithmetic contract fixtures loaded');
 
+# #623 release gate: fixture count and jq classifications are deliberate
+# choices. A compatible case must match the upstream outcome category,
+# while the known nonnumeric overloads remain explicitly non-gating.
+my (%status_count, %outcome_count);
+my @invalid_metadata;
+for my $case (@cases) {
+    my $status = $case->{status} || '';
+    my $result = $case->{arithmetic_v3} || {};
+    my $kind = $result->{kind} || '';
+    ++$status_count{$status};
+    ++$outcome_count{$kind};
+    push @invalid_metadata, $case->{name}
+        if ($status ne 'compatible' && $status ne 'known-difference')
+        || ($kind ne 'ok' && $kind ne 'runtime-error')
+        || ($status eq 'compatible' && $kind ne ($case->{expected} || ''));
+}
+is(scalar @cases, 408, 'practical arithmetic audit retains 408 fixtures');
+is_deeply(\%status_count,
+    { compatible => 396, 'known-difference' => 12 },
+    'arithmetic jq parity claims and intentional differences stay explicit');
+is_deeply(\%outcome_count,
+    { ok => 57, 'runtime-error' => 351 },
+    'arithmetic Library snapshots retain success/error coverage');
+is_deeply(\@invalid_metadata, [],
+    'arithmetic metadata is valid and compatible results match jq categories');
+
 for my $case (@cases) {
     subtest $case->{name} => sub {
         my @outputs;
@@ -32,6 +58,10 @@ for my $case (@cases) {
         if ($expected->{kind} eq 'runtime-error') {
             ok(!$ok, 'rejects invalid arithmetic');
             isa_ok($error, 'JQ::Lite::Error::Evaluation') unless $ok;
+            is($error->category, 'evaluation',
+                'retains the public Library runtime-error category')
+                if !$ok && ref($error)
+                    && $error->isa('JQ::Lite::Error::Evaluation');
         }
         else {
             ok($ok, 'evaluates successfully') or diag("$error");

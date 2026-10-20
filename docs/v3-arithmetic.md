@@ -100,6 +100,44 @@ prove -l t/arithmetic.t t/v3_arithmetic_contract.t
 JQ_DIFFERENTIAL=1 prove -l t/jq_differential.t
 ```
 
+## 3.0 release disposition for #623 (practical scope)
+
+**Selected v3 behavior:** keep the typed `+`, `-`, `*`, `/`, `%` and
+unary-minus expression semantics above. Preserve JSON type identity,
+numeric-looking-string errors, scientific-notation *number* inputs, null's
+addition identity, structured zero-divisor/type errors, precedence, and the
+existing supported simple arithmetic predicates and constructors. CLI
+arithmetic failures must retain exit 3, `[RUNTIME]` stderr and empty stdout;
+Library failures must retain `JQ::Lite::Error::Evaluation` with category
+`evaluation`.
+
+**Intentionally retained boundary:** the twelve known-difference cases
+enumerated above correspond to jq's nonnumeric overloads (array subtraction,
+string/number repetition, object recursive multiplication, string division,
+and string repetition predicates). They are *not* declarations that all jq
+arithmetic is supported, and should not be silently changed to `compatible`
+or `unsupported` merely to make a release gate pass. They remain explicit
+jq-parity exceptions for the practical v2 baseline. Additional generic
+jq expression grammar, full streaming arithmetic and numeric coercion for
+compound assignment are outside this sign-off.
+
+The release audit uses 408 `arithmetic_v3` fixtures: 396 jq-compatible
+and 12 known-difference; their JQ::Lite Library outcomes are 57 successful
+and 351 structured runtime errors. The contract test checks these counts,
+valid fixture statuses, compatible success/error categories, recorded
+value/output cardinality and the structured Library error category. The
+CLI contract test exercises representative typed failures and the stable
+runtime exit/stderr/stdout contract. The independent jq 1.7 differential
+runner gates all compatible cases on the final candidate.
+
+This settles the **scope decision** proposed for #623, subject to CI and
+review of the containing PR; it is **not** a claim that the full 3.0 release
+gates are complete. Plain/compound assignment remains under
+[#626](https://github.com/kawamurashingo/JQ-Lite/issues/626), and the
+[release checklist](v3-release-readiness.md) still requires candidate-level
+validation. Do not close #623 based solely on this proposed text before
+the tests and review pass.
+
 ## Migration from v2
 
 - `"1e3" * 1` no longer coerces the string. Use

@@ -117,6 +117,26 @@ sub assert_err_contract {
     );
 }
 
+# Practical-v3 arithmetic errors retain the stable CLI runtime contract.
+# These intentionally exercise distinct JSON type and divisor failures.
+for my $case (
+    ['numeric-looking string multiplication', '{"n":"2"}', '.n * 2'],
+    ['modulo by zero', '{"n":7}', '.n % 0'],
+    ['null subtraction', '{"n":null}', '.n - 1'],
+) {
+    my ($name, $json, $filter) = @$case;
+    my $res = run_cmd(
+        cmd   => [$BIN, $filter],
+        stdin => "$json\n",
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 3,
+        prefix => '[RUNTIME]',
+        name   => "v3 arithmetic: $name",
+    );
+}
+
 # Runtime error: keys on scalar
 {
     my $res = run_cmd(
