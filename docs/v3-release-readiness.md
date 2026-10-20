@@ -80,19 +80,48 @@ to the #619 release scope.
   SHAs, run URLs and tested checkout ref/SHA; reject stale results if
   head or base changes. Resolve final-head review findings, not only
   findings from an earlier commit.
-- [ ] **Packaging/portability:** `t/manifest_coverage.t` passes;
-  built distribution includes tests and docs. Verify `Makefile.PL` minimum
-  Perl 5.014 and the existing dependency set. Verify an actual generated
-  distribution test, not just tests in the Git checkout.
+- [ ] **Packaging/portability:** `t/manifest_coverage.t` and
+  `t/v3_release_metadata.t` pass in the source checkout **and** an
+  extracted source tarball. Verify `Makefile.PL` minimum Perl 5.014,
+  unchanged dependencies and that the archive includes CLI, modules,
+  regression tests, fixture JSONL and migration/compatibility docs.
+  Run `make disttest`, then independently install from a fresh tarball
+  extraction and exercise the **installed** `JQ::Lite` and `jq-lite` CLI
+  with no checkout modules on the Perl include path.
 - [ ] **Release artifacts:** choose stable Perl module version (no
   underscore developer-release suffix), freeze changelog, audit README and
   migration docs, prepare beta/RC/release notes and tag only after approval.
   Keep stable 2.x branch untouched.
 
+### Source-distribution CI (pre-release package gate)
+
+The opt-in and PR/merge-check workflow
+[`v3-source-dist.yml`](../.github/workflows/v3-source-dist.yml)
+runs on PRs targeting `v3-dev`, merges to `v3-dev`, and manual dispatch.
+It tests Perl **5.14 and latest** separately and uses the ordinary Perl
+matrix/ jq 1.7 differential workflows for the full baseline.
+
+For each tested ref, it executes `perl Makefile.PL`, `make`,
+`make test`, `make dist` and `make disttest`; checks that the
+source tarball contains the public module, CLI, docs, contract tests
+and differential fixtures; then extracts that tarball into a clean
+directory, installs it with `INSTALL_BASE` to a separate prefix,
+and checks that the installed Library and installed CLI work without
+reading implementation files from the Git checkout. A short-lived
+**unreleased candidate source tarball** is retained as a CI artifact
+on the latest-Perl job; this is **not** a GitHub release or CPAN upload.
+
+Record the source candidate HEAD SHA and, for PR runs, the matching
+synthetic merge SHA and base SHA. Check the workflow results before
+claiming packaging success. The workflow does not by itself validate
+every downstream OS, all Perl releases, installation into system
+paths, or a public stable version. No tag or release is automated.
+
 ### Local reproduction from the candidate checkout
 
 ```sh
 prove -lr t
+prove -l t/v3_release_metadata.t t/manifest_coverage.t
 prove -l t/cli_contract.t t/v3_library_api_contract.t t/library_errors.t
 prove -l t/v3_arithmetic_contract.t t/v3_assignment_audit.t t/v3_practical_path_audit.t
 JQ_DIFFERENTIAL=1 prove -l t/jq_differential.t  # needs jq 1.7.x
@@ -101,6 +130,9 @@ make
 make test
 make dist
 make disttest
+# Also extract the resulting JQ-Lite-*.tar.gz in a fresh directory,
+# install from there with INSTALL_BASE to a temporary prefix, and smoke-test
+# that prefix's Perl Library and bin/jq-lite; see the workflow above.
 ```
 
 Run CI in the repository for the entire Perl matrix, not just the local
@@ -118,7 +150,7 @@ developer version `3.00_01` as the final stable version.
 | Practical-scope decisions (#623/#625/#626) | _pending_ | BLOCKED |
 | Full Perl matrix, Push HEAD SHA + PR merge SHA and run URLs | _pending_ | NOT RUN ON CANDIDATE |
 | jq 1.7 differential, Push HEAD SHA + PR merge SHA and run URLs | _pending_ | NOT RUN ON CANDIDATE |
-| CLI/Library/distribution test + packaging | _pending_ | NOT RUN ON CANDIDATE |
+| CLI/Library + extracted-source disttest + clean install | _pending_ | NOT RUN ON CANDIDATE |
 | Migration/README/Changes and version audit | _pending_ | NOT FINAL |
 | Final review and release approval | _pending_ | NOT APPROVED |
 
