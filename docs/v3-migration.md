@@ -103,7 +103,7 @@ For the proposed 3.0 release scope, keep **ordinary `=`**, **update
 - `{"n":"2"} | .n += 2` continues to return `{"n":4}` by v2
   coercion. To request strict type checking instead, use
   `.n |= . + 2` (a string-plus-number error), or explicitly normalize
-  first with `.n |= tonumber | .n |= . + 2` when appropriate.
+  first with `(.n |= tonumber) | (.n |= . + 2)` when appropriate.
 - `{"n":10} | .n /= 0` keeps the original root rather than raising
   jq's zero-divisor error. In the supported update subset,
   `.n |= . / 0` raises a structured runtime error.
