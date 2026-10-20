@@ -1,0 +1,107 @@
+name: v3 source distribution candidate
+
+on:
+  push:
+    branches: [v3-dev]
+  pull_request:
+    branches: [v3-dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package and install (Perl ${{ matrix.perl }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        perl: ["5.14", "5"]
+
+    steps:
+      - name: Check out candidate source
+        uses: actions/checkout@v7
+
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+
+      - name: Show candidate checkout and Perl
+        run: |
+          git rev-parse HEAD
+          perl -v
+
+      - name: Build and test source distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          perl Makefile.PL
+          make
+          make test
+          make dist
+          make disttest
+
+      - name: Check archive contents and clean installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(JQ-Lite-*.tar.gz)
+          test "${#archives[@]}" -eq 1
+          archive="${archives[0]}"
+          tar -tzf "$archive" > "$RUNNER_TEMP/distribution-entries.txt"
+          for required in \
+            lib/JQ/Lite.pm bin/jq-lite Makefile.PL Changes README.md \
+            docs/v3-release-readiness.md docs/v3-migration.md \
+            t/cli_contract.t t/v3_library_api_contract.t \
+            t/jq_differential.t t/data/jq-differential.jsonl \
+            t/manifest_coverage.t t/v3_release_metadata.t; do
+            grep -Fq "/$required" "$RUNNER_TEMP/distribution-entries.txt"
+          done
+
+          extract="$RUNNER_TEMP/extracted"
+          install="$RUNNER_TEMP/installed"
+          mkdir -p "$extract" "$install"
+          tar -xzf "$archive" -C "$extract"
+          mapfile -t dirs < <(find "$extract" -mindepth 1 -maxdepth 1 -type d)
+          test "${#dirs[@]}" -eq 1
+          cd "${dirs[0]}"
+          perl Makefile.PL INSTALL_BASE="$install"
+          make
+          make install
+          test -f "$install/lib/perl5/JQ/Lite.pm"
+          test -x "$install/bin/jq-lite"
+
+          # Only the freshly installed package is on Perl's non-core path.
+          export PERL5LIB="$install/lib/perl5"
+          perl -MJQ::Lite -e '
+            my $jq = JQ::Lite->new;
+            my @n = $jq->run_query(q({"n":4}), q(.n));
+            die "wrong installed Library output\n" unless @n == 1 && $n[0] == 4;
+            my @missing = $jq->run_query(q({}), q(.missing));
+            die "missing/null cardinality changed\n"
+              unless @missing == 1 && !defined $missing[0];
+            my @empty = $jq->run_query(q([]), q(.[]));
+            die "empty iterator returned a value\n" unless @empty == 0;
+          '
+
+          printf '{"n":4}\n' | "$install/bin/jq-lite" -c '.n' \
+            > "$RUNNER_TEMP/cli-output.txt"
+          test "$(cat "$RUNNER_TEMP/cli-output.txt")" = '4'
+
+          # The source archive must not silently ship runtime XS modules.
+          if grep -E '\.(so|dll|bundle|xs)$' "$RUNNER_TEMP/distribution-entries.txt"; then
+            echo 'Unexpected native extension in source distribution' >&2
+            exit 1
+          fi
+
+      - name: Retain candidate source archive (not a release)
+        if: matrix.perl == '5'
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-unreleased-source-${{ github.run_id }}
+          path: JQ-Lite-*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
