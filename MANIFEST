@@ -340,6 +340,7 @@ t/v3_shared_first_projected_key.t
 t/v3_shared_median_calculation.t
 t/v3_shared_median_projection.t
 t/v3_practical_path_audit.t
+t/v3_release_metadata.t
 t/v3_arithmetic_contract.t
 t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t
