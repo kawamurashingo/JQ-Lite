@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use JSON::PP ();
 use IPC::Open3;
 use Symbol qw(gensym);
 
@@ -135,6 +136,44 @@ for my $case (
         prefix => '[RUNTIME]',
         name   => "v3 arithmetic: $name",
     );
+}
+
+# 3.0 practical assignment: malformed plain/compound targets must not
+# silently write a truncated prefix, and invalid |= targets must fail.
+for my $case (
+    ['plain slice target', '{"a":[1,2,3]}', '.a[0:1] = [9]'],
+    ['compound iterator target', '{"a":[1,2]}', '.a[] += 1'],
+    ['invalid update target type', '{"a":2}', '.a[0] |= . + 1'],
+) {
+    my ($name, $json, $filter) = @$case;
+    my $res = run_cmd(
+        cmd   => [$BIN, $filter],
+        stdin => "$json\n",
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 3,
+        prefix => '[RUNTIME]',
+        name   => "v3 assignment: $name",
+    );
+}
+
+# Compound setters intentionally keep v2 numeric-string coercion; they
+# are not synonyms for the strict v3 binary expression operators.
+{
+    my $res = run_cmd(
+        cmd   => [$BIN, '-c', '.n += 2'],
+        stdin => "{\"n\":\"2\"}\n",
+    );
+    is($res->{rc}, 0, 'v3 compound assignment: successful exit');
+    is($res->{err}, '', 'v3 compound assignment: empty stderr');
+    my $value = eval { JSON::PP->new->decode($res->{out}) };
+    my $decode_error = $@;
+    ok(!$decode_error, 'v3 compound assignment: emits valid JSON')
+        or diag($decode_error);
+    is_deeply($value, { n => 4 },
+        'v3 compound assignment: retains v2 numeric-string coercion')
+        unless $decode_error;
 }
 
 # Runtime error: keys on scalar

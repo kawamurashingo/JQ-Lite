@@ -1,10 +1,11 @@
 # Practical assignment audit for JQ::Lite 3.x
 
-This checkpoint distinguishes ordinary `=`, the audited v3 `|=` update,
-and retained v2 compound assignment. They do not yet share every path,
-type or stream rule. Issue #626 remains open for the remaining semantic
-decisions; recording a difference does not silently approve a new break or
-promise full jq assignment grammar.
+This release-scope audit distinguishes ordinary `=`, the audited v3
+`|=` update, and retained v2 compound assignment. They intentionally
+do not share every path, type or stream rule. The selected practical-v2
+baseline remains the release target, not full jq assignment grammar.
+Issue #626 stays open until the scoped release decision and CI/review
+are accepted; documenting a known difference does not claim jq parity.
 
 ## Supported practical forms
 
@@ -55,7 +56,7 @@ available. Slice/computed plain targets require a separate design rather
 than a partial-prefix fallback. Read-side slicing and valid literal-index
 assignment keep their existing behavior.
 
-## Retained differences requiring separate decisions
+## Intentional v2 compatibility differences (proposed 3.0 decision)
 
 | Example | Current JQ::Lite | jq 1.7 |
 | --- | --- | --- |
@@ -80,6 +81,58 @@ plain RHS are outside this audited subset. They are tracked as unsupported
 fixtures without freezing their incidental fallback values as a Library
 contract. In particular, an expression such as `.a = .b + 1` is not
 advertised as general filter-valued plain assignment.
+
+## Proposed 3.0 release disposition for #626
+
+**Retain v2 behavior where already established.** The 23 ordinary assignment
+cases preserve literal/variable/path RHS evaluation on the original root,
+valid compact numeric indices, missing-container creation and unchanged-root
+fallbacks for invalid ordinary targets. Four differ from jq, including a null
+root and invalid nested target type/index. Keep those differences explicit
+rather than making plain assignment silently adopt the `|=` path engine.
+
+**Use the corrected v3 update subset.** The fourteen audited `|=` cases
+keep old-target RHS evaluation, output of the updated **root**, explicit
+null/false values, deletion on an empty RHS, missing/null target creation,
+and the existing first-emitted-result choice. Existing iterator path tests
+also protect practical object/array iteration, order and structured invalid
+target errors. This is not a promise of multi-target or full jq stream
+assignment.
+
+**Keep compound setter semantics separate from strict arithmetic.** All 42
+audited `+=`, `-=`, `*=`, `/=` cases preserve the practical v2 numeric
+coercion and no-op policy, including numeric-looking strings, booleans,
+missing/null values, invalid operands and division by zero. The 35 known
+differences do not make these operators jq-compatible; v3's strict
+arithmetic contract applies to ordinary expressions, not these setters.
+For jq-like strict update semantics in the supported subset, use
+`.n |= . + 2` (or `.n |= . / 0` when a zero-divisor error is required).
+For intentional conversion, normalize the field explicitly with
+`.n |= tonumber` first.
+
+**Reject unsupported plain/compound bracket selectors before mutation.**
+All sixteen recorded rejected-selector forms are `unsupported` jq-scope
+fixtures, but their JQ::Lite structured `Evaluation` error is guaranteed
+by local regression. The other six unsupported multi-path, arbitrary
+plain-RHS or negative-update stream forms have **no guaranteed result**
+and **no Library result snapshot**; do not accidentally freeze their
+fallback values. Do not expand those forms solely to close #626.
+
+For release sign-off, the 101 assignment-scope fixtures must remain
+classified as **40 compatible / 39 known-difference / 22 unsupported**
+across the five documented scopes. The 95 supported or rejected result
+snapshots must preserve **77 successful results / 18 structured
+runtime errors**, including output order/cardinality and the Library
+`evaluation` error category. The CLI contract checks invalid targets
+(exit 3, `[RUNTIME]`, empty stdout) and the retained v2
+numeric-string compound behavior. Existing 65 plain/compound snapshots
+can still be compared to stable v2.59 with `JQ_AUDIT_V2=1`.
+
+This is a release **scope proposal**, not a declaration that full #626,
+the CLI/package candidate, or v3 itself is already signed off. Final-head
+Push CI, associated PR-merge CI, jq 1.7 differential checks and Codex
+review must pass before closing the issue. See
+[release readiness](v3-release-readiness.md).
 
 ## Reproducible behavior matrix
 
@@ -119,5 +172,5 @@ The new rejection is a v3 migration change: callers relying on a truncated
 prefix must replace that query with an explicitly supported target. It uses
 the existing CLI runtime error category (exit 3) and structured Library error.
 No public API, dependencies or syntax support are added. Main/stable 2.x is
-unchanged. The known ordinary/compound differences and unsupported forms
-remain part of #626's scope/migration review.
+unchanged. The known ordinary/compound differences and unsupported forms have a
+proposed bounded 3.0 disposition below, subject to final PR CI and review.

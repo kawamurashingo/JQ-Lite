@@ -84,6 +84,26 @@ combinations must not be assumed to pass or fail like jq. Work is tracked by
 [#627](https://github.com/kawamurashingo/JQ-Lite/issues/627) is **deferred**,
 not an existing v3 public API or a 3.0 release condition.
 
+## Practical assignment release boundary (#626)
+
+The proposed 3.0 decision retains established v2 ordinary and compound
+setters rather than extending jq assignment grammar. The 101-case
+assignment audit records **40 compatible** results, **39 intentional
+known differences** and **22 unsupported** forms; these categories
+describe the *audited expressions*, not the operator names universally.
+The existing `|=` subset evaluates RHS against the old target and returns
+the updated root. Numeric-looking strings may still be coerced by
+`+=`/`-=`/`*=`/`/=`, even though equivalent strict v3 arithmetic
+expressions reject them. A rejected ordinary/compound bracket selector
+reports an Evaluation/runtime error in JQ::Lite; it remains marked
+`unsupported` for jq compatibility, not `compatible` merely because
+the failure is structured.
+
+Six additional unsupported multi-path/plain-RHS/update forms have no
+promised incidental result. See the [assignment release audit](v3-assignment.md)
+and [migration examples](v3-migration.md). The #626 sign-off still requires
+final CI and review of this proposed decision.
+
 ## Stable integration boundary
 
 The [CLI contract](cli-contract.md) remains in force: exit 0 success;
