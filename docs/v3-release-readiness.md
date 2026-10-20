@@ -104,15 +104,21 @@ matrix/ jq 1.7 differential workflows for the full baseline.
 For each tested ref, it executes `perl Makefile.PL`, `make`,
 `make test`, `make dist` and `make disttest`; checks that the
 source tarball contains the public module, CLI, docs, contract tests
-and differential fixtures; then extracts that tarball into a clean
-directory, installs it with `INSTALL_BASE` to a separate prefix,
-and checks that the installed Library and installed CLI work without
-reading implementation files from the Git checkout. A short-lived
+and differential fixtures. **MakeMaker's `disttest` recreates a
+distribution directory from `MANIFEST`; it does not test the
+previously generated tarball itself.** The workflow therefore extracts
+that exact tarball into a clean directory and runs a separate
+`perl Makefile.PL`, `make` and full `make test` against its contents
+before `make install` to a temporary `INSTALL_BASE`. It then changes
+out of the extracted source tree and checks the installed Library
+and CLI without relying on source-tree modules. A short-lived
 **unreleased candidate source tarball** is retained as a CI artifact
 on the latest-Perl job; this is **not** a GitHub release or CPAN upload.
 
-Record the source candidate HEAD SHA and, for PR runs, the matching
-synthetic merge SHA and base SHA. Check the workflow results before
+The workflow prints the checked-out ref SHA for every event;
+PR runs also print the explicit PR head SHA, base SHA and synthetic
+merge SHA. Record these identities and the run URL together for each
+source candidate. Check the workflow results before
 claiming packaging success. The workflow does not by itself validate
 every downstream OS, all Perl releases, installation into system
 paths, or a public stable version. No tag or release is automated.
