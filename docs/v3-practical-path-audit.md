@@ -664,8 +664,8 @@ The remaining boundaries are explicit:
 | --- | --- | --- | --- |
 | `[{"name":"a"},{"name":"b"}]` / `.name` | `"a"`, `"b"` | runtime error | Retained array-projection extension |
 | `[{"name":"a"},{},null,7]` / `.name` | `"a"` | runtime error | Same projection policy, including missing/scalar members |
-| `7` / `.name` | no outputs | runtime error | Ordinary-field error policy remains undecided |
-| `"abcd"` / `.[1:3]` | `"abcd"` | `"bc"` | String bracket-slice scope remains undecided |
+| `7` / `.name` | no outputs | runtime error | Historical open question; proposed decision below retains v2 output |
+| `"abcd"` / `.[1:3]` | `"abcd"` | `"bc"` | Historical open question; proposed decision below retains v2 passthrough |
 | `[0,1,2,3]` / `slice(1,2)` | `[1,2]` | no such builtin | v2 length-based extension; not jq bracket slicing |
 
 The 54 examples whose filters jq accepts reuse the existing differential
@@ -695,8 +695,8 @@ JQ_AUDIT_V2=1 prove -I"$v2_audit_dir/lib" t/v3_practical_path_audit.t t/slice.t
 
 This is a defined practical sample, not an exhaustive grammar/feature census.
 It adds no implementation code, changes no runtime semantics and introduces
-no dependency. The new undecided rows do not authorize a compatibility change
-or require string-slice feature growth for release. Issue #625 remains open
+no dependency. Those previously undecided rows did not authorize compatibility changes;
+the proposed 3.0 disposition below retains their recorded v2 semantics. Issue #625 remains open
 for the remaining scope and migration review.
 
 ## Shared drop()/tail() suffix slicing (maintenance checkpoint)
@@ -725,6 +725,89 @@ Tracked `lib/**/*.pm` implementation decreases by 602 bytes,
 306,263 → 305661 bytes (22 modules), versus `90b50dc1`.
 No dependency, public API, grammar, `main` or stable-2.x change.
 Issue #625 remains open.
+
+## Proposed 3.0 release disposition for #625 (2026-10-21)
+
+The **practical v2 feature subset**, not general jq 1.7 grammar, is the
+acceptance boundary. The previously recorded 55-example inventory contains
+**54 jq-recognized filters with both v2 and v3 snapshots** and one
+v2-only `slice(start,length)` extension. Of those 54, **50 v3 cases match
+jq 1.7**, while **four retain recorded v2 output/error differences**.
+Within the 50 compatible cases, **31 already matched jq under v2** and
+**19 reflect intentional v3 corrections**. V3's 54 Library outcomes
+contain **52 successes and two structured Evaluation errors**. The
+regression test now gates those counts, classifications, the four exact
+retained-difference names, ordered results versus runtime errors,
+v2-to-v3 changes, and the public `evaluation` error category.
+
+### Practical behaviors frozen for v3
+
+| Scope | 3.0 practical policy |
+| --- | --- |
+| Ordinary fields, quoted fields, builtin-name fields | For supported object reads, use v3 field semantics; a missing field emits **one null**, not an empty stream. `.type` accesses the named field; bare `type` is a builtin. |
+| Arrays and numeric indices | Keep supported positive/negative indices, out-of-range nulls and array bracket slicing; invalid object numeric access gives a structured error. Do not add jq's string-slicing grammar as part of the release. |
+| Strict and optional iteration | For supported `.[]` on null/noniterable values, preserve strict Evaluation errors; `.[]?` skips invalid values with **zero outputs**. Preserve array/object iteration order within the audited subset. |
+| Constructors, comma, fallback and suffix iterators | Keep distinct null/empty streams, array/object constructors, `false //` fallback, zero/empty-string passthrough, `keys[]`, `split(",")[]`, array constructor `[]` suffix and comma-local suffix streams. |
+| Practical path builtins | Retain audited `getpath`, `setpath`, `delpaths` plus the v2 `slice(start,length)` length-based extension, without claiming a jq `slice()` builtin. |
+
+### Four deliberate jq exceptions
+
+The following jq differences were already present in stable v2.59 and
+remain **known-difference** fixtures, not new v3 compatibility promises:
+
+1. A named path such as `.name` projects fields over array elements,
+   including v2 omission of unavailable/scalar members, rather than
+   producing jq's array type error (two fixtures).
+2. A named field path on a scalar, e.g. `7 | .name`, emits no results
+   rather than jq's strict runtime error (one fixture).
+3. A bracket slice on a string, e.g. `"abcd" | .[1:3]`, passes the
+   original string through rather than jq's substring `"bc"`
+   (one fixture). Array bracket slices stay supported and compatible.
+
+Applications needing exact jq type errors or substring behavior should
+validate input types and use an explicitly supported string transformation,
+or use jq itself for general jq syntax. The four fixtures cannot be
+reclassified as jq-compatible simply because their v2 behavior is stable.
+Neither odd deep computed selectors nor arbitrary iterator/try/recurse
+combinations are prerequisites for 3.0. Unsupported or unaudited cases
+have no broad jq semantics promise.
+
+### Source-size and complexity checkpoint
+
+Recomputed **Git tree blob sizes of tracked `lib/**/*.pm`** (not a
+runtime-performance or archive-size measurement) on
+`v3-dev` after merged PR #860 (`3a8aa92f35fe5b06ade460d7a6b7de61b7addf17`):
+
+| Snapshot | Modules | Source bytes |
+| --- | ---: | ---: |
+| Stable v2.59, `6880c304` | 22 | 242,573 |
+| Initial v3 before cleanup, `40c05db` | 22 | 326,242 |
+| Current merged v3 | 23 | 307,417 |
+
+V3 is **18,825 bytes (5.8%) smaller** than its recorded pre-cleanup
+implementation, though still **64,844 bytes (26.7%) larger** than v2.
+The additional `Util/Stream.pm` module is included in the current
+count. The three largest source modules are
+`Util/Transform.pm` (84,009 bytes), `Filters.pm` (79,260) and
+`Util/Paths.pm` (38,545), jointly **201,814 bytes (65.6%)** of
+the current library source. These remain maintenance review hotspots,
+**not** a mandate for risky removals or more optimizer PRs before 3.0.
+Future cleanup should be justified by concrete v2 usage or defects,
+not arbitrary source-size targets.
+
+### Remaining sign-off
+
+This is a **scoped release proposal** based on the pre-existing measured
+inventory, not an assertion of exhaustive v2 feature coverage. The proposed
+decision is to retain the four already-recorded exceptions and document
+the supported practical subset, without modifying runtime code. The
+Library snapshots, CLI null/no-output/error contract, existing targeted
+iterator/path tests and jq 1.7 differential suite must pass at the PR
+final head; review findings must be resolved. A candidate build still
+requires the complete distribution, Perl-version matrix, packaging
+validation and final approval in
+[release readiness](v3-release-readiness.md). Do not close #625 until
+those **PR scope gates** pass and this disposition is accepted.
 
 ## Review order and compatibility boundaries
 

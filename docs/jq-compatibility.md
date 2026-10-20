@@ -50,6 +50,8 @@ additional `planned` promises in this guide.
 | Compound assignment | `{"n":"2"};` `.n += 2` | **known-difference** | Retains v2 numeric-string coercion; strict v3 arithmetic does **not** extend to `+=`. |
 | Jagged transpose | `[[1,2],[3]];` `transpose` | **known-difference** | Retained v2 truncation rather than jq's null padding. |
 | Array path projection | `[{"x":1},{"x":2}];` `.x` | **known-difference** | Retained v2 projection through array members rather than jq's type error. |
+| Scalar ordinary path | `7;` `.name` | **known-difference** | Retained v2 empty output rather than jq's strict type error. |
+| String bracket slice | `"abcd";` `.[1:3]` | **known-difference** | Retained v2 original-string passthrough; jq produces `"bc"`. Array slicing is separate and compatible in the audited subset. |
 | Scalar path leaves | `{"x":null};` `paths(scalars)` | **known-difference** | Retained v2 null-leaf inclusion; jq 1.7 excludes null leaves. |
 | Plain slice assignment | `{"a":[1,2,3]};` `.a[0:1] = [9]` | **unsupported** | v3 rejects target before mutation; no truncated-prefix assignment. |
 | Arbitrary jq definitions | `null;` `def inc: .+1; inc` | **unsupported** | No general jq user-defined function language. |
@@ -103,6 +105,22 @@ Six additional unsupported multi-path/plain-RHS/update forms have no
 promised incidental result. See the [assignment release audit](v3-assignment.md)
 and [migration examples](v3-migration.md). The #626 sign-off still requires
 final CI and review of this proposed decision.
+
+## Practical path/iterator release boundary (#625)
+
+The proposed 3.0 subset freezes the 54 audited v2/v3/jq path/iterator
+examples: **50 jq-compatible** (31 already matching under v2 and 19
+corrected in v3) and **four intentionally retained differences**.
+The four differences are two array-field-projection examples, one scalar
+ordinary-field lookup and one string bracket slice. The v2
+`slice(start,length)` builtin is a separate retained extension that jq
+1.7 does not provide; it is not part of the 54 jq-recognized fixtures.
+
+The accompanying [path/iterator release audit](v3-practical-path-audit.md)
+records ordered output, null versus empty streams, type errors, source-size
+measurement and exact scope exclusions. Do not promote v2 extensions to
+`compatible` or expand rare computed-selector/try syntax to meet a
+release target. The scoped #625 decision still requires final PR CI/review.
 
 ## Stable integration boundary
 

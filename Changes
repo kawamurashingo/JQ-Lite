@@ -1,5 +1,6 @@
 3.00_01  2026-09-23
     [Developer release]
+    - Freeze the practical v3 path/iterator release subset (50 jq-compatible snapshots, four retained v2 differences), guard Library and CLI stream/error semantics, and record source-size/migration boundaries.
     - Freeze the practical v3 assignment/update release scope (40 compatible, 39 intentional differences, 22 unsupported), with Library snapshot classifications, CLI invalid-target contracts, and explicit setter migration choices.
     - Freeze the v3 practical arithmetic release scope and jq 1.7 exception set with fixture-classification, structured Library error and CLI runtime-contract regressions.
     - Record v3.0 release readiness gates, pending semantic sign-offs and candidate validation evidence without claiming a stable release.

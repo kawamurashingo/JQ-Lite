@@ -69,6 +69,41 @@ returns one JSON null, but `[] | .[]` still emits nothing. When consuming
 an empty list and a one-element list containing `undef` do not mean the
 same thing.
 
+### Preserve intentional v2 path and iterator extensions
+
+V3 corrects common jq semantics **only in the audited practical subset**.
+Distinguish a missing object field from an iterator that produces nothing:
+
+- `{} | .missing` now emits one JSON `null`; under v2 it emitted
+  no results in the recorded direct-path case. An empty iterator,
+  `[] | .[]`, still emits **nothing**. Check the result count when
+  calling `run_query`, not just whether the first Perl value is `undef`.
+- `null | .[]` now raises a structured evaluation error; using
+  `.[]?` explicitly ignores invalid targets and emits no values.
+  `null | [empty]` emits one empty array, while
+  `null | {x: empty}` emits no object.
+
+The following v2 behaviors **remain intentionally different** from jq 1.7
+in the 3.0 practical scope:
+
+- `[{"name":"a"},{"name":"b"}] | .name` returns `"a"`, `"b"`
+  (v2 field projection). jq rejects this array field access. When
+  jq's strict error behavior is required, validate the root type in
+  the caller or run that filter with jq.
+- `7 | .name` emits no results instead of jq's type error. Do not
+  interpret a silent result as strict jq-compatible field validation.
+- `"abcd" | .[1:3]` still emits `"abcd"`, not jq's `"bc"`.
+  The existing `slice(start,length)` helper uses a **length**
+  rather than an end index and is a separate v2 extension.
+  Test the desired string transform explicitly instead of treating
+  jq's bracket-slice syntax as a v3 string-slicing guarantee.
+
+Array bracket slices, ordinary object lookups, supported optional
+access, iterator suffixes and comma ordering retain their separately
+audited jq-compatible behavior. See the
+[path/iterator release audit](v3-practical-path-audit.md) and
+[compatibility matrix](jq-compatibility.md) for the exact boundaries.
+
 ### Migrate containment by *intent*
 
 - For recursive jq-like inclusion, use v3 `contains(value)`.

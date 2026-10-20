@@ -176,6 +176,45 @@ for my $case (
         unless $decode_error;
 }
 
+# Practical #625 path/iterator contract: exact stdout distinguishes a
+# missing field's JSON null from genuinely empty filter/iterator streams.
+# Keep the documented v2 projection/string-slice differences explicit.
+for my $case (
+    ['missing field emits null', '{}', '.missing', "null\n"],
+    ['empty array iterator emits nothing', '[]', '.[]', ''],
+    ['optional null iterator emits nothing', 'null', '.[]?', ''],
+    ['scalar ordinary field emits nothing (v2 extension)', '7', '.name', ''],
+    ['array field projection keeps v2 order', '[{"name":"a"},{"name":"b"}]',
+        '.name', "\"a\"\n\"b\"\n"],
+    ['string bracket slice retains v2 passthrough', '"abcd"',
+        '.[1:3]', "\"abcd\"\n"],
+    ['empty array constructor emits an array', 'null', '[empty]', "[]\n"],
+    ['empty object constructor emits nothing', 'null', '{x: empty}', ''],
+    ['comma skips empty branch in order', 'null', '1, empty, 2', "1\n2\n"],
+) {
+    my ($name, $json, $filter, $out) = @$case;
+    my $res = run_cmd(
+        cmd   => [$BIN, '-c', $filter],
+        stdin => "$json\n",
+    );
+    is($res->{rc}, 0, "v3 path: $name exit success");
+    is($res->{out}, $out, "v3 path: $name exact output stream");
+    is($res->{err}, '', "v3 path: $name empty stderr");
+}
+
+{
+    my $res = run_cmd(
+        cmd   => [$BIN, '.[]'],
+        stdin => "null\n",
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 3,
+        prefix => '[RUNTIME]',
+        name   => 'v3 path: strict iterator on null',
+    );
+}
+
 # Runtime error: keys on scalar
 {
     my $res = run_cmd(
