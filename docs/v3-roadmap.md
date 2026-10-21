@@ -1726,6 +1726,37 @@ Release notes must include concrete, executable examples for each committed
 change. Library consumers should also review code that assumes `run_query`
 returns no value for a missing field; in 3.0 that query returns one JSON null.
 
+## Beta1 candidate release train (2026-10-21)
+
+The scoped arithmetic (#859), assignment/update (#860), and path/iterator
+(#861) decisions are present in the merged `v3-dev` implementation and
+tests. The source-distribution gate (#862) is merged and has passed its
+initial development-version CI. This does not retroactively mark all
+open roadmap child issues or unpublished alpha milestones as complete.
+
+The **next proposed internal beta1 candidate** has Perl module version
+`3.00_02` and the **draft** notes in
+[beta1 release notes](v3-beta1-release-notes.md). This is a developer
+release version (underscore), not a public SemVer tag. The proposal must
+pass on its final SHA: the complete Push Perl 5.14/5.26/5.38/latest matrix,
+associated PR synthetic-merge matrix, both jq 1.7 differential runs,
+extracted-archive full tests and installed CLI/Library smoke checks on
+Perl 5.14/latest, and final Codex review. Reconcile #623/#625/#626
+acceptance and the already closed #629 migration/matrix milestone before
+promotion. Do not publish or tag from this version-staging PR.
+
+**RC1 entry gate:** explicitly approve the beta1 scope and known differences,
+complete the roadmap/issue sign-off and preserve a clean documented migration
+path; accept only remaining actual release-blocking defects. RC1 gets a
+separately reviewed version, commit SHA, CI matrix, packaged source archive
+and draft announcement. Previously passed beta CI is not sufficient.
+
+**Stable 3.0 entry gate:** on a separately validated stable candidate, use
+an approved non-underscore Perl version such as `3.00`, run all final
+release/package/CLI/Library checks, obtain explicit maintainer publication
+approval and then tag/upload. No `main` change, tag or CPAN upload occurs
+from the beta1 planning PR.
+
 ## 3.0 release criteria
 
 JQ::Lite 3.0 is ready only when:

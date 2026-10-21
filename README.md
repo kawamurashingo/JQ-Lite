@@ -238,6 +238,7 @@ for compatibility guarantees.
 * [`docs/jq-semantics-differences.md`](docs/jq-semantics-differences.md) — jq 1.7 semantic differences in the current 2.x series
 * [`docs/v3-roadmap.md`](docs/v3-roadmap.md) — compatibility policy, migration plan, and release criteria for JQ::Lite 3.0
 * [`docs/v3-release-readiness.md`](docs/v3-release-readiness.md) — release candidate gates, unresolved decisions, and sign-off record
+* [`docs/v3-beta1-release-notes.md`](docs/v3-beta1-release-notes.md) — **draft, unpublished** 3.00_02 beta1 candidate notes and RC promotion gates
 * [`docs/v3-arithmetic.md`](docs/v3-arithmetic.md) — practical v3 arithmetic types, predicates, retained jq differences and v2 migration
 * [`docs/v3-assignment.md`](docs/v3-assignment.md) — ordinary, update and compound assignment scope, unsupported targets and retained differences
 * [`docs/DESIGN.md`](docs/DESIGN.md) — design principles and scope
