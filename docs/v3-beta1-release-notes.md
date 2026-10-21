@@ -14,15 +14,52 @@ and [roadmap #619](https://github.com/kawamurashingo/JQ-Lite/issues/619).
 | Perl / CPAN developer version | `$JQ::Lite::VERSION = '3.00_02'` |
 | Expected source archive | `JQ-Lite-3.00_02.tar.gz` (CI artifact only) |
 | Preceding development version | `3.00_01` (retained in `Changes`) |
-| Future stable release | `3.00` **only after** RC and explicit approval; no underscore |
+| Future stable Perl version | **Not yet chosen.** `3.00` is allowed only if the `3.00_0x` developer archives remain **permanently unpublished**; otherwise choose a strictly newer public stable version after verifying Perl ordering |
 | Stable deployed branch | `main`, JQ::Lite **2.59** (untouched) |
 
 Perl distribution versions and the human-facing milestone have different
 formats: `3.00_02` is an **underscore developer release**, not a public
-SemVer `3.0.0-beta1` Git tag. Do not tag `v3.0.0-beta1` or upload this
-archive merely because this candidate PR merges. Previous alpha milestones
+SemVer `3.0.0-beta1` Git tag. **All `3.00_0x` developer artifacts in
+this release train must remain permanently unpublished**: no CPAN upload,
+GitHub Release, publicly advertised install link, or public beta/RC tag.
+The GitHub Actions tarballs are short-lived **internal test artifacts**;
+their existence is not a public beta publication. Previous alpha milestones
 were development checkpoints; these notes do not claim separate published
 alpha artifacts. The final candidate SHA is established **after** review.
+
+### Perl developer-to-stable ordering: release blocker
+
+**Perl's version ordering is not SemVer pre-release ordering.** Using
+`version->parse`, `3.00_02` sorts **after** `3.00`. If an underscore
+developer archive is publicly distributed, then later publishing stable
+`3.00` would make that stable appear older to CPAN clients and dependency
+resolvers. Simply removing `_02` for stable does **not** resolve this.
+
+The project currently chooses the **internal-only** branch of the policy:
+keep `3.00_01`, `3.00_02`, and any further `3.00_0x` artifacts
+**permanently unpublished** and verify this before any public stable
+release. Under that strict condition `3.00` can remain an *option*,
+not a finalized stable version. Anyone who manually installed one of
+these internal builds may need to uninstall/reinstall the stable release;
+ordinary version-based upgrades should **not** be assumed to work.
+
+If a *public* beta/RC is desired or any `3.00_0x` build has already
+been officially distributed, stop and approve a new version sequence
+before publication. The chosen stable Perl version must compare **strictly
+greater** than every publicly distributed predecessor; a stable `3.00`
+would then be prohibited. Also review how a higher Perl version number
+maps to the announced 3.0 release name. Do not invent a public version,
+renumber a shipped archive, or silently declare a lower version stable.
+
+Reproduce the ordering using Perl's core `version` module:
+
+```sh
+perl -Mversion -e 'print version->parse("3.00_02") > version->parse("3.00") ? "developer > stable candidate\\n" : "unexpected order\\n"'
+```
+
+**Before any RC/stable publication**, the maintainer must document which
+artifacts were publicly distributed and approve either the internal-only
+`3.00_0x` policy or a strictly increasing public version sequence.
 
 ## What changes in the supported practical subset
 
@@ -119,7 +156,9 @@ release candidate; keep stable `main` / 2.x unchanged.
   compatibility docs, tests and jq comparison fixtures.
 - [ ] Codex reviews **final HEAD**, all findings are resolved, and the
   candidate's release notes and known limitations receive maintainer
-  approval. No tag, CPAN upload or GitHub Release in this PR.
+  approval. Record whether `3.00_0x` archives have been distributed;
+  enforce the version ordering gate before public release. No tag, CPAN
+  upload or GitHub Release in this PR.
 
 ## RC1 and stable promotion
 
@@ -131,9 +170,13 @@ or missing migration/release evidence. Re-run every beta gate on an
 reuse beta CI URLs for RC approval. Choose the next developer version
 and RC announcement only when creating that RC candidate.
 
-For stable 3.0, remove the underscore in the selected **stable** version
-(e.g. `3.00`), align module/POD/`Changes`/packaging, run the entire
-release matrix and tarball tests on the final stable candidate, get
-explicit maintainer approval, and **then** decide tag/publication.
+For stable 3.0, **first close the Perl-version ordering gate** above:
+verify the `3.00_0x` developer train was never publicly released if
+selecting `3.00`, or select and verify a stable Perl version strictly
+above every publicly distributed predecessor. Then remove any underscore
+from the chosen stable version, align module/POD/`Changes`/packaging,
+run the entire release matrix and tarball tests on the final stable
+candidate, get explicit maintainer approval, and **then** decide
+tag/publication.
 No performance micro-optimizations, speculative feature coverage or
 silent `main` branch switch are release blockers.
