@@ -1,5 +1,6 @@
 3.00_02  2026-10-21
     [Developer release — beta1 candidate, NOT published]
+    - Document that Perl treats 3.00_02 as newer than stable 3.00; keep all 3.00_0x developer archives permanently unpublished and require an explicit monotonic-version decision before any public RC/stable publication.
     - Stage the scoped 3.0 beta1 developer-release version and draft release notes; no public tag, CPAN upload or stable publication.
     - Preserve the documented practical v2.59 baseline, selected jq 1.7 semantic corrections, CLI/Library contract, Perl 5.14+, and existing dependencies.
     - Require final candidate Perl/jq CI, extracted-tarball tests, clean install, maintainer scope sign-off and final Codex review before promotion.
