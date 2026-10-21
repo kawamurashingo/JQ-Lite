@@ -54,7 +54,7 @@ renumber a shipped archive, or silently declare a lower version stable.
 Reproduce the ordering using Perl's core `version` module:
 
 ```sh
-perl -Mversion -e 'print version->parse("3.00_02") > version->parse("3.00") ? "developer > stable candidate\\n" : "unexpected order\\n"'
+perl -Mversion -e 'print version->parse("3.00_02") > version->parse("3.00") ? "developer > stable candidate\n" : "unexpected order\n"'
 ```
 
 **Before any RC/stable publication**, the maintainer must document which
