@@ -125,19 +125,25 @@ to the #619 release scope.
   `docs/v3-beta1-release-notes.md`; review the draft notes before
   approval. **Never publish `3.00_0x` developer artifacts** under
   the currently selected internal-only policy.
-- [ ] **Public version-order gate:** before an RC/stable tag, CPAN
-  upload, GitHub Release or publicly promoted install URL, record
-  every publicly distributed v3 version. `version->parse('3.00_02')`
-  compares greater than `version->parse('3.00')`, so `3.00`
-  cannot serve as an upgrade target after a distributed
-  `3.00_0x` build. Either verify **all** `3.00_0x` archives
-  remain permanently unpublished (and disclose manual reinstall
-  for local developer installs), or approve a different strictly
-  increasing Perl-version sequence before publishing anything.
-  Confirm numeric ordering with Perl's core `version` module.
-  Final stable version is **undecided**; remove its underscore,
-  re-freeze changelog/README/migration docs, and require explicit
-  RC and publication approval. Keep stable 2.x unchanged.
+- [ ] **Public version-order gate:** `version->parse('3.00_02')`
+  compares greater than `version->parse('3.00')`. **Internal**
+  `3.00_0x` betas/RCs may only be validated as permanently
+  unpublished test archives; they are not public prereleases.
+  **Before ANY publicly distributed beta or RC**, approve a
+  strictly increasing public sequence from its first public version
+  through eventual stable, using Perl's core `version` comparisons;
+  the internal-only policy **cannot substitute** for this requirement.
+  **Stable-only publication, without any public beta/RC:** `3.00`
+  may be considered only if the maintainer verifies every
+  `3.00_0x` archive remained permanently unpublished, with
+  manual reinstall guidance for internal testers. If any prior
+  developer/prerelease was publicly distributed, the approved
+  stable version must compare strictly greater than every such
+  predecessor. Final stable Perl number remains **undecided**.
+  Record publication history, check ordering, remove any underscore
+  on the stable version, re-freeze changelog/README/migration docs
+  and require explicit approval before any public tag, CPAN upload,
+  GitHub Release or promoted install URL. Keep stable 2.x unchanged.
 
 ### Source-distribution CI (pre-release package gate)
 
