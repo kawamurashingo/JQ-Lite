@@ -19,6 +19,33 @@ additional micro-optimizations. Existing acknowledged jq differences are
 not automatically blockers: explicitly decide whether they are retained v2
 behavior with tests and migration notes, or selected v3 corrections.
 
+## Proposed beta1 candidate (2026-10-21)
+
+[Draft beta1 release notes](v3-beta1-release-notes.md) map the internal
+milestone **beta1 candidate** to Perl developer version **`3.00_02`**
+(`JQ-Lite-3.00_02.tar.gz`). This is **not** a published beta, CPAN
+release, stable 3.0 tag, or permission to switch `main`. The
+`3.00_01` development history remains preserved under its own
+`Changes` heading. For stable 3.0 the final approved version must
+remove the underscore (e.g. `3.00`).
+
+The preceding [PR #862](https://github.com/kawamurashingo/JQ-Lite/pull/862)
+merged to `v3-dev` at `33e6f83d71f0fc75303c87804b8c7016957f71e7`.
+Its **final head** passed both Push/PR Perl and jq 1.7 workflows, and
+the PR packaging workflow passed the extracted-tarball full suite,
+`make disttest` and separate-prefix installation on Perl 5.14 and
+latest. That is a **previous development-version packaging baseline**,
+not CI evidence for `3.00_02`; do not reuse it to sign off this beta.
+
+Scoped freeze PRs #859 (arithmetic), #860 (assignment/update) and #861
+(path/iterator) are merged, and documentation issue #629 is already
+closed. Parent roadmap issue checkboxes and child issues #623/#625/#626
+still require explicit reconciliation/acceptance. Their scoped decisions
+do not imply exhaustive jq feature parity or automatic issue closure.
+The beta1 candidate must rerun the complete matrix and get approval
+on **its own final HEAD and PR synthetic merge**. Earlier alpha milestones
+are not retroactively claimed as published releases.
+
 ## Baseline snapshot (2026-10-20)
 
 This table records an auditable **pre-candidate** checkpoint, not the later
@@ -88,10 +115,13 @@ to the #619 release scope.
   Run `make disttest`, then independently install from a fresh tarball
   extraction and exercise the **installed** `JQ::Lite` and `jq-lite` CLI
   with no checkout modules on the Perl include path.
-- [ ] **Release artifacts:** choose stable Perl module version (no
-  underscore developer-release suffix), freeze changelog, audit README and
-  migration docs, prepare beta/RC/release notes and tag only after approval.
-  Keep stable 2.x branch untouched.
+- [ ] **Release artifacts:** for beta1, verify developer version
+  `3.00_02` consistently in Library/POD/`Changes`, the generated
+  archive name, `MANIFEST` and the included
+  `docs/v3-beta1-release-notes.md`; review the draft notes before
+  approval. For the *stable* release separately choose a version with
+  no underscore, re-freeze changelog/README/migration docs and approve
+  tag/publication only after RC. Keep stable 2.x unchanged.
 
 ### Source-distribution CI (pre-release package gate)
 
@@ -144,10 +174,10 @@ make disttest
 Run CI in the repository for the entire Perl matrix, not just the local
 interpreter. For each PR run, verify its tested merge ref/SHA separately
 from the Push head SHA; do not infer what `actions/checkout` tested from
-the run's reported `head_sha` alone. `make disttest` is still a pending
-**candidate** check; no
-distribution test is asserted successful by this snapshot. Do not ship a
-developer version `3.00_01` as the final stable version.
+the run's reported `head_sha` alone. The previous #862 development
+version passed `make disttest` and actual extracted-tarball tests,
+but **`3.00_02` still requires independent candidate checks**.
+Never publish an underscore developer version as a stable release.
 
 ## Sign-off record (fill only after independent verification)
 
