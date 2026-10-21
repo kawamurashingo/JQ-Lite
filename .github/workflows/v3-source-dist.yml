@@ -67,10 +67,14 @@ jobs:
           archives=(JQ-Lite-*.tar.gz)
           test "${#archives[@]}" -eq 1
           archive="${archives[0]}"
+          candidate_version="$(perl -Ilib -MJQ::Lite -e 'print $JQ::Lite::VERSION')"
+          echo "Source archive: $archive (module version $candidate_version)"
+          test "$archive" = "JQ-Lite-$candidate_version.tar.gz"
           tar -tzf "$archive" > "$RUNNER_TEMP/distribution-entries.txt"
           for required in \
             lib/JQ/Lite.pm bin/jq-lite Makefile.PL Changes README.md \
-            docs/v3-release-readiness.md docs/v3-migration.md \
+            docs/v3-release-readiness.md docs/v3-beta1-release-notes.md \
+            docs/v3-migration.md \
             t/cli_contract.t t/v3_library_api_contract.t \
             t/jq_differential.t t/data/jq-differential.jsonl \
             t/manifest_coverage.t t/v3_release_metadata.t; do
