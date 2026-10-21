@@ -1,3 +1,9 @@
+3.00_02  2026-10-21
+    [Developer release — beta1 candidate, NOT published]
+    - Stage the scoped 3.0 beta1 developer-release version and draft release notes; no public tag, CPAN upload or stable publication.
+    - Preserve the documented practical v2.59 baseline, selected jq 1.7 semantic corrections, CLI/Library contract, Perl 5.14+, and existing dependencies.
+    - Require final candidate Perl/jq CI, extracted-tarball tests, clean install, maintainer scope sign-off and final Codex review before promotion.
+
 3.00_01  2026-09-23
     [Developer release]
     - Add pre-release source-distribution verification with Perl 5.14/latest disttest, clean tarball install, installed CLI/Library smoke checks, and aligned version/metadata regression; no public release or stable version bump.
