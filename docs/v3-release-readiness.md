@@ -27,7 +27,11 @@ milestone **beta1 candidate** to Perl developer version **`3.00_02`**
 release, stable 3.0 tag, or permission to switch `main`. The
 `3.00_01` development history remains preserved under its own
 `Changes` heading. For stable 3.0 the final approved version must
-remove the underscore (e.g. `3.00`).
+remove the underscore **and resolve public version ordering**.
+Perl considers `3.00_02` newer than `3.00`: `3.00` is an option only
+if the `3.00_0x` developer train is permanently unpublished.
+The final stable number is **not yet selected**; see the
+[beta1 version policy](v3-beta1-release-notes.md#perl-developer-to-stable-ordering-release-blocker).
 
 The preceding [PR #862](https://github.com/kawamurashingo/JQ-Lite/pull/862)
 merged to `v3-dev` at `33e6f83d71f0fc75303c87804b8c7016957f71e7`.
@@ -119,9 +123,27 @@ to the #619 release scope.
   `3.00_02` consistently in Library/POD/`Changes`, the generated
   archive name, `MANIFEST` and the included
   `docs/v3-beta1-release-notes.md`; review the draft notes before
-  approval. For the *stable* release separately choose a version with
-  no underscore, re-freeze changelog/README/migration docs and approve
-  tag/publication only after RC. Keep stable 2.x unchanged.
+  approval. **Never publish `3.00_0x` developer artifacts** under
+  the currently selected internal-only policy.
+- [ ] **Public version-order gate:** `version->parse('3.00_02')`
+  compares greater than `version->parse('3.00')`. **Internal**
+  `3.00_0x` betas/RCs may only be validated as permanently
+  unpublished test archives; they are not public prereleases.
+  **Before ANY publicly distributed beta or RC**, approve a
+  strictly increasing public sequence from its first public version
+  through eventual stable, using Perl's core `version` comparisons;
+  the internal-only policy **cannot substitute** for this requirement.
+  **Stable-only publication, without any public beta/RC:** `3.00`
+  may be considered only if the maintainer verifies every
+  `3.00_0x` archive remained permanently unpublished, with
+  manual reinstall guidance for internal testers. If any prior
+  developer/prerelease was publicly distributed, the approved
+  stable version must compare strictly greater than every such
+  predecessor. Final stable Perl number remains **undecided**.
+  Record publication history, check ordering, remove any underscore
+  on the stable version, re-freeze changelog/README/migration docs
+  and require explicit approval before any public tag, CPAN upload,
+  GitHub Release or promoted install URL. Keep stable 2.x unchanged.
 
 ### Source-distribution CI (pre-release package gate)
 
@@ -187,7 +209,7 @@ Never publish an underscore developer version as a stable release.
 | Full Perl matrix, Push HEAD SHA + PR merge SHA and run URLs | _pending_ | NOT RUN ON CANDIDATE |
 | jq 1.7 differential, Push HEAD SHA + PR merge SHA and run URLs | _pending_ | NOT RUN ON CANDIDATE |
 | CLI/Library + extracted-source disttest + clean install | _pending_ | NOT RUN ON CANDIDATE |
-| Migration/README/Changes and version audit | _pending_ | NOT FINAL |
+| Migration/README/Changes and Perl version-order decision | _pending_ | **BLOCKED: public version not selected** |
 | Final review and release approval | _pending_ | NOT APPROVED |
 
 Only after the above gates are satisfied should the beta/RC candidate be

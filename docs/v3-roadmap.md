@@ -1751,11 +1751,24 @@ path; accept only remaining actual release-blocking defects. RC1 gets a
 separately reviewed version, commit SHA, CI matrix, packaged source archive
 and draft announcement. Previously passed beta CI is not sufficient.
 
-**Stable 3.0 entry gate:** on a separately validated stable candidate, use
-an approved non-underscore Perl version such as `3.00`, run all final
-release/package/CLI/Library checks, obtain explicit maintainer publication
-approval and then tag/upload. No `main` change, tag or CPAN upload occurs
-from the beta1 planning PR.
+**Stable 3.0 entry gate:** Perl compares `3.00_02` **greater**
+than `3.00`, so simply removing the developer underscore could create
+a CPAN version downgrade. The current `3.00_0x` developer artifacts
+are **permanently internal-only** (no CPAN upload, GitHub Release,
+public beta/RC tag or publicly advertised install channel). A stable
+`3.00` remains **conditional, not selected**: it can be considered only
+if that internal-only policy held for *all* developer versions, with
+manual reinstall guidance for anyone testing the internal tarballs.
+If any `3.00_0x` artifact is publicly distributed, stop, choose a
+strictly greater stable Perl version and review its announced
+version label. A public beta/RC requires a separately approved monotonic
+scheme; this dev train must not be repurposed as public prereleases.
+Verify all version comparisons using Perl's core `version` module.
+
+On a separately validated, **version-approved** stable candidate,
+run all final release/package/CLI/Library checks, obtain explicit
+maintainer publication approval and then tag/upload. No `main`
+change, tag or CPAN upload occurs from the beta1 planning PR.
 
 ## 3.0 release criteria
 
