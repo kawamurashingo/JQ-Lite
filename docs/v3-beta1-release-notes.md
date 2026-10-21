@@ -57,9 +57,26 @@ Reproduce the ordering using Perl's core `version` module:
 perl -Mversion -e 'print version->parse("3.00_02") > version->parse("3.00") ? "developer > stable candidate\n" : "unexpected order\n"'
 ```
 
-**Before any RC/stable publication**, the maintainer must document which
-artifacts were publicly distributed and approve either the internal-only
-`3.00_0x` policy or a strictly increasing public version sequence.
+**The gates differ by publication type:**
+
+- **Internal RC or beta only:** keep any `3.00_0x` tarballs strictly
+  internal and unpublished, exactly like this beta1 candidate. No
+  version-based public upgrade path is promised for these test builds.
+- **Public beta or RC (without exception):** before publication, approve
+  a **strictly increasing public version sequence** for the prerelease
+  *and the eventual stable release*, using Perl's `version` comparisons.
+  All public versions must upgrade in order; the private-only
+  `3.00_0x` policy is **not sufficient** to publish a public RC.
+  Do not publish a `3.00_0x` RC under this internal-only numbering plan.
+- **Stable-only publication with no public prereleases:** `3.00` may
+  be considered **only after** independently verifying that *every*
+  `3.00_0x` developer archive stayed permanently unpublished and
+  documenting the manual-reinstall caveat for local testers. If
+  anything was publicly distributed, choose a monotonic stable number
+  after it instead.
+
+Record publication history and an explicit maintainer decision
+separately for whichever path is chosen.
 
 ## What changes in the supported practical subset
 
@@ -167,8 +184,11 @@ regressions within the frozen v2 practical scope, unexpected supported
 jq-parity changes, CLI/Library API breaks, portability/packaging failures,
 or missing migration/release evidence. Re-run every beta gate on an
 **independent RC candidate commit and distribution archive**; do not
-reuse beta CI URLs for RC approval. Choose the next developer version
-and RC announcement only when creating that RC candidate.
+reuse beta CI URLs for RC approval. An internal-only RC may use a
+further unpublished developer build; **any public RC must first have
+an approved monotonically increasing public prerelease-to-stable
+version sequence**, independent of the internal-only `3.00_0x` policy.
+Choose its version and RC announcement only when creating that candidate.
 
 For stable 3.0, **first close the Perl-version ordering gate** above:
 verify the `3.00_0x` developer train was never publicly released if
