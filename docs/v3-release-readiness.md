@@ -96,6 +96,27 @@ guide are already delivered; review their text against the accepted
 Separate #600/#601 and cross-platform proposal #633 are not silently
 added to the #619 release scope.
 
+## Warning-clean CI acceptance (#867)
+
+Successful `prove`/`make test` status does **not** guarantee the absence
+of Perl warnings: on merged #866, Perl 5.14 and 5.26 produced 1,175
+`sort`-comparator warning lines each while test jobs still passed,
+and Perl 5.14's package job emitted 3,525 warning lines across three
+test phases. See the [recorded warning audit](v3-ci-warning-audit.md)
+for the associated SHAs, run URLs, and distinct already-fixed
+`Aggregate.pm` warning.
+
+The candidate must run the shared `ci/fail-on-test-stderr.sh` gate on
+all Push/PR Perl jobs, jq differential tests and **all three**
+source-package test phases (source `make test`, `make disttest`,
+extracted archive `make test`). The gate rejects unexpected stderr
+even when tests otherwise return success; there is no global warning
+suppression or catch-all allowlist. Validate the intentional warning
+sentinel and examine the final-head raw job logs before claiming the
+beta/RC warning acceptance check passed. This is a **release blocker**
+until #867 is accepted; do not close it solely because prior jobs were
+green.
+
 ## Candidate verification (record for **each** beta and RC head)
 
 - [ ] **Scope and migration:** #623 and #626 are closed for the
@@ -127,6 +148,10 @@ added to the #619 release scope.
   SHAs, run URLs and tested checkout ref/SHA; reject stale results if
   head or base changes. Resolve final-head review findings, not only
   findings from an earlier commit.
+- [ ] **Warnings:** #867 audit confirms all tested supported Perl
+  versions and the actual packaged-source test phases are free of
+  unexpected test-process stderr; verify warning-gate self-test and
+  do not treat `##[error]` annotations as proof of a failed process.
 - [ ] **Packaging/portability:** `t/manifest_coverage.t` and
   `t/v3_release_metadata.t` pass in the source checkout **and** an
   extracted source tarball. Verify `Makefile.PL` minimum Perl 5.014,

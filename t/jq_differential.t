@@ -41,6 +41,29 @@ sub run_command {
     };
 }
 
+# External jq-lite output is captured by run_command(), so a successful
+# subprocess warning never reaches the surrounding CI stderr gate unless
+# the differential test checks that captured stream explicitly.
+sub successful_run_has_stderr {
+    my ($result) = @_;
+    return $result->{rc} == 0 && length($result->{stderr}) > 0;
+}
+
+# Exercise the subprocess capture path without letting the intentional
+# warning leak into the parent process's stderr (which CI must keep clean).
+my $warning_probe = run_command([
+    $^X, '-we',
+    'warn "intentional child stderr probe\\n"; print "ok\\n";',
+], '');
+is($warning_probe->{rc}, 0, 'warning probe child exits successfully');
+is($warning_probe->{stdout}, "ok\n",
+    'warning probe still returns its successful stdout');
+ok(successful_run_has_stderr($warning_probe),
+    'warning on successful child is visible to the differential gate');
+ok(!successful_run_has_stderr({
+    rc => 3, stderr => "[RUNTIME] intentional failure\n"
+}), 'expected runtime-error stderr is not classified as success warning');
+
 sub result_kind {
     my ($result, $lite) = @_;
     return 'ok' if $result->{rc} == 0;
@@ -105,6 +128,15 @@ while (my $line = <$fh>) {
     my $jq_kind = result_kind($jq, 0);
     my $lite_kind = result_kind($lite, 1);
 
+    # Gate every successful jq-lite invocation, including intentionally
+    # non-gating jq-difference fixtures. A runtime-error's [RUNTIME]
+    # diagnostic is expected and must remain available to the caller.
+    if ($lite->{rc} == 0) {
+        ok(!successful_run_has_stderr($lite),
+            "$case->{name}: successful jq-lite child has no stderr")
+            or diag("unexpected successful jq-lite stderr: $lite->{stderr}");
+    }
+
     if ($case->{status} ne 'compatible') {
         is($jq_kind, $case->{expected}, "$case->{name}: upstream reference outcome");
         pass("$case->{name}: $case->{status} (jq-lite non-gating)");
@@ -117,7 +149,9 @@ while (my $line = <$fh>) {
             $match = !$jq_error && !$lite_error
                 && join("\n", @$jq_out) eq join("\n", @$lite_out);
         }
-        diag("$case->{name}: " . ($match ? 'now matches jq; review fixture status' : 'difference remains'));
+        # An intentional known-difference is TAP information, not a
+        # warning: keep it visible on stdout for the clean-stderr CI gate.
+        note("$case->{name}: " . ($match ? 'now matches jq; review fixture status' : 'difference remains'));
         next;
     }
 

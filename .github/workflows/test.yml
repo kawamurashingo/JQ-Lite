@@ -29,5 +29,18 @@ jobs:
       - name: Show Perl version
         run: perl -V
 
-      - name: Run tests
-        run: prove -lr t
+      - name: Verify warning gate rejects a successful command with stderr
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh ci/fail-on-test-stderr.sh perl -e 'print "no warning\\n"'
+          if sh ci/fail-on-test-stderr.sh perl -we 'warn "intentional CI gate test\\n"' \
+            > /dev/null 2> "$RUNNER_TEMP/expected-warning.txt"; then
+            echo "stderr gate incorrectly accepted a Perl warning" >&2
+            exit 1
+          fi
+          grep -Fq "intentional CI gate test" "$RUNNER_TEMP/expected-warning.txt"
+
+      - name: Run tests (fail on unexpected warnings)
+        shell: bash
+        run: sh ci/fail-on-test-stderr.sh prove -lr t

@@ -508,16 +508,15 @@ sub _sort_paths_for_deletion {
         }
     } @paths;
 
+    # A sort comparator must yield its value as the final expression:
+    # explicit "return" here can leave sort with an undefined comparator
+    # result on older Perls, emitting warnings even when tests pass.
     return map { $_->{path} } sort {
-        my $depth_cmp = $b->{depth} <=> $a->{depth};
-        return $depth_cmp if $depth_cmp;
-
-        my $prefix_cmp = $a->{prefix} cmp $b->{prefix};
-        return $prefix_cmp if $prefix_cmp;
-
-        return _compare_path_segments(
-            $b->{path}[-1], $a->{path}[-1]
-        );
+        ($b->{depth} <=> $a->{depth})
+            || ($a->{prefix} cmp $b->{prefix})
+            || _compare_path_segments(
+                $b->{path}[-1], $a->{path}[-1]
+            );
     } @decorated;
 }
 

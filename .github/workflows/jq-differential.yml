@@ -31,4 +31,4 @@ jobs:
       - name: Compare JQ::Lite with jq 1.7
         env:
           JQ_DIFFERENTIAL: "1"
-        run: prove -lv t/jq_differential.t
+        run: sh ci/fail-on-test-stderr.sh prove -lv t/jq_differential.t

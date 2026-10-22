@@ -160,6 +160,34 @@ for my $case (@sum_avg_regressions) {
         "numeric accumulator: $description");
 }
 
+# JSON null is numeric zero for these legacy v2 aggregate helpers,
+# but its Perl undef representation must not emit uninitialized warnings.
+# In particular, avg still counts nulls in its array denominator.
+for my $case (
+    ['[null]', 'sum', [0], 'null-only sum'],
+    ['[null]', 'add', [0], 'null-only add alias'],
+    ['[null]', 'avg', [0], 'null-only average'],
+    ['[null,2,4]', 'sum', [6], 'mixed-null sum'],
+    ['[null,2,4]', 'add', [6], 'mixed-null add alias'],
+    ['[null,2,4]', 'avg', [2], 'mixed-null average divisor'],
+    ['[null,true,false,"2"]', 'sum', [3],
+        'null, booleans, numeric-looking strings'],
+    ['[null,true,false,"2"]', 'avg', [0.75],
+        'null counts in mixed average denominator'],
+    ['[[null,2],[4,null]]', '.[] | avg', [1,2],
+        'null handling in streamed averages'],
+) {
+    my ($input, $filter, $expected, $label) = @$case;
+    my @warnings;
+    my $actual;
+    {
+        local $SIG{__WARN__} = sub { push @warnings, @_ };
+        $actual = run($input, $filter);
+    }
+    is_deeply($actual, $expected, "$filter preserves $label");
+    is_deeply(\@warnings, [], "$filter emits no warnings for $label");
+}
+
 my $long_array = [0 .. 256];
 my $long_json = $json->encode($long_array);
 is_deeply(run($long_json, 'sum'), [32896],
