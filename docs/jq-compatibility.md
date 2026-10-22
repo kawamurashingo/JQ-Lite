@@ -127,7 +127,10 @@ The accompanying [path/iterator release audit](v3-practical-path-audit.md)
 records ordered output, null versus empty streams, type errors, source-size
 measurement and exact scope exclusions. Do not promote v2 extensions to
 `compatible` or expand rare computed-selector/try syntax to meet a
-release target. The scoped #625 decision still requires final PR CI/review.
+release target. Merged PR #861 passed final-head Push/PR Perl and
+jq 1.7 differential CI, but #625 remains open while the historical
+semantic-differences inventory is reconciled and reviewed; that
+documentation sign-off is separate from final beta/RC approval.
 
 ## Stable integration boundary
 
