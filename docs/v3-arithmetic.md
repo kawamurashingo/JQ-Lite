@@ -130,13 +130,15 @@ CLI contract test exercises representative typed failures and the stable
 runtime exit/stderr/stdout contract. The independent jq 1.7 differential
 runner gates all compatible cases on the final candidate.
 
-This settles the **scope decision** proposed for #623, subject to CI and
-review of the containing PR; it is **not** a claim that the full 3.0 release
-gates are complete. Plain/compound assignment remains under
-[#626](https://github.com/kawamurashingo/JQ-Lite/issues/626), and the
-[release checklist](v3-release-readiness.md) still requires candidate-level
-validation. Do not close #623 based solely on this proposed text before
-the tests and review pass.
+This **bounded #623 arithmetic scope is accepted and closed** after
+merged [PR #859](https://github.com/kawamurashingo/JQ-Lite/pull/859)
+passed final-head Push/PR Perl and jq 1.7 differential CI. Plain
+and compound setters remain separately documented under the
+**closed practical-scope** [#626](https://github.com/kawamurashingo/JQ-Lite/issues/626)
+audit, not strict-expression arithmetic. Closing these scoped issues
+does **not** mean the complete 3.0 beta/RC release criteria are satisfied;
+the [release checklist](v3-release-readiness.md) still requires final
+candidate-head CI, migration verification, packaging and approval.
 
 ## Migration from v2
 
