@@ -25,9 +25,11 @@ These terms match `t/data/jq-differential.jsonl` and the
 | **planned** | A separately approved behavior change that has not been implemented and tested yet. | Not treated as compatible until fixed and tested. |
 
 The rows below summarize *specific* audited forms. They are not a blanket
-rating for an operator, builtin or parser family. No unresolved #625/#626
-decision is silently promoted to `planned`; there are currently no
-additional `planned` promises in this guide.
+rating for an operator, builtin or parser family. #626 is **closed for
+the audited practical assignment subset**; #625 still requires
+historical-inventory reconciliation. Neither out-of-scope forms nor
+undecided cases are silently promoted to `planned`; there are
+currently no additional `planned` promises in this guide.
 
 ## Representative compatibility matrix
 
@@ -79,17 +81,20 @@ or meanings should not be mistaken for universal jq 1.7 compatibility:
   compound forms are all jq-compatible.
 
 Unsupported expressions, unreviewed invalid-path cases and broader streaming
-combinations must not be assumed to pass or fail like jq. Work is tracked by
+combinations must not be assumed to pass or fail like jq.
 [#625](https://github.com/kawamurashingo/JQ-Lite/issues/625)
-(paths) and [#626](https://github.com/kawamurashingo/JQ-Lite/issues/626)
-(assignments). The proposed `compile()` API in
+(path/iterator inventory) remains open for bounded-scope reconciliation;
+[#626](https://github.com/kawamurashingo/JQ-Lite/issues/626)
+(assignment/update) is closed for its **audited practical scope**.
+Any future extension of unsupported assignment syntax is separate work.
+The proposed `compile()` API in
 [#627](https://github.com/kawamurashingo/JQ-Lite/issues/627) is **deferred**,
 not an existing v3 public API or a 3.0 release condition.
 
 ## Practical assignment release boundary (#626)
 
-The proposed 3.0 decision retains established v2 ordinary and compound
-setters rather than extending jq assignment grammar. The 101-case
+The **accepted #626 practical 3.0 scope** retains established v2 ordinary
+and compound setters rather than extending jq assignment grammar. The 101-case
 assignment audit records **40 compatible** results, **39 intentional
 known differences** and **22 unsupported** forms; these categories
 describe the *audited expressions*, not the operator names universally.
@@ -102,9 +107,11 @@ reports an Evaluation/runtime error in JQ::Lite; it remains marked
 the failure is structured.
 
 Six additional unsupported multi-path/plain-RHS/update forms have no
-promised incidental result. See the [assignment release audit](v3-assignment.md)
-and [migration examples](v3-migration.md). The #626 sign-off still requires
-final CI and review of this proposed decision.
+promised incidental result. See the [accepted assignment release audit](v3-assignment.md)
+and [migration examples](v3-migration.md). The scoped #626 sign-off
+was completed by merged PR #860 with successful final-head Push/PR Perl
+and jq 1.7 differential CI; separate beta/RC candidate acceptance and
+publication checks remain pending.
 
 ## Practical path/iterator release boundary (#625)
 
