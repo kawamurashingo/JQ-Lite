@@ -52,8 +52,9 @@ sub _coerced_sum {
 
     my $total;
     for my $value (@$values) {
-        my $number = $value;
-        $number = 0 + $number;
+        # A JSON null contributes numeric zero, not an undef warning.
+        # Coerce a copy to keep numeric-string input types unchanged.
+        my $number = defined($value) ? 0 + $value : 0;
         $total = defined($total) ? sum($total, $number) : sum($number);
     }
     return $total;
