@@ -88,11 +88,13 @@ actual candidate commit; do not treat this snapshot as a frozen denominator.
 | [#625](https://github.com/kawamurashingo/JQ-Lite/issues/625) null/path/iterator | `docs/v3-practical-path-audit.md`, `t/v3_practical_path_audit.t`; 54 jq-recognized examples: 50 compatible / 4 preserved differences, plus the v2-only `slice()` extension | **OPEN.** PR #861 final CI succeeded, but its Codex P2 found historical inventory rows still marked undecided. Reconcile and verify source-size/practical-v2 audit with the accepted four retained differences before closure. |
 | [#626](https://github.com/kawamurashingo/JQ-Lite/issues/626) assignment/update | `docs/v3-assignment.md`, `t/v3_assignment_audit.t`; 101 cases: 40 compatible / 39 known differences / 22 unsupported | **SCOPED COMPLETE / CLOSED.** PR #860 final Push/PR Perl and jq 1.7 CI succeeded; retain separate ordinary `=`, corrected `|=` and v2 compound setter boundaries, with unsupported multi-result forms explicitly out of scope. |
 
-None of these three open issues is treated as complete by this document.
-Issue #629's compatibility matrix and migration guide are already delivered,
-but their text must be checked against the **final** semantic decisions.
-Separate #600/#601 and cross-platform proposal #633 are not silently added
-to the #619 release scope.
+**Only #625 is still open.** #623 and #626 are closed **for their
+documented practical-v2 scopes**, not for all jq syntax or all future
+assignment/path behavior. Issue #629's compatibility matrix and migration
+guide are already delivered; review their text against the accepted
+#623/#626 boundaries and the pending #625 inventory reconciliation.
+Separate #600/#601 and cross-platform proposal #633 are not silently
+added to the #619 release scope.
 
 ## Candidate verification (record for **each** beta and RC head)
 
