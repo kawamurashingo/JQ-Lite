@@ -82,7 +82,7 @@ actual candidate commit; do not treat this snapshot as a frozen denominator.
 
 ## Scoped decisions and remaining sign-off
 
-| Issue | Evidence already in-tree | Required release decision |
+| Issue | Evidence already in-tree | Scoped acceptance / remaining gate |
 | --- | --- | --- |
 | [#623](https://github.com/kawamurashingo/JQ-Lite/issues/623) arithmetic | `docs/v3-arithmetic.md`, `t/v3_arithmetic_contract.t`; 408 cases: 396 compatible / 12 known differences | **SCOPED COMPLETE / CLOSED.** PR #859 final Push/PR Perl and jq 1.7 CI succeeded; numeric operand, null/error/divisor and CLI runtime policy accepted. Does not promise jq nonnumeric overloads. |
 | [#625](https://github.com/kawamurashingo/JQ-Lite/issues/625) null/path/iterator | `docs/v3-practical-path-audit.md`, `t/v3_practical_path_audit.t`; 54 jq-recognized examples: 50 compatible / 4 preserved differences, plus the v2-only `slice()` extension | **OPEN.** PR #861 final CI succeeded, but its Codex P2 found historical inventory rows still marked undecided. Reconcile and verify source-size/practical-v2 audit with the accepted four retained differences before closure. |
