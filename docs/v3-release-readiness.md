@@ -106,16 +106,23 @@ test phases. See the [recorded warning audit](v3-ci-warning-audit.md)
 for the associated SHAs, run URLs, and distinct already-fixed
 `Aggregate.pm` warning.
 
-The candidate must run the shared `ci/fail-on-test-stderr.sh` gate on
-all Push/PR Perl jobs, jq differential tests and **all three**
-source-package test phases (source `make test`, `make disttest`,
-extracted archive `make test`). The gate rejects unexpected stderr
-even when tests otherwise return success; there is no global warning
-suppression or catch-all allowlist. Validate the intentional warning
-sentinel and examine the final-head raw job logs before claiming the
-beta/RC warning acceptance check passed. This is a **release blocker**
-until #867 is accepted; do not close it solely because prior jobs were
-green.
+The **scoped warning-audit task #867 is COMPLETE/CLOSED** after
+maintainer-merged #868 (head `6daa508a`, merge `b7f303c3`). Its
+final-head and post-merge Push/PR Perl, jq 1.7 and packaging tests all
+passed, Codex found no remaining issues, and seven post-merge job logs
+contained no unexpected Perl test warnings. See the
+[scoped CI warning audit](v3-ci-warning-audit.md#final-verified-evidence-2026-10-23)
+for run URLs and the separate GitHub Action Node.js deprecation note.
+
+**Every later beta/RC candidate still must independently run** the shared
+`ci/fail-on-test-stderr.sh` gate on all Push/PR Perl jobs, jq
+differential tests and all three package test phases (source `make
+test`, `make disttest`, extracted-archive `make test`). The gate
+rejects unexpected stderr even when tests otherwise pass; there is no
+global warning suppression or catch-all allowlist. Reconfirm the
+intentional warning sentinel and inspect raw CI logs on the candidate
+head and synthetic PR merge. Historical #868 success cannot substitute
+for this final release-candidate gate.
 
 ## Candidate verification (record for **each** beta and RC head)
 
@@ -250,6 +257,7 @@ Never publish an underscore developer version as a stable release.
 | Full Perl matrix, Push HEAD SHA + PR merge SHA and run URLs | Previous #864 head `2410606a`: [Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538124269), [PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128367) | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
 | jq 1.7 differential, Push HEAD SHA + PR merge SHA and run URLs | Previous #864: [Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538124258), [PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128322) | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
 | CLI/Library + extracted-source disttest + clean install | Previous #864: [source-dist PR run](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128301), Perl 5.14 + latest | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
+| Clean warning gate (#867) | #867 closed after [merged #868](https://github.com/kawamurashingo/JQ-Lite/pull/868); [post-merge Perl](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435287), [jq](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435269), [package](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435373) | SCOPED GATE COMPLETE; RECHECK ON FINAL CANDIDATE |
 | Migration/README/Changes and Perl version-order decision | _pending_ | **BLOCKED: public version not selected** |
 | Final review and release approval | _pending_ | NOT APPROVED |
 
