@@ -60,10 +60,14 @@ This helper is wired to:
 The ordinary Perl workflow self-tests the checker with an intentionally
 generated warning whose stderr is captured and *not* printed as an
 actual warning annotation. CI must verify that this sentinel is rejected,
-while a clean command succeeds. The helper is part of `MANIFEST` and
-must ship in the candidate archive. This gate concerns **test-process
-stderr**; unrelated warnings from third-party GitHub Actions themselves
-are not incorrectly counted as Perl runtime warnings.
+while a clean command succeeds. The jq 1.7 differential runner used
+`diag` on its intentionally documented **known-difference** fixtures;
+that informational output is now emitted via Test::More `note` on TAP
+stdout instead. **Failure diagnostics** continue using `diag`/stderr
+so unexpected failures are not hidden. The helper is part of
+`MANIFEST` and must ship in the candidate archive. This gate concerns
+**test-process stderr**; unrelated warnings from third-party GitHub
+Actions themselves are not incorrectly counted as Perl runtime warnings.
 
 ## Sign-off before closing #867
 
