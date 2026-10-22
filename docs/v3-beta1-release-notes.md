@@ -156,9 +156,13 @@ release candidate; keep stable `main` / 2.x unchanged.
 
 ## Beta1 promotion gate (all evidence must match the final SHA)
 
-- [ ] Maintainer explicitly accepts bounded #623, #625 and #626
-  dispositions (and records their issue closure or a specific blocker).
-  #629 migration/matrix documentation is already closed; #627 is deferred.
+- [ ] Confirm **closed** #623 (arithmetic, merged #859) and #626
+  (assignment, merged #860) retain their approved practical-v2
+  boundaries. Finish and explicitly sign off **still-open #625**
+  (path/iterator), including reconciliation of the historical
+  semantic-differences inventory before its closure.
+  #629 migration/matrix documentation is closed; #627 is deferred.
+  This scope gate is distinct from publication approval.
 - [ ] Final candidate **Push HEAD** and its associated **PR
   head/base/synthetic-merge** identities are recorded with workflow URLs.
   All Perl **5.14, 5.26, 5.38, latest** Push and PR jobs pass.

@@ -1770,6 +1770,35 @@ run all final release/package/CLI/Library checks, obtain explicit
 maintainer publication approval and then tag/upload. No `main`
 change, tag or CPAN upload occurs from the beta1 planning PR.
 
+## Scoped issue acceptance and final inventory reconciliation (2026-10-21)
+
+The maintainer-merged #859 and #860 acceptance PRs have successful
+final-head Push/PR Perl 5.14/5.26/5.38/latest and jq 1.7 differential
+CI. [#623](https://github.com/kawamurashingo/JQ-Lite/issues/623)
+(typed arithmetic, 408 scoped cases) and
+[#626](https://github.com/kawamurashingo/JQ-Lite/issues/626)
+(ordinary/update/compound assignment, 101 scoped cases) are now
+**closed for their audited practical v2 baseline**, not for jq's complete
+expression or streaming language.
+
+[#625](https://github.com/kawamurashingo/JQ-Lite/issues/625) remains
+**open** although its #861 scope-freeze CI passed: Codex found that the
+historical [semantic-differences inventory](jq-semantics-differences.md)
+still called four specifically retained v2 path/iterator exceptions
+`undecided`, conflicting with #861 and migration/compatibility docs.
+Reconcile this inventory and finish its review before signing off
+#625. Remaining deliberately out-of-scope syntax is not a release
+parity requirement.
+
+After merged #864, the **internal-only** `3.00_0x` version policy
+also requires a final documentation correction: the `Changes`
+summary must say **every public beta or RC** (not just public RC)
+requires prior monotonic Perl version-order approval through stable.
+This does not choose a stable version or authorize any public beta/RC.
+All of #623/#625/#626's release scoping and version history are
+separate from the final RC distribution review and explicit
+publication approval.
+
 ## 3.0 release criteria
 
 JQ::Lite 3.0 is ready only when:
