@@ -64,10 +64,26 @@ while a clean command succeeds. The jq 1.7 differential runner used
 `diag` on its intentionally documented **known-difference** fixtures;
 that informational output is now emitted via Test::More `note` on TAP
 stdout instead. **Failure diagnostics** continue using `diag`/stderr
-so unexpected failures are not hidden. The helper is part of
-`MANIFEST` and must ship in the candidate archive. This gate concerns
-**test-process stderr**; unrelated warnings from third-party GitHub
-Actions themselves are not incorrectly counted as Perl runtime warnings.
+so unexpected failures are not hidden.
+
+**Child-process capture also needs an assertion:** the differential
+runner's `run_command()` captures each `jq-lite` subprocess's stderr.
+That captured stream does not reach the outer shell's stderr gate.
+The differential test now explicitly fails when **any successful**
+`jq-lite` execution has nonempty captured stderr, **including**
+intentionally known-difference fixtures. A separate subprocess probe
+uses a successful Perl child that intentionally writes a warning to
+stderr, proving this captured-stderr check detects it. Expected
+`[RUNTIME]` stderr from **nonzero** runtime-error outcomes remains
+available for diagnostic assertions, not treated as a success warning.
+This closes Codex's P1 observation on PR #868; final-head CI is
+required before acceptance.
+
+The helper is part of `MANIFEST` and must ship in the candidate
+archive. The shell gate concerns **test-process stderr** and the child
+assertion covers successful jq-lite subprocess stderr; unrelated
+warnings from third-party GitHub Actions themselves are not
+incorrectly counted as Perl runtime warnings.
 
 ## Sign-off before closing #867
 
