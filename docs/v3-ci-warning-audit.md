@@ -1,6 +1,6 @@
 # v3 CI warning audit — scoped #867
 
-**Status: proposed warning-clean release gate; not yet signed off.**
+**Status: scoped #867 COMPLETE/CLOSED after merged #868 and independently checked Push/PR CI.** This is not approval of any public beta/RC or the final 3.0 candidate.
 A successful TAP/Perl exit code does not mean the test emitted no warnings.
 GitHub Actions can annotate warning lines as `##[error]` without failing
 the job. Run the check against each **final** Push SHA and associated PR
@@ -23,9 +23,9 @@ All existing CI workflows completed successfully:
 
 All numbers are counts of matching **log lines** for these specific
 completed runs, not a blanket warning-free statement about every version.
-The old Perl failures originate from two implementations of the same
-path-sort comparator: `t/v3_paths_dispatch.t` and the cached path sort in
-`lib/JQ/Lite/Util/Transform.pm`. Each uses `return` within a Perl
+The old Perl failures originate from **three sort comparator sites**:
+two test reference comparators in `t/v3_paths_dispatch.t` and the cached
+runtime sort in `lib/JQ/Lite/Util/Transform.pm`. They used `return` within a Perl
 `sort { ... }` comparator; on older Perls a comparator result can be
 uninitialized. The new implementation uses a final-expression comparison
 chain with the same depth / parent-prefix / last-segment priority.
@@ -85,15 +85,45 @@ assertion covers successful jq-lite subprocess stderr; unrelated
 warnings from third-party GitHub Actions themselves are not
 incorrectly counted as Perl runtime warnings.
 
-## Sign-off before closing #867
+## Scoped #867 sign-off (completed after #868 merge)
 
-- [ ] New PR's **final HEAD and PR synthetic merge SHA** are recorded and
+- [x] New PR's **final HEAD and PR synthetic merge SHA** are recorded and
   green for all Perl matrix and jq 1.7 runs.
-- [ ] Both source-dist package jobs pass source/tree and extracted-archive
+- [x] Both source-dist package jobs pass source/tree and extracted-archive
   stderr gates; inspect their raw logs, not only run conclusions.
-- [ ] Test confirms warning sentinel causes a failed gate, and the
+- [x] Test confirms warning sentinel causes a failed gate, and the
   regular path-sorting regression remains warning-free on older Perl.
-- [ ] Confirm no new test process warnings have been introduced elsewhere;
+- [x] Confirm no new test process warnings have been introduced elsewhere;
   any warning must be investigated rather than globally suppressed.
-- [ ] Final Codex findings resolved, maintainer merges, #619 reflects
+- [x] Final Codex findings resolved, maintainer merges, #619 reflects
   completed release warning gate. No publication is implied by CI success.
+
+## Final verified evidence (2026-10-23)
+
+- #868 final head: `6daa508aaa4b8cc99e587c192b9205bd1095b956`;
+  merged onto `v3-dev` as `b7f303c3111f2c744bd555aa51a058a9e368eabe`.
+  Final-head [Perl Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39863749091),
+  [Perl PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39863754019),
+  [jq 1.7 Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39863748882),
+  [jq 1.7 PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39863754071),
+  and [package PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39863754003)
+  all passed; Codex final-head review had **no findings**, and the
+  captured-child-stderr P1 thread was resolved.
+- **Post-merge** [Perl Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435287)
+  (all four Perls), [jq 1.7 Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435269),
+  and [package Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435373)
+  (Perl 5.14 and latest, each running source, `disttest` and extracted-archive
+  tests) also passed. All **seven successful job logs** were inspected:
+  **zero** `Use of uninitialized value`, unexpected test error markers,
+  or warning-gate failures. Perl 5.14/5.26 regression tests and jq
+  differential subprocess warning probe are part of the suites.
+- **Unrelated toolchain warning:** the latest-Perl package job had one
+  `actions/upload-artifact@v4` Node.js 20 deprecation annotation. It
+  originates in the GitHub Action, **not** the Perl tests or jq-lite;
+  package tests and the warning-clean gate passed. Review action versions
+  separately when updating CI; do not misreport this as a Perl warning.
+
+The scope-specific warning gate is accepted and #867 is closed, but
+**every later beta/RC candidate commit and synthetic PR merge must rerun
+this gate independently**. The evidence above is a development checkpoint,
+not permission to publish a release or close #619/#625.
