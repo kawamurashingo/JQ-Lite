@@ -57,14 +57,12 @@ is_deeply(results($stream, '.[] | paths(scalars)'),
 sub reference_deletion_sort {
     my @paths = @_;
     return sort {
-        my $depth = @$b <=> @$a;
-        return $depth if $depth;
-        my $prefix = JQ::Lite::Util::_path_prefix_key($a)
-                   cmp JQ::Lite::Util::_path_prefix_key($b);
-        return $prefix if $prefix;
-        return JQ::Lite::Util::_compare_path_segments(
-            $b->[-1], $a->[-1]
-        );
+        (@$b <=> @$a)
+            || (JQ::Lite::Util::_path_prefix_key($a)
+                cmp JQ::Lite::Util::_path_prefix_key($b))
+            || JQ::Lite::Util::_compare_path_segments(
+                $b->[-1], $a->[-1]
+            );
     } @paths;
 }
 
@@ -94,8 +92,13 @@ my @sort_cases = (
 for my $case (@sort_cases) {
     my ($paths, $label) = @$case;
     my $before = $codec->encode($paths);
-    my @legacy = reference_deletion_sort(@$paths);
-    my @current = JQ::Lite::Util::_sort_paths_for_deletion(@$paths);
+    my (@legacy, @current, @warnings);
+    {
+        local $SIG{__WARN__} = sub { push @warnings, @_ };
+        @legacy = reference_deletion_sort(@$paths);
+        @current = JQ::Lite::Util::_sort_paths_for_deletion(@$paths);
+    }
+    is_deeply(\@warnings, [], "delpaths sort emits no warnings: $label");
     is_deeply(\@current, \@legacy, "delpaths sort order: $label");
     is_deeply([map { refaddr($_) } @current],
         [map { refaddr($_) } @legacy],
@@ -108,8 +111,14 @@ my @wide_paths = (
     map { ['items', $_] } 0 .. 256
 );
 push @wide_paths, ['root'], ['nested','array',2], ['nested','array',0];
-my @wide_reference = reference_deletion_sort(@wide_paths);
-my @wide_current = JQ::Lite::Util::_sort_paths_for_deletion(@wide_paths);
+my (@wide_reference, @wide_current, @wide_warnings);
+{
+    local $SIG{__WARN__} = sub { push @wide_warnings, @_ };
+    @wide_reference = reference_deletion_sort(@wide_paths);
+    @wide_current = JQ::Lite::Util::_sort_paths_for_deletion(@wide_paths);
+}
+is_deeply(\@wide_warnings, [],
+    '260-path sort emits no warnings on older Perl');
 is_deeply(\@wide_current, \@wide_reference,
     '260-path decorated sort retains old ordering');
 is_deeply([map { refaddr($_) } @wide_current],
