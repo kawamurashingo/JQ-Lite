@@ -117,7 +117,9 @@ while (my $line = <$fh>) {
             $match = !$jq_error && !$lite_error
                 && join("\n", @$jq_out) eq join("\n", @$lite_out);
         }
-        diag("$case->{name}: " . ($match ? 'now matches jq; review fixture status' : 'difference remains'));
+        # An intentional known-difference is TAP information, not a
+        # warning: keep it visible on stdout for the clean-stderr CI gate.
+        note("$case->{name}: " . ($match ? 'now matches jq; review fixture status' : 'difference remains'));
         next;
     }
 
