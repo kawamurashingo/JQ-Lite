@@ -51,8 +51,9 @@ behavior with tests and migration notes, or selected v3 corrections.
 
 [Draft internal RC1 notes](v3-rc1-release-notes.md) record **Perl
 developer version `3.00_03`** in a distinct candidate commit and
-source archive `JQ-Lite-3.00_03.tar.gz` (GitHub Actions artifact,
-**not published**). Previous beta1 `3.00_02` notes remain as a
+source archive `JQ-Lite-3.00_03.tar.gz` (historically downloadable
+as a GitHub Actions artifact until #886 stopped future uploads;
+**not a CPAN/PAUSE release**). Previous beta1 `3.00_02` notes remain as a
 historical, unpublished development checkpoint. This is **not a
 public release**, public SemVer RC tag, CPAN upload, or authorization
 to merge `v3-dev` into `main`.
@@ -74,9 +75,11 @@ version number, promotion, publication or a new stable candidate.
 newer than hypothetical stable `3.00` in Perl. Do not distribute
 any `3.00_0x` developer archive as a public beta/RC. A **public**
 beta or RC requires separately approved monotonically increasing
-versions through stable. If no developer/prerelease was ever publicly
-distributed, stable-only `3.00` may be considered, with internal
-tester reinstall caveats, but is **not yet approved**.
+versions through stable. Because one `3.00_03` tarball was accessible
+through public GitHub Actions, the current conservative preflight
+**blocks stable-only `3.00`**, even when the CPAN ledger shows only 2.59.
+A separate evidence-backed, maintainer-reviewed policy change would be
+required to reconsider this floor; no public number is approved.
 
 ## Historical beta1 candidate (2026-10-21)
 
@@ -87,8 +90,8 @@ release, stable 3.0 tag, or permission to switch `main`. The
 `3.00_01` development history remains preserved under its own
 `Changes` heading. For stable 3.0 the final approved version must
 remove the underscore **and resolve public version ordering**.
-Perl considers `3.00_02` newer than `3.00`: `3.00` is an option only
-if the `3.00_0x` developer train is permanently unpublished.
+Perl considers `3.00_02` newer than `3.00`: `3.00` is barred under the current conservative exposure floor
+from #887; a policy change would require separately reviewed evidence.
 The final stable number is **not yet selected**; see the
 [beta1 version policy](v3-beta1-release-notes.md#perl-developer-to-stable-ordering-release-blocker).
 
@@ -239,13 +242,18 @@ for this final release-candidate gate.
   strictly increasing public sequence from its first public version
   through eventual stable, using Perl's core `version` comparisons;
   the internal-only policy **cannot substitute** for this requirement.
-  **Stable-only publication, without any public beta/RC:** `3.00`
-  may be considered only if the maintainer verifies every
-  `3.00_0x` archive remained permanently unpublished, with
-  manual reinstall guidance for internal testers. If any prior
-  developer/prerelease was publicly distributed, the approved
-  stable version must compare strictly greater than every such
-  predecessor. Final stable Perl number remains **undecided**.
+  **Important update after #886:** GitHub Actions held publicly
+  readable source artifacts, including one inspected
+  `JQ-Lite-3.00_03.tar.gz`. A metadata audit counted 92 unexpired
+  `v3-unreleased-source-*` artifacts. These are NOT CPAN/PAUSE
+  releases, but they invalidate the assumption of total external
+  inaccessibility. **Stable-only `3.00` is now blocked by the
+  conservative release floor**, even if the CPAN history input
+  lists only 2.59. The approved future stable version must compare
+  strictly greater than `3.00_03` under Perl core `version`.
+  `3.01` is only an illustrative numeric example, not an approved
+  public release. A different treatment requires a separate
+  evidence-backed maintainer-reviewed policy decision.
   Independently inspect real CPAN/version history, public GitHub
   Releases/tags and any publicly offered install URLs (not just this
   repository's internal CI artifacts). Record every actually
@@ -321,23 +329,24 @@ The following commands are **illustrative tests only**, not a
 selection of a future stable version:
 
 ```sh
-# Illustrative stable-only history; use ONLY after confirming that
-# these are the complete publicly distributed predecessors.
+# This intentionally FAILS under the confirmed GitHub Actions
+# developer-archive exposure floor even with CPAN 2.59 only.
 perl ci/check-public-version-order.pl --history-reviewed \
     --published 2.59 --planned 3.00
 
-# This intentionally FAILS: an underscored developer artifact, if
-# previously made public, compares greater than stable 3.00.
+# Illustrative numerical preflight ONLY, requiring independently
+# complete public history and separate maintainer sign-off.
 perl ci/check-public-version-order.pl --history-reviewed \
-    --published 2.59 --published 3.00_03 --planned 3.00
+    --published 2.59 --planned 3.01
 ```
 
 The real publication decision must separately confirm that **all**
-known public predecessor distributions were included (and that
-`3.00_0x` development builds were not publicly distributed if
-stable-only `3.00` is being considered), select the proposed
-version numbers, approve the order, and test the exact resulting
-public candidate. Even a `PASS` is not approval to publish.
+known public predecessor distributions and public CI artifact exposure
+were reviewed, reconcile the missing original PAUSE upload order and
+external redistribution, select the actual candidate version, approve
+the order, and test the exact resulting public candidate. Even a
+`PASS` is not approval to publish, and currently **`--history-reviewed`
+cannot be honestly asserted from the partial collected evidence**.
 
 ### Source-distribution CI (pre-release package gate)
 
@@ -357,9 +366,9 @@ that exact tarball into a clean directory and runs a separate
 `perl Makefile.PL`, `make` and full `make test` against its contents
 before `make install` to a temporary `INSTALL_BASE`. It then changes
 out of the extracted source tree and checks the installed Library
-and CLI without relying on source-tree modules. A short-lived
-**unreleased candidate source tarball** is retained as a CI artifact
-on the latest-Perl job; this is **not** a GitHub release or CPAN upload.
+and CLI without relying on source-tree modules. The built developer tarball stays local to the CI runner. Since #886,
+it is **not uploaded** as a downloadable Actions artifact; its SHA-256
+is printed in CI logs. This is neither a GitHub Release nor CPAN upload.
 
 The workflow prints the checked-out ref SHA for every event;
 PR runs also print the explicit PR head SHA, base SHA and synthetic

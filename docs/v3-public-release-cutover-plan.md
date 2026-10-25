@@ -44,9 +44,17 @@ installation, CLI/Library contracts, and warning-clean test runs.
 Merged [#880](https://github.com/kawamurashingo/JQ-Lite/pull/880)
 finished at `40d15e0f041c34fcf6fdf1aab120c48b57cb29ca`;
 its **final-head** Perl, jq differential and source-dist CI passed.
-The observation workflow completed as designed, but **BackPAN remained
-unavailable via TLS verification and the release audit is BLOCKED**.
-Green *collection* CI must never be interpreted as history sign-off.
+The original #880 BackPAN global index workflow failed TLS
+verification, but later checks recovered the 3 historical BackPAN
+tarballs and compared **259 BackPAN author releases against 259
+MetaCPAN releases**, with zero version-set discrepancies. A separate
+CPAN Testers upload feed contains **269 records for 259 versions**,
+including duplicates and a missing-metadata epoch-sentinel record.
+After #886, newly built v3 developer tarballs are no longer uploaded
+as GitHub Actions artifacts, but **92 prior artifact entries were
+still unexpired** in the repository-wide exposure audit. The
+public-history and release gates therefore remain **BLOCKED**.
+Green *collection* CI is not historical sign-off.
 
 Observed external facts (not a complete public publication ledger):
 
@@ -109,13 +117,24 @@ alone is not a publication history audit.
 
 ## After history review: choose and verify the final candidate
 
-1. **Version proposal / human approval:** If *no* `3.00_0x`
-   developer candidate or other higher version was ever publicly
-   distributed, a **stable-only `3.00`** could be proposed; otherwise
-   choose a public number strictly above *every* predecessor according
-   to core Perl `version` ordering. No version number is approved yet.
-   Any public beta/RC route needs its full monotonic sequence through
-   stable, and must not use internal `3.00_0x`.
+1. **Version proposal / human approval:** After
+   [#886](https://github.com/kawamurashingo/JQ-Lite/pull/886),
+   an actual GitHub Actions ZIP was verified to contain an accessible
+   `JQ-Lite-3.00_03.tar.gz`; a paginated metadata audit also found
+   **92 still-unexpired** `v3-unreleased-source-*` artifacts.
+   These are **not PAUSE/CPAN uploads**, but exposure is a real
+   distribution channel. **The former hypothetical stable-only
+   `3.00` path is no longer permitted under the current conservative
+   release policy.** The offline version preflight now demands that
+   every *new* proposed public version exceed the observed developer
+   artifact `3.00_03` under Perl `version` ordering, independent of
+   the as-yet-unverified PAUSE chronology. A number like `3.01` is
+   only an **illustrative upper-bound candidate**, neither selected
+   nor enough by itself to authorize a release. A different treatment
+   of exposure would require a separate evidence-backed, maintainer-
+   reviewed policy change. Any public beta/RC route needs a strictly
+   monotonic prerelease-to-stable sequence and must not republish
+   internal `3.00_0x`.
 2. **Reproducible preflight:** With the complete independently reviewed
    chronological `--published-file`, run the existing strict
    `ci/check-public-version-order.pl --history-reviewed` preflight.

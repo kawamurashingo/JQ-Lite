@@ -64,24 +64,28 @@ It is not an assessment that 92 archives were actually downloaded.
    releases, direct Actions artifact URLs, installer scripts and
    mirrors. Treat source contents and artifact access as independent
    from actual PAUSE/CPAN publication history.
-5. **Human version decision**: specify a policy for whether an openly
-   downloadable Actions internal dev tarball must be treated as a
-   prior public version for Perl monotonic numbering. Document the
-   policy, evidence reviewed, any disputed cases, and explicit
-   maintainer sign-off before running
-   `ci/check-public-version-order.pl --history-reviewed`.
+5. **Conservative version gate (#887)**: the offline preflight treats
+   confirmed public Actions accessibility of `3.00_03` as a version
+   floor **independent of PAUSE publication status**. The first planned
+   public version must compare strictly higher under Perl `version`.
+   Changing this protective policy requires a separate evidence-backed,
+   maintainer-reviewed PR. This is not a claim of CPAN publication or
+   permission to use `--history-reviewed`; the actual PAUSE history,
+   external distribution channels, and final maintainer decision
+   remain unresolved.
 
 ## Numeric version decision boundaries (illustrative, not approval)
 
 Perl's `version->parse("3.00_03")` sorts **higher** than
-`version->parse("3.00")`; publishing stable `3.00`
-**after** a prior publicly distributed `3.00_03` would violate
-the project's strict monotonicity rule.
+`version->parse("3.00")`. Because an actual `3.00_03` source tarball
+was available through public Actions, the current conservative policy
+**blocks stable `3.00`** without claiming a PAUSE/CPAN release or
+a proven external download.
 
 | Scenario after human evidence review | Consequence |
 | --- | --- |
-| A complete history confirms no internal `3.00_0x` was ever treated as public distribution | Stable-only `3.00` may be assessed, but is **not approved** |
-| `3.00_03` or another 3.x candidate must be counted as previously publicly distributed | Do **not** select stable `3.00`; propose a stable version above the maximum Perl-parsed predecessor, subject to a complete chronological ledger and explicit approval |
+| A PAUSE audit shows no developer upload, but the confirmed Actions tarball remains accessible historically | Under the current conservative #887 floor, stable `3.00` is **blocked**; reconsideration requires a separately reviewed policy change |
+| `3.00_03` is part of the confirmed public Actions exposure (regardless of PAUSE status) | Only versions strictly above the exposure floor can pass the numeric preflight; no version is selected and the history gate remains blocked |
 | Existing history cannot distinguish exposure from actual distribution or lacks PAUSE upload chronology | **BLOCKED**; do not invent a published-version ledger or grant `--history-reviewed` approval |
 
 **Required approvals before publication:** documented upload history

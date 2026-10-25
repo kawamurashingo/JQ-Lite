@@ -6,6 +6,13 @@ use version ();
 
 # Offline preflight only. The caller MUST independently audit the actual
 # publication history; this script cannot query CPAN/GitHub Releases.
+# Conservative policy after PR #886: one actual public-repository Actions
+# artifact ZIP was inspected and contained JQ-Lite-3.00_03.tar.gz.
+# https://github.com/kawamurashingo/JQ-Lite/actions/runs/40188275036/artifacts/12597242129
+# This is observed public *accessibility*, NOT proof of a PAUSE upload
+# or any particular download. Require an increasing future public version
+# over this known exposed build unless a later reviewed policy PR revises it.
+my $known_exposed_developer_version = '3.00_03';
 my (@published, @planned, $published_file, $history_reviewed, $ack_historical, $help);
 GetOptions(
     'published=s'      => \@published,
@@ -30,6 +37,10 @@ The last --planned version must be stable (no underscore).
 Past public versions may contain real historical order regressions.
 Those require an additional explicit acknowledgement, and future public
 versions must exceed EVERY historical version and strictly increase.
+This also applies a conservative minimum version-order floor after
+confirmed public GitHub Actions accessibility of developer build 3.00_03.
+The floor does not claim a CPAN upload, public download or release.
+Changing that floor requires separately reviewed historical evidence.
 This checks numeric Perl version ordering, not publication history.
 No release is authorized or performed by this tool.
 USAGE
@@ -125,12 +136,30 @@ for my $i (1 .. $#future) {
         unless $previous->[2] < $current->[2];
 }
 
+# A source tarball named JQ-Lite-3.00_03.tar.gz was publicly
+# accessible as a GitHub Actions artifact even though CPAN/MetaCPAN's
+# observed published inventories contain no 3.x release. The policy
+# floor is deliberately checked separately from the PAUSE history
+# maximum: absence from a CPAN ledger must not silently clear exposure.
+my $exposed_parsed = version->parse($known_exposed_developer_version);
+if (!($exposed_parsed < $future[0][2])) {
+    die "Proposed public version $future[0][1] does not exceed known "
+        . "GitHub Actions developer artifact exposure baseline "
+        . "$known_exposed_developer_version. A public CI tarball is NOT "
+        . "a PAUSE upload, but stable 3.00 is blocked under the "
+        . "conservative public-distribution policy. Independently "
+        . "review evidence and version decision; no release authorized.\n";
+}
+
 if (@historical_regressions) {
     print "Historical public version regressions: ",
         scalar(@historical_regressions),
         " acknowledged after independent history review; ",
         "no retroactive repair or publication authorized.\n";
 }
+print "Conservative public-CI developer artifact exposure floor: ",
+    $known_exposed_developer_version,
+    " (not a PAUSE upload or release approval).\n";
 print "Perl public-version order: PASS (", scalar(@published),
     " audited public predecessors; ", scalar(@planned),
     " proposed future versions). No publication authorized.\n";
