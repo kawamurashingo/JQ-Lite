@@ -359,6 +359,7 @@ t/v3_cpan_index_inventory.t
 t/v3_cpan_history_reconciliation.t
 t/v3_backpan_cpan_comparison.t
 t/v3_backpan_index_inventory.t
+t/v3_metacpan_release_inventory.t
 t/v3_arithmetic_contract.t
 t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t
