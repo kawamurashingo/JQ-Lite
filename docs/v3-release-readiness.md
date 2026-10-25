@@ -19,9 +19,9 @@ additional micro-optimizations. Existing acknowledged jq differences are
 not automatically blockers: explicitly decide whether they are retained v2
 behavior with tests and migration notes, or selected v3 corrections.
 
-## Proposed INTERNAL RC1 checkpoint (2026-10-25)
+## Validated INTERNAL RC1 checkpoint (2026-10-25)
 
-[Draft internal RC1 notes](v3-rc1-release-notes.md) stage **Perl
+[Draft internal RC1 notes](v3-rc1-release-notes.md) record **Perl
 developer version `3.00_03`** in a distinct candidate commit and
 source archive `JQ-Lite-3.00_03.tar.gz` (GitHub Actions artifact,
 **not published**). Previous beta1 `3.00_02` notes remain as a
@@ -36,8 +36,11 @@ were reconciled by [merged #865](https://github.com/kawamurashingo/JQ-Lite/pull/
 passed Perl and jq 1.7 Push/PR suites and source-package CI; the
 Codex final-head review was clean. The already closed #867 warning
 gate also passed on the merged #868 baseline. **These are scoped
-decisions only**; the independent RC1 HEAD/PR synthetic merge, archive,
-CLI/Library, warning-clean and final Codex checks remain pending.
+decisions only**; #869 independently validated the RC1 candidate
+HEAD, PR synthetic merge, actual extracted archive, CLI/Library,
+warning-clean tests and Codex, recorded by merged #870 below.
+That internal technical result is **not** approval of a public
+version number, promotion, publication or a new stable candidate.
 
 **Public version numbering remains blocked:** `3.00_03` compares
 newer than hypothetical stable `3.00` in Perl. Do not distribute
