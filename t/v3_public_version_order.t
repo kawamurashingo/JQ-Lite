@@ -66,6 +66,13 @@ ok($internal_dev->{rc} != 0,
 like($internal_dev->{stderr}, qr/Internal-only 3.00_0x/,
     'internal candidate rejection is explicit');
 
+my $prefixed_internal_dev = invoke('--history-reviewed',
+    '--planned', 'v3.00_03', '--planned', '3.01');
+ok($prefixed_internal_dev->{rc} != 0,
+    'v-prefixed internal developer version cannot bypass public-version gate');
+like($prefixed_internal_dev->{stderr}, qr/Internal-only 3.00_0x/,
+    'v-prefixed developer version is rejected before public publication');
+
 my $prerelease_downgrade = invoke('--history-reviewed',
     '--planned', '3.01_01', '--planned', '3.01');
 ok($prerelease_downgrade->{rc} != 0,

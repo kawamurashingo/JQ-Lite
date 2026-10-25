@@ -43,6 +43,7 @@ lib/JQ/Lite/Util/Transform.pm
 LICENSE
 ci/fail-on-test-stderr.sh
 ci/check-public-version-order.pl
+ci/inventory-cpan-jq-lite-index.pl
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
@@ -348,6 +349,7 @@ t/v3_shared_median_projection.t
 t/v3_practical_path_audit.t
 t/v3_release_metadata.t
 t/v3_public_version_order.t
+t/v3_cpan_index_inventory.t
 t/v3_arithmetic_contract.t
 t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t

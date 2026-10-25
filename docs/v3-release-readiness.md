@@ -269,6 +269,13 @@ of those *past* anomalies only. The new release must always exceed
 the **all-time maximum** published version, never just the last
 historical version; future releases must strictly increase.
 
+An offline [CPAN archive inventory helper](v3-public-distribution-evidence.md#offline-cpan-author-index-inventory-not-a-publication-ledger)
+can extract observed tarball names and directory modification times
+from a locally saved author-index HTML file. Its TSV is only a
+**reconciliation aid**: it is not a chronological publication
+ledger and cannot substitute for independent PAUSE/upload and external
+distribution review. The helper never marks history reviewed.
+
 For a large public distribution history, prefer
 `--published-file PATH` to manually copying hundreds of
 `--published VERSION` flags. The UTF-8/ASCII plain-text file must

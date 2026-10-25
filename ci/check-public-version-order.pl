@@ -82,7 +82,7 @@ for my $pair (
     die "Invalid Perl version string: $literal\n"
         unless $literal =~ /\A(?:v)?\d+(?:\.\d+)+(?:_\d+)?\z/;
     die "Internal-only 3.00_0x developer versions cannot be planned for publication: $literal\n"
-        if $kind eq 'planned' && $literal =~ /\A3\.0+_\d+\z/;
+        if $kind eq 'planned' && $literal =~ /\A(?:v)?3\.0+_\d+\z/;
     my $parsed = eval { version->parse($literal) };
     die "Cannot parse Perl version $literal: $@\n" if $@;
     push @sequence, [$kind, $literal, $parsed];
