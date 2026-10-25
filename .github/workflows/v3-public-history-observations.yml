@@ -63,8 +63,9 @@ jobs:
             fi
           done
           if [ "$cpan_found" -ne 1 ]; then
-            echo 'No verified HTTPS CPAN mirror downloaded successfully; audit stays BLOCKED.' >&2
-            exit 1
+            printf 'AUDIT_STATUS=BLOCKED_CPAN_SOURCE_UNAVAILABLE\n' >> "$output/provenance.txt"
+            echo '::warning title=Public-history audit incomplete::No verified HTTPS CPAN mirror available. No release attestation.'
+            exit 0
           fi
           # Hash the selected original before parsing. No fallback is
           # permitted after a successful download, even if parsing fails.
@@ -75,12 +76,24 @@ jobs:
           printf 'CPAN_FETCH_END_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
           # Preserve verified CPAN evidence even if BackPAN TLS fails.
           printf 'CPAN_OBSERVED_COUNT=%s\n' "$(tail -n +2 "$output/cpan-observed.tsv" | wc -l | tr -d ' ')" >> "$output/provenance.txt"
-          curl --fail --location --silent --show-error --retry 2 \
+          if curl --fail --location --silent --show-error --retry 2 \
             --connect-timeout 15 --max-time 150 \
             -D "$output/http/backpan-headers.txt" \
             -o "$output/originals/backpan-releases-by-dist-index.txt.gz" \
-            https://backpan.cpantesters.org/backpan-releases-by-dist-index.txt.gz
-          printf 'BACKPAN_FETCH_END_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
+            https://backpan.cpantesters.org/backpan-releases-by-dist-index.txt.gz; then
+            printf 'BACKPAN_FETCH_END_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
+          else
+            fetch_rc=$?
+            printf 'BACKPAN_FETCH_CURL_EXIT=%s\n' "$fetch_rc" >> "$output/provenance.txt"
+            printf 'AUDIT_STATUS=BLOCKED_BACKPAN_SOURCE_UNAVAILABLE\n' >> "$output/provenance.txt"
+            # Retain a hash even for a possibly partial download; never parse it.
+            if [ -f "$output/originals/backpan-releases-by-dist-index.txt.gz" ]; then
+              (cd "$output" && sha256sum originals/backpan-releases-by-dist-index.txt.gz >> SHA256SUMS)
+              printf 'BACKPAN_DOWNLOAD_UNVERIFIED=1\n' >> "$output/provenance.txt"
+            fi
+            echo "::warning title=Public-history audit incomplete::BackPAN download failed (curl $fetch_rc). The raw CPAN snapshot remains preserved; publication remains blocked."
+            exit 0
+          fi
 
           # The independently downloaded gzip is hashed before parsing.
           (cd "$output" && sha256sum originals/backpan-releases-by-dist-index.txt.gz >> SHA256SUMS)
@@ -103,14 +116,35 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Reject missing, ambiguous, or failed capture
+      - name: Classify snapshot result (audit always needs human signoff)
         if: always()
         env:
           CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
         shell: bash
         run: |
+          set -euo pipefail
+          provenance="$RUNNER_TEMP/v3-public-history-observations/provenance.txt"
           if [ "$CAPTURE_OUTCOME" != success ]; then
-            echo 'Evidence collection or set reconciliation is incomplete; audit remains BLOCKED.' >&2
+            echo '::error title=Public-history observation validation failed::Downloaded source could not be parsed, contained an internal artifact, or yielded unreconciled observations.'
+            echo 'AUDIT_STATUS=BLOCKED_VALIDATION_FAILURE' >> "$provenance"
             exit 1
           fi
-          echo 'Observed source sets matched in this snapshot only; PAUSE/public release audit remains BLOCKED.'
+          if grep -Eq '^AUDIT_STATUS=BLOCKED_(CPAN|BACKPAN)_SOURCE_UNAVAILABLE
+ "$provenance"; then
+            echo '::warning title=Public-history evidence unavailable::The snapshot job handled an unreachable HTTPS source; this is NOT a successful public-history audit.'
+            {
+              echo '### Public-history audit: BLOCKED (remote source unavailable)'
+              echo 'The collection workflow completed safely, but required public evidence could not be downloaded.'
+              echo 'No CPAN/PAUSE chronology, complete ledger, version approval or publication is authorized.'
+              echo 'Inspect the retained artifact, provenance and fetch logs.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! grep -Fq 'COMPARISON_EXIT=0 (SET_OBSERVATIONS_MATCH_ONLY)' "$provenance"; then
+            echo '::error::Neither a verified observation comparison nor a documented source-unavailable status was produced.'
+            exit 1
+          fi
+          {
+            echo '### Public-history audit: BLOCKED (source sets agree only)'
+            echo 'This is an observation set comparison, not original PAUSE chronology or release approval.'
+          } >> "$GITHUB_STEP_SUMMARY"
