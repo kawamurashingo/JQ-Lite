@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Getopt::Long qw(GetOptions);
 use JSON::PP ();
+use Time::Local qw(timegm);
 
 # Observational CPAN Testers data can include repeat uploads or incomplete
 # historic records. Preserve them; never invent missing fields or dates.
@@ -52,8 +53,25 @@ for my $r (@$rows) {
     $filename = '' unless defined $filename;
     $author = '' unless defined $author;
     my $date = $r->{released};
-    die "Invalid CPAN Testers release date at row $n\n"
-        unless $date =~ /\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)\z/;
+    # Public API documents UTC Z timestamps. Reject offsets/fractions
+    # instead of sorting differently formatted strings as chronology.
+    die "Invalid CPAN Testers UTC timestamp shape at row $n\n"
+        unless $date =~ /\A(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)Z\z/;
+    my ($year, $mon, $day, $hour, $minute, $second) =
+        ($1, $2, $3, $4, $5, $6);
+    die "Invalid CPAN Testers UTC clock/calendar fields at row $n\n"
+        if $mon < 1 || $mon > 12 || $day < 1 || $day > 31
+            || $hour > 23 || $minute > 59 || $second > 59;
+    my $epoch = eval {
+        timegm($second, $minute, $hour, $day, $mon - 1, $year)
+    };
+    die "Invalid CPAN Testers UTC calendar date at row $n\n"
+        if $@ || !defined($epoch);
+    my @utc = gmtime($epoch);
+    die "Nonexistent CPAN Testers UTC calendar date at row $n\n"
+        unless $utc[5] + 1900 == $year && $utc[4] + 1 == $mon
+            && $utc[3] == $day && $utc[2] == $hour
+            && $utc[1] == $minute && $utc[0] == $second;
     my $type = exists $r->{type} && defined $r->{type}
         ? $r->{type} : 'unreported';
     die "Invalid CPAN Testers upload type at row $n\n"
