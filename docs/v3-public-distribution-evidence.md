@@ -30,6 +30,32 @@ or the specifically inspected MetaCPAN latest release page. This
 **does not prove** that any `3.00_0x` artifact was never publicly
 distributed, nor that all public predecessors have been identified.
 
+## Confirmed historical Perl ordering anomaly (not a complete audit)
+
+The [CPAN SHINGO author tarball index](https://www.cpan.org/authors/id/S/SH/SHINGO/)
+lists `JQ-Lite-0.99.tar.gz` at **2025-10-13 01:26** and
+`JQ-Lite-0.100.tar.gz` at **2025-10-13 03:50** (directory times).
+[MetaCPAN 0.99](https://metacpan.org/release/SHINGO/JQ-Lite-0.99)
+independently records the earlier 0.99 release. Under Perl's core
+`version` module, `version->parse('0.99') >
+version->parse('0.100')`: **the later public filename sorts lower**.
+This is a *historical* inversion, not a suggested v3 version or a
+claim to have reconstructed the whole CPAN/PAUSE upload history.
+
+`ci/check-public-version-order.pl` now reports any historical
+non-increase relative to the highest older public version; only after
+separate `--history-reviewed` and explicit
+`--acknowledge-historical-regressions` attestations can such
+historical observations be tolerated. **The first planned public
+version must still be strictly above the historical maximum**, and
+every later planned version must be strictly increasing. No historical
+inversion can be repaired by pretending an old tarball was never public.
+
+The [Alpine edge community package](https://pkgs.alpinelinux.org/package/edge/community/x86_64/jq-lite)
+is currently listed as `jq-lite 2.49-r0` for x86_64. That confirms
+a separate downstream publication route but does not audit every
+architecture/branch, old artifact or external mirror.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,

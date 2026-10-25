@@ -87,7 +87,62 @@ ok($out_of_order_plan->{rc} != 0,
 my $unsorted_history = invoke('--history-reviewed', '--published', '2.59',
     '--published', '2.58', '--planned', '3.00');
 ok($unsorted_history->{rc} != 0,
-    'chronologically supplied public history must itself increase');
+    'historical non-increase cannot be silently ignored');
+like($unsorted_history->{stderr}, qr/acknowledge-historical-regressions/,
+    'actual historical regressions require separate human acknowledgement');
+
+# Both 0.99 and the later 0.100 appear in the CPAN author index dated
+# 2025-10-13. Perl treats 0.100 as LOWER than 0.99. These examples are
+# regression fixtures, not a complete audited publication ledger.
+my @old_public_history = (
+    '--history-reviewed', '--published', '0.99', '--published', '0.100'
+);
+my $actual_old_inversion = invoke(@old_public_history, '--planned', '1.00');
+ok($actual_old_inversion->{rc} != 0,
+    'observed old CPAN inversion must be acknowledged explicitly');
+like($actual_old_inversion->{stderr}, qr/0\.99 is not below 0\.100/,
+    'diagnostic identifies the actual numeric reversal');
+
+my $acknowledged_old_history = invoke(
+    @old_public_history, '--acknowledge-historical-regressions',
+    '--planned', '1.00'
+);
+is($acknowledged_old_history->{rc}, 0,
+    'historical inversion can be acknowledged for an illustrative safe future');
+like($acknowledged_old_history->{stdout}, qr/Historical public version regressions: 1 acknowledged/,
+    'passing result makes historical irregularity visible');
+like($acknowledged_old_history->{stdout}, qr/No publication authorized/,
+    'historical acknowledgement is never release permission');
+
+my $below_historical_peak = invoke(
+    @old_public_history, '--acknowledge-historical-regressions',
+    '--planned', '0.50'
+);
+ok($below_historical_peak->{rc} != 0,
+    'planned version newer than latest 0.100 but below old peak 0.99 fails');
+like($below_historical_peak->{stderr}, qr/historical maximum 0\.99/,
+    'future candidate is compared against historical peak, not last release');
+
+my $equal_historical_peak = invoke(
+    @old_public_history, '--acknowledge-historical-regressions',
+    '--planned', '0.99'
+);
+ok($equal_historical_peak->{rc} != 0,
+    'a candidate equal to an older public maximum is rejected');
+
+my $future_drop_with_ack = invoke(
+    @old_public_history, '--acknowledge-historical-regressions',
+    '--planned', '1.00', '--planned', '0.99'
+);
+ok($future_drop_with_ack->{rc} != 0,
+    'acknowledging the past cannot waive strict order among future releases');
+
+my $unreviewed_ack = invoke(
+    '--published', '0.99', '--published', '0.100',
+    '--acknowledge-historical-regressions', '--planned', '1.00'
+);
+ok($unreviewed_ack->{rc} != 0,
+    'historical acknowledgement cannot bypass the full-history attestation');
 
 my $same_number = invoke('--history-reviewed',
     '--published', '2.59', '--planned', '2.59');
