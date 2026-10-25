@@ -4,8 +4,11 @@ This release-scope audit distinguishes ordinary `=`, the audited v3
 `|=` update, and retained v2 compound assignment. They intentionally
 do not share every path, type or stream rule. The selected practical-v2
 baseline remains the release target, not full jq assignment grammar.
-Issue #626 stays open until the scoped release decision and CI/review
-are accepted; documenting a known difference does not claim jq parity.
+Issue [#626](https://github.com/kawamurashingo/JQ-Lite/issues/626)
+is **closed for this explicitly bounded practical-v2 assignment scope**
+after merged PR #860 passed final-head Push/PR Perl and jq 1.7 CI.
+Documenting a retained difference does **not** claim jq parity or
+promise unsupported assignment syntax.
 
 ## Supported practical forms
 
@@ -56,7 +59,7 @@ available. Slice/computed plain targets require a separate design rather
 than a partial-prefix fallback. Read-side slicing and valid literal-index
 assignment keep their existing behavior.
 
-## Intentional v2 compatibility differences (proposed 3.0 decision)
+## Intentional v2 compatibility differences (accepted 3.0 scope)
 
 | Example | Current JQ::Lite | jq 1.7 |
 | --- | --- | --- |
@@ -82,7 +85,7 @@ fixtures without freezing their incidental fallback values as a Library
 contract. In particular, an expression such as `.a = .b + 1` is not
 advertised as general filter-valued plain assignment.
 
-## Proposed 3.0 release disposition for #626
+## Accepted 3.0 practical-scope disposition for #626
 
 **Retain v2 behavior where already established.** The 23 ordinary assignment
 cases preserve literal/variable/path RHS evaluation on the original root,
@@ -116,9 +119,10 @@ fixtures, but their JQ::Lite structured `Evaluation` error is guaranteed
 by local regression. The other six unsupported multi-path, arbitrary
 plain-RHS or negative-update stream forms have **no guaranteed result**
 and **no Library result snapshot**; do not accidentally freeze their
-fallback values. Do not expand those forms solely to close #626.
+fallback values. Those forms remain outside the closed #626 practical
+scope; any expansion requires a separate review and regression tests.
 
-For release sign-off, the 101 assignment-scope fixtures must remain
+The closed #626 release-scope contract requires the 101 assignment fixtures to remain
 classified as **40 compatible / 39 known-difference / 22 unsupported**
 across the five documented scopes. The 95 supported or rejected result
 snapshots must preserve **77 successful results / 18 structured
@@ -128,11 +132,14 @@ runtime errors**, including output order/cardinality and the Library
 numeric-string compound behavior. Existing 65 plain/compound snapshots
 can still be compared to stable v2.59 with `JQ_AUDIT_V2=1`.
 
-This is a release **scope proposal**, not a declaration that full #626,
-the CLI/package candidate, or v3 itself is already signed off. Final-head
-Push CI, associated PR-merge CI, jq 1.7 differential checks and Codex
-review must pass before closing the issue. See
-[release readiness](v3-release-readiness.md).
+**Scope accepted and issue #626 closed** following the merged
+[#860](https://github.com/kawamurashingo/JQ-Lite/pull/860) review
+and final-head Push/PR Perl and jq 1.7 differential CI.
+This signs off **only the supported practical-v2 assignment subset**:
+40 compatible, 39 known differences and 22 unsupported cases;
+it neither promises full jq assignment grammar nor declares beta1,
+RC1, packaging or v3 publication approved. Those separate gates
+remain in [release readiness](v3-release-readiness.md).
 
 ## Reproducible behavior matrix
 

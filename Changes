@@ -1,7 +1,7 @@
 3.00_02  2026-10-21
     [Developer release — beta1 candidate, NOT published]
     - Gate successful Perl/jq/package tests against unexpected warnings and fix legacy path deletion-sort comparator warnings on older Perl versions; no jq feature expansion.
-    - Document that Perl treats 3.00_02 as newer than stable 3.00; keep all 3.00_0x developer archives permanently unpublished and require an explicit monotonic-version decision before any public RC/stable publication.
+    - Document that Perl treats 3.00_02 as newer than stable 3.00; keep all 3.00_0x developer archives permanently unpublished. Any public beta or RC requires advance approval of a strictly increasing Perl version sequence through stable. Stable-only 3.00 remains conditional on no developer archive ever being published.
     - Stage the scoped 3.0 beta1 developer-release version and draft release notes; no public tag, CPAN upload or stable publication.
     - Preserve the documented practical v2.59 baseline, selected jq 1.7 semantic corrections, CLI/Library contract, Perl 5.14+, and existing dependencies.
     - Require final candidate Perl/jq CI, extracted-tarball tests, clean install, maintainer scope sign-off and final Codex review before promotion.

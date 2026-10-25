@@ -41,14 +41,26 @@ the PR packaging workflow passed the extracted-tarball full suite,
 latest. That is a **previous development-version packaging baseline**,
 not CI evidence for `3.00_02`; do not reuse it to sign off this beta.
 
-Scoped freeze PRs #859 (arithmetic), #860 (assignment/update) and #861
-(path/iterator) are merged, and documentation issue #629 is already
-closed. Parent roadmap issue checkboxes and child issues #623/#625/#626
-still require explicit reconciliation/acceptance. Their scoped decisions
-do not imply exhaustive jq feature parity or automatic issue closure.
-The beta1 candidate must rerun the complete matrix and get approval
-on **its own final HEAD and PR synthetic merge**. Earlier alpha milestones
-are not retroactively claimed as published releases.
+Scoped freeze PRs #859 (arithmetic), #860 (assignment/update) and
+#861 (path/iterator) are merged. **#623 and #626 were closed** on
+2026-10-21 after verifying their final-head Push/PR Perl and jq 1.7 CI
+and the documented bounded scope. Documentation issue #629 is closed.
+**#625 remains open** until the original
+`docs/jq-semantics-differences.md` inventory is reconciled with #861's
+four intentionally retained jq differences (a P2 review finding) and
+accepted on its own final reviewed PR. Closing scoped issues does **not**
+constitute approval of the complete beta/RC candidate or full jq parity.
+
+The internal `3.00_02` beta1 candidate PR #863 and public-version policy
+PR #864 are also merged, each with successful final-head Push/PR Perl
+and jq 1.7 tests and PR distribution packaging checks; **both had
+additional review findings discovered before merge**. The last
+remaining #864 P1 called out the need for **public beta** version-order
+approval in the `Changes` summary as well as the existing public RC
+and stable gates. Do not treat their successful CI as resolution of that
+review finding. The candidate must rerun its matrix on the **new final
+reviewed head and synthetic merge**. Earlier alpha milestones are not
+retroactively claimed as published releases.
 
 ## Baseline snapshot (2026-10-20)
 
@@ -68,19 +80,21 @@ automatically approved release semantics. Cases marked unsupported do not
 become supported merely by passing the test suite. Rerun and recount on the
 actual candidate commit; do not treat this snapshot as a frozen denominator.
 
-## Scope decisions still requiring sign-off
+## Scoped decisions and remaining sign-off
 
-| Issue | Evidence already in-tree | Required release decision |
+| Issue | Evidence already in-tree | Scoped acceptance / remaining gate |
 | --- | --- | --- |
-| [#623](https://github.com/kawamurashingo/JQ-Lite/issues/623) arithmetic | `docs/v3-arithmetic.md`, `t/v3_arithmetic_contract.t`; 408 scoped cases (396 compatible / 12 known differences) | Confirm typed numeric expressions, null/error/divisor behavior, documented nonnumeric jq overload exclusions and CLI exit 3. Reconcile issue checklist with implemented scope. |
-| [#625](https://github.com/kawamurashingo/JQ-Lite/issues/625) null/path/iterator | `docs/v3-practical-path-audit.md`, `t/v3_practical_path_audit.t`, targeted path/iterator tests; proposed 54 audited jq-recognized examples (50 compatible, four retained v2 differences) plus the v2-only `slice()` extension | Review the bounded practical-v2 inventory and confirm missing/null/no-output, ordinary paths, optional/strict iterator and comma/pipeline boundaries; retain/document the four v2 differences. The source-size audit is recorded, not a mandate for broad parser rewrites. Sign off only after final PR CI/review. |
-| [#626](https://github.com/kawamurashingo/JQ-Lite/issues/626) assignment/update | `docs/v3-assignment.md`, `t/v3_assignment_audit.t`; 101 scoped cases (40 compatible / 39 known differences / 22 unsupported) | Decide whether ordinary/compound v2 differences remain intentional in 3.0, and freeze the supported `=`, `|=`, compound and invalid-target matrix. Do not assume compound setters inherit strict expression arithmetic. |
+| [#623](https://github.com/kawamurashingo/JQ-Lite/issues/623) arithmetic | `docs/v3-arithmetic.md`, `t/v3_arithmetic_contract.t`; 408 cases: 396 compatible / 12 known differences | **SCOPED COMPLETE / CLOSED.** PR #859 final Push/PR Perl and jq 1.7 CI succeeded; numeric operand, null/error/divisor and CLI runtime policy accepted. Does not promise jq nonnumeric overloads. |
+| [#625](https://github.com/kawamurashingo/JQ-Lite/issues/625) null/path/iterator | `docs/v3-practical-path-audit.md`, `t/v3_practical_path_audit.t`; 54 jq-recognized examples: 50 compatible / 4 preserved differences, plus the v2-only `slice()` extension | **OPEN.** PR #861 final CI succeeded, but its Codex P2 found historical inventory rows still marked undecided. Reconcile and verify source-size/practical-v2 audit with the accepted four retained differences before closure. |
+| [#626](https://github.com/kawamurashingo/JQ-Lite/issues/626) assignment/update | `docs/v3-assignment.md`, `t/v3_assignment_audit.t`; 101 cases: 40 compatible / 39 known differences / 22 unsupported | **SCOPED COMPLETE / CLOSED.** PR #860 final Push/PR Perl and jq 1.7 CI succeeded; retain separate ordinary `=`, corrected `|=` and v2 compound setter boundaries, with unsupported multi-result forms explicitly out of scope. |
 
-None of these three open issues is treated as complete by this document.
-Issue #629's compatibility matrix and migration guide are already delivered,
-but their text must be checked against the **final** semantic decisions.
-Separate #600/#601 and cross-platform proposal #633 are not silently added
-to the #619 release scope.
+**Only #625 is still open.** #623 and #626 are closed **for their
+documented practical-v2 scopes**, not for all jq syntax or all future
+assignment/path behavior. Issue #629's compatibility matrix and migration
+guide are already delivered; review their text against the accepted
+#623/#626 boundaries and the pending #625 inventory reconciliation.
+Separate #600/#601 and cross-platform proposal #633 are not silently
+added to the #619 release scope.
 
 ## Warning-clean CI acceptance (#867)
 
@@ -92,24 +106,33 @@ test phases. See the [recorded warning audit](v3-ci-warning-audit.md)
 for the associated SHAs, run URLs, and distinct already-fixed
 `Aggregate.pm` warning.
 
-The candidate must run the shared `ci/fail-on-test-stderr.sh` gate on
-all Push/PR Perl jobs, jq differential tests and **all three**
-source-package test phases (source `make test`, `make disttest`,
-extracted archive `make test`). The gate rejects unexpected stderr
-even when tests otherwise return success; there is no global warning
-suppression or catch-all allowlist. Validate the intentional warning
-sentinel and examine the final-head raw job logs before claiming the
-beta/RC warning acceptance check passed. This is a **release blocker**
-until #867 is accepted; do not close it solely because prior jobs were
-green.
+The **scoped warning-audit task #867 is COMPLETE/CLOSED** after
+maintainer-merged #868 (head `6daa508a`, merge `b7f303c3`). Its
+final-head and post-merge Push/PR Perl, jq 1.7 and packaging tests all
+passed, Codex found no remaining issues, and seven post-merge job logs
+contained no unexpected Perl test warnings. See the
+[scoped CI warning audit](v3-ci-warning-audit.md#final-verified-evidence-2026-10-23)
+for run URLs and the separate GitHub Action Node.js deprecation note.
+
+**Every later beta/RC candidate still must independently run** the shared
+`ci/fail-on-test-stderr.sh` gate on all Push/PR Perl jobs, jq
+differential tests and all three package test phases (source `make
+test`, `make disttest`, extracted-archive `make test`). The gate
+rejects unexpected stderr even when tests otherwise pass; there is no
+global warning suppression or catch-all allowlist. Reconfirm the
+intentional warning sentinel and inspect raw CI logs on the candidate
+head and synthetic PR merge. Historical #868 success cannot substitute
+for this final release-candidate gate.
 
 ## Candidate verification (record for **each** beta and RC head)
 
-- [ ] **Scope and migration:** #623/#625/#626 have explicit disposition of
-  selected corrections, retained known differences and unsupported forms.
-  Update `docs/jq-compatibility.md`, `docs/v3-migration.md`, `Changes`
-  and README for any newly decided breaking behavior. No undocumented
-  accidental behavior changes.
+- [ ] **Scope and migration:** #623 and #626 are closed for the
+  audited practical subset. Reconcile #625's historical
+  `docs/jq-semantics-differences.md` inventory with its frozen four
+  known differences, resolve its Codex P2, and record scoped acceptance.
+  Verify `docs/jq-compatibility.md`, `docs/v3-migration.md`,
+  `Changes` and README remain consistent. No undocumented
+  accidental breaking behavior. This is separate from RC approval.
 - [ ] **Public contracts:** `t/cli_contract.t`,
   `t/v3_library_api_contract.t` and `t/library_errors.t` pass. Preserve
   `new` / `run_query` list-return semantics, output order, null vs no
@@ -230,10 +253,11 @@ Never publish an underscore developer version as a stable release.
 
 | Gate | Candidate SHA / evidence URL | Result |
 | --- | --- | --- |
-| Practical-scope decisions (#623/#625/#626) | _pending_ | BLOCKED |
-| Full Perl matrix, Push HEAD SHA + PR merge SHA and run URLs | _pending_ | NOT RUN ON CANDIDATE |
-| jq 1.7 differential, Push HEAD SHA + PR merge SHA and run URLs | _pending_ | NOT RUN ON CANDIDATE |
-| CLI/Library + extracted-source disttest + clean install | _pending_ | NOT RUN ON CANDIDATE |
+| Practical-scope decisions (#623/#625/#626) | #623 and #626 closed; #625 inventory reconciliation pending | PARTIAL — #625 NOT SIGNED OFF |
+| Full Perl matrix, Push HEAD SHA + PR merge SHA and run URLs | Previous #864 head `2410606a`: [Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538124269), [PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128367) | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
+| jq 1.7 differential, Push HEAD SHA + PR merge SHA and run URLs | Previous #864: [Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538124258), [PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128322) | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
+| CLI/Library + extracted-source disttest + clean install | Previous #864: [source-dist PR run](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128301), Perl 5.14 + latest | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
+| Clean warning gate (#867) | #867 closed after [merged #868](https://github.com/kawamurashingo/JQ-Lite/pull/868); [post-merge Perl](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435287), [jq](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435269), [package](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435373) | SCOPED GATE COMPLETE; RECHECK ON FINAL CANDIDATE |
 | Migration/README/Changes and Perl version-order decision | _pending_ | **BLOCKED: public version not selected** |
 | Final review and release approval | _pending_ | NOT APPROVED |
 

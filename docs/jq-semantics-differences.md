@@ -16,14 +16,33 @@ Every inventoried item has one of the decision statuses requested for the v3
 planning process:
 
 - **preserve** — keep the JQ::Lite meaning, even though jq differs;
-- **change in v3** — retain it throughout 2.x, but make jq compatibility the
-  target of a separately reviewed v3 change;
-- **undecided** — no v3 decision has been made. The 2.x behaviour remains
-  regression-protected until that decision is made.
+- **change in v3** — retain the historical 2.x behavior on the stable
+  branch, then adopt a specifically reviewed v3 correction. The result is
+  jq-compatible only for expressions separately marked `compatible` in
+  the differential fixtures; an explicitly scoped type error may still
+  remain a documented jq `known-difference`.
+- **undecided** — no v3 decision has been made in the audited scope;
+  2.x behaviour remains regression-protected until that decision.
+- **out of scope** — a jq feature/stream expression outside the agreed
+  practical-v2 release boundary. Incidental JQ::Lite results are not a
+  promised supported API or a new jq compatibility claim.
 
 The status is a roadmap classification, not a runtime change in the 2.x
 series. “Follow-up” deliberately uses topic names rather than inventing issue
 numbers; it can be replaced by a concrete issue link when that work is filed.
+
+## 3.0 practical-scope disposition (2026-10-21)
+
+This is a **historical v2 results** inventory: its `JQ::Lite 2.x`
+column does not describe current v3 output. Merge-reviewed scope-freeze
+PRs [#859](https://github.com/kawamurashingo/JQ-Lite/pull/859),
+[#860](https://github.com/kawamurashingo/JQ-Lite/pull/860) and
+[#861](https://github.com/kawamurashingo/JQ-Lite/pull/861) settled
+their **bounded** arithmetic, assignment, and path/iterator decisions.
+Rows once labelled `undecided` are updated below **only where a
+specific scoped decision exists**. The overall jq differential
+classifications remain the authoritative parity evidence, and
+uncovered/unsupported forms do not gain accidental guarantees.
 
 ## Inventory
 
@@ -58,7 +77,7 @@ operation.
 
 | Area | Example | jq | JQ::Lite 2.x | v3 status | Follow-up |
 | --- | --- | --- | --- | --- | --- |
-| Numeric coercion | `"1e3" * 1` | `"1e3"` (string repetition) | `1000` | **undecided** | arithmetic/coercion |
+| Numeric coercion | `"1e3" * 1` | `"1e3"` (string repetition) | `1000` | **change in v3** | #623: strict v3 multiplication rejects the string with an Evaluation error; jq string repetition is outside supported numeric arithmetic; known difference |
 | Boolean arithmetic | `true + 1` | type error | `2` | **change in v3** | arithmetic/coercion |
 | Vectorised rounding | `[1.2,"2.8","x"] \| floor` | type error | `[1,2,"x"]` | **preserve** | none |
 | Lossless JSON parsing | `["1","true","bad"] \| fromjson` | type error (input is not a string) | `[1,true,"bad"]` (element-wise, invalid text passes through) | **preserve** | none |
@@ -90,18 +109,20 @@ currently jq-compatible case by accident.
 | Path through a missing field | `{}` with `.missing.value` | one `null` result | no results | **change in v3** | null/missing/path semantics |
 | Invalid array field path | `{"a":[]}` with `.a.value` | type error | no results | **undecided** | path error policy |
 | Numeric index on an object | `{}` with `.[5]` | type error | one `null` result | **change in v3** | path error policy |
-| Ordinary field on a scalar | `7` with `.name` | type error | no results | **undecided** | ordinary-field error policy; optional access is audited separately |
-| Bracket slice on a string | `"abcd"` with `.[1:3]` | `"bc"` | `"abcd"` (passes the string through) | **undecided** | string bracket-slice scope |
+| Ordinary field on a scalar | `7` with `.name` | type error | no results | **preserve** | #625 / PR #861: v2 empty-output extension retained, known jq difference |
+| Bracket slice on a string | `"abcd"` with `.[1:3]` | `"bc"` | `"abcd"` (passes the string through) | **preserve** | #625 / PR #861: v2 passthrough retained; jq substring grammar not added |
 
-JQ::Lite therefore distinguishes a missing traversal (an empty result stream)
-from an explicit JSON null in direct path output, even though comparisons such
-as `.missing == null` currently treat them alike.
+In stable **2.x**, JQ::Lite distinguishes a missing traversal (an empty
+result stream) from an explicit JSON null in direct path output. For
+v3 supported object lookup, the missing field instead emits one JSON null;
+strict and optional iterators preserve a separate zero-output distinction.
 
 The scalar-field and string-slice rows were verified against stable 2.59
-(`6880c304`) and v3 (`ac4a1382`) in the practical path audit. Their v2 results
-are also still the v3 results at that checkpoint. Recording these differences
-does not approve a semantic change or add string-slice grammar to the v3
-release goal. The existing `slice(start,length)` function is a separate v2
+(`6880c304`) and v3 (`ac4a1382`), and **their v2 results are deliberately
+retained in the 3.0 practical scope** by merged #625 PR #861. The same
+scoped release decision preserves array field projection and mixed
+iterator projection below; none is marked jq-compatible. This is not
+string-slice grammar growth: `slice(start,length)` remains a separate v2
 extension, not a jq builtin or a synonym for bracket slicing.
 
 ### E. Iterators and pipelines
@@ -109,7 +130,7 @@ extension, not a jq builtin or a synonym for bracket slicing.
 | Area | Example | jq | JQ::Lite 2.x | v3 status | Follow-up |
 | --- | --- | --- | --- | --- | --- |
 | Array path projection | `[{"x":1},{"x":2}] \| .x` | type error | `1`, `2` | **preserve** | none |
-| Projection after mixed iteration | `{"a":[{"x":1}],"n":3} \| .[] \| .x` | type error on the array | `1` (projects through the array and drops the scalar's missing value) | **undecided** | iterator/pipeline semantics |
+| Projection after mixed iteration | `{"a":[{"x":1}],"n":3} \| .[] \| .x` | type error on the array | `1` (projects through the array and drops the scalar's missing value) | **preserve** | #625 / PR #861: v2 mixed array projection retained, known jq difference |
 | Iterator suffix | `keys[]` | same results as `keys \| .[]` | same results as `keys \| .[]` | **preserve** | none; regression parity guard |
 | Comma plus iterator | `0, [4,5][]` | `0`, `4`, `5` | `0`, `4`, `5` | **preserve** | none; regression parity guard |
 
@@ -120,10 +141,10 @@ extension, not a jq builtin or a synonym for bracket slicing.
 | Plain assignment | `{"a":1} \| .a = 2` | `{"a":2}` | `{"a":2}` | **preserve** | none; regression parity guard |
 | Update assignment result | `{"a":1} \| .a \|= . + 1` | `{"a":2}` | `2` (emits the updated value, not the root) | **change in v3** | assignment/update semantics |
 | Missing update target | `{"a":1} \| .missing \|= . + 1` | object with `"missing":1` | no results | **change in v3** | assignment/update semantics |
-| Multi-result assignment | `{"a":0} \| .a = (1,2)` | two updated objects | no results | **undecided** | assignment/update stream semantics |
-| Plain assignment on a null root | `null \| .a = 2` | `{"a":2}` | null root is unchanged | **undecided** | ordinary-assignment target policy |
-| Compound numeric-string coercion | `{"n":"2"} \| .n += 2` | type error | `{"n":4}` | **undecided** | compound assignment; distinct from strict v3 expressions |
-| Compound zero-divisor handling | `{"n":10} \| .n /= 0` | runtime error | root is unchanged | **undecided** | compound-assignment error policy |
+| Multi-result assignment | `{"a":0} \| .a = (1,2)` | two updated objects | no results | **out of scope** | #626 / PR #860: arbitrary multi-result plain RHS is unsupported; no incidental result guarantee |
+| Plain assignment on a null root | `null \| .a = 2` | `{"a":2}` | null root is unchanged | **preserve** | #626 / PR #860: v2 ordinary assignment retains null-root no-op |
+| Compound numeric-string coercion | `{"n":"2"} \| .n += 2` | type error | `{"n":4}` | **preserve** | #626 / PR #860: compound setter retains v2 coercion, separate from strict arithmetic |
+| Compound zero-divisor handling | `{"n":10} \| .n /= 0` | runtime error | root is unchanged | **preserve** | #626 / PR #860: compound setter retains v2 no-op policy |
 
 ### G. Unsupported jq behaviour
 
@@ -145,7 +166,7 @@ intent explicit or provide behaviours useful to existing pipelines.
 
 | Extension | Purpose | v3 status | Follow-up |
 | --- | --- | --- | --- |
-| `contains_subset(value)` | Recursive, order-insensitive multiset containment; unlike jq, duplicate needles require duplicate matches and scalar comparison coerces to strings | **undecided** | reconcile its semantics and name if `contains` changes in v3 |
+| `contains_subset(value)` | Recursive, order-insensitive multiset containment; unlike jq, duplicate needles require duplicate matches and scalar comparison coerces to strings | **preserve** | #623-adjacent practical v2 extension: retains its distinct behavior after the selected `contains` correction |
 | `to_number()` | Lossless/vectorised numeric conversion, distinct from strict `tonumber()` | **preserve** | none |
 | `flatten_all()`, `flatten_depth(n)` | Explicit flattening variants | **preserve** | none |
 | Statistical and convenience helpers | `avg`, `median`, `mode`, `percentile`, `variance`, `stddev`, `clamp`, and the other extensions listed in the function reference | **preserve** | none |
