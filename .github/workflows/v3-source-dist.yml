@@ -79,6 +79,7 @@ jobs:
             ci/reconcile-cpan-public-history.pl \
             ci/compare-backpan-cpan-inventory.pl \
             ci/inventory-backpan-jq-lite-index.pl \
+            ci/inventory-metacpan-jq-lite-releases.pl \
             docs/v3-release-readiness.md docs/v3-beta1-release-notes.md \
             docs/v3-rc1-release-notes.md \
             docs/v3-ci-warning-audit.md \
