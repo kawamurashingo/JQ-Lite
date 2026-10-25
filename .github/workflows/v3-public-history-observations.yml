@@ -1,0 +1,91 @@
+name: v3 public history observation snapshot (NOT release approval)
+
+on:
+  # Explicitly opt in to live evidence collection after merge.
+  workflow_dispatch:
+  # Exercise the workflow once in its own PR, not on unrelated changes.
+  pull_request:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-public-history-observations.yml
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    name: Capture CPAN and BackPAN observations (no publication)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out audit tools (read-only)
+        uses: actions/checkout@v7
+
+      - name: Capture originals, checksums and comparison
+        id: capture
+        # A discrepancy or download failure must not suppress evidence upload.
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/v3-public-history-observations"
+          mkdir -p "$output/originals" "$output/http"
+          {
+            printf 'PURPOSE=OBSERVATION_ONLY_NOT_RELEASE_APPROVAL\n'
+            printf 'OBSERVED_START_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'GITHUB_RUN_URL=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'CHECKOUT_SHA=%s\n' "$(git rev-parse HEAD)"
+            printf 'GITHUB_EVENT=%s\n' "$GITHUB_EVENT_NAME"
+            printf 'CPAN_URL=https://www.cpan.org/authors/id/S/SH/SHINGO/\n'
+            printf 'BACKPAN_URL=https://backpan.cpantesters.org/backpan-releases-by-dist-index.txt.gz\n'
+            printf 'NOT_A_PAUSE_CHRONOLOGY_OR_COMPLETENESS_ATTESTATION=1\n'
+          } > "$output/provenance.txt"
+
+          curl --fail --location --silent --show-error --retry 2 \
+            --connect-timeout 15 --max-time 150 \
+            -D "$output/http/cpan-headers.txt" \
+            -o "$output/originals/cpan-shingo-index.html" \
+            https://www.cpan.org/authors/id/S/SH/SHINGO/
+          printf 'CPAN_FETCH_END_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
+          curl --fail --location --silent --show-error --retry 2 \
+            --connect-timeout 15 --max-time 150 \
+            -D "$output/http/backpan-headers.txt" \
+            -o "$output/originals/backpan-releases-by-dist-index.txt.gz" \
+            https://backpan.cpantesters.org/backpan-releases-by-dist-index.txt.gz
+          printf 'BACKPAN_FETCH_END_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
+
+          # Hash original source bytes before using them.
+          (cd "$output" && sha256sum originals/* > SHA256SUMS)
+          perl ci/inventory-cpan-jq-lite-index.pl \
+            --input "$output/originals/cpan-shingo-index.html" \
+            > "$output/cpan-observed.tsv"
+          perl ci/inventory-backpan-jq-lite-index.pl \
+            --input "$output/originals/backpan-releases-by-dist-index.txt.gz" \
+            > "$output/backpan-observed.tsv"
+          # Failure here is a review result, never evidence of publication approval.
+          perl ci/compare-backpan-cpan-inventory.pl \
+            --backpan-file "$output/backpan-observed.tsv" \
+            --inventory "$output/cpan-observed.tsv" \
+            > "$output/comparison-review-only.txt"
+          printf 'COMPARISON_EXIT=0 (SET_OBSERVATIONS_MATCH_ONLY)\n' >> "$output/provenance.txt"
+
+      - name: Preserve raw inputs and audit observations even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-public-history-observations-${{ github.run_id }}
+          path: ${{ runner.temp }}/v3-public-history-observations/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Reject missing, ambiguous, or failed capture
+        if: always()
+        env:
+          CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
+        shell: bash
+        run: |
+          if [ "$CAPTURE_OUTCOME" != success ]; then
+            echo 'Evidence collection or set reconciliation is incomplete; audit remains BLOCKED.' >&2
+            exit 1
+          fi
+          echo 'Observed source sets matched in this snapshot only; PAUSE/public release audit remains BLOCKED.'
