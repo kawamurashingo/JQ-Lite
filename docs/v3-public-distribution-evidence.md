@@ -197,10 +197,13 @@ The **v3 public history observation snapshot (NOT release approval)**
 workflow in `.github/workflows/v3-public-history-observations.yml`
 offers a separate, read-only way to collect current public evidence when
 the two remote indexes cannot be fetched from a local audit environment.
-It runs for changes to its own workflow in a PR, and can also be started
-manually using GitHub Actions **Run workflow** on `v3-dev` after merge.
-It is **not** scheduled, does not run on ordinary development PRs, and
-does not publish a package.
+It runs only when its own workflow file changes in a PR targeting
+`v3-dev` or is merged/pushed to `v3-dev`. Reviewers can refresh an
+existing run with GitHub Actions **Re-run jobs**. It is **not** scheduled,
+does not run on ordinary development PRs, and does not publish a package.
+It deliberately does **not** promise manual `workflow_dispatch` on
+`v3-dev`: that GitHub event needs the workflow to exist on the default
+branch, and this project must not modify stable `main` for the v3 audit.
 
 The workflow retrieves the fixed public CPAN SHINGO directory and the
 BackPAN releases-by-dist gzip index. It saves **original downloaded
