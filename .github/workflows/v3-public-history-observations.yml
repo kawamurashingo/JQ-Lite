@@ -72,6 +72,9 @@ jobs:
             exit 1
           fi
           printf 'CPAN_FETCH_END_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
+          # Preserve the verified CPAN evidence even if BackPAN TLS fails.
+          (cd "$output" && sha256sum originals/cpan-shingo-index.html > SHA256SUMS)
+          printf 'CPAN_OBSERVED_COUNT=%s\n' "$(tail -n +2 "$output/cpan-observed.tsv" | wc -l | tr -d ' ')" >> "$output/provenance.txt"
           curl --fail --location --silent --show-error --retry 2 \
             --connect-timeout 15 --max-time 150 \
             -D "$output/http/backpan-headers.txt" \
@@ -79,8 +82,8 @@ jobs:
             https://backpan.cpantesters.org/backpan-releases-by-dist-index.txt.gz
           printf 'BACKPAN_FETCH_END_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
 
-          # Hash original source bytes before using them.
-          (cd "$output" && sha256sum originals/* > SHA256SUMS)
+          # The independently downloaded gzip is hashed before parsing.
+          (cd "$output" && sha256sum originals/backpan-releases-by-dist-index.txt.gz >> SHA256SUMS)
           perl ci/inventory-backpan-jq-lite-index.pl \
             --input "$output/originals/backpan-releases-by-dist-index.txt.gz" \
             > "$output/backpan-observed.tsv"
