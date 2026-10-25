@@ -226,13 +226,18 @@ for this final release-candidate gate.
   strictly increasing public sequence from its first public version
   through eventual stable, using Perl's core `version` comparisons;
   the internal-only policy **cannot substitute** for this requirement.
-  **Stable-only publication, without any public beta/RC:** `3.00`
-  may be considered only if the maintainer verifies every
-  `3.00_0x` archive remained permanently unpublished, with
-  manual reinstall guidance for internal testers. If any prior
-  developer/prerelease was publicly distributed, the approved
-  stable version must compare strictly greater than every such
-  predecessor. Final stable Perl number remains **undecided**.
+  **Important update after #886:** GitHub Actions held publicly
+  readable source artifacts, including one inspected
+  `JQ-Lite-3.00_03.tar.gz`. A metadata audit counted 92 unexpired
+  `v3-unreleased-source-*` artifacts. These are NOT CPAN/PAUSE
+  releases, but they invalidate the assumption of total external
+  inaccessibility. **Stable-only `3.00` is now blocked by the
+  conservative release floor**, even if the CPAN history input
+  lists only 2.59. The approved future stable version must compare
+  strictly greater than `3.00_03` under Perl core `version`.
+  `3.01` is only an illustrative numeric example, not an approved
+  public release. A different treatment requires a separate
+  evidence-backed maintainer-reviewed policy decision.
   Independently inspect real CPAN/version history, public GitHub
   Releases/tags and any publicly offered install URLs (not just this
   repository's internal CI artifacts). Record every actually
@@ -308,23 +313,24 @@ The following commands are **illustrative tests only**, not a
 selection of a future stable version:
 
 ```sh
-# Illustrative stable-only history; use ONLY after confirming that
-# these are the complete publicly distributed predecessors.
+# This intentionally FAILS under the confirmed GitHub Actions
+# developer-archive exposure floor even with CPAN 2.59 only.
 perl ci/check-public-version-order.pl --history-reviewed \
     --published 2.59 --planned 3.00
 
-# This intentionally FAILS: an underscored developer artifact, if
-# previously made public, compares greater than stable 3.00.
+# Illustrative numerical preflight ONLY, requiring independently
+# complete public history and separate maintainer sign-off.
 perl ci/check-public-version-order.pl --history-reviewed \
-    --published 2.59 --published 3.00_03 --planned 3.00
+    --published 2.59 --planned 3.01
 ```
 
 The real publication decision must separately confirm that **all**
-known public predecessor distributions were included (and that
-`3.00_0x` development builds were not publicly distributed if
-stable-only `3.00` is being considered), select the proposed
-version numbers, approve the order, and test the exact resulting
-public candidate. Even a `PASS` is not approval to publish.
+known public predecessor distributions and public CI artifact exposure
+were reviewed, reconcile the missing original PAUSE upload order and
+external redistribution, select the actual candidate version, approve
+the order, and test the exact resulting public candidate. Even a
+`PASS` is not approval to publish, and currently **`--history-reviewed`
+cannot be honestly asserted from the partial collected evidence**.
 
 ### Source-distribution CI (pre-release package gate)
 
