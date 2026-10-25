@@ -131,8 +131,7 @@ jobs:
             echo 'AUDIT_STATUS=BLOCKED_VALIDATION_FAILURE' >> "$provenance"
             exit 1
           fi
-          if grep -Eq '^AUDIT_STATUS=BLOCKED_(CPAN|BACKPAN)_SOURCE_UNAVAILABLE
- "$provenance"; then
+          if grep -Eq '^AUDIT_STATUS=BLOCKED_(CPAN|BACKPAN)_SOURCE_UNAVAILABLE$' "$provenance"; then
             echo '::warning title=Public-history evidence unavailable::The snapshot job handled an unreachable HTTPS source; this is NOT a successful public-history audit.'
             {
               echo '### Public-history audit: BLOCKED (remote source unavailable)'
