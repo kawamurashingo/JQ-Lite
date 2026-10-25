@@ -205,8 +205,11 @@ It deliberately does **not** promise manual `workflow_dispatch` on
 `v3-dev`: that GitHub event needs the workflow to exist on the default
 branch, and this project must not modify stable `main` for the v3 audit.
 
-The workflow retrieves the fixed public CPAN SHINGO directory and the
-BackPAN releases-by-dist gzip index. It saves **original downloaded
+The workflow retrieves the CPAN SHINGO directory via **verified TLS**
+(primary CPAN host, with named CPAN mirror fallbacks recorded verbatim)
+and the BackPAN releases-by-dist gzip index. TLS certificate checking
+must **not** be bypassed. A mirror listing is observational evidence,
+not necessarily a fresh or authoritative source. It saves **original downloaded
 bytes**, HTTP response headers, source URLs, UTC collection times, the
 checked-out SHA, SHA-256 checksums, both parsed TSVs and the observation
 comparison under a `v3-public-history-observations-<run_id>` artifact
