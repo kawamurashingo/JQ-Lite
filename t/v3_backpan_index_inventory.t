@@ -99,6 +99,32 @@ my $zero = fixture("", 0);
 ok(invoke('--input', $zero)->{rc} != 0, 'empty input rejected');
 my $not_gzip = fixture("\x1f\x8bnot-really-gzip", 0);
 ok(invoke('--input', $not_gzip)->{rc} != 0, 'corrupt gzip cannot be accepted');
+# Regression: a valid first record must not conceal a truncated gzip tail.
+my $gzip_bytes = '';
+gzip(\$sample => \$gzip_bytes) or die "Cannot gzip integrity fixture: $GzipError";
+my $cut_gzip = fixture(substr($gzip_bytes, 0, length($gzip_bytes) - 7), 0);
+my $cut = invoke('--input', $cut_gzip);
+ok($cut->{rc} != 0, 'truncated gzip with valid leading archives is rejected');
+is($cut->{stdout}, '', 'truncated gzip produces no misleading partial TSV');
+like($cut->{stderr}, qr/Corrupt or incomplete BackPAN gzip index/,
+    'gzip trailer failure is reported');
+
+my $bad_crc = $gzip_bytes;
+substr($bad_crc, -8, 1, chr(ord(substr($bad_crc, -8, 1)) ^ 1));
+my $crc = invoke('--input', fixture($bad_crc, 0));
+ok($crc->{rc} != 0, 'corrupt CRC32 is rejected in strict mode');
+is($crc->{stdout}, '', 'corrupt checksum produces no TSV');
+
+my ($first_gzip, $second_gzip) = ('', '');
+my $first = "#FORMAT 1\nS/SH/SHINGO/JQ-Lite-2.59.tar.gz 1789901940 132000\n";
+my $second = "S/SH/SHINGO/JQ-Lite-3.00_01.tar.gz 1792900000 10000\n";
+gzip(\$first => \$first_gzip) or die "Cannot gzip first fixture: $GzipError";
+gzip(\$second => \$second_gzip) or die "Cannot gzip second fixture: $GzipError";
+my $joined = invoke('--input', fixture($first_gzip . $second_gzip, 0));
+ok($joined->{rc} != 0, 'concatenated member with internal artifact cannot be ignored');
+like($joined->{stderr}, qr/INTERNAL-DEVELOPER-ARTIFACT-ALERT/,
+    'second gzip member developer archive is detected');
+
 my $missing = invoke('--input', 'no-such-backpan-index.txt.gz');
 ok($missing->{rc} != 0, 'missing input rejected');
 ok(invoke()->{rc} != 0, 'input argument required');
