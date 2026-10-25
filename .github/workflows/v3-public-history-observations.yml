@@ -1,10 +1,13 @@
 name: v3 public history observation snapshot (NOT release approval)
 
 on:
-  # Explicitly opt in to live evidence collection after merge.
-  workflow_dispatch:
-  # Exercise the workflow once in its own PR, not on unrelated changes.
+  # Collect only when this opt-in workflow itself is proposed or updated.
+  # The source snapshot can also be refreshed via GitHub Actions "Re-run jobs".
   pull_request:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-public-history-observations.yml
+  push:
     branches: [v3-dev]
     paths:
       - .github/workflows/v3-public-history-observations.yml
