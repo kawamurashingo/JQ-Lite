@@ -39,16 +39,38 @@ jobs:
             printf 'GITHUB_RUN_URL=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
             printf 'CHECKOUT_SHA=%s\n' "$(git rev-parse HEAD)"
             printf 'GITHUB_EVENT=%s\n' "$GITHUB_EVENT_NAME"
-            printf 'CPAN_URL=https://www.cpan.org/authors/id/S/SH/SHINGO/\n'
+            printf 'CPAN_PRIMARY_URL=https://www.cpan.org/authors/id/S/SH/SHINGO/\n'
             printf 'BACKPAN_URL=https://backpan.cpantesters.org/backpan-releases-by-dist-index.txt.gz\n'
             printf 'NOT_A_PAUSE_CHRONOLOGY_OR_COMPLETENESS_ATTESTATION=1\n'
           } > "$output/provenance.txt"
 
-          curl --fail --location --silent --show-error --retry 2 \
-            --connect-timeout 15 --max-time 150 \
-            -D "$output/http/cpan-headers.txt" \
-            -o "$output/originals/cpan-shingo-index.html" \
-            https://www.cpan.org/authors/id/S/SH/SHINGO/
+          # Keep TLS verification enabled. Some runner egress paths may
+          # reject www.cpan.org certificates; try named CPAN mirrors instead.
+          # Each attempted URL, selected source and validation result are kept.
+          cpan_found=0
+          for cpan_url in \
+            https://www.cpan.org/authors/id/S/SH/SHINGO/ \
+            https://mirror.cogentco.com/pub/cpan/authors/id/S/SH/SHINGO/ \
+            https://ftp.jaist.ac.jp/pub/CPAN/authors/id/S/SH/SHINGO/; do
+            printf 'CPAN_ATTEMPT=%s\n' "$cpan_url" >> "$output/provenance.txt"
+            if curl --fail --location --silent --show-error --retry 1 \
+              --connect-timeout 15 --max-time 120 \
+              -D "$output/http/cpan-headers.txt" \
+              -o "$output/originals/cpan-shingo-index.html" "$cpan_url"; then
+              if perl ci/inventory-cpan-jq-lite-index.pl \
+                --input "$output/originals/cpan-shingo-index.html" \
+                > "$output/cpan-observed.tsv"; then
+                printf 'CPAN_SELECTED_URL=%s\n' "$cpan_url" >> "$output/provenance.txt"
+                cpan_found=1
+                break
+              fi
+              echo "CPAN index format not accepted from $cpan_url" >&2
+            fi
+          done
+          if [ "$cpan_found" -ne 1 ]; then
+            echo 'No verified HTTPS CPAN mirror produced a valid index; audit stays BLOCKED.' >&2
+            exit 1
+          fi
           printf 'CPAN_FETCH_END_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
           curl --fail --location --silent --show-error --retry 2 \
             --connect-timeout 15 --max-time 150 \
@@ -59,9 +81,6 @@ jobs:
 
           # Hash original source bytes before using them.
           (cd "$output" && sha256sum originals/* > SHA256SUMS)
-          perl ci/inventory-cpan-jq-lite-index.pl \
-            --input "$output/originals/cpan-shingo-index.html" \
-            > "$output/cpan-observed.tsv"
           perl ci/inventory-backpan-jq-lite-index.pl \
             --input "$output/originals/backpan-releases-by-dist-index.txt.gz" \
             > "$output/backpan-observed.tsv"
