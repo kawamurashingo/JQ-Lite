@@ -52,7 +52,7 @@ if (defined $upload) {
     if (defined $paths) {
         my @paths = map { my $p = $_; $p =~ s/^            //; $p }
             grep { length } split /\n/, $paths;
-        my $prefix = '\${{ runner.temp }}/v3-ci-exposure/';
+        my $prefix = '${{ runner.temp }}/v3-ci-exposure/';
         my @allowed = map { $prefix . $_ } (
             'artifact-page-*.json',
             'developer-artifacts.tsv',
