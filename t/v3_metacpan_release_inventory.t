@@ -87,6 +87,13 @@ my $lower = data(hit('JQ-Lite-2.59', '2026-09-20T10:59:07Z'));
 $lower->{hits}{total}{relation} = 'gte';
 ok(invoke('--input', json_file($lower))->{rc} != 0, 'approximate total rejected');
 
+my $timed = data(hit('JQ-Lite-2.59', '2026-09-20T10:59:07Z'));
+$timed->{timed_out} = JSON::PP::true;
+my $timeout = invoke('--input', json_file($timed));
+ok($timeout->{rc} != 0, 'timed-out search cannot pass even with exact hit count');
+like($timeout->{stderr}, qr/search timed out/, 'timed-out response diagnostic');
+is($timeout->{stdout}, '', 'timed-out response emits no incomplete release inventory');
+
 my $dupe = data(
     hit('JQ-Lite-2.59', '2026-09-20T10:59:07Z'),
     hit('JQ-Lite-2.59', '2026-09-20T10:59:08Z'),
