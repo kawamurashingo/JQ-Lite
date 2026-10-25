@@ -1,0 +1,111 @@
+name: v3 BackPAN author vs MetaCPAN observations (NOT publication approval)
+
+on:
+  pull_request:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-backpan-author-metacpan-compare.yml
+      - ci/compare-backpan-author-metacpan-inventory.pl
+      - t/v3_backpan_author_metacpan_comparison.t
+  push:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-backpan-author-metacpan-compare.yml
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    name: Compare two independently fetched history observations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out read-only evidence parsers
+        uses: actions/checkout@v7
+      - name: Capture raw sources and compare version sets
+        id: capture
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/v3-backpan-author-metacpan"
+          mkdir -p "$output/originals" "$output/http"
+          {
+            printf 'PURPOSE=OBSERVATION_ONLY_NOT_PAUSE_UPLOAD_LEDGER\n'
+            printf 'OBSERVED_START_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'CHECKOUT_SHA=%s\n' "$(git rev-parse HEAD)"
+            printf 'GITHUB_RUN_URL=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'BACKPAN_AUTHOR_URL=https://backpan.perl.org/authors/id/S/SH/SHINGO/\n'
+            printf 'METACPAN_URL=https://fastapi.metacpan.org/v1/release/_search\n'
+            printf 'TLS_AND_REDIRECT_PROTOCOL=https_only\n'
+            printf 'NOT_COMPLETE_PAUSE_HISTORY=1\n'
+          } > "$output/provenance.txt"
+          if ! curl --fail --location --proto '=https' --proto-redir '=https' \
+            --silent --show-error --retry 1 --connect-timeout 12 --max-time 100 \
+            --dump-header "$output/http/backpan-headers.txt" \
+            --output "$output/originals/backpan-author.html" \
+            https://backpan.perl.org/authors/id/S/SH/SHINGO/; then
+            printf 'AUDIT_STATUS=BLOCKED_BACKPAN_AUTHOR_UNAVAILABLE\n' >> "$output/provenance.txt"
+            echo '::warning::BackPAN author listing not fetched by validated HTTPS; release audit BLOCKED.'
+            exit 0
+          fi
+          (cd "$output" && sha256sum originals/backpan-author.html > SHA256SUMS)
+          perl ci/inventory-cpan-jq-lite-index.pl \
+            --input "$output/originals/backpan-author.html" > "$output/backpan-author-observed.tsv"
+          printf 'BACKPAN_AUTHOR_COUNT=%s\n' "$(tail -n +2 "$output/backpan-author-observed.tsv" | wc -l | tr -d ' ')" >> "$output/provenance.txt"
+
+          printf '%s\n' '{"size":500,"track_total_hits":true,"_source":["distribution","name","author","date","status"],"sort":[{"date":{"order":"asc"}}],"query":{"term":{"distribution":"JQ-Lite"}}}' > "$output/request.json"
+          (cd "$output" && sha256sum request.json >> SHA256SUMS)
+          if ! curl --fail --location --proto '=https' --proto-redir '=https' \
+            --silent --show-error --retry 2 --connect-timeout 15 --max-time 160 \
+            -H 'Content-Type: application/json' --data-binary @"$output/request.json" \
+            --dump-header "$output/http/metacpan-headers.txt" \
+            --output "$output/originals/metacpan-search.json" \
+            https://fastapi.metacpan.org/v1/release/_search; then
+            printf 'AUDIT_STATUS=BLOCKED_METACPAN_SEARCH_UNAVAILABLE\n' >> "$output/provenance.txt"
+            echo '::warning::MetaCPAN full release search not fetched by validated HTTPS; release audit BLOCKED.'
+            exit 0
+          fi
+          (cd "$output" && sha256sum originals/metacpan-search.json >> SHA256SUMS)
+          perl ci/inventory-metacpan-jq-lite-releases.pl \
+            --input "$output/originals/metacpan-search.json" > "$output/metacpan-observed.tsv"
+          printf 'METACPAN_COUNT=%s\n' "$(tail -n +2 "$output/metacpan-observed.tsv" | wc -l | tr -d ' ')" >> "$output/provenance.txt"
+          # Successful downloads MUST NOT be overridden by mirror fallbacks.
+          # Invalid/truncated sources, developer builds and mismatch fail closed.
+          perl ci/compare-backpan-author-metacpan-inventory.pl \
+            --backpan-author "$output/backpan-author-observed.tsv" \
+            --metacpan "$output/metacpan-observed.tsv" \
+            > "$output/set-comparison-review-only.txt"
+          printf 'VERSION_SET_COMPARISON=OBSERVATIONS_MATCH_ONLY\n' >> "$output/provenance.txt"
+      - name: Retain raw sources, headers and checksums on all outcomes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-backpan-author-metacpan-\${{ github.run_id }}
+          path: \${{ runner.temp }}/v3-backpan-author-metacpan/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Classify evidence without release approval
+        if: always()
+        env:
+          CAPTURE_OUTCOME: \${{ steps.capture.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          provenance="$RUNNER_TEMP/v3-backpan-author-metacpan/provenance.txt"
+          if [ "$CAPTURE_OUTCOME" != success ]; then
+            echo '::error::Downloaded historical evidence invalid, incomplete or contradictory. Inspect retained original bytes.'
+            exit 1
+          fi
+          if grep -Eq '^AUDIT_STATUS=BLOCKED_(BACKPAN_AUTHOR|METACPAN_SEARCH)_UNAVAILABLE$' "$provenance"; then
+            echo '### Evidence BLOCKED: verified source unavailable' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Transport availability is not PAUSE/publication approval.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          grep -Fxq 'VERSION_SET_COMPARISON=OBSERVATIONS_MATCH_ONLY' "$provenance" || {
+            echo '::error::Missing evidence comparison marker.'
+            exit 1
+          }
+          echo '### Two version sets agree (OBSERVATION ONLY)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Not original PAUSE upload chronology or evidence of permanent developer-build nonpublication. Release BLOCKED.' >> "$GITHUB_STEP_SUMMARY"
