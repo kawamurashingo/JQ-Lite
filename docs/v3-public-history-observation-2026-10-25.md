@@ -56,6 +56,56 @@ CPAN raw file and SHA-256 checksum are preserved separately. This
 observation record documents the earlier, actual run and must not be
 silently replaced by a later attempt.
 
+## Independently saved MetaCPAN release-search snapshot (additional observations)
+
+[PR #882 MetaCPAN evidence run 40170962759](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40170962759)
+collected the unmodified response to a `POST` request to
+`https://fastapi.metacpan.org/v1/release/_search` on
+**2026-10-25 06:57:31 UTC**, using `distribution=JQ-Lite`,
+`track_total_hits=true`, `size=500`, sort by ascending `date`,
+and **no latest-only restriction**. Checkout was the synthetic PR
+merge `6f4264d48a406b617c845650349ff0b9316494ec`.
+The original response is **115,770 bytes**, SHA-256
+`22c374bdf19a69f2485bdcec4bc30b182b440a5658e289b0d4bc33189284432e`.
+Request JSON: SHA-256
+`5d8a267f0a48c649ac1d6658e08c7440f5ec30931186f98c82dc035630fe34a7`.
+The extracted TSV is **19,764 bytes**, SHA-256
+`755133adbed0a0fd69853f364b23d5a3e097da318e2a0acdf415bd84e878d693`.
+Preserve [the original GitHub Actions artifact](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40170962759/artifacts/12590039931)
+before its 14-day retention window expires, around **2026-11-08
+06:57 UTC**.
+
+The actual MetaCPAN response reports an **exact total of 259**
+with **259 received hits**, all matching `JQ-Lite`. Its reported
+`status` values were **255 `cpan`**, **3 `backpan`**, and
+**1 `latest`**. No `3.00_0x` / `v3.00_0x` release was present
+**in this one MetaCPAN result set**.
+
+Comparing the version strings against the earlier, independently
+downloaded **256-row** CPAN SHINGO HTML snapshot
+(run 40168407663) yields **no CPAN-only versions and exactly
+three MetaCPAN-only observations**:
+
+| Version | MetaCPAN `date` (UTC) | MetaCPAN `status` |
+| --- | --- | --- |
+| `0.05` | `2025-03-29T03:37:09` | `backpan` |
+| `1.31` | `2025-10-26T09:05:26` | `backpan` |
+| `1.32` | `2025-10-26T11:09:48` | `backpan` |
+
+These discrepancies **must be retained**, not silently filtered to
+make the sets match. They demonstrate that the current CPAN directory
+listing is **not a complete historical release inventory**. The
+MetaCPAN `backpan` status indicates its indexed classification,
+not independent proof of an original PAUSE upload time or continued
+availability of the archived tarball. Neither this result nor the
+observed match for the remaining 256 versions proves all-time
+completeness. The direct BackPAN original index and authoritative
+upload/redistribution history remain unverified, and the
+`0.99 -> 0.100` chronological Perl ordering anomaly still requires
+original-upload evidence.
+
+**Release-history gate: BLOCKED. No public version selected or approved.**
+
 ## Remaining approval blockers
 
 Independently secure the complete CPAN/PAUSE history with upload-order
