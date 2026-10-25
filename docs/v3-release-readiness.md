@@ -69,26 +69,23 @@ the PR packaging workflow passed the extracted-tarball full suite,
 latest. That is a **previous development-version packaging baseline**,
 not CI evidence for `3.00_02`; do not reuse it to sign off this beta.
 
-Scoped freeze PRs #859 (arithmetic), #860 (assignment/update) and
-#861 (path/iterator) are merged. **#623 and #626 were closed** on
-2026-10-21 after verifying their final-head Push/PR Perl and jq 1.7 CI
-and the documented bounded scope. Documentation issue #629 is closed.
-**#625 remains open** until the original
-`docs/jq-semantics-differences.md` inventory is reconciled with #861's
-four intentionally retained jq differences (a P2 review finding) and
-accepted on its own final reviewed PR. Closing scoped issues does **not**
-constitute approval of the complete beta/RC candidate or full jq parity.
+At the **2026-10-21 beta1 checkpoint**, the scoped PRs #859
+(arithmetic), #860 (assignment/update) and #861 (path/iterator) were
+merged; #623/#626 were accepted, #629's migration/matrix documentation
+was closed, and the original #625 inventory still required review.
+That **historical blocker was subsequently resolved by merged #865**
+on 2026-10-25; #625 is now CLOSED, as recorded in the RC1 section
+above. Scoped closure never implied complete jq parity.
 
-The internal `3.00_02` beta1 candidate PR #863 and public-version policy
-PR #864 are also merged, each with successful final-head Push/PR Perl
-and jq 1.7 tests and PR distribution packaging checks; **both had
-additional review findings discovered before merge**. The last
-remaining #864 P1 called out the need for **public beta** version-order
-approval in the `Changes` summary as well as the existing public RC
-and stable gates. Do not treat their successful CI as resolution of that
-review finding. The candidate must rerun its matrix on the **new final
-reviewed head and synthetic merge**. Earlier alpha milestones are not
-retroactively claimed as published releases.
+The internal `3.00_02` beta1 candidate #863 and policy #864 were
+merged with passing development-stage CI, but later reviews found a
+version-order documentation defect. **Merged #865 corrected** the
+`Changes` public-beta/RC ordering language and resolved the
+remaining scope-matrix inconsistencies. Neither historical CI nor
+that documentation correction constitutes a new RC1 candidate
+sign-off; every RC HEAD and synthetic merge must be independently
+tested and reviewed. Earlier alpha milestones are not retroactively
+claimed as published releases.
 
 ## Baseline snapshot (2026-10-20)
 
