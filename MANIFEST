@@ -48,6 +48,7 @@ ci/check-public-version-order.pl
 ci/inventory-cpan-jq-lite-index.pl
 ci/reconcile-cpan-public-history.pl
 ci/compare-backpan-cpan-inventory.pl
+ci/compare-backpan-author-metacpan-inventory.pl
 ci/inventory-backpan-jq-lite-index.pl
 ci/inventory-metacpan-jq-lite-releases.pl
 Makefile.PL
@@ -358,6 +359,7 @@ t/v3_public_version_order.t
 t/v3_cpan_index_inventory.t
 t/v3_cpan_history_reconciliation.t
 t/v3_backpan_cpan_comparison.t
+t/v3_backpan_author_metacpan_comparison.t
 t/v3_backpan_index_inventory.t
 t/v3_metacpan_release_inventory.t
 t/v3_arithmetic_contract.t
