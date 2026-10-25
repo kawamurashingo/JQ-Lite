@@ -47,7 +47,7 @@ jobs:
             for host in backpan.perl.org backpan.cpantesters.org; do
               attempt=$((attempt + 1))
               url="https://$host/authors/id/S/SH/SHINGO/$file"
-              response="$out/http/$version-attempt.txt"
+              response="$out/http/$version-$attempt.txt"
               candidate="$out/originals/$file"
               printf 'ATTEMPT_VERSION=%s;HOST=%s;URL=%s\n' "$version" "$host" "$url" >> "$out/provenance.txt"
               rm -f "$candidate"
@@ -79,6 +79,16 @@ jobs:
               echo "::error title=Unrecognized source archive::No expected distribution directory in $file"
               exit 1
             fi
+            # Confirm the package metadata itself matches its archive filename.
+            # Read only; do not execute code from untrusted historical tarballs.
+            tar -xOzf "$out/originals/$file" "JQ-Lite-$version/META.json" |
+              CHECKED_VERSION="$version" perl -MJSON::PP -0777 -e '
+                my $meta = eval { JSON::PP::decode_json(do { local $/; <STDIN> }) };
+                die "Invalid archive META.json\n" if $@ || ref($meta) ne "HASH";
+                die "Archive name/META.json disagreement\n"
+                  unless ($meta->{name} || "") eq "JQ-Lite"
+                    && ($meta->{version} || "") eq $ENV{CHECKED_VERSION};
+              '
             printf 'ARCHIVE_VALIDATED=%s\n' "$version" >> "$out/provenance.txt"
             verified=$((verified + 1))
           done
