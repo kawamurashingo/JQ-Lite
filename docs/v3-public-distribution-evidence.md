@@ -347,6 +347,48 @@ Do not use any of these timestamps to assert chronological PAUSE
 publication order. Do not pass `--history-reviewed`, select the
 public version, tag, merge v3 to `main`, upload CPAN or publish.
 
+## CPAN Testers uploads timeline (third observation source; not PAUSE receipts)
+
+The [CPAN Testers Uploads API](https://api.cpantesters.org/)
+provides a **distribution-scoped** public endpoint
+[`GET /v1/upload/dist/JQ-Lite`](https://api.cpantesters.org/v1/upload/dist/JQ-Lite),
+as [documented by its upstream controller](https://metacpan.org/pod/CPAN::Testers::API::Controller::Upload).
+The API returns upload observations including distribution, release
+filename, version, author and a `released` timestamp. The published
+[CPAN Testers upload-table schema](https://metacpan.org/pod/CPAN::Testers::Schema::Result::Upload)
+explicitly says that its release time comes from **the local CPAN
+mirror file mtime or NNTP upload-notification time**. It is a
+separate public observation worth checking against BackPAN and
+MetaCPAN, but **not a signed original PAUSE upload ledger**, and
+not an independent completeness attestation.
+
+The read-only, paths-scoped
+`.github/workflows/v3-cpantesters-upload-observations.yml`
+preserves the raw JSON response, HTTP response headers, retrieval UTC,
+checked-out SHA, content SHA-256 and a derived review-only TSV as a
+short-lived 14-day Actions artifact. Original and redirected transport
+is restricted to verified HTTPS. The offline core-Perl
+`ci/inventory-cpantesters-jq-lite-uploads.pl` parser requires an
+actual, nonempty JSON array of JQ-Lite upload records, checks filenames
+and dates, preserves **every** upload row without silently
+de-duplicating, and explicitly alerts on any `3.00_0x` or
+`v3.00_0x` internal version, off-SHINGO author, or duplicate
+filename/version. It does not fetch network data.
+
+If the endpoint is unavailable, the workflow warns and marks
+**AUDIT BLOCKED**, retaining partial provenance rather than failing
+ordinary Perl feature tests. A **successfully retrieved but invalid**
+response or developer/duplicate/author anomaly remains a **hard
+validation failure**. The API does not provide an independently
+auditable historical total in its example array schema; receiving
+valid JSON must **never** be interpreted as proof that all uploads
+have been returned. Even a perfect 259-version match would not
+resolve PAUSE upload chronology, deletion/reupload history,
+external distribution of internal `3.00_0x` builds, or public
+version approval. Do not use this feed directly as
+`--published-file`, do not call `--history-reviewed`, and do
+not publish a release based solely on these observations.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,
