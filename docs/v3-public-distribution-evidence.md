@@ -377,8 +377,12 @@ filename/version. It does not fetch network data.
 
 If the endpoint is unavailable, the workflow warns and marks
 **AUDIT BLOCKED**, retaining partial provenance rather than failing
-ordinary Perl feature tests. A **successfully retrieved but invalid**
-response or developer/duplicate/author anomaly remains a **hard
+ordinary Perl feature tests. A **valid but historically ambiguous**
+response with duplicate versions, empty uploader/filename fields or
+an epoch-sentinel date preserves every row and marks
+**BLOCKED_UPLOAD_RECORD_ANOMALIES** (collection job can finish without
+pretending the audit passed). A malformed JSON/schema, foreign
+uploader or detected internal developer candidate is a **hard
 validation failure**. The API does not provide an independently
 auditable historical total in its example array schema; receiving
 valid JSON must **never** be interpreted as proof that all uploads
