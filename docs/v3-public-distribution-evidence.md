@@ -412,6 +412,17 @@ and [run 40169376705 / 12589947578](https://github.com/kawamurashingo/JQ-Lite/ac
 Their names, creation times and retained ZIP bytes establish
 **observable CI artifact exposure**, not PAUSE or GitHub Release uploads.
 The other ZIPs' contents must not be inferred from filenames alone.
+A [read-only repository-wide artifact inventory run 40200136630](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40200136630)
+on **2026-10-25 around 13:59 UTC** scanned the currently returned
+GitHub Actions artifact metadata over all available pages. It
+reported **92 not-expired artifacts** with the
+`v3-unreleased-source-*` naming pattern. This is a **point-in-time
+count of accessible metadata**, **not 92 confirmed downloads or
+independently verified ZIP contents**, and does not include artifacts
+already purged/expired. The run summary retains matching artifact IDs,
+creation times, expiry flags and workflow run IDs without republishing
+any developer archive bytes.
+
 
 [GitHub's documented artifact access policy](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)
 states that signed-in GitHub users with repository read permission can
