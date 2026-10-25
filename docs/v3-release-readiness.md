@@ -227,8 +227,15 @@ for this final release-candidate gate.
   `--history-reviewed`, repeated `--published VERSION` for
   each prior public version and repeated `--planned VERSION`
   through the proposed stable endpoint. Its Perl core `version`
-  comparisons must report strict monotonicity; it rejects
-  `3.00_0x` as a proposed public version. Omitting all
+  comparisons must require the first planned public version to exceed
+  **the highest version ever publicly distributed**, and every later
+  planned version to be strictly increasing. Real historical public
+  downgrades/duplicates are recorded, not retroactively erased; if
+  any are found, the tool additionally requires the explicit
+  `--acknowledge-historical-regressions` option **after** a complete
+  independent history review. That option never weakens future-order
+  validation. The script rejects `3.00_0x` as a proposed public
+  version. Omitting all
   `--published` inputs is only valid after confirming **no public
   predecessors**, not by assumption. The offline tool **cannot
   verify the claimed publication history or approve a release**.
@@ -253,6 +260,14 @@ The internal `3.00_03` archive is **NOT** a proposed public version.
 The preflight script uses only core Perl (`Getopt::Long` and
 `version`) and requires a manually audited version history; it has
 **no network access** and does not consult CPAN or GitHub itself.
+A documented CPAN anomaly is `0.99` published before `0.100`;
+Perl sorts `0.100` below `0.99`. See the
+[partial evidence snapshot](v3-public-distribution-evidence.md#confirmed-historical-perl-ordering-anomaly-not-a-complete-audit).
+If a complete independent review finds historical non-increases,
+`--acknowledge-historical-regressions` records deliberate acceptance
+of those *past* anomalies only. The new release must always exceed
+the **all-time maximum** published version, never just the last
+historical version; future releases must strictly increase.
 
 The following commands are **illustrative tests only**, not a
 selection of a future stable version:

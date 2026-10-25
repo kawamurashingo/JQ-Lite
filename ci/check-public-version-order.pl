@@ -6,21 +6,26 @@ use version ();
 
 # Offline preflight only. The caller MUST independently audit the actual
 # publication history; this script cannot query CPAN/GitHub Releases.
-my (@published, @planned, $history_reviewed, $help);
+my (@published, @planned, $history_reviewed, $ack_historical, $help);
 GetOptions(
     'published=s'      => \@published,
     'planned=s'        => \@planned,
     'history-reviewed' => \$history_reviewed,
+    'acknowledge-historical-regressions' => \$ack_historical,
     'help'             => \$help,
 ) or die "Invalid arguments; use --help\n";
 
 my $usage = <<'USAGE';
 Usage: perl ci/check-public-version-order.pl --history-reviewed
        [--published VERSION ...] --planned VERSION [--planned VERSION ...]
+       [--acknowledge-historical-regressions]
 List ALL actually public versions oldest first, then the entire proposed
 public prerelease-to-stable sequence in order. If none were public, omit
 --published ONLY after independently confirming that fact. The last
 --planned version must be stable (no underscore).
+Past public versions may contain real historical order regressions.
+Those require an additional explicit acknowledgement, and future public
+versions must exceed EVERY historical version and strictly increase.
 This checks numeric Perl version ordering, not publication history.
 No release is authorized or performed by this tool.
 USAGE
@@ -51,12 +56,49 @@ for my $pair (
     push @sequence, [$kind, $literal, $parsed];
 }
 
-for my $i (1 .. $#sequence) {
-    my ($previous, $current) = @sequence[$i - 1, $i];
-    die "Public version must strictly increase: $previous->[1] is not below $current->[1]\n"
+# Historical publication cannot be undone. Record every non-increase
+# against the highest prior public version; do not mistake the most recent
+# published literal for the maximum Perl version ever distributed.
+my @history = grep { $_->[0] eq 'published' } @sequence;
+my @future  = grep { $_->[0] eq 'planned' } @sequence;
+my ($highest_public, @historical_regressions);
+for my $entry (@history) {
+    if ($highest_public && !($highest_public->[2] < $entry->[2])) {
+        push @historical_regressions,
+            "$highest_public->[1] is not below $entry->[1]";
+    } else {
+        $highest_public = $entry;
+    }
+}
+
+if (@historical_regressions && !$ack_historical) {
+    die "Historical public version order has ", scalar(@historical_regressions),
+        " non-increase(s); first: $historical_regressions[0]. ",
+        "Audit ALL public predecessors and explicitly pass ",
+        "--acknowledge-historical-regressions; this does NOT waive ",
+        "any future version-order requirement.\n";
+}
+
+# Every newly proposed version must be later than the all-time historical
+# maximum, not merely the last item in a regressed publication history.
+if ($highest_public && !($highest_public->[2] < $future[0][2])) {
+    die "Proposed public version must strictly increase beyond every ",
+        "previously published version: historical maximum ",
+        "$highest_public->[1] is not below $future[0][1]\n";
+}
+for my $i (1 .. $#future) {
+    my ($previous, $current) = @future[$i - 1, $i];
+    die "Proposed public versions must strictly increase: ",
+        "$previous->[1] is not below $current->[1]\n"
         unless $previous->[2] < $current->[2];
 }
 
+if (@historical_regressions) {
+    print "Historical public version regressions: ",
+        scalar(@historical_regressions),
+        " acknowledged after independent history review; ",
+        "no retroactive repair or publication authorized.\n";
+}
 print "Perl public-version order: PASS (", scalar(@published),
     " audited public predecessors; ", scalar(@planned),
     " proposed future versions). No publication authorized.\n";
