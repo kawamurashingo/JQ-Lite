@@ -237,6 +237,16 @@ for this final release-candidate gate.
   upload, GitHub Release or promoted install URL. Keep stable 2.x
   unchanged.
 
+### Partial public-distribution history evidence (2026-10-25)
+
+[Public-distribution evidence snapshot](v3-public-distribution-evidence.md)
+records the individually observed MetaCPAN/CPAN mirror/GitHub
+release and tag data. It explicitly does **not** complete the audit
+of all public predecessors or external distribution channels.
+The `--history-reviewed` attestation must **not** be used on the
+strength of this snapshot alone; public version approval is still
+blocked.
+
 ### Offline public-version preflight (no release action)
 
 The internal `3.00_03` archive is **NOT** a proposed public version.
