@@ -187,6 +187,59 @@ distribution audit and permanent internal-release nonpublication
 still require separate evidence. **Version selection, `--history-reviewed`,
 and public release remain BLOCKED**.
 
+## CPAN Testers Uploads API: third-source timeline with record anomalies
+
+A separate
+[PR #885 observation run 40187696559](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40187696559)
+fetched the original public
+[`GET /v1/upload/dist/JQ-Lite`](https://api.cpantesters.org/v1/upload/dist/JQ-Lite)
+response over **verified HTTPS** at **2026-10-25 11:09:43–44 UTC**.
+The response was HTTP/2 200, an actual parseable JSON **array**
+(`Content-Type: text/html;charset=UTF-8`, despite the JSON body).
+The [retained original Actions artifact](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40187696559/artifacts/12596846441)
+contains the unmodified response (32,535 bytes, SHA-256
+`e435a40aa6e19d3c011ab0d8a00588039ed5f845eaccbc883d2ea7477c2563bf`),
+raw headers, recorded request URL/checkout SHA and checksums. The
+original artifact ZIP SHA-256 is
+`2af698dfe9f82cf6d2ba327d3e5de9484a3f5d069391731273585236c358d46e`.
+Archive the original ZIP independently before retention expires
+around **2026-11-08 11:09 UTC**.
+
+The JSON contains **269 upload observation rows for 259 distinct
+version strings**. Nine versions have more than one row:
+`0.29`, `0.81`, `1.19`, `1.20`, `1.25`, `1.26`,
+`1.36`, `1.40`, `1.41`. Together those rows account for
+**10 records beyond the number of distinct versions**, with
+`1.20` appearing three times. Several repeated records have
+**identical filename and timestamp**, and therefore **must not be
+mistaken for independently proven repeated public uploads**.
+
+One anomalous `0.81` record has an **empty filename, empty author,
+and `1970-01-01T00:00:00Z` date**; a separate `0.81` record
+shows the ordinary `SHINGO` archive
+`JQ-Lite-0.81.tar.gz` at `2025-10-11T01:50:29Z`.
+The 1970 record is **not** a verified upload or chronological
+starting point. Preserve it unchanged for investigation.
+
+This source also records `0.99` at
+`2025-10-13T01:26:29Z` and `0.100` at
+`2025-10-13T03:50:58Z`, consistent with the previously
+observed Perl version-order inversion. CPAN Testers describes
+its `released` dates as derived from **mirror mtimes or NNTP
+upload notifications**, not direct PAUSE receipt timestamps, so
+these timestamps **cannot certify** the original upload order.
+
+**Result:** this is an additional time-ordered observational source,
+but **BLOCKED_RECORD_ANOMALIES / INCOMPLETE ORIGINAL PAUSE LEDGER**.
+The first parser revision rejected this valid yet ambiguous source
+as a code failure; PR #885 retains every row and classifies
+incomplete/duplicate observations as audit **BLOCKED** without hiding
+the original evidence. No public `3.00_0x` sighting in the 269
+rows is only a limited negative search, not all-channel proof of
+nonpublication. The source does not provide a signed historical total
+or a complete PAUSE upload ledger. **No `--history-reviewed`,
+public version approval or publication is authorized.**
+
 ## Remaining approval blockers
 
 Independently secure the complete CPAN/PAUSE history with upload-order
