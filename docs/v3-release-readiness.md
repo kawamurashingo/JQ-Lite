@@ -276,18 +276,41 @@ version passed `make disttest` and actual extracted-tarball tests,
 but **`3.00_03` RC1 requires independent candidate checks**.
 Never publish an underscore developer version as a stable release.
 
-## Sign-off record (fill only after independent verification)
+## Internal RC1 technical evidence — merged #869
+
+The [internal RC1 staging PR #869](https://github.com/kawamurashingo/JQ-Lite/pull/869)
+merged head `34e7a7e8aef27f153a933f6bc2c27d2373b21c2c` over
+base `b107d17ce926592a107bab6a279ccbbbf23429bf`; PR
+synthetic merge `a47aba4599330eb19023db41cc0d92c5ff138f15`
+was tested, and the resulting `v3-dev` merge was
+`a597fd6c32368ee471709ed115ad7bc6fe16c3c6`.
+See [RC1 technical checkpoint](v3-rc1-release-notes.md#technical-checkpoint--merged-pr-869-2026-10-25)
+for the complete run links and fixture recount: **4,037** cases
+(3,940 compatible / 74 known differences / 23 unsupported / 0 planned).
+Final-head Push/PR Perl and jq, package extracted-tarball validation
+(Perl 5.14/latest) and Codex review passed, and reviewed test logs
+showed no uninitialized-value warning or warning-gate failure.
+This records **internal developer candidate evidence only**. A future
+publication approval still requires version history/order review and
+its own approved, non-underscore or monotonic prerelease version
+train; the developer `3.00_0x` train stays unpublished.
+
+## RC1 technical verification record (public-release approval separate)
 
 | Gate | Candidate SHA / evidence URL | Result |
 | --- | --- | --- |
 | Practical-scope decisions (#623/#625/#626) | All three scoped issues closed; #625 [merged PR #865](https://github.com/kawamurashingo/JQ-Lite/pull/865), head `c2b40b7c`, merge `b107d17c` | SCOPED COMPLETE; RC1 STILL NEEDS NEW CI |
-| Full Perl matrix, Push HEAD SHA + PR merge SHA and run URLs | Previous #864 head `2410606a`: [Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538124269), [PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128367) | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
-| jq 1.7 differential, Push HEAD SHA + PR merge SHA and run URLs | Previous #864: [Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538124258), [PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128322) | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
-| CLI/Library + extracted-source disttest + clean install | Previous #864: [source-dist PR run](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39538128301), Perl 5.14 + latest | PASSED HISTORICALLY; NEW FINAL CANDIDATE REQUIRED |
-| Clean warning gate (#867) | #867 closed after [merged #868](https://github.com/kawamurashingo/JQ-Lite/pull/868); [post-merge Perl](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435287), [jq](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435269), [package](https://github.com/kawamurashingo/JQ-Lite/actions/runs/39867435373) | SCOPED GATE COMPLETE; RECHECK ON FINAL CANDIDATE |
+| Full Perl matrix, Push HEAD + PR synthetic merge | #869 head `34e7a7e8`, tested synthetic PR merge `a47aba45`: [Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148335027), [PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148416217) | PASS — INTERNAL RC1 STAGING CHECKPOINT |
+| jq 1.7 differential and 4,037-fixture recount | #869 [Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148335018), [PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148416225); 3,940 compatible / 74 known difference / 23 unsupported | PASS — INTERNAL RC1 STAGING CHECKPOINT |
+| CLI/Library + extracted-source disttest + clean install | #869 [PR package](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148416214), Perl 5.14 + latest; confirmed `JQ-Lite-3.00_03.tar.gz` in logs | PASS — INTERNAL RC1 STAGING CHECKPOINT |
+| Clean warning gate (#867) | #867 closed; #869 Push/PR Perl/jq and package logs checked: zero unexpected test warnings; the external Node.js Action deprecation notice is separately classified | PASS — INTERNAL RC1 STAGING CHECKPOINT |
 | Migration/README/Changes and Perl version-order decision | _pending_ | **BLOCKED: public version not selected** |
 | Final review and release approval | _pending_ | NOT APPROVED |
 
-Only after the above gates are satisfied should the beta/RC candidate be
-promoted. Do not merge `v3-dev` into `main` or publish a stable 3.0 artifact
-just because the latest ordinary development PR has green CI.
+The table verifies **the internal developer RC1 staging candidate**,
+not approval of a public beta/RC or stable release. The final public
+Perl version, its strictly monotonic history and explicit maintainer
+publication sign-off are still **UNDECIDED / BLOCKED**. CI on a future
+public/stable candidate must independently pass every gate.
+Do not merge `v3-dev` into `main`, tag or publish because a development
+candidate has green CI.
