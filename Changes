@@ -1,5 +1,6 @@
 3.00_03  2026-10-25
     [Developer release — INTERNAL RC1 candidate, NOT published]
+    - Add an offline public version-order preflight with an explicit human-audited publication-history gate; reject developer-train publication and unsafe prerelease-to-stable downgrades without selecting a public version.
     - Stage a separate RC1 validation checkpoint after closed scoped #623/#625/#626 audits and #867 warning-gate sign-off; preserve practical v2.59 feature scope.
     - Freeze Library/CLI contracts and existing Perl 5.14+ pure-Perl dependencies; continue all Push/PR jq 1.7, warning-clean and source tarball test gates without adding new jq grammar.
     - Keep all 3.00_0x archives permanently internal-only: public beta/RC requires a separately approved monotonically increasing Perl version sequence through stable; the future stable number remains undecided.

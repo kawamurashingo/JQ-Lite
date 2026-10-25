@@ -74,13 +74,15 @@ jobs:
           for required in \
             lib/JQ/Lite.pm bin/jq-lite Makefile.PL Changes README.md \
             ci/fail-on-test-stderr.sh \
+            ci/check-public-version-order.pl \
             docs/v3-release-readiness.md docs/v3-beta1-release-notes.md \
             docs/v3-rc1-release-notes.md \
             docs/v3-ci-warning-audit.md \
             docs/v3-migration.md \
             t/cli_contract.t t/v3_library_api_contract.t \
             t/jq_differential.t t/data/jq-differential.jsonl \
-            t/manifest_coverage.t t/v3_release_metadata.t; do
+            t/manifest_coverage.t t/v3_release_metadata.t \
+            t/v3_public_version_order.t; do
             grep -Fq "/$required" "$RUNNER_TEMP/distribution-entries.txt"
           done
 

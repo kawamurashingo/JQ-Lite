@@ -134,6 +134,26 @@ build/test/tag decisions remain **BLOCKED / NOT APPROVED**.
   signs off **internal RC1 validation only**. No tag, CPAN upload,
   public RC announcement or GitHub Release follows automatically.
 
+## Public-version ordering: independent approval required
+
+Before selecting a future **public** beta/RC or stable version, first
+inspect all actually published CPAN distributions and public GitHub
+Releases/tags/install URLs (including any developer versions released
+by mistake). Record that history in publication order, or explicitly
+record that no public predecessors exist. Only then run the **offline**
+`ci/check-public-version-order.pl` preflight with
+`--history-reviewed`, repeated `--published VERSION`, and the full
+proposed `--planned VERSION` sequence ending in stable.
+This script checks **Perl core `version`** ordering and refuses to
+publish the internal `3.00_0x` train. The included
+`t/v3_public_version_order.t` regression protects against
+the previously discovered underscore-to-stable downgrade.
+The script **does not fetch** publication history or approve any
+version by itself; its hypothetical test versions are **not selected
+release numbers**. A complete public version plan and explicit
+maintainer approval remain outstanding, and another full candidate
+test matrix is required after those choices.
+
 ## Promotion beyond the internal candidate
 
 After accepted **internal** RC1 validation, handle only bona fide release
