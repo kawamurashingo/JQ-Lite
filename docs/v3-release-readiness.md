@@ -5,6 +5,21 @@ the practical-v2-baseline release, **not** a release announcement, a claim
 of complete jq conformance, or an authorization to merge or publish.
 Tracked by [#619](https://github.com/kawamurashingo/JQ-Lite/issues/619).
 
+## Public cutover critical path (feature freeze; 2026-10-25)
+
+The [v3 public release cutover plan](v3-public-release-cutover-plan.md)
+is the single evidence-first checklist for the conditional **2026-11-01
+through 2026-11-08 review target**. New features and broader jq syntax
+are frozen; only demonstrated release blockers and audit/documentation
+gaps may be changed. **The date is not a promised release date.**
+Merged #880 passed final-head Perl/jq/package checks, but the
+`BackPAN` HTTPS source was not retrieved and the multichannel
+PAUSE/public-distribution history remains **BLOCKED**. Require original
+PAUSE uploads, independently archived releases, cross-channel checks,
+a complete human-attested chronological ledger and explicit
+maintainer approval before choosing any public version or publishing.
+Never use a green *evidence collection* job as audit sign-off.
+
 ## Scope freeze
 
 The target is v2.59's practical features with specifically audited jq 1.7
