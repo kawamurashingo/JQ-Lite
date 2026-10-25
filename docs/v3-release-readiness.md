@@ -215,10 +215,53 @@ for this final release-candidate gate.
   developer/prerelease was publicly distributed, the approved
   stable version must compare strictly greater than every such
   predecessor. Final stable Perl number remains **undecided**.
-  Record publication history, check ordering, remove any underscore
-  on the stable version, re-freeze changelog/README/migration docs
-  and require explicit approval before any public tag, CPAN upload,
-  GitHub Release or promoted install URL. Keep stable 2.x unchanged.
+  Independently inspect real CPAN/version history, public GitHub
+  Releases/tags and any publicly offered install URLs (not just this
+  repository's internal CI artifacts). Record every actually
+  **published** predecessor in chronological order and the full
+  proposed beta/RC-to-stable sequence. After **human verification**
+  of that history, use `ci/check-public-version-order.pl` with
+  `--history-reviewed`, repeated `--published VERSION` for
+  each prior public version and repeated `--planned VERSION`
+  through the proposed stable endpoint. Its Perl core `version`
+  comparisons must report strict monotonicity; it rejects
+  `3.00_0x` as a proposed public version. Omitting all
+  `--published` inputs is only valid after confirming **no public
+  predecessors**, not by assumption. The offline tool **cannot
+  verify the claimed publication history or approve a release**.
+  Record its exact command/result, re-freeze changelog/README/migration
+  docs and require explicit approval before any public tag, CPAN
+  upload, GitHub Release or promoted install URL. Keep stable 2.x
+  unchanged.
+
+### Offline public-version preflight (no release action)
+
+The internal `3.00_03` archive is **NOT** a proposed public version.
+The preflight script uses only core Perl (`Getopt::Long` and
+`version`) and requires a manually audited version history; it has
+**no network access** and does not consult CPAN or GitHub itself.
+
+The following commands are **illustrative tests only**, not a
+selection of a future stable version:
+
+```sh
+# Illustrative stable-only history; use ONLY after confirming that
+# these are the complete publicly distributed predecessors.
+perl ci/check-public-version-order.pl --history-reviewed \
+    --published 2.59 --planned 3.00
+
+# This intentionally FAILS: an underscored developer artifact, if
+# previously made public, compares greater than stable 3.00.
+perl ci/check-public-version-order.pl --history-reviewed \
+    --published 2.59 --published 3.00_03 --planned 3.00
+```
+
+The real publication decision must separately confirm that **all**
+known public predecessor distributions were included (and that
+`3.00_0x` development builds were not publicly distributed if
+stable-only `3.00` is being considered), select the proposed
+version numbers, approve the order, and test the exact resulting
+public candidate. Even a `PASS` is not approval to publish.
 
 ### Source-distribution CI (pre-release package gate)
 
