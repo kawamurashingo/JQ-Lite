@@ -70,6 +70,36 @@ create a fictitious full ledger from this partial CPAN index snapshot,
 and do not pass `--history-reviewed` until the maintainer's complete
 multichannel publication audit is finished.
 
+## Offline CPAN author-index inventory (not a publication ledger)
+
+The [SHINGO CPAN author directory](https://www.cpan.org/authors/id/S/SH/SHINGO/)
+shows individual `JQ-Lite-*.tar.gz` archives, with **directory
+last-modified times**, not certified PAUSE upload dates. A saved copy
+of that HTML listing can be reduced to a reviewable TSV:
+
+```sh
+curl -fsSL https://www.cpan.org/authors/id/S/SH/SHINGO/ \
+  -o /tmp/cpan-shingo-index.html
+perl ci/inventory-cpan-jq-lite-index.pl \
+  --input /tmp/cpan-shingo-index.html > /tmp/jq-lite-observed-archives.tsv
+```
+
+This helper **never fetches the network itself**, includes only exact
+`JQ-Lite-<version>.tar.gz` links, and sorts the output by the
+observed listing modification time. It rejects duplicate/malformed
+archive entries or an empty result; a visible `3.00_0x` candidate
+triggers an alert and nonzero exit rather than being silently ignored.
+
+**Do not pipe this TSV directly into `--published-file`**: it has
+four provenance/observation columns rather than a reviewed,
+chronological, versions-only publication ledger. Directory mtime is
+not reliable evidence of original publication order, and the index
+may omit deleted/renamed or externally distributed archives. An
+independent CPAN/PAUSE and multichannel audit must reconcile these
+observations, archive links, timestamps and distribution history
+before any human `--history-reviewed` attestation. Saving or
+extracting the listing is **not a release sign-off**.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,
