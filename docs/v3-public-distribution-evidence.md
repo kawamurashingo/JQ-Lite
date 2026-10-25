@@ -100,6 +100,30 @@ observations, archive links, timestamps and distribution history
 before any human `--history-reviewed` attestation. Saving or
 extracting the listing is **not a release sign-off**.
 
+## Compare an observed CPAN index with a proposed history (offline only)
+
+After generating the four-column TSV above, reviewers can compare the
+**sets of versions** against a separate, manually researched,
+chronological versions-only history:
+
+```sh
+perl ci/reconcile-cpan-public-history.pl \
+  --inventory /tmp/jq-lite-observed-archives.tsv \
+  --published-file /path/to/researched-public-versions.txt
+```
+
+An observed archive missing from the supplied history is reported as
+`UNRECONCILED`; a history version absent from this particular index
+requires separate external evidence. Duplicate/malformed records
+are rejected, and any observed internal `3.00_0x` archive forces
+a failure even if both input sets contain it.
+
+**An exact match only checks set membership.** This tool does not
+establish upload chronology, include removed archives, audit
+distribution mirrors or certify that history is complete. It never
+calls the version-order preflight, never supplies
+`--history-reviewed`, and never authorizes a release.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,
