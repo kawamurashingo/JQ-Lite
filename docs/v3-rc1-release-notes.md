@@ -43,11 +43,24 @@ acceptance is not a claim of jq 1.7 grammar-wide parity.
 | [#867](https://github.com/kawamurashingo/JQ-Lite/issues/867), PRs #866/#868 | Warning audit completed | Full Perl/jq/package CI gates test-process stderr, including captured successful jq-lite child stderr, to prevent green builds with hidden Perl warnings |
 
 Counts above are **overlapping scoped audits**, not an additive
-repository-wide fixture total. The previous beta checkpoint recorded
-4,037 differential fixtures (3,940 compatible / 74 known differences /
-23 unsupported / 0 planned); **recount actual final-head fixture
-classifications before approving RC1**. Neither known differences nor
-unsupported expressions promise jq compatibility.
+repository-wide fixture total. The `#869` RC1 staging head's
+`t/data/jq-differential.jsonl` fixture statuses were **recounted
+from all 4,037 JSONL records**, not inferred by adding the overlapping
+sub-audits:
+
+| Classification | RC1 staging head count |
+| --- | ---: |
+| `compatible` | 3,940 |
+| `known-difference` | 74 |
+| `unsupported` | 23 |
+| `planned` | 0 |
+| **Total** | **4,037** |
+
+These counts match the previous beta checkpoint. The fixture file
+is the same recorded revision in merged `#869`; any later
+candidate **must recount on its own final SHA**. Only compatible
+fixtures are jq parity gates; known-difference and unsupported
+fixtures are not parity promises.
 
 Do not add speculative deep computed selectors, complete jq modules,
 new builtins or `compile()` (#627), dependencies, or a new public API
@@ -69,6 +82,32 @@ Read the [compatibility matrix](jq-compatibility.md),
 [path audit](v3-practical-path-audit.md),
 [assignment audit](v3-assignment.md) and
 [beta1 notes](v3-beta1-release-notes.md) for concrete examples.
+
+## Technical checkpoint — merged PR #869 (2026-10-25)
+
+**Development-candidate verification evidence, not public release approval.**
+The version-staging [PR #869](https://github.com/kawamurashingo/JQ-Lite/pull/869)
+merged its final HEAD `34e7a7e8aef27f153a933f6bc2c27d2373b21c2c`
+on top of base `b107d17ce926592a107bab6a279ccbbbf23429bf`
+as commit `a597fd6c32368ee471709ed115ad7bc6fe16c3c6`.
+The associated PR workflow actually tested synthetic merge
+`a47aba4599330eb19023db41cc0d92c5ff138f15`,
+as verified from packaging job logs.
+
+| Check at #869 final HEAD | Observed result |
+| --- | --- |
+| [Perl Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148335027) and [Perl PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148416217) | **PASS**, all 5.14, 5.26, 5.38, latest jobs |
+| [jq 1.7 Push](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148335018) and [jq 1.7 PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148416225) | **PASS**, complete differential harness with successful-child stderr gate |
+| [Source distribution PR](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40148416214) | **PASS** on Perl 5.14 and latest, checkout `make test`, `make disttest`, real extracted `3.00_03` archive tests, independent install and CLI/Library smoke tests |
+| Codex final-head review | **COMPLETED, no findings or unresolved threads**, on `34e7a7e8` |
+| Full final-head job-log warning scan | **No test-process `##[error]`, uninitialized-value warning or warning-gate failure detected.** Latest-Perl package job has an **unrelated GitHub Action Node.js 20 deprecation notification**, not a Perl warning |
+| Source version / archive | Library/POD/`Changes` stage `3.00_03`; package logs confirm `JQ-Lite-3.00_03.tar.gz` built and tested |
+
+A later `v3-dev` Push run checks the merged candidate tree,
+but **does not substitute for PR synthetic merge evidence**.
+Publication history, publicly monotonic Perl-version selection,
+maintainer approval for any public beta/RC and subsequent stable
+build/test/tag decisions remain **BLOCKED / NOT APPROVED**.
 
 ## RC1 acceptance — record results on the exact final commit
 
