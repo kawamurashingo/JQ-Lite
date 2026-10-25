@@ -438,7 +438,15 @@ checks, and SHA-256 in CI logs. The independent
 performs a **read-only, paginated** inventory of *present* repository
 artifact metadata under `actions: read`. It emits IDs, names,
 creation dates and expiry for the `v3-unreleased-source-*` train but
-does not download, delete, or re-upload package archives.
+does not download, delete, or re-upload package archives. A separate
+**metadata-only, 14-day** Actions artifact retains the original paged
+API JSON, matching TSV, workflow-run/check-out-SHA/UTC provenance and
+SHA-256 list even when enumeration fails after a partial fetch. The
+snapshot is publicly readable metadata, **not** tarball bytes,
+verified download logs, complete historical access records or an
+original PAUSE ledger. A maintainer must preserve copies and checksums
+independently before their 14-day expiry. A failing inventory stays
+**BLOCKED**, regardless of whether partial evidence was retained.
 
 **Human decision still required:** review every historical Actions
 archive exposure, any promoted links and external redistribution,
@@ -474,8 +482,9 @@ the remaining population never was copied externally.
   inconsistencies, identify any duplicates/downgrades and record source
   links and the maintainer's sign-off.
 - [ ] Only after actual history verification, choose a **separately
-  approved** public beta/RC-to-stable sequence (or approved stable-only
-  route) and run `ci/check-public-version-order.pl --history-reviewed`
+  approved** public beta/RC-to-stable sequence above the conservative
+  `3.00_03` exposure floor; stable-only `3.00` remains blocked under
+  the current policy. Then run `ci/check-public-version-order.pl --history-reviewed`
   with **every** actual public predecessor in publication order.
 - [ ] Re-run all candidate-specific release gates and obtain explicit
   maintainer publication approval. No `main` merge, tag, CPAN upload,
