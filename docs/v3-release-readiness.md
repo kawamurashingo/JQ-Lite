@@ -20,6 +20,19 @@ a complete human-attested chronological ledger and explicit
 maintainer approval before choosing any public version or publishing.
 Never use a green *evidence collection* job as audit sign-off.
 
+## New CI exposure gate (merged #886)
+
+Merged [#886](https://github.com/kawamurashingo/JQ-Lite/pull/886)
+stopped future internal `3.00_03` source tarballs from being uploaded
+as public GitHub Actions artifacts. The public Actions artifact metadata
+audit detected **92 live** `v3-unreleased-source-*` entries as a
+point-in-time exposure observation; one ZIP was directly confirmed to
+contain `JQ-Lite-3.00_03.tar.gz`. This does **not** prove any download
+or CPAN publication, but prevents certifying developer versions as
+strictly private. See the
+[Actions exposure decision record](v3-actions-artifact-exposure-decision.md).
+**Public version selection and `--history-reviewed` remain BLOCKED.**
+
 ## Scope freeze
 
 The target is v2.59's practical features with specifically audited jq 1.7

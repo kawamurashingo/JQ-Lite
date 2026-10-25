@@ -100,7 +100,8 @@ jobs:
             t/v3_backpan_author_metacpan_comparison.t \
             t/v3_backpan_index_inventory.t \
             t/v3_metacpan_release_inventory.t \
-            t/v3_cpantesters_upload_inventory.t; do
+            t/v3_cpantesters_upload_inventory.t \
+            t/v3_public_ci_archive_nonpublication.t; do
             grep -Fq "/$required" "$RUNNER_TEMP/distribution-entries.txt"
           done
 
