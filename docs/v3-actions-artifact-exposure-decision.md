@@ -63,6 +63,10 @@ It is not an assessment that 92 archives were actually downloaded.
    independently download and retain the metadata snapshot with its
    checksums **before expiry**; a passing inventory is not permanent
    preservation or an authorization to delete older artifacts.
+   The [2026-10-25 metadata snapshot inspection](v3-actions-exposure-snapshot-2026-10-25.md)
+   records the independently checked original ZIP hash, four member
+   hashes, and 126-row / 92-match reconciliation. That record does
+   **not** preserve the ZIP bytes permanently or unblock publication.
 3. **No automatic deletion**: removing existing artifacts needs explicit
    maintainer approval and a separate reviewed operation after
    provenance has been retained. Deletion reduces future exposure, but

@@ -17,7 +17,11 @@ The [Actions exposure decision record](v3-actions-artifact-exposure-decision.md)
 defines evidence retention, human deletion approval and why stable `3.00`
 cannot be assumed compatible with every publicly accessible predecessor.
 Version policy, original PAUSE chronology and all distribution channels
-remain blocked pending explicit review.
+remain blocked pending explicit review. The [independently inspected
+2026-10-25 Actions metadata snapshot](v3-actions-exposure-snapshot-2026-10-25.md)
+reconciles 126 current API rows / 92 matching live artifact names,
+but is not proof of any developer source download or permanent
+preservation of the original evidence bytes.
 
 ## Scope freeze
 
