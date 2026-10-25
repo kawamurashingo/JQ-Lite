@@ -100,6 +100,19 @@ $bad_type->[0]{type} = 'approved';
 ok(invoke(file($bad_type))->{rc} != 0, 'untrusted status cannot masquerade as approval');
 ok(invoke(file([row('2.59','not-a-date')]))->{rc} != 0,
     'invalid release date rejected');
+ok(invoke(file([row('2.59','2026-99-99T99:99:99Z')]))->{rc} != 0,
+    'impossible clock and calendar values rejected');
+ok(invoke(file([row('2.59','2026-02-30T12:00:00Z')]))->{rc} != 0,
+    'nonexistent calendar day rejected');
+ok(invoke(file([row('2.59','2025-02-29T12:00:00Z')]))->{rc} != 0,
+    'non-leap-year February 29 rejected');
+is(invoke(file([row('2.59','2024-02-29T12:00:00Z')]))->{rc}, 0,
+    'genuine leap day accepted');
+ok(invoke(file([row('2.59','2026-01-01T00:30:00+01:00')]))->{rc} != 0,
+    'offset date disallowed so lexicographic observation order is safe');
+ok(invoke(file([row('2.59','2026-01-01T00:30:00.5Z')]))->{rc} != 0,
+    'fractional date disallowed rather than mis-sorted');
+
 ok(invoke(file({error=>'upstream failure'}))->{rc} != 0,
     'API error response rather than a JSON array rejected');
 ok(invoke(file([]))->{rc} != 0, 'empty response not a complete history');
