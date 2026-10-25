@@ -1,0 +1,96 @@
+name: v3 public CI archive exposure inventory (NOT release approval)
+
+on:
+  # Deliberately opt-in. This audit lists artifact metadata only.
+  pull_request:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-internal-artifact-exposure-audit.yml
+      - .github/workflows/v3-source-dist.yml
+  push:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-internal-artifact-exposure-audit.yml
+      - .github/workflows/v3-source-dist.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    name: Inventory prior publicly readable CI archives (no deletion)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Enumerate repository Actions artifacts, including expired ones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp="$RUNNER_TEMP/v3-ci-exposure"
+          mkdir -p "$temp"
+          : > "$temp/developer-artifacts.tsv"
+          expected=''
+          seen=0
+          last_page=0
+          for page in $(seq 1 200); do
+            # Read-only metadata from the GitHub API. Do not fetch or
+            # re-upload any internal .tar.gz, even to an evidence artifact.
+            response="$temp/artifact-page-$page.json"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100&page=$page" > "$response"
+            jq -e '.total_count | type == "number"' "$response" >/dev/null
+            jq -e '.artifacts | type == "array"' "$response" >/dev/null
+            total="$(jq -r '.total_count' "$response")"
+            count="$(jq '.artifacts | length' "$response")"
+            if [ -z "$expected" ]; then
+              expected="$total"
+            fi
+            # Do not claim that enumeration is complete if the
+            # repository artifact count changes during pagination.
+            if [ "$total" != "$expected" ]; then
+              echo '::error::Artifact total changed during pagination: snapshot is ambiguous.'
+              exit 1
+            fi
+            jq -r '.artifacts[] |
+              select(.name | startswith("v3-unreleased-source-")) |
+              [.id, .name, .expired, .created_at, (.workflow_run.id // "unknown")] | @tsv'               "$response" >> "$temp/developer-artifacts.tsv"
+            seen=$((seen + count))
+            last_page="$page"
+            if [ "$seen" -ge "$expected" ]; then
+              break
+            fi
+            if [ "$count" -eq 0 ]; then
+              echo '::error::Unexpected empty API page before reported total.'
+              exit 1
+            fi
+          done
+          if [ "$seen" -ne "$expected" ]; then
+            echo "::error::Artifact enumeration truncated or inconsistent: $seen vs $expected."
+            exit 1
+          fi
+          # Also reject duplicate artifact IDs seen across pages.
+          if [ -s "$temp/developer-artifacts.tsv" ]; then
+            awk -F '\t' '{ print $1 }' "$temp/developer-artifacts.tsv" |
+              sort | uniq -d > "$temp/duplicated-ids.txt"
+            if [ -s "$temp/duplicated-ids.txt" ]; then
+              echo '::error::Duplicate artifact IDs in paged response.'
+              exit 1
+            fi
+          fi
+          candidates="$(wc -l < "$temp/developer-artifacts.tsv" | tr -d ' ')"
+          live="$(awk -F '\t' '$3 == "false" { n++ } END { print n+0 }' "$temp/developer-artifacts.tsv")"
+          echo '### Public repository Actions artifact exposure — OBSERVATION ONLY' >> "$GITHUB_STEP_SUMMARY"
+          echo "Scanned $seen artifact metadata rows across $last_page pages." >> "$GITHUB_STEP_SUMMARY"
+          echo "Matching internal source artifact names: $candidates; not-expired: $live." >> "$GITHUB_STEP_SUMMARY"
+          echo 'Not a full historical publication audit: deleted/expired artifacts and external copies may be absent.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No existing artifact was downloaded, deleted or redistributed.' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Historical internal source artifact metadata (ID, name, expired, UTC creation, run ID):' >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat "$temp/developer-artifacts.tsv" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$live" -gt 0 ]; then
+            echo "::warning title=CI source archive exposure::Found $live live v3 developer source artifacts. Public version sign-off remains BLOCKED."
+          fi

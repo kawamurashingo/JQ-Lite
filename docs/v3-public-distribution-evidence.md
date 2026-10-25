@@ -393,6 +393,71 @@ version approval. Do not use this feed directly as
 `--published-file`, do not call `--history-reviewed`, and do
 not publish a release based solely on these observations.
 
+## Critical: GitHub Actions source artifacts were an accessible distribution channel
+
+**Discovery (2026-10-25 UTC): release history still BLOCKED.**
+The `v3 source distribution candidate` workflow previously uploaded
+`JQ-Lite-*.tar.gz` using `actions/upload-artifact@v4` on each
+PR/push with the name `v3-unreleased-source-<run_id>`.
+The current `v3-dev` module identifies as **internal `3.00_03`**.
+The actual [run 40188275036 artifact 12597242129](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40188275036/artifacts/12597242129)
+is an unexpired, 569,572-byte GitHub Actions artifact, and independent
+read-only inspection of its downloaded ZIP showed
+**`JQ-Lite-3.00_03.tar.gz`** inside. Other known unexpired examples,
+without claiming a complete repository-wide inventory:
+[run 40184611220 / 12595905899](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40184611220/artifacts/12595905899),
+[run 40182945614 / 12595032233](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40182945614/artifacts/12595032233),
+[run 40171340850 / 12590531371](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40171340850/artifacts/12590531371),
+and [run 40169376705 / 12589947578](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40169376705/artifacts/12589947578).
+Their names, creation times and retained ZIP bytes establish
+**observable CI artifact exposure**, not PAUSE or GitHub Release uploads.
+The other ZIPs' contents must not be inferred from filenames alone.
+A [read-only repository-wide artifact inventory run 40200136630](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40200136630)
+on **2026-10-25 around 13:59 UTC** scanned the currently returned
+GitHub Actions artifact metadata over all available pages. It
+reported **92 not-expired artifacts** with the
+`v3-unreleased-source-*` naming pattern. This is a **point-in-time
+count of accessible metadata**, **not 92 confirmed downloads or
+independently verified ZIP contents**, and does not include artifacts
+already purged/expired. The run summary retains matching artifact IDs,
+creation times, expiry flags and workflow run IDs without republishing
+any developer archive bytes.
+
+
+[GitHub's documented artifact access policy](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)
+states that signed-in GitHub users with repository read permission can
+download workflow artifacts. For a public repository, this can expose
+an internal developer archive beyond the maintainer. **Calling a CI
+artifact "unreleased" does not make it private.**
+
+The source-distribution test workflow is changed in this PR to
+**stop uploading actual internal developer tarballs**, while retaining
+the complete on-runner archive tests, extracted-tarball install
+checks, and SHA-256 in CI logs. The independent
+`.github/workflows/v3-internal-artifact-exposure-audit.yml`
+performs a **read-only, paginated** inventory of *present* repository
+artifact metadata under `actions: read`. It emits IDs, names,
+creation dates and expiry for the `v3-unreleased-source-*` train but
+does not download, delete, or re-upload package archives.
+
+**Human decision still required:** review every historical Actions
+archive exposure, any promoted links and external redistribution,
+decide whether any development artifact counts as a previously
+publicly distributed version, and choose a public version strictly
+consistent with Perl `version` ordering. In particular,
+`version->parse("3.00_03") > version->parse("3.00")`; **do not
+automatically approve stable `3.00`** on the assumption that
+`3.00_0x` never left internal access. Absence from CPAN, BackPAN
+author index and MetaCPAN does **not** overcome this separate evidence.
+Deleting old artifacts would not prove no prior downloads or third-party
+copies. Existing artifacts were **not deleted** in this change; agree
+on evidence retention and any deletion separately. The inventory
+cannot enumerate previously expired/deleted artifacts, nor prove that
+the remaining population never was copied externally.
+
+**Gate remains BLOCKED: no `--history-reviewed`, public version,
+`main` merge, tag, CPAN upload, or GitHub Release approved.**
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,
