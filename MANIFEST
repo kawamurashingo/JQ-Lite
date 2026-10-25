@@ -49,6 +49,7 @@ ci/inventory-cpan-jq-lite-index.pl
 ci/reconcile-cpan-public-history.pl
 ci/compare-backpan-cpan-inventory.pl
 ci/inventory-backpan-jq-lite-index.pl
+ci/inventory-metacpan-jq-lite-releases.pl
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
