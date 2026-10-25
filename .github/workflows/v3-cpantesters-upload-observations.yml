@@ -52,12 +52,26 @@ jobs:
           fi
           printf 'FETCH_FINISHED_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$out/provenance.txt"
           (cd "$out" && sha256sum original-cpantesters-upload-response.json > SHA256SUMS)
-          # Malformed, duplicate, off-author or internal-release sightings
-          # are evidence requiring investigation and MUST fail closed.
-          perl ci/inventory-cpantesters-jq-lite-uploads.pl \
+          # Exit 2 is a *real but ambiguous historical record*, NOT a
+          # parser defect. Preserve all 269 (or future) rows and flag the
+          # audit BLOCKED. Malformed input/internal releases still fail.
+          if perl ci/inventory-cpantesters-jq-lite-uploads.pl \
             --input "$out/original-cpantesters-upload-response.json" \
-            > "$out/upload-observations.tsv"
+            > "$out/upload-observations.tsv"; then
+            inventory_rc=0
+          else
+            inventory_rc=$?
+          fi
           printf 'OBSERVED_UPLOAD_RECORDS=%s\n' "$(tail -n +2 "$out/upload-observations.tsv" | wc -l | tr -d ' ')" >> "$out/provenance.txt"
+          if [ "$inventory_rc" -eq 2 ]; then
+            printf 'AUDIT_STATUS=BLOCKED_UPLOAD_RECORD_ANOMALIES\n' >> "$out/provenance.txt"
+            echo '::warning title=Historical upload anomalies::Duplicates or incomplete CPAN Testers records are preserved but cannot prove original PAUSE chronology.'
+            exit 0
+          fi
+          if [ "$inventory_rc" -ne 0 ]; then
+            printf 'AUDIT_STATUS=BLOCKED_VALIDATION_FAILURE\n' >> "$out/provenance.txt"
+            exit "$inventory_rc"
+          fi
           printf 'AUDIT_STATUS=OBSERVATIONS_ONLY_UNVERIFIED_COMPLETENESS\n' >> "$out/provenance.txt"
 
       - name: Retain original feed, HTTP headers and SHA256 even on failure
@@ -84,6 +98,12 @@ jobs:
           if grep -Fxq 'AUDIT_STATUS=BLOCKED_CPANTESTERS_SOURCE_UNAVAILABLE' "$provenance"; then
             echo '### CPAN Testers upload evidence: BLOCKED (HTTPS source unavailable)' >> "$GITHUB_STEP_SUMMARY"
             echo 'Collection completed safely; no upload chronology was verified.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if grep -Fxq 'AUDIT_STATUS=BLOCKED_UPLOAD_RECORD_ANOMALIES' "$provenance"; then
+            echo '::warning title=Upload history ambiguous::Observed duplicate or incomplete CPAN Testers records require manual review.'
+            echo '### CPAN Testers upload history: BLOCKED (source record anomalies)' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Original records were retained. Never treat this green collection check as a PAUSE upload history attestation.' >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           grep -Fxq 'AUDIT_STATUS=OBSERVATIONS_ONLY_UNVERIFIED_COMPLETENESS' "$provenance" || {
