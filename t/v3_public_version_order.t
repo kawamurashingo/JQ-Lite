@@ -70,6 +70,20 @@ my $prerelease_downgrade = invoke('--history-reviewed',
 ok($prerelease_downgrade->{rc} != 0,
     'a generic underscore prerelease is not blindly considered older than stable');
 
+# Hypothetical future public train only. These test literals are not
+# suggested or authorized production release numbers.
+my $increasing_train = invoke('--history-reviewed',
+    '--published', '2.59', '--planned', '3.01_01',
+    '--planned', '3.02');
+is($increasing_train->{rc}, 0,
+    'monotonic illustrative public prerelease-to-stable series passes');
+
+my $out_of_order_plan = invoke('--history-reviewed',
+    '--published', '2.59', '--planned', '3.02',
+    '--planned', '3.01');
+ok($out_of_order_plan->{rc} != 0,
+    'a decreasing proposed public sequence is rejected even with valid history');
+
 my $unsorted_history = invoke('--history-reviewed', '--published', '2.59',
     '--published', '2.58', '--planned', '3.00');
 ok($unsorted_history->{rc} != 0,
