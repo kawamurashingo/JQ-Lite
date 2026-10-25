@@ -62,7 +62,9 @@ for my $line (@records) {
     die "Duplicate CPAN inventory version $version at line $row\n"
         if exists $observed{$version};
     $observed{$version} = $archive;
-    if ($version =~ /\A3\.0+_\d+\z/ ||
+    # Both archive inventory and reconciliation accept an optional 'v'
+    # version prefix; neither may allow it to evade the internal-only gate.
+    if ($version =~ /\A(?:v)?3\.0+_\d+\z/ ||
             $classification eq 'INTERNAL-DEVELOPER-ARTIFACT-ALERT') {
         ++$internal_found;
     }
