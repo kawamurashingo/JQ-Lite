@@ -135,28 +135,41 @@ that may no longer appear on current CPAN mirrors. This is useful evidence,
 the BackPAN index may lag behind newer uploads, and its stored timestamps
 must be independently checked against original PAUSE upload records.
 
-For a **separate, manually operated audit environment only**, install the
-optional `CPAN::ReleaseHistory` module and save its exact input index
-revision, retrieval UTC date, and an immutable checksum of the exported
-data. This module is **not a JQ-Lite runtime, CI, or installation
-dependency**. Produce a three-column TSV directly from its documented
-`path`, `timestamp`, and `size` accessors:
+Download the **releases-only BackPAN index** in a separate, manually
+operated audit environment. [BackPAN::Index::Create](https://metacpan.org/pod/BackPAN::Index::Create)
+defines its `#FORMAT 1` lines as archive path, epoch timestamp,
+and byte size. A releases-only index omits the `authors/id/` prefix;
+the extractor also accepts that prefix from full indexes. Neither
+the index's modification time nor its per-file epochs independently
+certifies original PAUSE publication chronology.
 
 ```sh
-perl -MCPAN::ReleaseHistory -e '
-  print "path\tepoch\tsize\n";
-  my $iterator = CPAN::ReleaseHistory->new()->release_iterator();
-  while (my $release = $iterator->next_release) {
-    my $path = $release->path;
-    next unless $path =~ m{(?:^|/)JQ-Lite-};
-    print join("\t", $path, $release->timestamp, $release->size), "\n";
-  }
-' > /tmp/jq-lite-observed-backpan.tsv
+curl -fL https://backpan.cpantesters.org/backpan-releases-by-dist-index.txt.gz \
+  -o /tmp/backpan-releases-by-dist-index.txt.gz
+sha256sum /tmp/backpan-releases-by-dist-index.txt.gz
+perl ci/inventory-backpan-jq-lite-index.pl \
+  --input /tmp/backpan-releases-by-dist-index.txt.gz \
+  > /tmp/jq-lite-observed-backpan.tsv
 
 perl ci/compare-backpan-cpan-inventory.pl \
   --backpan-file /tmp/jq-lite-observed-backpan.tsv \
   --inventory /tmp/jq-lite-observed-archives.tsv
 ```
+
+The new inventory extractor accepts locally saved plain-text or gzip
+`#FORMAT 1` inputs; it uses **only core Perl**, including
+`IO::Uncompress::Gunzip`, and **does not fetch the network**.
+Malformed/duplicate JQ-Lite archive records, an unexpected
+JQ-Lite release suffix, missing/invalid sources or a `3.00_0x`
+developer candidate (with or without `v`) cause nonzero exit.
+The TSV preserves the observed timestamps; it is review-only.
+`CPAN::ReleaseHistory` remains an optional alternative for analysts
+but is no longer needed for this extraction workflow.
+
+Retain the downloaded `.gz`, its SHA-256 checksum, source URL,
+UTC retrieval date and the resulting TSV outside the repository
+for independent provenance review. A matching BackPAN/CPAN
+comparison is **not** evidence of complete PAUSE release history.
 
 The second input is the saved CPAN index TSV from
 `ci/inventory-cpan-jq-lite-index.pl`. The comparator needs **only core
