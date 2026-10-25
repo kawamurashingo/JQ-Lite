@@ -136,13 +136,13 @@ the BackPAN index may lag behind newer uploads, and its stored timestamps
 must be independently checked against original PAUSE upload records.
 
 For a **separate, manually operated audit environment only**, install the
-optional \`CPAN::ReleaseHistory\` module and save its exact input index
+optional `CPAN::ReleaseHistory` module and save its exact input index
 revision, retrieval UTC date, and an immutable checksum of the exported
 data. This module is **not a JQ-Lite runtime, CI, or installation
 dependency**. Produce a three-column TSV directly from its documented
-\`path\`, \`timestamp\`, and \`size\` accessors:
+`path`, `timestamp`, and `size` accessors:
 
-\`\`\`sh
+```sh
 perl -MCPAN::ReleaseHistory -e '
   print "path\tepoch\tsize\n";
   my $iterator = CPAN::ReleaseHistory->new()->release_iterator();
@@ -156,15 +156,15 @@ perl -MCPAN::ReleaseHistory -e '
 perl ci/compare-backpan-cpan-inventory.pl \
   --backpan-file /tmp/jq-lite-observed-backpan.tsv \
   --inventory /tmp/jq-lite-observed-archives.tsv
-\`\`\`
+```
 
 The second input is the saved CPAN index TSV from
-\`ci/inventory-cpan-jq-lite-index.pl\`. The comparator needs **only core
+`ci/inventory-cpan-jq-lite-index.pl`. The comparator needs **only core
 Perl** and performs **no network access**. It rejects malformed or
 duplicate records, flags versions seen only on either side, detects
 author/path mismatches and identical BackPAN epochs, and reports
-historical non-increases under Perl \`version\` comparisons.
-Any \`3.00_0x\` (including \`v3.00_0x\`) observation causes failure.
+historical non-increases under Perl `version` comparisons.
+Any `3.00_0x` (including `v3.00_0x`) observation causes failure.
 A zero exit status means only that the **two supplied sets agree**, not
 that either source is complete, fresh, authoritative, or that chronological
 publication has been verified.
@@ -172,8 +172,8 @@ publication has been verified.
 Keep the original downloaded index, the three-column TSV, exact source
 URLs, retrieval time, content checksums and all discrepancies in a
 separate human-review evidence record. Do **not** copy the comparator's
-epoch-sorted output into \`--published-file\` and do **not** use
-\`--history-reviewed\` until CPAN/PAUSE upload records, BackPAN, MetaCPAN,
+epoch-sorted output into `--published-file` and do **not** use
+`--history-reviewed` until CPAN/PAUSE upload records, BackPAN, MetaCPAN,
 GitHub and downstream publication channels are independently reconciled.
 Any missing or contradictory observation remains an unresolved release
 blocker.
