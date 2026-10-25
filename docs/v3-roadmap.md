@@ -1799,6 +1799,42 @@ All of #623/#625/#626's release scoping and version history are
 separate from the final RC distribution review and explicit
 publication approval.
 
+## Internal RC1 validation train (2026-10-25)
+
+The agreed practical-v2.59 feature scope is now **closed and
+audited**: #623 typed arithmetic, #625 path/iterator, #626
+assignment/update, #629 migration/matrix, and #867 warning-clean
+CI. The #625 historical jq-difference inventory was reconciled by
+merged [PR #865](https://github.com/kawamurashingo/JQ-Lite/pull/865)
+(head `c2b40b7c`, merge `b107d17c`) with successful Push/PR
+Perl/jq CI, source distribution verification and final-head Codex
+review. The earlier section that called #625 open is **historical**.
+
+The next **unpublished, internal-only RC1 validation candidate**
+stages Perl developer version `3.00_03` with
+[draft RC1 notes](v3-rc1-release-notes.md) and a separately
+built `JQ-Lite-3.00_03.tar.gz` source archive. Review **this
+candidate's exact Push HEAD and PR synthetic merge**, not the
+earlier beta commits: Perl 5.14, 5.26, 5.38 and latest, jq 1.7
+differential, warnings including successful captured child stderr,
+source `make test`, `make disttest`, actual extracted-tarball
+full tests, installed CLI/Library smoke checks, and Codex final
+HEAD review. The RC1 notes must be present inside the tested tarball.
+A passing development PR alone is **not** a public RC.
+
+**Do not publish the `3.00_0x` series.** Perl orders `3.00_03`
+after hypothetical stable `3.00`; any public beta/RC requires a
+separately approved monotonic Perl version scheme continuing into
+stable. Stable-only `3.00` remains conditional on a verified
+absence of all public developer prereleases and a manual tester
+reinstall caveat. The final public stable Perl version is **not
+selected**, and no Git tag, CPAN upload, GitHub Release or merge
+to `main` occurs from the internal RC1-staging PR.
+
+After reviewing this RC1, accept only practical-scope release
+blockers; do not reopen #623/#625/#626 merely to add uncommon jq
+grammar or an unplanned public API.
+
 ## 3.0 release criteria
 
 JQ::Lite 3.0 is ready only when:
