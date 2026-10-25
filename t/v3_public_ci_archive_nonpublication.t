@@ -11,6 +11,8 @@ use File::Spec;
 my $root = File::Spec->catdir($FindBin::Bin, '..');
 my $workflow = File::Spec->catfile($root, '.github', 'workflows',
     'v3-source-dist.yml');
+plan skip_all => 'GitHub Actions workflow is not included in CPAN source distributions'
+    unless -f $workflow;
 ok(-f $workflow, 'source distribution workflow exists');
 open my $fh, '<', $workflow or die "Cannot read $workflow: $!";
 my $text = do { local $/; <$fh> };
