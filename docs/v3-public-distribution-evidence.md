@@ -56,6 +56,20 @@ is currently listed as `jq-lite 2.49-r0` for x86_64. That confirms
 a separate downstream publication route but does not audit every
 architecture/branch, old artifact or external mirror.
 
+## Audit input ergonomics (not an audit sign-off)
+
+The offline public-version preflight accepts a line-oriented
+`--published-file PATH` as an alternative to hundreds of repeated
+`--published VERSION` arguments. The reviewed file must list
+**every independently confirmed public version in chronology order**;
+a separate evidence log should retain archive name, published time,
+source URL and any corrections to the archive index's displayed
+timestamps. The tool rejects missing, empty, mixed-source or malformed
+files but **cannot prove completeness or verify provenance**. Do not
+create a fictitious full ledger from this partial CPAN index snapshot,
+and do not pass `--history-reviewed` until the maintainer's complete
+multichannel publication audit is finished.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,

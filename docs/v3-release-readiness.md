@@ -269,6 +269,19 @@ of those *past* anomalies only. The new release must always exceed
 the **all-time maximum** published version, never just the last
 historical version; future releases must strictly increase.
 
+For a large public distribution history, prefer
+`--published-file PATH` to manually copying hundreds of
+`--published VERSION` flags. The UTF-8/ASCII plain-text file must
+contain **one version per line, oldest first**; blank lines and
+`#` comments are ignored. The file and CLI `--published` inputs
+cannot be combined. Its contents require **the same independently
+verified completeness and `--history-reviewed` sign-off** as the
+CLI form, plus `--acknowledge-historical-regressions` if needed.
+An empty or malformed file is rejected. Keep archive names,
+timestamps and evidence URLs in the separately reviewed provenance
+record; a version-only input file is **not proof of distribution**.
+Even a passing preflight never grants release approval.
+
 The following commands are **illustrative tests only**, not a
 selection of a future stable version:
 
