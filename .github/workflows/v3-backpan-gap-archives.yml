@@ -51,7 +51,8 @@ jobs:
               candidate="$out/originals/$file"
               printf 'ATTEMPT_VERSION=%s;HOST=%s;URL=%s\n' "$version" "$host" "$url" >> "$out/provenance.txt"
               rm -f "$candidate"
-              if curl --fail --location --silent --show-error --retry 1 \
+              if curl --fail --location --proto '=https' --proto-redir '=https' \
+                  --silent --show-error --retry 1 \
                   --connect-timeout 12 --max-time 65 \
                   --dump-header "$response" --output "$candidate" \
                   "$url"; then
