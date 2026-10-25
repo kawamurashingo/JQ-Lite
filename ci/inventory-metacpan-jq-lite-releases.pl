@@ -27,6 +27,8 @@ my $data = eval { JSON::PP->new->utf8->decode($bytes) };
 die "Malformed MetaCPAN JSON response: $@\n" if $@;
 die "Expected MetaCPAN JSON object\n" unless ref($data) eq 'HASH';
 die "MetaCPAN search response reports an error\n" if exists $data->{error};
+die "MetaCPAN search timed out; results may be incomplete\n"
+    if $data->{timed_out};
 if (ref($data->{_shards}) eq 'HASH') {
     die "MetaCPAN search reports failed shards\n"
         if ($data->{_shards}{failed} || 0) > 0;
