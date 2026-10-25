@@ -54,8 +54,15 @@ It is not an assessment that 92 archives were actually downloaded.
    artifact IDs, UTC creation times, names, expiry and the inspected
    original tarball's SHA-256 plus access scope. Avoid committing
    unpublished tarball bytes or access tokens to this repository.
-   The Actions run summary is short-lived and cannot on its own
-   constitute permanent records.
+   The read-only exposure audit now retains its original paged GitHub
+   API JSON, matching-artifact TSV, run/SHA/UTC provenance and SHA-256
+   list as a **metadata-only** 14-day Actions artifact. It never
+   uploads any developer ZIP or source tarball. The exported JSON is
+   public-repository API metadata, not verified archive contents,
+   download logs or original PAUSE receipts. Maintainers must
+   independently download and retain the metadata snapshot with its
+   checksums **before expiry**; a passing inventory is not permanent
+   preservation or an authorization to delete older artifacts.
 3. **No automatic deletion**: removing existing artifacts needs explicit
    maintainer approval and a separate reviewed operation after
    provenance has been retained. Deletion reduces future exposure, but

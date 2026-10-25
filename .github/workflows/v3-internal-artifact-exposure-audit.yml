@@ -94,3 +94,52 @@ jobs:
           if [ "$live" -gt 0 ]; then
             echo "::warning title=CI source archive exposure::Found $live live v3 developer source artifacts. Public version sign-off remains BLOCKED."
           fi
+
+      # This is public-repository artifact METADATA only (not any ZIP/tarball).
+      # Preserve even partial API responses if enumeration fails, so a human
+      # can inspect the original evidence and the failure reason.
+      - name: Record metadata-only snapshot provenance and SHA-256
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          temp="$RUNNER_TEMP/v3-ci-exposure"
+          mkdir -p "$temp"
+          {
+            printf 'captured_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'repository=%s\n' "$GITHUB_REPOSITORY"
+            printf 'event=%s\n' "$GITHUB_EVENT_NAME"
+            printf 'checkout_sha=%s\n' "$GITHUB_SHA"
+            printf 'workflow_run=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            echo 'scope=read-only GitHub Actions artifact API metadata; NOT a publication ledger'
+            echo 'missing=deleted/expired entries, archive bytes, downloads, original PAUSE chronology'
+          } > "$temp/provenance.txt"
+          (
+            cd "$temp"
+            sha256sum provenance.txt
+            if [ -f developer-artifacts.tsv ]; then
+              sha256sum developer-artifacts.tsv
+            fi
+            shopt -s nullglob
+            pages=(artifact-page-*.json)
+            if [ "${#pages[@]}" -gt 0 ]; then
+              sha256sum "${pages[@]}"
+            fi
+          ) > "$temp/manifest-sha256.txt"
+
+      # Do NOT include JQ-Lite-*.tar.gz, *.zip, the runner workspace,
+      # or any broader glob here. GitHub Actions artifacts are readable
+      # from public repositories. Only existing public API metadata,
+      # provenance and checksums may leave the runner in this job.
+      - name: Upload metadata-only exposure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-ci-exposure-metadata-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/v3-ci-exposure/artifact-page-*.json
+            ${{ runner.temp }}/v3-ci-exposure/developer-artifacts.tsv
+            ${{ runner.temp }}/v3-ci-exposure/provenance.txt
+            ${{ runner.temp }}/v3-ci-exposure/manifest-sha256.txt
+          retention-days: 14
+          if-no-files-found: error
