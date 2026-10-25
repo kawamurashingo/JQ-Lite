@@ -38,14 +38,28 @@ like($no_audit->{stderr}, qr/Publication history must be independently audited/,
 my $no_plan = invoke('--history-reviewed');
 ok($no_plan->{rc} != 0, 'candidate public sequence is required');
 
-my $stable_only = invoke('--history-reviewed', '--planned', '3.00');
-is($stable_only->{rc}, 0, 'stable-only scenario works after a manual no-public-history audit');
+my $exposure_floor = invoke('--history-reviewed', '--planned', '3.00');
+ok($exposure_floor->{rc} != 0, 'stable 3.00 cannot be approved after GitHub Actions developer tarball exposure');
+like($exposure_floor->{stderr}, qr/GitHub Actions developer artifact exposure baseline 3\.00_03/,
+    'denial cites observed public CI exposure, not a fabricated PAUSE upload');
+
+my $stable_only = invoke('--history-reviewed', '--planned', '3.01');
+is($stable_only->{rc}, 0, 'higher illustrative stable version passes only numeric preflight after history audit');
+like($stable_only->{stdout}, qr/exposure floor: 3\.00_03/,
+    'success advertises the conservative public-CI version floor');
 like($stable_only->{stdout}, qr/No publication authorized/,
     'success never implies publication permission');
+my $lower_dev_exposure = invoke('--history-reviewed',
+    '--published', '2.59', '--planned', '3.00');
+ok($lower_dev_exposure->{rc} != 0,
+    'version floor is enforced even when history ledger only names CPAN 2.59');
+like($lower_dev_exposure->{stderr}, qr/not exceed known GitHub Actions/,
+    'exposed developer archive cannot be accidentally omitted from CPAN ledger');
+
 
 my $v2_to_stable = invoke('--history-reviewed', '--published', '2.59',
-    '--planned', '3.00');
-is($v2_to_stable->{rc}, 0, 'published 2.59 precedes hypothetical stable 3.00');
+    '--planned', '3.01');
+is($v2_to_stable->{rc}, 0, 'published 2.59 precedes hypothetical 3.01 above exposed developer build');
 
 my $bad_downgrade = invoke('--history-reviewed',
     '--published', '2.59', '--published', '3.00_03',
@@ -54,6 +68,14 @@ ok($bad_downgrade->{rc} != 0,
     'hypothetically publicly distributed 3.00_03 cannot downgrade to 3.00');
 like($bad_downgrade->{stderr}, qr/must strictly increase/,
     'Perl numeric ordering blocks underscored development-to-stable downgrade');
+
+my $published_dev_higher = invoke('--history-reviewed',
+    '--published', '2.59', '--published', '3.00_03',
+    '--planned', '3.01');
+is($published_dev_higher->{rc}, 0,
+    'numeric check allows higher hypothetical 3.01 with public developer predecessor');
+like($published_dev_higher->{stdout}, qr/no PAUSE upload|not a PAUSE upload/i,
+    'passing exposure check is explicitly not a PAUSE historical finding');
 
 my $higher_stable = invoke('--history-reviewed',
     '--published', '3.00_03', '--planned', '3.01');
@@ -113,7 +135,7 @@ like($actual_old_inversion->{stderr}, qr/0\.99 is not below 0\.100/,
 
 my $acknowledged_old_history = invoke(
     @old_public_history, '--acknowledge-historical-regressions',
-    '--planned', '1.00'
+    '--planned', '3.01'
 );
 is($acknowledged_old_history->{rc}, 0,
     'historical inversion can be acknowledged for an illustrative safe future');
@@ -167,7 +189,7 @@ my $file_source = history_file(
     "2.58\r\n\r\n 2.59 # human-provided note\r\n"
 );
 my $file_pass = invoke('--history-reviewed', '--published-file', $file_source,
-    '--planned', '3.00');
+    '--planned', '3.01');
 is($file_pass->{rc}, 0,
     'line-oriented history file accepts CRLF, comments and chronological records');
 like($file_pass->{stdout}, qr/2 audited public predecessors/,
@@ -186,7 +208,7 @@ ok($file_requires_ack->{rc} != 0,
     'file history with numeric inversion cannot silently pass');
 my $file_with_ack = invoke('--history-reviewed',
     '--published-file', $inverted_file,
-    '--acknowledge-historical-regressions', '--planned', '1.00');
+    '--acknowledge-historical-regressions', '--planned', '3.01');
 is($file_with_ack->{rc}, 0,
     'explicitly acknowledged file history uses the same historical-peak gate');
 my $file_below_peak = invoke('--history-reviewed',
