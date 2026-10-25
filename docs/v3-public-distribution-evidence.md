@@ -191,6 +191,51 @@ GitHub and downstream publication channels are independently reconciled.
 Any missing or contradictory observation remains an unresolved release
 blocker.
 
+## Repeatable live-index snapshot on GitHub Actions (opt-in, observation only)
+
+The **v3 public history observation snapshot (NOT release approval)**
+workflow in `.github/workflows/v3-public-history-observations.yml`
+offers a separate, read-only way to collect current public evidence when
+the two remote indexes cannot be fetched from a local audit environment.
+It runs only when its own workflow file changes in a PR targeting
+`v3-dev` or is merged/pushed to `v3-dev`. Reviewers can refresh an
+existing run with GitHub Actions **Re-run jobs**. It is **not** scheduled,
+does not run on ordinary development PRs, and does not publish a package.
+It deliberately does **not** promise manual `workflow_dispatch` on
+`v3-dev`: that GitHub event needs the workflow to exist on the default
+branch, and this project must not modify stable `main` for the v3 audit.
+
+The workflow retrieves the CPAN SHINGO directory via **verified TLS**
+(primary CPAN host, with named CPAN mirror fallbacks recorded verbatim)
+and the BackPAN releases-by-dist gzip index. TLS certificate checking
+must **not** be bypassed. A mirror listing is observational evidence,
+not necessarily a fresh or authoritative source. When all verified CPAN
+sources or the BackPAN source are unreachable, the workflow issues an
+explicit **audit BLOCKED / source unavailable** warning and stores a
+partial artifact, while allowing the evidence-collection check to
+complete (an external TLS outage is not a test defect). **This green
+check does NOT mean the audit passed.** A successfully downloaded source
+with malformed records, internal developer artifacts, or an unresolved
+version-set discrepancy remains a **failing validation check**. It saves **original downloaded
+bytes**, HTTP response headers, source URLs, UTC collection times, the
+checked-out SHA, SHA-256 checksums, both parsed TSVs and the observation
+comparison under a `v3-public-history-observations-<run_id>` artifact
+(retained for 14 days). Auditors must preserve the artifact independently
+before expiry; it is neither a durable archive nor a validated PAUSE
+publication ledger. A failed download, parse or comparison remains a
+**review blocker**, but the upload step still retains any files collected
+before failure. The artifact may therefore be partial; inspect its
+provenance `AUDIT_STATUS`, captured files, and workflow log before drawing
+conclusions. A completed job with `BLOCKED_*_SOURCE_UNAVAILABLE`
+means **no reconciliation happened**, and never authorizes publication.
+
+Even a **green** workflow verifies only the supplied BackPAN/CPAN
+observational sets. It does not validate original PAUSE chronology,
+removed entries absent from both indexes, third-party channels or
+readiness to call `--history-reviewed`. BackPAN timestamps are
+observations rather than proof of upload time; note the index's
+`Last-Modified` HTTP header and possible staleness in the human audit.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,
