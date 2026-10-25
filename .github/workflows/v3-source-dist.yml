@@ -70,6 +70,11 @@ jobs:
           candidate_version="$(perl -Ilib -MJQ::Lite -e 'print $JQ::Lite::VERSION')"
           echo "Source archive: $archive (module version $candidate_version)"
           test "$archive" = "JQ-Lite-$candidate_version.tar.gz"
+          # Validate and record the checksum in logs without exporting an
+          # INTERNAL-only developer tarball as a publicly downloadable
+          # GitHub Actions artifact. The tarball remains on this job runner.
+          echo "Local source archive SHA-256 (not a release or download):"
+          sha256sum "$archive"
           tar -tzf "$archive" > "$RUNNER_TEMP/distribution-entries.txt"
           for required in \
             lib/JQ/Lite.pm bin/jq-lite Makefile.PL Changes README.md \
@@ -143,11 +148,3 @@ jobs:
             exit 1
           fi
 
-      - name: Retain candidate source archive (not a release)
-        if: matrix.perl == '5'
-        uses: actions/upload-artifact@v4
-        with:
-          name: v3-unreleased-source-${{ github.run_id }}
-          path: JQ-Lite-*.tar.gz
-          if-no-files-found: error
-          retention-days: 14
