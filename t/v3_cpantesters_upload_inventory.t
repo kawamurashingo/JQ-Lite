@@ -60,10 +60,22 @@ is(invoke(file($types))->{rc}, 0, 'known backpan type retained');
 my $dup = [row('1.31','2025-10-26T09:05:26Z'),
            row('1.31','2025-10-26T09:06:26Z')];
 my $dupr = invoke(file($dup));
-ok($dupr->{rc} != 0, 'multiple uploads of same version require review');
+is($dupr->{rc}, 2, 'multiple uploads are data anomalies, not parser errors');
 is(scalar(() = $dupr->{stdout} =~ /JQ-Lite-1\.31\.tar\.gz/g),
     2, 'duplicate original observations are both preserved');
-like($dupr->{stdout}, qr/DUPLICATE-UPLOAD-NEEDS-REVIEW/, 'duplicate marked');
+like($dupr->{stdout}, qr/DUPLICATE-VERSION-REVIEW/, 'duplicate marked');
+
+my $incomplete = [row('0.81','1970-01-01T00:00:00Z')];
+$incomplete->[0]{author} = '';
+$incomplete->[0]{filename} = '';
+my $bad_record = invoke(file($incomplete));
+is($bad_record->{rc}, 2, 'historic missing metadata and epoch sentinel block audit');
+like($bad_record->{stdout}, qr/\t0\.81\t\t\tunreported\t/,
+    'unknown uploader and filename not invented');
+like($bad_record->{stdout}, qr/MISSING-FILENAME-REVIEW,MISSING-AUTHOR-REVIEW,EPOCH-SENTINEL-REVIEW/,
+    'all historical irregularities explicitly retained');
+like($bad_record->{stderr}, qr/REVIEW_ONLY_UPLOAD_RECORD_ANOMALIES/,
+    'audit anomaly classified separately from malformed JSON');
 
 my $internal = invoke(file([row('3.00_03','2026-10-25T01:00:00Z')]));
 ok($internal->{rc} != 0, 'internal developer archive never accepted silently');
@@ -103,6 +115,6 @@ my $help = do {
     { rc => $? >> 8, stdout => $s };
 };
 is($help->{rc}, 0, 'help succeeds without network');
-like($help->{stdout}, qr/No network, PAUSE completeness attestation or release/,
+like($help->{stdout}, qr/No network access or release approval/,
     'help text never promises release approval');
 done_testing;
