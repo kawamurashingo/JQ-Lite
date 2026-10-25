@@ -51,6 +51,7 @@ ci/compare-backpan-cpan-inventory.pl
 ci/compare-backpan-author-metacpan-inventory.pl
 ci/inventory-backpan-jq-lite-index.pl
 ci/inventory-metacpan-jq-lite-releases.pl
+ci/inventory-cpantesters-jq-lite-uploads.pl
 Makefile.PL
 MANIFEST			This list of files
 MANIFEST.SKIP
@@ -362,6 +363,7 @@ t/v3_backpan_cpan_comparison.t
 t/v3_backpan_author_metacpan_comparison.t
 t/v3_backpan_index_inventory.t
 t/v3_metacpan_release_inventory.t
+t/v3_cpantesters_upload_inventory.t
 t/v3_arithmetic_contract.t
 t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t
