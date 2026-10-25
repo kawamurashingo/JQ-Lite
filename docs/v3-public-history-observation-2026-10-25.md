@@ -147,6 +147,46 @@ receipts/deletions, all external channels and `3.00_0x`
 nonpublication review remain outstanding. Keep `--history-reviewed`
 and all release publication actions **BLOCKED**.
 
+## Archived SHINGO author directory vs MetaCPAN complete search
+
+[PR #884 live collection run 40184472171](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40184472171)
+successfully downloaded **both independently requested sources** via verified
+HTTPS on **2026-10-25 10:22:04–10:22:06 UTC**. Checked-out synthetic
+PR merge SHA: `679c0bd0f88426c2a09cb8593c00b958d6e019b4`.
+The retained [GitHub Actions original evidence](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40184472171/artifacts/12595646464)
+expires around **2026-11-08 10:22 UTC**. Independently preserve the
+complete artifact ZIP and check its SHA-256:
+`38eb11fe3e3aef848f503b5d069c715dffc88fda4838f27207d4e1479b2c0e89`.
+
+| Independently fetched source | Raw bytes | SHA-256 |
+| --- | ---: | --- |
+| BackPAN [SHINGO historical author directory](https://backpan.perl.org/authors/id/S/SH/SHINGO/) HTML | 179,907 | `1a69199763c99fc50a68c706e727325d725a73f817008a10273a82f5286e648a` |
+| MetaCPAN `JQ-Lite` full release search, JSON | 115,770 | `efdfcd3e683fbb22a9f1a3300568da35634d671d31070c3fb67562d35b1e735f` |
+| Derived BackPAN-author TSV | 15,342 | `fe0695de4f694d2293fed01d1e906174a6ccff849166a1c692ed76e3d0bee13e` |
+| Derived MetaCPAN TSV | 19,764 | `755133adbed0a0fd69853f364b23d5a3e097da318e2a0acdf415bd84e878d693` |
+
+Both original HTTP responses were **200**. The BackPAN author
+directory extractor observed **259 distinct JQ-Lite versions**.
+MetaCPAN's response reported **259 exact hits, with 259 received**:
+255 `cpan`, 3 `backpan`, 1 `latest`, all author `SHINGO`.
+The new offline comparator found **zero BackPAN-only, zero
+MetaCPAN-only, zero other-author** versions. Its TSV inputs contained
+**zero visible `3.00_0x` developer archives**.
+In particular, the three previously missing current-CPAN-index
+versions `0.05`, `1.31`, `1.32` are included on **both**
+historical lists.
+
+**This is only an exact version-set observation**, using one
+BackPAN **author directory**, **not** the full global BackPAN
+releases-by-dist index, which has not been retrieved or reconciled.
+Neither source certifies original PAUSE upload order. MetaCPAN may
+share upstream BackPAN data, and both sources could miss unavailable,
+renamed or deleted archives, different-author uploads or internally
+shared `3.00_0x` builds. Full original PAUSE chronology, cross-channel
+distribution audit and permanent internal-release nonpublication
+still require separate evidence. **Version selection, `--history-reviewed`,
+and public release remain BLOCKED**.
+
 ## Remaining approval blockers
 
 Independently secure the complete CPAN/PAUSE history with upload-order
