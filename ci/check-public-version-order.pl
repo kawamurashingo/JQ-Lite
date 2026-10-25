@@ -6,9 +6,10 @@ use version ();
 
 # Offline preflight only. The caller MUST independently audit the actual
 # publication history; this script cannot query CPAN/GitHub Releases.
-my (@published, @planned, $history_reviewed, $ack_historical, $help);
+my (@published, @planned, $published_file, $history_reviewed, $ack_historical, $help);
 GetOptions(
     'published=s'      => \@published,
+    'published-file=s' => \$published_file,
     'planned=s'        => \@planned,
     'history-reviewed' => \$history_reviewed,
     'acknowledge-historical-regressions' => \$ack_historical,
@@ -17,12 +18,15 @@ GetOptions(
 
 my $usage = <<'USAGE';
 Usage: perl ci/check-public-version-order.pl --history-reviewed
-       [--published VERSION ...] --planned VERSION [--planned VERSION ...]
+       [--published VERSION ... | --published-file FILE]
+       --planned VERSION [--planned VERSION ...]
        [--acknowledge-historical-regressions]
 List ALL actually public versions oldest first, then the entire proposed
 public prerelease-to-stable sequence in order. If none were public, omit
---published ONLY after independently confirming that fact. The last
---planned version must be stable (no underscore).
+--published/--published-file ONLY after independently confirming that fact.
+FILE contains one public version per line, oldest first; empty lines and
+# comments are ignored. Never combine --published and --published-file.
+The last --planned version must be stable (no underscore).
 Past public versions may contain real historical order regressions.
 Those require an additional explicit acknowledgement, and future public
 versions must exceed EVERY historical version and strictly increase.
@@ -40,6 +44,34 @@ die "At least one --planned public version (ending in stable) is required\n"
     unless @planned;
 die "The final --planned version must be stable (no underscore)\n"
     if $planned[-1] =~ /_/;
+
+# Large historical publication ledgers are easier to reconcile as an
+# explicitly human-reviewed, line-oriented file than as hundreds of CLI
+# flags. A file never proves that the ledger is complete.
+if (defined $published_file) {
+    die "Cannot combine --published and --published-file; select one history source\n"
+        if @published;
+    die "Published-version file path must not be empty\n"
+        unless length $published_file;
+    open my $ledger, '<', $published_file
+        or die "Cannot open published-version file $published_file: $!\n";
+    my $line_number = 0;
+    while (my $line = <$ledger>) {
+        ++$line_number;
+        $line =~ s/\r?\n\z//;
+        $line =~ s/\s*#.*\z//;
+        $line =~ s/\A\s+//;
+        $line =~ s/\s+\z//;
+        next unless length $line;
+        die "Invalid published-version file entry on line $line_number: $line\n"
+            unless $line =~ /\A(?:v)?\d+(?:\.\d+)+(?:_\d+)?\z/;
+        push @published, $line;
+    }
+    close $ledger or die "Cannot close published-version file $published_file: $!\n";
+    die "Published-version file is empty; omit --published-file only after ",
+        "verifying that no public predecessors exist\n"
+        unless @published;
+}
 
 my @sequence;
 for my $pair (

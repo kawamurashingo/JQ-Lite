@@ -5,6 +5,7 @@ use FindBin;
 use File::Spec;
 use IPC::Open3 qw(open3);
 use Symbol qw(gensym);
+use File::Temp qw(tempfile);
 
 my $gate = File::Spec->catfile(
     $FindBin::Bin, '..', 'ci', 'check-public-version-order.pl'
@@ -143,6 +144,73 @@ my $unreviewed_ack = invoke(
 );
 ok($unreviewed_ack->{rc} != 0,
     'historical acknowledgement cannot bypass the full-history attestation');
+
+# A file is the practical, reviewable input for hundreds of historical
+# CPAN releases; contents are illustrative, never an attested full ledger.
+sub history_file {
+    my ($content) = @_;
+    my ($fh, $path) = tempfile(UNLINK => 1);
+    print {$fh} $content or die "Cannot write test ledger: $!";
+    close $fh or die "Cannot close test ledger: $!";
+    return $path;
+}
+
+my $file_source = history_file(
+    "# Sample chronology: not a complete release history\r\n" .
+    "2.58\r\n\r\n 2.59 # human-provided note\r\n"
+);
+my $file_pass = invoke('--history-reviewed', '--published-file', $file_source,
+    '--planned', '3.00');
+is($file_pass->{rc}, 0,
+    'line-oriented history file accepts CRLF, comments and chronological records');
+like($file_pass->{stdout}, qr/2 audited public predecessors/,
+    'file input is counted in the audited predecessor total');
+
+my $mixed_source = invoke('--history-reviewed', '--published', '2.57',
+    '--published-file', $file_source, '--planned', '3.00');
+ok($mixed_source->{rc} != 0, 'mixing CLI and file predecessors is rejected');
+like($mixed_source->{stderr}, qr/Cannot combine --published/,
+    'mixed-source diagnostic is explicit');
+
+my $inverted_file = history_file("0.99\n0.100\n");
+my $file_requires_ack = invoke('--history-reviewed',
+    '--published-file', $inverted_file, '--planned', '1.00');
+ok($file_requires_ack->{rc} != 0,
+    'file history with numeric inversion cannot silently pass');
+my $file_with_ack = invoke('--history-reviewed',
+    '--published-file', $inverted_file,
+    '--acknowledge-historical-regressions', '--planned', '1.00');
+is($file_with_ack->{rc}, 0,
+    'explicitly acknowledged file history uses the same historical-peak gate');
+my $file_below_peak = invoke('--history-reviewed',
+    '--published-file', $inverted_file,
+    '--acknowledge-historical-regressions', '--planned', '0.50');
+ok($file_below_peak->{rc} != 0,
+    'file source still rejects candidates below the historic maximum');
+
+my $file_without_review = invoke('--published-file', $file_source,
+    '--planned', '3.00');
+ok($file_without_review->{rc} != 0,
+    'file input cannot bypass mandatory human-history attestation');
+
+my $empty_file = history_file("# no historical public entries\n");
+my $empty_history = invoke('--history-reviewed',
+    '--published-file', $empty_file, '--planned', '3.00');
+ok($empty_history->{rc} != 0,
+    'empty version file is rejected instead of silently implying no predecessors');
+
+my $bad_file = history_file("2.58\nnot-a-version\n");
+my $bad_history = invoke('--history-reviewed',
+    '--published-file', $bad_file, '--planned', '3.00');
+ok($bad_history->{rc} != 0, 'malformed ledger row fails closed');
+like($bad_history->{stderr}, qr/line 2/,
+    'malformed ledger row includes its line number');
+
+my $missing_history = invoke('--history-reviewed',
+    '--published-file', File::Spec->catfile(
+        $FindBin::Bin, 'absent-v3-version-ledger.txt'
+    ), '--planned', '3.00');
+ok($missing_history->{rc} != 0, 'missing history file fails closed');
 
 my $same_number = invoke('--history-reviewed',
     '--published', '2.59', '--planned', '2.59');
