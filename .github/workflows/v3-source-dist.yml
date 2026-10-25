@@ -77,6 +77,7 @@ jobs:
             ci/check-public-version-order.pl \
             ci/inventory-cpan-jq-lite-index.pl \
             ci/reconcile-cpan-public-history.pl \
+            ci/compare-backpan-cpan-inventory.pl \
             docs/v3-release-readiness.md docs/v3-beta1-release-notes.md \
             docs/v3-rc1-release-notes.md \
             docs/v3-ci-warning-audit.md \
@@ -85,7 +86,8 @@ jobs:
             t/jq_differential.t t/data/jq-differential.jsonl \
             t/manifest_coverage.t t/v3_release_metadata.t \
             t/v3_public_version_order.t t/v3_cpan_index_inventory.t \
-            t/v3_cpan_history_reconciliation.t; do
+            t/v3_cpan_history_reconciliation.t \
+            t/v3_backpan_cpan_comparison.t; do
             grep -Fq "/$required" "$RUNNER_TEMP/distribution-entries.txt"
           done
 
