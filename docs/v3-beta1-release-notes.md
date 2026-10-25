@@ -6,6 +6,15 @@ They do **not** announce a release, authorize a CPAN upload or tag, or claim
 complete jq conformance. See the [release readiness gate](v3-release-readiness.md)
 and [roadmap #619](https://github.com/kawamurashingo/JQ-Lite/issues/619).
 
+**Historical checkpoint:** this file preserves the **unpublished
+`3.00_02` beta1 proposal** as it stood before all scoped work
+closed. Issue #625 and its semantic-difference inventory were
+subsequently completed by merged #865, and warning audit #867
+was closed after #868. The **current** internal validation proposal
+is [RC1 `3.00_03`](v3-rc1-release-notes.md). Its separate
+final-head test gates and public version-order constraints supersede
+any older unchecked beta1 checklist below.
+
 ## Candidate identity and version policy
 
 | Item | Proposed identity |

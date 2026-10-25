@@ -75,6 +75,7 @@ jobs:
             lib/JQ/Lite.pm bin/jq-lite Makefile.PL Changes README.md \
             ci/fail-on-test-stderr.sh \
             docs/v3-release-readiness.md docs/v3-beta1-release-notes.md \
+            docs/v3-rc1-release-notes.md \
             docs/v3-ci-warning-audit.md \
             docs/v3-migration.md \
             t/cli_contract.t t/v3_library_api_contract.t \
