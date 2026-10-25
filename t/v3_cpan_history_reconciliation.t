@@ -64,6 +64,15 @@ my $dev = invoke('--inventory', $internal,
 ok($dev->{rc} != 0, 'matching sets still fail for an internal-only developer archive');
 like($dev->{stdout}, qr/INTERNAL-DEVELOPER-ARTIFACT-ALERT/, 'developer artifact needs investigation');
 
+my $prefixed_internal = sample_file($header .
+    item('v3.00_03', '2026-10-25 01:01', 'observed-archive'));
+my $prefixed_result = invoke('--inventory', $prefixed_internal,
+    '--published-file', sample_file("v3.00_03\n"));
+ok($prefixed_result->{rc} != 0,
+    'v-prefixed internal developer archive cannot pass even with normal classification');
+like($prefixed_result->{stdout}, qr/INTERNAL-DEVELOPER-ARTIFACT-ALERT/,
+    'reconciler detects internal-only v-prefixed archive independently of TSV tag');
+
 my $dupe = sample_file($header .
     item('2.59', '2026-09-20 10:59') . item('2.59', '2026-09-20 10:59'));
 ok(invoke('--inventory', $dupe, '--published-file', $ledger)->{rc} != 0,
