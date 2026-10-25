@@ -39,7 +39,9 @@ while ($html =~ m{<tr\b[^>]*>(.*?)</tr\s*>}sig) {
     die "Missing directory modification time for $name\n" unless defined $modified;
     $modified =~ s/\s+/ /g;
     die "Duplicate archive in supplied index: $name\n" if $seen{$name}++;
-    my $internal = $version =~ /\A3\.0+_\d+\z/ ? 1 : 0;
+    # Optional leading "v" is accepted in archive names, so it must
+    # also be recognized by the internal-only developer-version gate.
+    my $internal = $version =~ /\A(?:v)?3\.0+_\d+\z/ ? 1 : 0;
     push @entries, [$name, $version, $modified, $internal];
 }
 die "No JQ-Lite archives found; expected HTML directory table rows\n"
