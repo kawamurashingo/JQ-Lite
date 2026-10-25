@@ -191,6 +191,36 @@ GitHub and downstream publication channels are independently reconciled.
 Any missing or contradictory observation remains an unresolved release
 blocker.
 
+## Repeatable live-index snapshot on GitHub Actions (opt-in, observation only)
+
+The **v3 public history observation snapshot (NOT release approval)**
+workflow in `.github/workflows/v3-public-history-observations.yml`
+offers a separate, read-only way to collect current public evidence when
+the two remote indexes cannot be fetched from a local audit environment.
+It runs for changes to its own workflow in a PR, and can also be started
+manually using GitHub Actions **Run workflow** on `v3-dev` after merge.
+It is **not** scheduled, does not run on ordinary development PRs, and
+does not publish a package.
+
+The workflow retrieves the fixed public CPAN SHINGO directory and the
+BackPAN releases-by-dist gzip index. It saves **original downloaded
+bytes**, HTTP response headers, source URLs, UTC collection times, the
+checked-out SHA, SHA-256 checksums, both parsed TSVs and the observation
+comparison under a `v3-public-history-observations-<run_id>` artifact
+(retained for 14 days). Auditors must preserve the artifact independently
+before expiry; it is neither a durable archive nor a validated PAUSE
+publication ledger. A failed download, parse or comparison remains a
+**review blocker**, but the upload step still retains any files collected
+before failure. The artifact may therefore be partial; inspect its
+manifest and workflow outcome before drawing conclusions.
+
+Even a **green** workflow verifies only the supplied BackPAN/CPAN
+observational sets. It does not validate original PAUSE chronology,
+removed entries absent from both indexes, third-party channels or
+readiness to call `--history-reviewed`. BackPAN timestamps are
+observations rather than proof of upload time; note the index's
+`Last-Modified` HTTP header and possible staleness in the human audit.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,
