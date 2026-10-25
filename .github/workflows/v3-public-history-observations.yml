@@ -116,6 +116,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      # Transport unavailability is inconclusive, not a failed unit test.
+      # Validly downloaded but untrusted/contradictory evidence still fails.
       - name: Classify snapshot result (audit always needs human signoff)
         if: always()
         env:
