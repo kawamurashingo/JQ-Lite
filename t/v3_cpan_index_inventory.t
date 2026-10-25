@@ -72,6 +72,17 @@ ok($dev->{rc} != 0, 'public index containing internal developer version returns 
 like($dev->{stdout}, qr/INTERNAL-DEVELOPER-ARTIFACT-ALERT/, 'developer artifact remains visible in inventory');
 like($dev->{stderr}, qr/investigate public distribution/, 'developer artifact requires investigation');
 
+my $prefixed_dev = saved_index(
+    '<tr><td><a href="JQ-Lite-v3.00_03.tar.gz">v3.00_03</a></td>' .
+    '<td>2026-10-25 01:00</td></tr>'
+);
+my $prefixed = invoke('--input', $prefixed_dev);
+ok($prefixed->{rc} != 0,
+    'v-prefixed internal developer archive cannot evade CPAN index alert');
+like($prefixed->{stdout},
+    qr/JQ-Lite-v3\.00_03\.tar\.gz.*INTERNAL-DEVELOPER-ARTIFACT-ALERT/,
+    'v-prefixed developer archive is explicitly classified as internal');
+
 my $empty = saved_index('<html><table><tr><td>nothing</td></tr></table></html>');
 ok(invoke('--input', $empty)->{rc} != 0, 'empty snapshot fails instead of passing with zero entries');
 ok(invoke('--input', 'missing-cpan-index.html')->{rc} != 0, 'missing input file fails');
