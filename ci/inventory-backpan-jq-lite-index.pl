@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 use Getopt::Long qw(GetOptions);
-use IO::Uncompress::Gunzip qw($GunzipError);
+use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 
 # Offline index extraction. BackPAN timestamps do NOT attest PAUSE upload order.
 my ($input, $help);
@@ -26,8 +26,13 @@ die "Empty BackPAN index\n" unless $n;
 
 my $fh;
 if ($n == 2 && $magic eq "\x1f\x8b") {
-    $fh = IO::Uncompress::Gunzip->new($input)
-        or die "Cannot decompress BackPAN index: $GunzipError\n";
+    # Strict verifies the gzip CRC32/size trailer and rejects truncation.
+    # Fully validate before parsing or emitting any partial archive set.
+    # MultiStream prevents ignoring a later concatenated gzip member.
+    my $decoded = '';
+    gunzip $input => \$decoded, Strict => 1, MultiStream => 1
+        or die "Corrupt or incomplete BackPAN gzip index: $GunzipError\n";
+    open $fh, '<', \$decoded or die "Cannot read decoded BackPAN index: $!\n";
 } else {
     open $fh, '<', $input or die "Cannot open BackPAN index $input: $!\n";
 }
