@@ -270,6 +270,41 @@ release versions with the saved CPAN author inventory; investigate
 any discrepancies, download URLs, status values, original PAUSE
 receipts and public distribution of developer candidates.
 
+## Targeted BackPAN retrieval of the three missing CPAN-index versions
+
+The [official PAUSE operating model](https://pause.perl.org/pause/query?ACTION=pause_operating_model)
+distinguishes current CPAN mirror content from historical BackPAN:
+deleting an author's uploaded distribution removes it from ordinary
+mirrors eventually, while BackPAN is intended to preserve historical
+uploads. PAUSE's [privacy policy](https://pause.perl.org/pause/query?ACTION=pause_privacy_policy)
+also states that PAUSE records original upload timestamps and checksums.
+Neither statement makes MetaCPAN index `date` a certified upload time.
+
+Merged #882 observed three MetaCPAN `backpan` records missing from
+the earlier 256-row CPAN author index: **0.05, 1.31 and 1.32**. The
+read-only `.github/workflows/v3-backpan-gap-archives.yml` workflow
+makes **targeted** validated-HTTPS requests for precisely those
+`JQ-Lite-*.tar.gz` files from the two BackPAN hostname endpoints
+named by PAUSE (`backpan.perl.org` and
+`backpan.cpantesters.org`). It saves the exact attempted and
+selected URLs, responses/headers, UTC run provenance, original
+tarball bytes and SHA-256 checksums for any recovered archives.
+Downloaded bytes must pass gzip/tar integrity checks and show the
+expected distribution directory. A successfully downloaded invalid
+archive is a **hard failure**, never a reason to silently substitute
+a different host. An inaccessible host is recorded as **BLOCKED**
+rather than mistaken for proof that a historical version never existed.
+The short-lived artifact is an evidence snapshot, not a published
+install link or release.
+
+**This three-version check does not replace** a complete historical
+BackPAN index, PAUSE source upload receipts, original upload chronology,
+the human review of `0.99 -> 0.100` ordering, other distribution
+channels, or the `3.00_0x` nonpublication investigation. Even three
+validated tarballs would verify their **archived contents**, not that
+all past releases are known or that a public version can be selected.
+No `--history-reviewed`, new tag or publication is permitted.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,

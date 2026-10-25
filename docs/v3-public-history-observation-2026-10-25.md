@@ -106,6 +106,47 @@ original-upload evidence.
 
 **Release-history gate: BLOCKED. No public version selected or approved.**
 
+## Original archived bytes recovered for all three MetaCPAN-only versions
+
+The [first targeted BackPAN PR #883 capture](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40182465966),
+retrieved **2026-10-25 09:52:50–09:52:53 UTC**, succeeded
+**3/3** over verified HTTPS using the PAUSE-documented
+`https://backpan.perl.org/authors/id/S/SH/SHINGO/` host.
+Checkout was synthetic PR merge
+`7ee842e53a5a0b3eee1662884dddac0485a4bc0f`.
+Each response was **HTTP/2 200** and had
+`Content-Type: application/x-gzip`. The independently saved
+original-byte checksums below were checked against the downloaded
+[Actions evidence ZIP](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40182465966/artifacts/12595026077).
+The ZIP also contains response headers, each tar member listing,
+provenance and `SHA256SUMS`; retain it independently before
+GitHub's 14-day artifact expiry (approximately **2026-11-08
+09:52 UTC**).
+
+| Version | Archive bytes | SHA-256 of original `.tar.gz` | BackPAN HTTP Last-Modified (UTC) |
+| --- | ---: | --- | --- |
+| `0.05` | 4,757 | `9fa7c2d9fe0b31687a78efa13cc50a5edd52d3b51a0abac6034bcfcb59876909` | 2025-03-29 03:37:09 |
+| `1.31` | 97,715 | `bd59e36506584f99a1efad919c4dc7022bbc5e4ff639571a6ae84752d92f5d13` | 2025-10-26 09:05:26 |
+| `1.32` | 90,355 | `e55860aab98ae4148c4daf1bdb8d113f511159073ad9a93c6dbf641167617feb` | 2025-10-26 11:09:48 |
+
+The gzip stream and tar member structure validated for all three.
+Direct, read-only inspection of each included `META.json` confirmed
+`name=JQ-Lite` and the exact advertised version. Their HTTP
+`Last-Modified` timestamps match the previously collected MetaCPAN
+`date` for each release; they remain **server file times**, not
+independently certified PAUSE original-upload timestamps. These are
+genuine accessible historical archive observations, not inferred
+from the current CPAN author directory.
+
+**Result:** the exact **three MetaCPAN-only / current-CPAN-absent
+versions are confirmed to have corresponding BackPAN tarballs**.
+This explains the observed 259-versus-256 set difference, but **does
+not prove 259 is the full historical universe** or establish the
+public release order. A full BackPAN releases index, original PAUSE
+receipts/deletions, all external channels and `3.00_0x`
+nonpublication review remain outstanding. Keep `--history-reviewed`
+and all release publication actions **BLOCKED**.
+
 ## Remaining approval blockers
 
 Independently secure the complete CPAN/PAUSE history with upload-order

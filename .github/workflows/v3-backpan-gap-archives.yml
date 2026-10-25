@@ -1,0 +1,129 @@
+name: v3 BackPAN historical-gap archive evidence (NOT release approval)
+
+on:
+  # Collect only when this opt-in evidence workflow is reviewed or updated.
+  pull_request:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-backpan-gap-archives.yml
+  push:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-backpan-gap-archives.yml
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    name: Verify archived JQ-Lite 0.05 / 1.31 / 1.32 bytes (observation only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout read-only evidence context
+        uses: actions/checkout@v7
+
+      - name: Download from named BackPAN hosts over verified TLS
+        id: observe
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/v3-backpan-gap-evidence"
+          mkdir -p "$out/originals" "$out/http" "$out/members"
+          {
+            printf 'PURPOSE=HISTORICAL_ARCHIVE_OBSERVATION_ONLY_NOT_PAUSE_ATTESTATION\n'
+            printf 'OBSERVED_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'CHECKOUT_SHA=%s\n' "$(git rev-parse HEAD)"
+            printf 'GITHUB_RUN_URL=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'METACPAN_ONLY_VERSIONS=0.05,1.31,1.32\n'
+            printf 'TLS_VERIFICATION=ENABLED\n'
+          } > "$out/provenance.txt"
+          verified=0
+          for version in 0.05 1.31 1.32; do
+            file="JQ-Lite-$version.tar.gz"
+            found=0
+            attempt=0
+            for host in backpan.perl.org backpan.cpantesters.org; do
+              attempt=$((attempt + 1))
+              url="https://$host/authors/id/S/SH/SHINGO/$file"
+              response="$out/http/$version-$attempt.txt"
+              candidate="$out/originals/$file"
+              printf 'ATTEMPT_VERSION=%s;HOST=%s;URL=%s\n' "$version" "$host" "$url" >> "$out/provenance.txt"
+              rm -f "$candidate"
+              if curl --fail --location --proto '=https' --proto-redir '=https' \
+                  --silent --show-error --retry 1 \
+                  --connect-timeout 12 --max-time 65 \
+                  --dump-header "$response" --output "$candidate" \
+                  "$url"; then
+                printf 'SELECTED_VERSION=%s;SOURCE_URL=%s\n' "$version" "$url" >> "$out/provenance.txt"
+                found=1
+                break
+              else
+                rc=$?
+                printf 'FETCH_FAILED_VERSION=%s;HOST=%s;CURL_RC=%s\n' "$version" "$host" "$rc" >> "$out/provenance.txt"
+              fi
+            done
+            if [ "$found" -eq 0 ]; then
+              rm -f "$out/originals/$file"
+              printf 'ARCHIVE_UNAVAILABLE=%s\n' "$version" >> "$out/provenance.txt"
+              echo "::warning title=BackPAN archive unavailable::$file could not be retrieved over verified HTTPS. Public-history audit remains BLOCKED."
+              continue
+            fi
+            # A successfully downloaded source MUST be preserved and
+            # validated. Never fall back after a corrupt downloaded archive.
+            (cd "$out" && sha256sum "originals/$file" >> SHA256SUMS)
+            gzip -t "$out/originals/$file"
+            tar -tzf "$out/originals/$file" > "$out/members/$version.txt"
+            test -s "$out/members/$version.txt"
+            if ! grep -Fq "JQ-Lite-$version/" "$out/members/$version.txt"; then
+              echo "::error title=Unrecognized source archive::No expected distribution directory in $file"
+              exit 1
+            fi
+            # Confirm the package metadata itself matches its archive filename.
+            # Read only; do not execute code from untrusted historical tarballs.
+            tar -xOzf "$out/originals/$file" "JQ-Lite-$version/META.json" |
+              CHECKED_VERSION="$version" perl -MJSON::PP -0777 -e '
+                my $meta = eval { JSON::PP::decode_json(do { local $/; <STDIN> }) };
+                die "Invalid archive META.json\n" if $@ || ref($meta) ne "HASH";
+                die "Archive name/META.json disagreement\n"
+                  unless ($meta->{name} || "") eq "JQ-Lite"
+                    && ($meta->{version} || "") eq $ENV{CHECKED_VERSION};
+              '
+            printf 'ARCHIVE_VALIDATED=%s\n' "$version" >> "$out/provenance.txt"
+            verified=$((verified + 1))
+          done
+          printf 'VERIFIED_ARCHIVE_COUNT=%s\n' "$verified" >> "$out/provenance.txt"
+          if [ "$verified" -ne 3 ]; then
+            printf 'AUDIT_STATUS=BLOCKED_INCOMPLETE_ARCHIVE_ACCESS\n' >> "$out/provenance.txt"
+          fi
+
+      - name: Preserve raw archive bytes, headers, hashes, and provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-backpan-gap-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/v3-backpan-gap-evidence/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Report observation result without release clearance
+        if: always()
+        env:
+          OBSERVE_OUTCOME: ${{ steps.observe.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          provenance="$RUNNER_TEMP/v3-backpan-gap-evidence/provenance.txt"
+          if [ "$OBSERVE_OUTCOME" != success ]; then
+            echo '::error::Archive retrieval returned invalid gzip/tar content or evidence capture failed. Investigation required.'
+            exit 1
+          fi
+          if grep -Fq 'AUDIT_STATUS=BLOCKED_INCOMPLETE_ARCHIVE_ACCESS' "$provenance"; then
+            echo '::warning::One or more historical archives could not be retrieved via validated TLS.'
+            echo '### Historical BackPAN gap check: BLOCKED (partial archive access)' >> "$GITHUB_STEP_SUMMARY"
+          else
+            grep -Fxq 'VERIFIED_ARCHIVE_COUNT=3' "$provenance"
+            echo '### Historical BackPAN gap check: all three archive bytes verified' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo 'Only a set of archival bytes was checked. Original PAUSE chronology, the complete index, external distribution channels and release approval remain BLOCKED.' >> "$GITHUB_STEP_SUMMARY"
