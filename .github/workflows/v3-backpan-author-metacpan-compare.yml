@@ -82,14 +82,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v3-backpan-author-metacpan-\${{ github.run_id }}
-          path: \${{ runner.temp }}/v3-backpan-author-metacpan/
+          name: v3-backpan-author-metacpan-${{ github.run_id }}
+          path: ${{ runner.temp }}/v3-backpan-author-metacpan/
           if-no-files-found: error
           retention-days: 14
       - name: Classify evidence without release approval
         if: always()
         env:
-          CAPTURE_OUTCOME: \${{ steps.capture.outcome }}
+          CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
         shell: bash
         run: |
           set -euo pipefail
