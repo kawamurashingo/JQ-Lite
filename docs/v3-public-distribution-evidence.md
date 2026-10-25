@@ -236,6 +236,40 @@ readiness to call `--history-reviewed`. BackPAN timestamps are
 observations rather than proof of upload time; note the index's
 `Last-Modified` HTTP header and possible staleness in the human audit.
 
+## Full MetaCPAN release-search observations (source preserved, not a PAUSE ledger)
+
+The separate `.github/workflows/v3-metacpan-release-observations.yml`
+workflow collects the **unmodified JSON** response for a
+`/v1/release/_search` query restricted to `distribution=JQ-Lite`,
+without a `status=latest` filter. It asks for **exact hit totals**,
+limits the request to 500 hits, and preserves the request JSON, HTTP
+headers, original response bytes, UTC retrieval time, checkout SHA,
+SHA-256 checksums and a reviewable TSV for 14 days. Runs are scoped to
+this workflow/parser/test in PRs targeting `v3-dev`, or to an update
+of the workflow file merged into `v3-dev`—not every development PR.
+
+`ci/inventory-metacpan-jq-lite-releases.pl --input SAVED_RESPONSE.json`
+uses core `JSON::PP` and works **offline**. It fails on an API error,
+missing or approximate hit totals, a result count less than the total,
+malformed releases/dates, duplicates, foreign distributions, failed
+search shards, or an internal `3.00_0x` observation. It keeps the
+internal sighting in TSV stdout before exiting nonzero. Retrieval
+unavailability is **warned and explicitly BLOCKED**, not transformed
+into a fabricated empty history or a code-test failure; successful
+network retrieval with an invalid response remains a failed check.
+
+A green *collection workflow* means at most that the observed search
+response was saved or source unavailability was safely classified. The
+MetaCPAN search may omit removed/hidden uploads, use dates that differ
+from original PAUSE upload times, or share underlying data with CPAN.
+It is an **additional observation channel, not independent proof of
+complete historical publication**. Its `metacpan_date` column must
+never be copied into `--published-file` or treated as
+`--history-reviewed` chronology. Independently compare the observed
+release versions with the saved CPAN author inventory; investigate
+any discrepancies, download URLs, status values, original PAUSE
+receipts and public distribution of developer candidates.
+
 ## Still required before `--history-reviewed`
 
 - [ ] Independently obtain **the complete public CPAN/PAUSE upload history**,
