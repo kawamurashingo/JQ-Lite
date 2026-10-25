@@ -7,6 +7,18 @@ Target review window: **2026-11-01–2026-11-08**, conditional on
 closing the evidence gates below; missing evidence moves the window.
 Only the maintainer can authorize an actual public release.
 
+## Newly established source-distribution exposure blocker
+
+Merged #886 stopped publishing internal `3.00_03` tarballs as downloadable
+GitHub Actions artifacts; the read-only inventory found 92 non-expired
+source artifacts and inspected one `3.00_03` tarball. This is an
+**exposure**, not proof of a third-party download or a PAUSE/CPAN upload.
+The [Actions exposure decision record](v3-actions-artifact-exposure-decision.md)
+defines evidence retention, human deletion approval and why stable `3.00`
+cannot be assumed compatible with every publicly accessible predecessor.
+Version policy, original PAUSE chronology and all distribution channels
+remain blocked pending explicit review.
+
 ## Scope freeze
 
 - **Do not add features** or broaden jq grammar/syntax. Keep v2.59's
