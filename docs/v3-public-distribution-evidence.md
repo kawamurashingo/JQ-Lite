@@ -310,23 +310,23 @@ No `--history-reviewed`, new tag or publication is permitted.
 The [BackPAN historical author directory](https://backpan.perl.org/authors/id/S/SH/SHINGO/)
 is available under verified HTTPS and contains the three archive files
 recovered by #883. It is a **different list** from the unavailable
-CPAN Testers *global* \`backpan-releases-by-dist-index.txt.gz\`.
+CPAN Testers *global* `backpan-releases-by-dist-index.txt.gz`.
 It is useful for testing whether the author-history archive set
 covers the already observed 259 MetaCPAN versions, but it is **not**
 a whole-BackPAN index or a complete PAUSE publication ledger.
 
 The read-only, scoped
-\`.github/workflows/v3-backpan-author-metacpan-compare.yml\` saves
+`.github/workflows/v3-backpan-author-metacpan-compare.yml` saves
 the original BackPAN author-directory HTML, the unmodified full
 MetaCPAN release-search JSON, the exact MetaCPAN request, HTTP
 response headers, SHA-256 hashes, UTC collection time, checkout SHA,
 both derived TSVs and a review-only version-set comparison. The
 existing offline CPAN HTML extractor can parse an Apache author
-directory; here its \`index_last_modified\` column means **BackPAN
+directory; here its `index_last_modified` column means **BackPAN
 directory** modification time, not CPAN upload time. The separately
 queried MetaCPAN search demands an exact hit total, no timed-out
 results, no failed shards and no truncated return. The offline
-\`ci/compare-backpan-author-metacpan-inventory.pl\` script requires
+`ci/compare-backpan-author-metacpan-inventory.pl` script requires
 valid TSV schemas, checks for duplicate or developer versions and
 non-SHINGO release authors, and fails on any version-set mismatch.
 
@@ -341,11 +341,11 @@ be archived outside the repository before its 14-day expiry.
 Even if the author directory and MetaCPAN sets agree, they can both
 miss removed/backfilled archives, different-author releases, versions
 shared through external channels, or public copies of the internal
-\`3.00_0x\` builds. Archive directory \`Last-Modified\` and MetaCPAN
-\`date\` are not independently certified original upload timestamps.
+`3.00_0x` builds. Archive directory `Last-Modified` and MetaCPAN
+`date` are not independently certified original upload timestamps.
 Do not use any of these timestamps to assert chronological PAUSE
-publication order. Do not pass \`--history-reviewed\`, select the
-public version, tag, merge v3 to \`main\`, upload CPAN or publish.
+publication order. Do not pass `--history-reviewed`, select the
+public version, tag, merge v3 to `main`, upload CPAN or publish.
 
 ## Still required before `--history-reviewed`
 
