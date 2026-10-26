@@ -160,6 +160,9 @@ while ($position < $plain_size) {
     last;
   }
   die "Too many tar entries\n" if ++$entry_count > 2000;
+  my $raw_name = substr($header, 0, 100);
+  $raw_name =~ s/\x00.*\z//s;
+  die "Empty raw tar member name\n" unless length($raw_name);
   my $size_field = substr($header, 124, 12);
   die "Invalid tar size field\n"
     unless $size_field =~ /\A[\x00 ]*([0-7]+)[\x00 ]*\z/;
@@ -192,8 +195,11 @@ my $tar = Archive::Tar->new;
 my $parsed = $tar->read($plain_path, 0);
 die "Incomplete or corrupt source tar: " . ($tar->error || "no entries") . "\n"
   unless $parsed && !$tar->error;
+my @parsed_files = $tar->get_files;
+die "Tar parser skipped or added archive members\n"
+  unless @parsed_files == $entry_count;
 my (%seen, $makefile, $count);
-for my $entry ($tar->get_files) {
+for my $entry (@parsed_files) {
   die "Too many archive members\n" if ++$count > 2000;
   my $full = $entry->full_path;
   die "Missing entry path\n" unless defined($full) && length($full);
