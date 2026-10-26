@@ -47,6 +47,7 @@ lib/JQ/Lite/Util/Transform.pm
 LICENSE
 ci/fail-on-test-stderr.sh
 ci/check-public-version-order.pl
+ci/verify-actions-exposure-snapshot.pl
 ci/inventory-cpan-jq-lite-index.pl
 ci/reconcile-cpan-public-history.pl
 ci/compare-backpan-cpan-inventory.pl
@@ -368,6 +369,7 @@ t/v3_metacpan_release_inventory.t
 t/v3_cpantesters_upload_inventory.t
 t/v3_public_ci_archive_nonpublication.t
 t/v3_actions_exposure_metadata_archive.t
+t/v3_actions_exposure_snapshot_verifier.t
 t/v3_arithmetic_contract.t
 t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t

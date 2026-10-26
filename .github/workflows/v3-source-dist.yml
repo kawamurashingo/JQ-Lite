@@ -80,6 +80,7 @@ jobs:
             lib/JQ/Lite.pm bin/jq-lite Makefile.PL Changes README.md \
             ci/fail-on-test-stderr.sh \
             ci/check-public-version-order.pl \
+            ci/verify-actions-exposure-snapshot.pl \
             ci/inventory-cpan-jq-lite-index.pl \
             ci/reconcile-cpan-public-history.pl \
             ci/compare-backpan-cpan-inventory.pl \
@@ -103,7 +104,8 @@ jobs:
             t/v3_metacpan_release_inventory.t \
             t/v3_cpantesters_upload_inventory.t \
             t/v3_public_ci_archive_nonpublication.t \
-            t/v3_actions_exposure_metadata_archive.t; do
+            t/v3_actions_exposure_metadata_archive.t \
+            t/v3_actions_exposure_snapshot_verifier.t; do
             grep -Fq "/$required" "$RUNNER_TEMP/distribution-entries.txt"
           done
 
