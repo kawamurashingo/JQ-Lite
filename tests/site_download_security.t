@@ -13,8 +13,9 @@ is(system('bash', '-n', $script), 0, 'public download script has valid Bash synt
 open my $source, '<', $script or die $!;
 my $script_text = do { local $/; <$source> };
 close $source;
-like($script_text, qr/\bmv -n -- \"\$TEMP_PATH\"/, 'publication supports FAT/exFAT without overwriting existing files');
-unlike($script_text, qr/\bln -- /, 'no hard-link-only output dependency');
+like($script_text, qr/\bset -C\b/, 'Bash noclobber prevents existing output replacement');
+like($script_text, qr/exec 3> \"\$TARGET_PATH\"/, 'target is an exact, exclusive file redirection');
+unlike($script_text, qr/\b(?:mv|ln) -n -- /, 'no implicit destination-directory behavior');
 my $root = tempdir(CLEANUP => 1);
 my $mock_dir = File::Spec->catdir($root, 'mock-bin');
 mkdir $mock_dir or die $!;
@@ -42,6 +43,12 @@ case "$kind" in
     printf '%s\n' "$MOCK_RELEASE"
     ;;
   archive)
+    if [ "$MOCK_MODE" = 'dir-race' ]; then
+      mkdir -p -- "$MOCK_RACE_TARGET"
+    fi
+    if [ "$MOCK_MODE" = 'symlink-race' ]; then
+      ln -s -- "$MOCK_SYMLINK_TARGET" "$MOCK_RACE_TARGET"
+    fi
     if [ "$MOCK_MODE" = 'archive-fail' ]; then
       printf 'partial' > "$output"
       exit 22
@@ -53,6 +60,18 @@ esac
 MOCK
 close $mock or die $!;
 chmod 0755, $curl or die $!;
+my $fake_cat = File::Spec->catfile($mock_dir, 'cat');
+open my $cat_fh, '>', $fake_cat or die $!;
+print {$cat_fh} <<'CAT';
+#!/bin/sh
+if [ "$MOCK_MODE" = 'write-fail' ]; then
+    printf 'partial'
+    exit 22
+fi
+exec /bin/cat "$@"
+CAT
+close $cat_fh;
+chmod 0755, $fake_cat or die $!;
 
 my $calls = File::Spec->catfile($root, 'calls.log');
 my $out = File::Spec->catdir($root, 'out path');
@@ -63,6 +82,8 @@ sub run {
     local $ENV{MOCK_RELEASE} = defined($json) ? $json : '';
     local $ENV{MOCK_MODE} = $mode || '';
     local $ENV{MOCK_CALLS} = $calls;
+    local $ENV{MOCK_RACE_TARGET} = File::Spec->catfile($out, ($mode || '') eq 'symlink-race' ? 'JQ-Lite-2.65.tar.gz' : 'JQ-Lite-2.63.tar.gz');
+    local $ENV{MOCK_SYMLINK_TARGET} = File::Spec->catfile($out, 'JQ-Lite-2.59.tar.gz');
     my $err = gensym;
     my $pid = open3(my $in, my $stdout, $err, 'bash', $script, @args);
     close $in;
@@ -128,6 +149,27 @@ opendir my $dh, $out or die $!;
 my @tmp = grep { /^\.JQ-Lite-2\.60\./ } readdir $dh;
 closedir $dh;
 is_deeply(\@tmp, [], 'partial temporary file cleaned up on failure');
+
+my $dir_race = run('', 'dir-race', '-v', '2.63', '-o', $out);
+ok($dir_race->{rc} != 0, 'directory appearing during download is rejected');
+my $directory = File::Spec->catfile($out, 'JQ-Lite-2.63.tar.gz');
+ok(-d $directory, 'existing competing directory not removed');
+opendir my $race_dir, $directory or die $!;
+my @files = grep { $_ ne '.' && $_ ne '..' } readdir $race_dir;
+closedir $race_dir;
+is_deeply(\@files, [], 'no temporary tarball is moved inside competing directory');
+
+my $symlink_target = File::Spec->catfile($out, 'JQ-Lite-2.59.tar.gz');
+my $link_race = run('', 'symlink-race', '-v', '2.65', '-o', $out);
+ok($link_race->{rc} != 0, 'competing destination symlink refused');
+open $in, '<', $symlink_target or die $!;
+$body = do { local $/; <$in> };
+close $in;
+is($body, 'fake-archive-bytes', 'symlink target bytes unchanged');
+
+my $write_fail = run('', 'write-fail', '-v', '2.64', '-o', $out);
+ok($write_fail->{rc} != 0, 'failed output copy is rejected');
+ok(!-e File::Spec->catfile($out, 'JQ-Lite-2.64.tar.gz'), 'partial final file cleaned after failed copy');
 
 my $pinned = run('', '', '-v', '2.61', '-o', $out);
 is($pinned->{rc}, 0, 'explicit stable release fetched without API lookup');
