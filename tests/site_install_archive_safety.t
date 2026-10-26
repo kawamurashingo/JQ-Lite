@@ -20,14 +20,17 @@ my $source = do { local $/; <$sf> };
 close $sf;
 like($source, qr/perl -MArchive::Tar - "\$TARBALL_ABS" "\$DIST_DIR" <<'PERL'/,
     'installer uses core Archive::Tar to validate the target archive');
-like($source, qr/Archive::Tar->iter/,
-    'streaming iterator avoids loading all members at once');
-like($source, qr/\$entry->extract or die/,
-    'same Archive::Tar parser extracts validated members');
-like($source, qr/\$file->size > \$max_member/,
-    'file size checked in callback before contents are allocated');
-like($source, qr/\$total > \$max_total/,
-    'aggregate decompressed size budget is enforced');
+like($source, qr/IO::Uncompress::Gunzip->new/,
+    'gzip checked by core decompressor before archive parsing');
+like($source, qr/Strict => 1/, 'gzip CRC and trailer checked');
+like($source, qr/\$plain_size > 8_000_000/,
+    'decompressed tar stream bounded before Archive::Tar parsing');
+like($source, qr/\$entry_count > 2000/,
+    'raw header count limited before directory objects are buffered');
+like($source, qr/\$size > 4_000_000/, 'raw tar member sizes limited');
+like($source, qr/Tar header checksum mismatch/, 'raw tar checksums checked');
+like($source, qr/\$tar->extract or die/,
+    'validated Archive::Tar extracts safe members');
 unlike($source, qr/(?:tar\s+(?:-\S*x\S*|--extract)|tar\s+-xzf)/,
     'installer never re-parses archive using external tar');
 like($source, qr/Unsafe link or special member/,
@@ -160,7 +163,7 @@ my $large_file = fixture('JQ-Lite-2.59.tar.gz', ordinary(),
 my $large_result = invoke($large_file);
 ok($large_result->{rc} != 0, 'highly compressed oversized member refused');
 is($large_result->{make_calls}, '', 'oversized member cannot reach make/install');
-like($large_result->{stderr}, qr/Oversized archive member/,
+like($large_result->{stderr}, qr/Uncompressed source tar exceeds 8 MB size budget/,
     'oversized archive has a bounded-memory diagnostic');
 
 my $partial_result = invoke($partial_file);
