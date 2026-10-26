@@ -20,8 +20,14 @@ my $source = do { local $/; <$sf> };
 close $sf;
 like($source, qr/perl -MArchive::Tar - "\$TARBALL_ABS" "\$DIST_DIR" <<'PERL'/,
     'installer uses core Archive::Tar to validate the target archive');
-like($source, qr/\$tar->extract or die/,
-    'same validated Archive::Tar parser extracts archive');
+like($source, qr/Archive::Tar->iter/,
+    'streaming iterator avoids loading all members at once');
+like($source, qr/\$entry->extract or die/,
+    'same Archive::Tar parser extracts validated members');
+like($source, qr/\$file->size > \$max_member/,
+    'file size checked in callback before contents are allocated');
+like($source, qr/\$total > \$max_total/,
+    'aggregate decompressed size budget is enforced');
 unlike($source, qr/(?:tar\s+(?:-\S*x\S*|--extract)|tar\s+-xzf)/,
     'installer never re-parses archive using external tar');
 like($source, qr/Unsafe link or special member/,
@@ -146,6 +152,17 @@ my $partial_check = Archive::Tar->new;
 my $parsed_count = $partial_check->read($partial_file, 1);
 ok($parsed_count > 0, 'fixture yields positive parsed-member count despite later truncation');
 ok($partial_check->error, 'fixture also reports a real Archive::Tar read error');
+# A tiny gzip can expand to a huge regular member. The iterator's
+# filter callback must reject the member from its header BEFORE it
+# allocates the decompressed payload; a mere member-count check fails.
+my $large_file = fixture('JQ-Lite-2.59.tar.gz', ordinary(),
+    ['JQ-Lite-2.59/huge.bin', 'Z' x 17_000_000]);
+my $large_result = invoke($large_file);
+ok($large_result->{rc} != 0, 'highly compressed oversized member refused');
+is($large_result->{make_calls}, '', 'oversized member cannot reach make/install');
+like($large_result->{stderr}, qr/Oversized archive member/,
+    'oversized archive has a bounded-memory diagnostic');
+
 my $partial_result = invoke($partial_file);
 ok($partial_result->{rc} != 0, 'partially parsed, corrupted archive rejected');
 is($partial_result->{make_calls}, '', 'partially corrupt archive never runs Makefile/make');
