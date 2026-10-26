@@ -215,6 +215,19 @@ is($bad_header->{make_calls}, '', 'partial header cannot execute make');
 like($bad_header->{stderr}, qr/Invalid tar framing/,
     'incomplete header yields framing diagnostic');
 
+# A fully framed entry followed immediately by EOF is not a valid
+# tar archive: the required two zero blocks must be present.
+my $no_end = substr($raw_data, 0, -1024);
+my $no_end_dir = File::Spec->catdir($root, 'missing-end-markers');
+make_path($no_end_dir);
+my $no_end_path = File::Spec->catfile($no_end_dir, 'JQ-Lite-2.59.tar.gz');
+gzip \$no_end => $no_end_path or die "Cannot create no-end fixture: $GzipError";
+my $no_end_result = invoke($no_end_path);
+ok($no_end_result->{rc} != 0, 'valid gzip without tar end markers rejected');
+is($no_end_result->{make_calls}, '', 'missing tar end marker never reaches make');
+like($no_end_result->{stderr}, qr/Missing tar end markers/,
+    'missing end-marker diagnostic recorded');
+
 # Valid gzip wrapping corrupt tar header checksum must be refused.
 my $corrupt_header = $raw_data;
 substr($corrupt_header, 1024, 1) = 'X';
