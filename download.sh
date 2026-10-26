@@ -35,7 +35,7 @@ if (( $# != 0 )); then
   exit 1
 fi
 
-for tool in curl perl mkdir mktemp ln rm; do
+for tool in curl perl mkdir mktemp mv rm; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "[ERROR] Missing required tool: $tool" >&2
     exit 1
@@ -94,8 +94,10 @@ if [[ -e "$TARGET_PATH" || -L "$TARGET_PATH" ]]; then
   exit 1
 fi
 
-# Keep incomplete responses out of the final tarball name. ln creates
-# the final name only if absent, preventing accidental overwrite.
+# Keep incomplete responses out of the final tarball name. The temp
+# and target share a directory/filesystem, so mv -n can publish the
+# complete file without overwriting a preexisting target (including on
+# FAT/exFAT volumes that do not support hard links).
 TEMP_PATH="$(mktemp "${OUT_DIR%/}/.JQ-Lite-${VERSION}.XXXXXX")"
 cleanup() {
   if [[ -n "${TEMP_PATH:-}" ]]; then
@@ -111,10 +113,11 @@ if [[ ! -s "$TEMP_PATH" ]]; then
   echo '[ERROR] Empty downloaded tarball' >&2
   exit 1
 fi
-ln -- "$TEMP_PATH" "$TARGET_PATH" || {
-  echo "[ERROR] Destination exists or cannot be created: $TARGET_PATH" >&2
+mv -n -- "$TEMP_PATH" "$TARGET_PATH"
+if [[ -e "$TEMP_PATH" ]]; then
+  echo "[ERROR] Destination exists; will not replace: $TARGET_PATH" >&2
   exit 1
-}
+fi
 
 echo "[INFO] Downloaded: $TARGET_PATH"
 echo '[INFO] For offline installation, separately verify the tarball and transfer it to the target host.'
