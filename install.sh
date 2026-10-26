@@ -53,34 +53,39 @@ fi
 
 TARBALL="${POSITIONAL[0]:-}"
 
-# --- Locate tarball ---
+# --- Locate a stable source tarball only ---
 if [[ -z "$TARBALL" ]]; then
-  TARBALL=$(ls -t JQ-Lite-*.tar.gz 2>/dev/null | head -n1 || true)
+  shopt -s nullglob
+  archives=(JQ-Lite-*.tar.gz)
+  shopt -u nullglob
+  for candidate in "${archives[@]}"; do
+    [[ "$candidate" =~ ^JQ-Lite-[0-9]+(\.[0-9]+)+\.tar\.gz$ ]] || continue
+    if [[ -z "$TARBALL" || "$candidate" -nt "$TARBALL" ]]; then
+      TARBALL="$candidate"
+    fi
+  done
 fi
-if [[ -z "$TARBALL" ]]; then
-  echo "[ERROR] No JQ-Lite tarball found." >&2
+if [[ -z "$TARBALL" || ! -f "$TARBALL" ]]; then
+  echo '[ERROR] No stable JQ-Lite tarball found.' >&2
   exit 1
 fi
-if [[ ! -f "$TARBALL" ]]; then
-  echo "[ERROR] Tarball '$TARBALL' not found." >&2
+TARBALL_NAME="${TARBALL##*/}"
+if [[ ! "$TARBALL_NAME" =~ ^JQ-Lite-[0-9]+(\.[0-9]+)+\.tar\.gz$ ]]; then
+  echo '[ERROR] Expected stable JQ-Lite-<version>.tar.gz, not an internal developer build.' >&2
   exit 1
 fi
-
-# --- Tools check ---
-for tool in tar perl make; do
+DIST_DIR="${TARBALL_NAME%.tar.gz}"
+for tool in perl make; do
   command -v "$tool" >/dev/null 2>&1 || {
     echo "[ERROR] '$tool' not found." >&2
     exit 1
   }
 done
-
-# --- Perl version check (require 5.14+) ---
-perl -e 'use 5.014; 1' >/dev/null 2>&1 || {
-  echo "[ERROR] Perl 5.14+ is required." >&2
+perl -e 'use 5.014; use Archive::Tar; 1' >/dev/null 2>&1 || {
+  echo '[ERROR] Perl 5.14+ with core Archive::Tar is required.' >&2
   exit 1
 }
-
-if [[ $RUN_TESTS -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
+if [[ "$RUN_TESTS" -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
   echo "[WARN] 'prove' not found; skipping tests."
   RUN_TESTS=0
 fi
@@ -96,44 +101,44 @@ WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 cd "$WORK_DIR"
 
-# --- Detect tar support ---
-TAR_FLAGS=()
-if tar --help 2>/dev/null | grep -q -- '--warning'; then
-  TAR_FLAGS+=(--warning=no-unknown-keyword)
-fi
-
-# --- Safely detect top-level distribution directory ---
-LISTING=""
-
-if [[ ${#TAR_FLAGS[@]} -gt 0 ]]; then
-  LISTING=$(tar "${TAR_FLAGS[@]}" -tzf "$TARBALL_ABS" 2>/dev/null || true)
-else
-  LISTING=$(tar -tzf "$TARBALL_ABS" 2>/dev/null || true)
-fi
-
-# Fallback for busybox / non-gzip-aware tar
-if [[ -z "$LISTING" ]]; then
-  if command -v gzip >/dev/null 2>&1; then
-    LISTING=$(gzip -dc "$TARBALL_ABS" 2>/dev/null | tar -tf - 2>/dev/null || true)
-  fi
-fi
-
-DIST_DIR=$(printf '%s\n' "$LISTING" | head -n1 | cut -d'/' -f1 || true)
-
-if [[ -z "$DIST_DIR" ]]; then
-  echo "[ERROR] Unable to determine distribution directory from $TARBALL." >&2
-  echo "[HINT] Try manually: tar tzf \"$TARBALL\" | head" >&2
+# --- Validate and extract with the *same* Perl archive parser ---
+# Refuse path traversal and links before creating any archive member.
+perl -MArchive::Tar - "$TARBALL_ABS" "$DIST_DIR" <<'PERL'
+use strict;
+use warnings;
+my ($archive, $root) = @ARGV;
+die "Unexpected distribution root\n"
+  unless defined($root) && $root =~ /\AJQ-Lite-[0-9]+(?:\.[0-9]+)+\z/;
+my $tar = Archive::Tar->new;
+$tar->read($archive, 1) or die "Unreadable gzip tarball\n";
+my @entries = $tar->get_files;
+die "Empty archive\n" unless @entries;
+my (%seen, $makefile, $count);
+for my $entry (@entries) {
+  die "Too many archive members\n" if ++$count > 20000;
+  my $full = $entry->full_path; # USTAR prefix may be separate from name
+  die "Missing entry path\n" unless defined($full) && length($full);
+  die "Unsafe archive path: $full\n" if $full =~ /[\\\x00\r\n]/;
+  my $path = $full;
+  $path =~ s{/\z}{} if $entry->is_dir;
+  die "Entry outside distribution root: $full\n"
+    unless ($path eq $root && $entry->is_dir)
+      || $path =~ m{\A\Q$root\E/(?:[^/]+/)*[^/]+\z};
+  die "Unsafe dot/empty path segment: $full\n"
+    if grep { $_ eq "." || $_ eq ".." || !length($_) } split m{/}, $path, -1;
+  die "Unsafe link or special member: $full\n"
+    unless $entry->is_file || $entry->is_dir;
+  die "Duplicate archive path: $full\n" if $seen{$path}++;
+  die "Unsafe setuid/setgid mode: $full\n" if $entry->mode & 06000;
+  $makefile = 1 if $path eq "$root/Makefile.PL" && $entry->is_file;
+}
+die "Archive lacks root Makefile.PL\n" unless $makefile;
+$tar->extract or die "Extraction failed after validation\n";
+PERL
+if [[ ! -d "$DIST_DIR" || -L "$DIST_DIR" ]]; then
+  echo '[ERROR] Archive did not create expected distribution directory.' >&2
   exit 1
 fi
-
-# --- Extract ---
-echo "[INFO] Extracting $TARBALL..."
-if [[ ${#TAR_FLAGS[@]} -gt 0 ]]; then
-  tar "${TAR_FLAGS[@]}" -xzf "$TARBALL_ABS" || tar -xzf "$TARBALL_ABS"
-else
-  tar -xzf "$TARBALL_ABS"
-fi
-
 cd "$DIST_DIR"
 
 echo "[INFO] Installing to $PREFIX..."

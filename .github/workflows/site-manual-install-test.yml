@@ -7,6 +7,8 @@ on:
       - index-en.html
       - tests/site_manual_cpan_install.t
       - download.sh
+      - install.sh
+      - tests/site_install_archive_safety.t
       - tests/site_download_security.t
       - .github/workflows/site-manual-install-test.yml
   push:
@@ -15,6 +17,8 @@ on:
       - index-en.html
       - tests/site_manual_cpan_install.t
       - download.sh
+      - install.sh
+      - tests/site_install_archive_safety.t
       - tests/site_download_security.t
       - .github/workflows/site-manual-install-test.yml
 
@@ -32,3 +36,4 @@ jobs:
         run: |
           perl tests/site_manual_cpan_install.t
           perl tests/site_download_security.t
+          perl tests/site_install_archive_safety.t
