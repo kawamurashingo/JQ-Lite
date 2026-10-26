@@ -166,7 +166,7 @@ like($large_result->{stderr}, qr/Oversized archive member/,
 my $partial_result = invoke($partial_file);
 ok($partial_result->{rc} != 0, 'partially parsed, corrupted archive rejected');
 is($partial_result->{make_calls}, '', 'partially corrupt archive never runs Makefile/make');
-like($partial_result->{stderr}, qr/Incomplete or corrupt gzip tarball/,
+like($partial_result->{stderr}, qr/Incomplete or corrupt gzip archive/,
     'partial archive failure is explicitly diagnosed');
 
 my $corrupt_dir = File::Spec->catdir($root, 'corrupt');
