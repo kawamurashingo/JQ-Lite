@@ -1,133 +1,120 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 
-DIST_NAME="JQ-Lite"
-OUT_DIR="."
-SPECIFIED_VERSION=""
+DIST_NAME='JQ-Lite'
+OUT_DIR='.'
+SPECIFIED_VERSION=''
 
 usage() {
-  cat <<USAGE
-Usage: $0 [-v <version>] [-o <output-dir>]
+  cat <<'USAGE'
+Usage: download.sh [-v <stable-version>] [-o <output-dir>]
 
-Downloads the specified version of ${DIST_NAME} from MetaCPAN.
-If no version is provided, the latest version will be downloaded.
+Download a stable JQ-Lite CPAN tarball via HTTPS from the SHINGO
+CPAN author directory. No version means MetaCPAN's latest release.
+Developer builds such as 3.00_03 are intentionally unsupported.
 
-Options:
-  -v <version>  Version to download (e.g. 1.28)
-  -o <dir>      Directory where the tarball should be saved (default: current)
-  -h            Show this help message
+  -v <version>  Explicit stable numeric version (e.g. 2.59)
+  -o <dir>      Output directory (default: current)
+  -h            Show this help
 USAGE
 }
 
-# --- Parse options ---
-while getopts ":v:o:h" opt; do
+while getopts ':v:o:h' opt; do
   case "$opt" in
     v) SPECIFIED_VERSION="$OPTARG" ;;
     o) OUT_DIR="$OPTARG" ;;
-    h)
-      usage
-      exit 0
-      ;;
-    :)
-      echo "[ERROR] Option -$OPTARG requires an argument." >&2
-      usage >&2
-      exit 1
-      ;;
-    ?)
-      echo "[ERROR] Unknown option -$OPTARG" >&2
-      usage >&2
-      exit 1
-      ;;
+    h) usage; exit 0 ;;
+    :) echo "[ERROR] -$OPTARG requires a value" >&2; exit 1 ;;
+    ?) echo "[ERROR] Unknown option: -$OPTARG" >&2; exit 1 ;;
   esac
 done
 shift $((OPTIND - 1))
+if (( $# != 0 )); then
+  echo '[ERROR] Unexpected positional arguments' >&2
+  usage >&2
+  exit 1
+fi
 
-# --- Check required tools ---
-for tool in curl perl; do
+for tool in curl perl mkdir mktemp ln rm; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "[ERROR] '$tool' is required but not installed." >&2
+    echo "[ERROR] Missing required tool: $tool" >&2
     exit 1
   fi
 done
 
-# --- Prepare output directory ---
-if [[ ! -d "$OUT_DIR" ]]; then
-  echo "[INFO] Creating output directory $OUT_DIR"
-  mkdir -p "$OUT_DIR"
-fi
+# Reject developer builds and unsafe filenames *before* contacting the network.
+is_stable_version() {
+  [[ "$1" =~ ^[0-9]+(\.[0-9]+)+$ ]]
+}
 
-# --- Fetch metadata ---
 if [[ -n "$SPECIFIED_VERSION" ]]; then
-  echo "[INFO] Fetching JQ-Lite version $SPECIFIED_VERSION from MetaCPAN..."
-  META_URL="https://fastapi.metacpan.org/v1/release/_search"
-  RELEASE_JSON=$(curl -sSfL -X POST "$META_URL" \
-    -H 'Content-Type: application/json' \
-    -d "{\"query\":{\"bool\":{\"must\":[{\"term\":{\"distribution\":\"${DIST_NAME}\"}},{\"term\":{\"version\":\"${SPECIFIED_VERSION}\"}}]}},\"size\":1}")
+  if ! is_stable_version "$SPECIFIED_VERSION"; then
+    echo '[ERROR] Expected numeric stable version, not developer/path input' >&2
+    exit 1
+  fi
+  VERSION="$SPECIFIED_VERSION"
 else
-  echo "[INFO] Fetching latest JQ-Lite release from MetaCPAN..."
-  META_URL="https://fastapi.metacpan.org/v1/release/${DIST_NAME}?fields=download_url,version"
-  RELEASE_JSON=$(curl -sSfL "$META_URL")
+  echo '[INFO] Finding latest stable JQ-Lite version from MetaCPAN...'
+  VERSION="$(
+    curl -fsSL --proto '=https' --proto-redir '=https' \
+      'https://fastapi.metacpan.org/v1/release/JQ-Lite' |
+    perl -MJSON::PP -0777 -ne '
+      my $release = decode_json($_);
+      die "Expected JSON object\n" unless ref($release) eq "HASH";
+      my $version = $release->{version};
+      die "Expected numeric stable version\n"
+        unless defined($version) && !ref($version)
+          && $version =~ /\A[0-9]+(?:\.[0-9]+)+\z/;
+      die "Wrong distribution\n"
+        if defined($release->{distribution})
+          && (ref($release->{distribution}) || $release->{distribution} ne "JQ-Lite");
+      die "Wrong author\n"
+        if defined($release->{author})
+          && (ref($release->{author}) || $release->{author} ne "SHINGO");
+      die "Wrong release name\n"
+        if defined($release->{name})
+          && (ref($release->{name}) || $release->{name} ne "JQ-Lite-$version");
+      print $version;
+    '
+  )"
 fi
 
-# --- Parse JSON (mac-compatible) ---
-META_FIELDS=($(printf '%s' "$RELEASE_JSON" | perl -MJSON::PP -E '
-  my $data = decode_json(join q{}, <STDIN>);
-  my ($url, $version);
-
-  # Case 1: _search API
-  if (exists $data->{hits}) {
-    my $hit = $data->{hits}->{hits}->[0] // {};
-    if (exists $hit->{_source}) {
-      $url = $hit->{_source}->{download_url} // q{};
-      $version = $hit->{_source}->{version} // q{};
-    } elsif (exists $hit->{fields}) {
-      $url = $hit->{fields}->{download_url}->[0] // q{};
-      $version = $hit->{fields}->{version}->[0] // q{};
-    }
-  }
-  # Case 2: direct release API
-  else {
-    $url = $data->{download_url} // q{};
-    $version = $data->{version} // q{};
-  }
-
-  say $url;
-  say $version;
-'))
-
-DOWNLOAD_URL="${META_FIELDS[0]:-}"
-VERSION="${META_FIELDS[1]:-}"
-
-# --- Validate ---
-if [[ -z "$DOWNLOAD_URL" ]]; then
-  echo "[ERROR] Failed to find download URL for version ${SPECIFIED_VERSION:-latest}." >&2
+if ! is_stable_version "$VERSION"; then
+  echo '[ERROR] Refusing non-stable release version' >&2
   exit 1
 fi
 
-if [[ -z "$VERSION" ]]; then
-  echo "[ERROR] Failed to determine version info." >&2
-  exit 1
-fi
-
-# --- Prepare file path ---
 TARBALL_NAME="${DIST_NAME}-${VERSION}.tar.gz"
-TARGET_PATH="${OUT_DIR%/}/$TARBALL_NAME"
+TARGET_PATH="${OUT_DIR%/}/${TARBALL_NAME}"
+DOWNLOAD_URL="https://cpan.metacpan.org/authors/id/S/SH/SHINGO/${TARBALL_NAME}"
 
-if [[ -f "$TARGET_PATH" ]]; then
-  echo "[WARN] $TARGET_PATH already exists. Overwriting..."
-  rm -f "$TARGET_PATH"
+mkdir -p -- "$OUT_DIR"
+if [[ -e "$TARGET_PATH" || -L "$TARGET_PATH" ]]; then
+  echo "[ERROR] Existing file will not be overwritten: $TARGET_PATH" >&2
+  exit 1
 fi
 
-# --- Download ---
-echo "[INFO] Downloading $TARBALL_NAME..."
-curl -sSfL "$DOWNLOAD_URL" -o "$TARGET_PATH"
+# Keep incomplete responses out of the final tarball name. ln creates
+# the final name only if absent, preventing accidental overwrite.
+TEMP_PATH="$(mktemp "${OUT_DIR%/}/.JQ-Lite-${VERSION}.XXXXXX")"
+cleanup() {
+  if [[ -n "${TEMP_PATH:-}" ]]; then
+    rm -f -- "$TEMP_PATH"
+  fi
+}
+trap cleanup EXIT
 
-echo
-cat <<EOM
-[INFO] Download complete.
-Saved to: $TARGET_PATH
+echo "[INFO] Downloading ${TARBALL_NAME} from HTTPS CPAN..."
+curl -fsSL --proto '=https' --proto-redir '=https' \
+  "$DOWNLOAD_URL" -o "$TEMP_PATH"
+if [[ ! -s "$TEMP_PATH" ]]; then
+  echo '[ERROR] Empty downloaded tarball' >&2
+  exit 1
+fi
+ln -- "$TEMP_PATH" "$TARGET_PATH" || {
+  echo "[ERROR] Destination exists or cannot be created: $TARGET_PATH" >&2
+  exit 1
+}
 
-To install, copy the file to your target machine (if offline) and run:
-  ./install.sh $TARBALL_NAME
-EOM
+echo "[INFO] Downloaded: $TARGET_PATH"
+echo '[INFO] For offline installation, separately verify the tarball and transfer it to the target host.'

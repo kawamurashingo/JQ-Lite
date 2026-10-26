@@ -6,12 +6,16 @@ on:
     paths:
       - index-en.html
       - tests/site_manual_cpan_install.t
+      - download.sh
+      - tests/site_download_security.t
       - .github/workflows/site-manual-install-test.yml
   push:
     branches: [gh-pages]
     paths:
       - index-en.html
       - tests/site_manual_cpan_install.t
+      - download.sh
+      - tests/site_download_security.t
       - .github/workflows/site-manual-install-test.yml
 
 permissions:
@@ -25,4 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check HTML shell example and mocked stable/invalid releases
-        run: perl tests/site_manual_cpan_install.t
+        run: |
+          perl tests/site_manual_cpan_install.t
+          perl tests/site_download_security.t
