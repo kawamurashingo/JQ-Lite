@@ -172,6 +172,80 @@ is($partial_result->{make_calls}, '', 'partially corrupt archive never runs Make
 like($partial_result->{stderr}, qr/Incomplete or corrupt gzip archive/,
     'partial archive failure is explicitly diagnosed');
 
+# Gzip CRC corruption and missing trailers must fail before make.
+open my $gzip_fh, '<', $ok_archive or die $!;
+binmode $gzip_fh;
+my $gz_bytes = do { local $/; <$gzip_fh> };
+close $gzip_fh;
+sub archive_bytes {
+    my ($bytes) = @_;
+    my $dir = File::Spec->catdir($root, 'raw-variant-' . ++$case_num);
+    make_path($dir);
+    my $path = File::Spec->catfile($dir, 'JQ-Lite-2.59.tar.gz');
+    open my $fh, '>', $path or die $!;
+    binmode $fh;
+    print {$fh} $bytes or die $!;
+    close $fh;
+    return $path;
+}
+my $bad_crc = $gz_bytes;
+substr($bad_crc, -8, 1) = chr(ord(substr($bad_crc, -8, 1)) ^ 1);
+for my $case (
+    ['bad gzip CRC', archive_bytes($bad_crc)],
+    ['missing gzip trailer', archive_bytes(substr($gz_bytes, 0, -8))],
+) {
+    my ($name, $path) = @$case;
+    my $result = invoke($path);
+    ok($result->{rc} != 0, "$name rejected");
+    is($result->{make_calls}, '', "$name never executes make");
+    like($result->{stderr}, qr/(?:Corrupt gzip|Invalid gzip|Gzip trailer validation failed)/,
+        "$name reports gzip integrity failure");
+}
+
+# Valid gzip containing a partial second header must be refused.
+my $short_header = substr($raw_data, 0, 1024 + 100);
+my $short_header_dir = File::Spec->catdir($root, 'short-header');
+make_path($short_header_dir);
+my $short_header_path = File::Spec->catfile($short_header_dir, 'JQ-Lite-2.59.tar.gz');
+gzip \$short_header => $short_header_path
+    or die "Cannot create short-header fixture: $GzipError";
+my $bad_header = invoke($short_header_path);
+ok($bad_header->{rc} != 0, 'valid-gzip tar with partial last header rejected');
+is($bad_header->{make_calls}, '', 'partial header cannot execute make');
+like($bad_header->{stderr}, qr/Invalid tar framing/,
+    'incomplete header yields framing diagnostic');
+
+# Valid gzip wrapping corrupt tar header checksum must be refused.
+my $corrupt_header = $raw_data;
+substr($corrupt_header, 1024, 1) = 'X';
+my $checksum_dir = File::Spec->catdir($root, 'bad-tar-checksum');
+make_path($checksum_dir);
+my $checksum_path = File::Spec->catfile($checksum_dir, 'JQ-Lite-2.59.tar.gz');
+gzip \$corrupt_header => $checksum_path
+    or die "Cannot create corrupt-header fixture: $GzipError";
+my $bad_checksum = invoke($checksum_path);
+ok($bad_checksum->{rc} != 0, 'invalid tar header checksum rejected');
+is($bad_checksum->{make_calls}, '', 'invalid tar header cannot execute make');
+like($bad_checksum->{stderr}, qr/Tar header checksum mismatch/,
+    'tar checksum error specifically reported');
+
+# A huge directory train must be rejected before Archive::Tar buffers
+# many directory objects. The tar payload itself is small enough.
+my $many = Archive::Tar->new;
+$many->add_data('JQ-Lite-2.59/Makefile.PL', "print qq(dummy\\n); 1;\n");
+for my $i (1 .. 2100) {
+    $many->add_data(sprintf('JQ-Lite-2.59/d%05d/', $i), '', {type=>5});
+}
+my $many_dir = File::Spec->catdir($root, 'many-directories');
+make_path($many_dir);
+my $many_path = File::Spec->catfile($many_dir, 'JQ-Lite-2.59.tar.gz');
+$many->write($many_path, 1) or die "Cannot write directory flood";
+my $many_result = invoke($many_path);
+ok($many_result->{rc} != 0, 'directory flood refused by raw header count');
+is($many_result->{make_calls}, '', 'directory flood cannot reach build');
+like($many_result->{stderr}, qr/Too many tar entries/,
+    'raw entry count guard diagnosed');
+
 my $corrupt_dir = File::Spec->catdir($root, 'corrupt');
 make_path($corrupt_dir);
 my $corrupt = File::Spec->catfile($corrupt_dir, 'JQ-Lite-2.59.tar.gz');
