@@ -141,7 +141,7 @@ die "Invalid tar framing or missing end markers\n"
   unless $plain_size >= 1024 && $plain_size % 512 == 0;
 open my $raw, "<", $plain_path or die "Cannot read tar spool: $!\n";
 binmode $raw;
-my ($entry_count, $position) = (0, 0);
+my ($entry_count, $position, $end_seen) = (0, 0, 0);
 while ($position < $plain_size) {
   my $got = read($raw, my $header, 512);
   die "Truncated tar header\n" unless defined($got) && $got == 512;
@@ -156,6 +156,7 @@ while ($position < $plain_size) {
       die "Nonzero data beyond tar end marker\n" unless $tail eq "\0" x $n;
       $remaining -= $n;
     }
+    $end_seen = 1;
     last;
   }
   die "Too many tar entries\n" if ++$entry_count > 2000;
@@ -180,6 +181,7 @@ while ($position < $plain_size) {
   $position += $padded;
 }
 close $raw or die "Cannot close tar header scan: $!\n";
+die "Missing tar end markers\n" unless $end_seen;
 die "No tar entries\n" unless $entry_count;
 
 # The complete bounded tar has now passed gzip CRC/trailer, raw tar
