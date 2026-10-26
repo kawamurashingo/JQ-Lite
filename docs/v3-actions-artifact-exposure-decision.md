@@ -67,6 +67,10 @@ It is not an assessment that 92 archives were actually downloaded.
    records the independently checked original ZIP hash, four member
    hashes, and 126-row / 92-match reconciliation. That record does
    **not** preserve the ZIP bytes permanently or unblock publication.
+   Recheck independently retained copies offline with
+   `ci/verify-actions-exposure-snapshot.pl`, anchored to the
+   externally recorded ZIP SHA-256; the verifier never queries
+   GitHub or asserts publication history completeness.
 3. **No automatic deletion**: removing existing artifacts needs explicit
    maintainer approval and a separate reviewed operation after
    provenance has been retained. Deletion reduces future exposure, but

@@ -83,9 +83,25 @@ is made that paging captures every artifact that ever existed.
    remain **BLOCKED**. The conservative public-version floor above
    `3.00_03` remains in force under #887.
 
-**Verification procedure:** independently download the exact artifact
-ZIP before expiry, compare the ZIP SHA-256 above, inspect the member
-list for unexpected extra files, verify the four manifest-listed member
-hashes, and re-derive the two-page/126-unique-ID/92-filtered-row result
-from the original saved JSON and TSV. Never treat the two-page count as
-a complete historical GitHub or PAUSE access/publication ledger.
+**Offline verification (core Perl only):** save the exact artifact ZIP
+before expiry, then run from a v3 checkout or its source distribution:
+
+```sh
+perl ci/verify-actions-exposure-snapshot.pl \
+    --input /path/to/v3-ci-exposure-metadata-40207717858.zip \
+    --expected-sha256 9c18e179c242efe20c21edf705e92310ad5f3742e749ad786ff1e2f65e4c229e
+```
+
+The expected digest is taken from **this independently retained
+record**, not from a potentially modified ZIP or its own manifest.
+The verifier checks the ZIP digest before reading any member, refuses
+unlisted or duplicated members (including developer source archives),
+checks every saved member SHA-256, requires consecutive pages and
+complete totals with unique artifact IDs, and compares each matching
+JSON metadata row to the saved TSV. It neither extracts any file onto
+disk nor accesses GitHub. The synthetic fixture regression covers
+tampering, truncation, duplicate IDs, page gaps and unexpectedly
+embedded tarballs. A successful run remains only a point-in-time
+metadata integrity finding — never complete historical distribution
+proof or `--history-reviewed` permission. Preserve the original ZIP
+**off GitHub Actions** to retain reproducibility after expiry.
