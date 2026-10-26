@@ -110,7 +110,9 @@ my ($archive, $root) = @ARGV;
 die "Unexpected distribution root\n"
   unless defined($root) && $root =~ /\AJQ-Lite-[0-9]+(?:\.[0-9]+)+\z/;
 my $tar = Archive::Tar->new;
-$tar->read($archive, 1) or die "Unreadable gzip tarball\n";
+my $read_count = $tar->read($archive, 1);
+die "Incomplete or corrupt gzip tarball: " . ($tar->error || "no entries") . "\n"
+  unless $read_count && !$tar->error;
 my @entries = $tar->get_files;
 die "Empty archive\n" unless @entries;
 my (%seen, $makefile, $count);
