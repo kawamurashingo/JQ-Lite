@@ -35,7 +35,7 @@ if (( $# != 0 )); then
   exit 1
 fi
 
-for tool in curl perl mkdir mktemp cat rm; do
+for tool in curl perl mkdir mktemp rm; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "[ERROR] Missing required tool: $tool" >&2
     exit 1
@@ -95,9 +95,9 @@ if [[ -e "$TARGET_PATH" || -L "$TARGET_PATH" ]]; then
 fi
 
 # Keep incomplete network responses out of the final tarball name.
-# An exclusive Bash noclobber open treats the target as an *exact file*
-# (not a directory into which mv/ln may put an unexpected member).
-# This works on FAT/exFAT filesystems without hard-link support.
+# Publish by O_CREAT|O_EXCL instead of Bash noclobber, mv or ln: this
+# rejects all competing destination types (including device/FIFO links)
+# and works on filesystems without hard-link support.
 TEMP_PATH="$(mktemp "${OUT_DIR%/}/.JQ-Lite-${VERSION}.XXXXXX")"
 cleanup() {
   if [[ -n "${TEMP_PATH:-}" ]]; then
@@ -113,17 +113,52 @@ if [[ ! -s "$TEMP_PATH" ]]; then
   echo '[ERROR] Empty downloaded tarball' >&2
   exit 1
 fi
-if ! (
-  set -C
-  # A failed exclusive open never installs the cleanup trap, so an
-  # unrelated preexisting file/dir/symlink cannot be deleted by us.
-  exec 3> "$TARGET_PATH" || exit 1
-  trap 'rm -f -- "$TARGET_PATH"' EXIT
-  cat -- "$TEMP_PATH" >&3 || exit 1
-  exec 3>&- || exit 1
-  trap - EXIT
-); then
-  echo "[ERROR] Cannot create complete, new output file: $TARGET_PATH" >&2
+if ! perl -MFcntl=O_WRONLY,O_CREAT,O_EXCL -e '
+  use strict;
+  use warnings;
+  my ($from, $dest) = @ARGV;
+  open my $source, "<", $from or die "Cannot read downloaded archive: $!\n";
+  binmode $source;
+  sysopen my $out, $dest, O_WRONLY|O_CREAT|O_EXCL, 0666
+    or die "Output already exists or cannot be created: $!\n";
+  binmode $out;
+  my @created = stat $out;
+  die "Cannot inspect new output identity\n" unless @created;
+  my $closed = 0;
+  my $ok = eval {
+    while (1) {
+      my $read = sysread($source, my $buffer, 65536);
+      die "Read failed: $!\n" unless defined $read;
+      last unless $read;
+      my $offset = 0;
+      while ($offset < $read) {
+        my $written = syswrite($out, $buffer, $read-$offset, $offset);
+        die "Write failed: $!\n" unless defined $written && $written > 0;
+        $offset += $written;
+      }
+    }
+    my $closed_ok = close $out;
+    $closed = 1;
+    die "Close failed: $!\n" unless $closed_ok;
+    my @present = lstat $dest;
+    die "Output replaced during copy\n"
+      unless @present && $present[0] == $created[0]
+        && $present[1] == $created[1];
+    1;
+  };
+  if (!$ok) {
+    my $reason = $@ || "Unknown copy failure\n";
+    close $out unless $closed;
+    # Never remove a competing path inserted after the exclusive open.
+    my @present = lstat $dest;
+    if (@present && $present[0] == $created[0]
+        && $present[1] == $created[1]) {
+      unlink $dest or warn "Cannot discard partial output: $!\n";
+    }
+    die $reason;
+  }
+' "$TEMP_PATH" "$TARGET_PATH"; then
+  echo "[ERROR] Cannot publish new CPAN archive: $TARGET_PATH" >&2
   exit 1
 fi
 

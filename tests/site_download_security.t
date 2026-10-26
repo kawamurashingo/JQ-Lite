@@ -13,8 +13,8 @@ is(system('bash', '-n', $script), 0, 'public download script has valid Bash synt
 open my $source, '<', $script or die $!;
 my $script_text = do { local $/; <$source> };
 close $source;
-like($script_text, qr/\bset -C\b/, 'Bash noclobber prevents existing output replacement');
-like($script_text, qr/exec 3> \"\$TARGET_PATH\"/, 'target is an exact, exclusive file redirection');
+like($script_text, qr/sysopen my \$out, \$dest, O_WRONLY\|O_CREAT\|O_EXCL/, 'all existing output types rejected atomically');
+like($script_text, qr/my \@present = lstat \$dest/, 'failed-copy cleanup checks path identity');
 unlike($script_text, qr/\b(?:mv|ln) -n -- /, 'no implicit destination-directory behavior');
 my $root = tempdir(CLEANUP => 1);
 my $mock_dir = File::Spec->catdir($root, 'mock-bin');
@@ -49,6 +49,12 @@ case "$kind" in
     if [ "$MOCK_MODE" = 'symlink-race' ]; then
       ln -s -- "$MOCK_SYMLINK_TARGET" "$MOCK_RACE_TARGET"
     fi
+    if [ "$MOCK_MODE" = 'null-link-race' ]; then
+      ln -s -- /dev/null "$MOCK_RACE_TARGET"
+    fi
+    if [ "$MOCK_MODE" = 'fifo-race' ]; then
+      mkfifo "$MOCK_RACE_TARGET"
+    fi
     if [ "$MOCK_MODE" = 'archive-fail' ]; then
       printf 'partial' > "$output"
       exit 22
@@ -60,19 +66,6 @@ esac
 MOCK
 close $mock or die $!;
 chmod 0755, $curl or die $!;
-my $fake_cat = File::Spec->catfile($mock_dir, 'cat');
-open my $cat_fh, '>', $fake_cat or die $!;
-print {$cat_fh} <<'CAT';
-#!/bin/sh
-if [ "$MOCK_MODE" = 'write-fail' ]; then
-    printf 'partial'
-    exit 22
-fi
-exec /bin/cat "$@"
-CAT
-close $cat_fh;
-chmod 0755, $fake_cat or die $!;
-
 my $calls = File::Spec->catfile($root, 'calls.log');
 my $out = File::Spec->catdir($root, 'out path');
 sub run {
@@ -82,10 +75,10 @@ sub run {
     local $ENV{MOCK_RELEASE} = defined($json) ? $json : '';
     local $ENV{MOCK_MODE} = $mode || '';
     local $ENV{MOCK_CALLS} = $calls;
-    local $ENV{MOCK_RACE_TARGET} = File::Spec->catfile($out, ($mode || '') eq 'symlink-race' ? 'JQ-Lite-2.65.tar.gz' : 'JQ-Lite-2.63.tar.gz');
+    local $ENV{MOCK_RACE_TARGET} = File::Spec->catfile($out, ($mode || '') eq 'symlink-race' ? 'JQ-Lite-2.65.tar.gz' : ($mode || '') eq 'null-link-race' ? 'JQ-Lite-2.66.tar.gz' : ($mode || '') eq 'fifo-race' ? 'JQ-Lite-2.67.tar.gz' : 'JQ-Lite-2.63.tar.gz');
     local $ENV{MOCK_SYMLINK_TARGET} = File::Spec->catfile($out, 'JQ-Lite-2.59.tar.gz');
     my $err = gensym;
-    my $pid = open3(my $in, my $stdout, $err, 'bash', $script, @args);
+    my $pid = open3(my $in, my $stdout, $err, 'bash', ($ENV{TEST_SCRIPT_OVERRIDE} || $script), @args);
     close $in;
     my $output = do { local $/; <$stdout> };
     my $stderr = do { local $/; <$err> };
@@ -108,7 +101,7 @@ ok(-f $tarball, 'download stored under explicit stable version and spaced destin
 open my $in, '<', $tarball or die $!;
 my $body = do { local $/; <$in> };
 close $in;
-is($body, 'fake-archive-bytes', 'temporary archive atomically linked to target');
+is($body, 'fake-archive-bytes', 'exclusive output copy preserves archive bytes');
 
 my $existing = run('{"version":"2.59"}', '', '-v', '2.59', '-o', $out);
 ok($existing->{rc} != 0, 'existing target cannot be overwritten');
@@ -167,9 +160,52 @@ $body = do { local $/; <$in> };
 close $in;
 is($body, 'fake-archive-bytes', 'symlink target bytes unchanged');
 
-my $write_fail = run('', 'write-fail', '-v', '2.64', '-o', $out);
-ok($write_fail->{rc} != 0, 'failed output copy is rejected');
-ok(!-e File::Spec->catfile($out, 'JQ-Lite-2.64.tar.gz'), 'partial final file cleaned after failed copy');
+my $null_link = run('', 'null-link-race', '-v', '2.66', '-o', $out);
+ok($null_link->{rc} != 0, 'symlink to /dev/null is refused');
+ok(-l File::Spec->catfile($out, 'JQ-Lite-2.66.tar.gz'), 'competing device symlink preserved');
+
+my $fifo_race = run('', 'fifo-race', '-v', '2.67', '-o', $out);
+ok($fifo_race->{rc} != 0, 'competing FIFO is refused without blocking');
+ok(-p File::Spec->catfile($out, 'JQ-Lite-2.67.tar.gz'), 'competing FIFO preserved');
+
+# Deterministically inject an I/O failure after the exclusive open in a
+# temporary copy of the exact production shell script. No test hooks in
+# the deployed downloader and no network connections.
+sub modified_script {
+    my ($statement) = @_;
+    my $copy = $script_text;
+    my $original = '  my $ok = eval {';
+    my $injected = $original . "\n" . $statement;
+    my $changed = ($copy =~ s/\Q$original\E/$injected/);
+    die 'Missing copy-loop injection point' unless $changed == 1;
+    my $path = File::Spec->catfile($root, 'test-download.sh');
+    open my $fh, '>', $path or die $!;
+    print {$fh} $copy or die $!;
+    close $fh;
+    return $path;
+}
+my $failure_script = modified_script('    die "injected write failure\n";');
+{
+    local $ENV{TEST_SCRIPT_OVERRIDE} = $failure_script;
+    my $write_fail = run('', '', '-v', '2.64', '-o', $out);
+    ok($write_fail->{rc} != 0, 'simulated failed output copy is rejected');
+    ok(!-e File::Spec->catfile($out, 'JQ-Lite-2.64.tar.gz'), 'partial output cleaned on failure');
+}
+my $replace_script = modified_script(q{    unlink $dest or die "unlink failed";
+    open my $foreign, ">", $dest or die "replacement creation failed";
+    print {$foreign} "foreign-owned";
+    close $foreign;
+    die "injected replacement race";});
+{
+    local $ENV{TEST_SCRIPT_OVERRIDE} = $replace_script;
+    my $replaced = run('', '', '-v', '2.68', '-o', $out);
+    ok($replaced->{rc} != 0, 'replacing output during failed copy is rejected');
+    my $other = File::Spec->catfile($out, 'JQ-Lite-2.68.tar.gz');
+    open my $fh, '<', $other or die $!;
+    my $bytes = do { local $/; <$fh> };
+    close $fh;
+    is($bytes, 'foreign-owned', 'cleanup never deletes a competing replacement');
+}
 
 my $pinned = run('', '', '-v', '2.61', '-o', $out);
 is($pinned->{rc}, 0, 'explicit stable release fetched without API lookup');
