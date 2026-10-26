@@ -444,7 +444,12 @@ API JSON, matching TSV, workflow-run/check-out-SHA/UTC provenance and
 SHA-256 list even when enumeration fails after a partial fetch. The
 snapshot is publicly readable metadata, **not** tarball bytes,
 verified download logs, complete historical access records or an
-original PAUSE ledger. A maintainer must preserve copies and checksums
+original PAUSE ledger. The separately inspected
+[2026-10-25 metadata snapshot](v3-actions-exposure-snapshot-2026-10-25.md)
+records the retrieved ZIP hash, four matching member SHA-256 checks,
+and exact original-JSON-to-TSV reconciliation (126 metadata rows,
+92 matching live names). Independent off-CI preservation of the
+original archive is still required before its recorded expiry. A maintainer must preserve copies and checksums
 independently before their 14-day expiry. A failing inventory stays
 **BLOCKED**, regardless of whether partial evidence was retained.
 
