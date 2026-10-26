@@ -370,6 +370,7 @@ t/v3_cpantesters_upload_inventory.t
 t/v3_public_ci_archive_nonpublication.t
 t/v3_actions_exposure_metadata_archive.t
 t/v3_actions_exposure_snapshot_verifier.t
+t/v3_secure_cpan_install_docs.t
 t/v3_arithmetic_contract.t
 t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t

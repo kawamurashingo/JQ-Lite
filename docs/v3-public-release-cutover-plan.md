@@ -106,6 +106,13 @@ pretended absent. The odd GitHub `v2.59` `published_at` vs
   investigate whether *any* `3.00_0x` / `v3.00_0x` internal build
   was ever offered to the public, even temporarily, or shared outside
   the organization.
+- [ ] **Live installation-page HTTP usage:** the externally deployed
+  English installation guide still advertises HTTP requests for
+  CPAN metadata and tarballs as of the 2026-10-26 observation.
+  Updating the v3-dev README does not update the live website.
+  Identify the deployment source, separately review and approve its
+  HTTPS-only correction and verify the deployed result. Do not
+  mutate stable `main` as part of evidence gathering.
 - [ ] **Resolve contradictions and attest:** review any archive-set
   differences, disputed timestamps, missing entries, duplicates and the
   `0.99/0.100` inversion. Produce a *human-vetted* chronological

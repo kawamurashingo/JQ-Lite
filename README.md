@@ -128,22 +128,39 @@ cpanm JQ::Lite
 
 ---
 
-## From Source (Latest, Simple)
+## From Source (Latest Stable CPAN Release)
 
-This method installs the **latest released version** directly from CPAN
-without requiring jq.
+This downloads a **stable CPAN release**, not an internal
+`3.00_0x` developer artifact. Prefer `cpanm JQ::Lite` above when
+available. This download requires network access, Bash and curl; Perl
+5.14+ includes `JSON::PP` in core. Offline installation is possible
+**after** separately obtaining and verifying a CPAN tarball.
 
-### Download (latest)
+### Download (HTTPS only, stable version checked)
+
+Run in Bash. The `pipefail` option stops after a failed API fetch.
+The release version is checked before constructing a URL. HTTPS
+protects the transfer, not a complete PAUSE/history or archive audit.
 
 ```bash
-curl -sSfL https://cpan.metacpan.org/authors/id/I/IS/ISHIGAKI/JSON-PP-4.xx.tar.gz -o JSON-PP.tar.gz
-tar xzf JSON-PP.tar.gz
+set -euo pipefail
 
-JSONPP_LIB=$(echo JSON-PP-*/lib)
-
-ver=$(curl -s http://fastapi.metacpan.org/v1/release/JQ-Lite \
-  | perl -I"$JSONPP_LIB" -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
-curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
+ver=$(
+  curl -fsSL --proto '=https' --proto-redir '=https' \
+    'https://fastapi.metacpan.org/v1/release/JQ-Lite' |
+  perl -MJSON::PP -0777 -ne '
+    my $release = decode_json($_);
+    die "Unexpected release metadata\n" unless ref($release) eq "HASH";
+    my $version = $release->{version};
+    die "Expected a stable numeric CPAN version\n"
+      unless defined($version) && !ref($version)
+        && $version =~ /\A[0-9]+\.[0-9]+(?:\.[0-9]+)*\z/;
+    print $version;
+  '
+)
+curl -fsSL --proto '=https' --proto-redir '=https' \
+  "https://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz" \
+  -o "JQ-Lite-$ver.tar.gz"
 ```
 
 ### Install (user-local, no root, offline-friendly)
