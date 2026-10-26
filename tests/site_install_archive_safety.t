@@ -242,6 +242,25 @@ is($bad_checksum->{make_calls}, '', 'invalid tar header cannot execute make');
 like($bad_checksum->{stderr}, qr/Tar header checksum mismatch/,
     'tar checksum error specifically reported');
 
+# Valid checksum but empty raw member name: Archive::Tar can silently
+# stop parsing here without setting an error. Header count must match.
+my $empty_name_tar = $raw_data;
+my $second_header = substr($empty_name_tar, 1024, 512);
+substr($second_header, 0, 100) = "\0" x 100;
+substr($second_header, 148, 8) = " " x 8;
+my $checksum = unpack("%32C*", $second_header);
+substr($second_header, 148, 8) = sprintf("%06o\0 ", $checksum);
+substr($empty_name_tar, 1024, 512) = $second_header;
+my $empty_name_dir = File::Spec->catdir($root, 'empty-member-name');
+make_path($empty_name_dir);
+my $empty_name_path = File::Spec->catfile($empty_name_dir, 'JQ-Lite-2.59.tar.gz');
+gzip \$empty_name_tar => $empty_name_path or die "Cannot gzip empty-name fixture: $GzipError";
+my $empty_name_result = invoke($empty_name_path);
+ok($empty_name_result->{rc} != 0, 'valid-checksum empty tar header name rejected');
+is($empty_name_result->{make_calls}, '', 'empty-name header never reaches make');
+like($empty_name_result->{stderr}, qr/(?:Empty raw tar member name|Tar parser skipped)/,
+    'raw name and count reconciliation rejects parser-skipped entries');
+
 # A huge directory train must be rejected before Archive::Tar buffers
 # many directory objects. The tar payload itself is small enough.
 my $many = Archive::Tar->new;
