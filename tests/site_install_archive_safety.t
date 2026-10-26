@@ -6,6 +6,7 @@ use File::Spec;
 use File::Temp qw(tempdir);
 use File::Path qw(make_path);
 use Archive::Tar ();
+use IO::Compress::Gzip qw(gzip $GzipError);
 use IPC::Open3 qw(open3);
 use Symbol qw(gensym);
 use Cwd qw(getcwd);
@@ -122,6 +123,34 @@ my $internal = fixture('JQ-Lite-3.00_03.tar.gz', ordinary());
 my $internal_result = invoke($internal);
 ok($internal_result->{rc} != 0, 'explicit internal 3.00_03 tarball rejected');
 is($internal_result->{make_calls}, '', 'internal developer archive never runs make');
+
+# Archive::Tar can return a *positive parsed-entry count* and still
+# report an error after a later member is truncated. A valid Makefile
+# header before the broken member must never reach make/install.
+my $raw_tar = File::Spec->catfile($root, 'partial-raw.tar');
+my $partial_tar = Archive::Tar->new;
+$partial_tar->add_data('JQ-Lite-2.59/Makefile.PL',
+    "print qq(dummy Makefile.PL\\n); 1;\n");
+$partial_tar->add_data('JQ-Lite-2.59/lib/JQ/Lite.pm', 'x' x 20000);
+$partial_tar->write($raw_tar, 0) or die "Cannot generate partial-tar test source";
+open my $raw_fh, '<', $raw_tar or die $!;
+binmode $raw_fh;
+my $raw_data = do { local $/; <$raw_fh> };
+close $raw_fh;
+my $short_tar = substr($raw_data, 0, 1800);
+my $partial_dir = File::Spec->catdir($root, 'partial-member');
+make_path($partial_dir);
+my $partial_file = File::Spec->catfile($partial_dir, 'JQ-Lite-2.59.tar.gz');
+gzip \$short_tar => $partial_file or die "Cannot gzip partial-tar fixture: $GzipError";
+my $partial_check = Archive::Tar->new;
+my $parsed_count = $partial_check->read($partial_file, 1);
+ok($parsed_count > 0, 'fixture yields positive parsed-member count despite later truncation');
+ok($partial_check->error, 'fixture also reports a real Archive::Tar read error');
+my $partial_result = invoke($partial_file);
+ok($partial_result->{rc} != 0, 'partially parsed, corrupted archive rejected');
+is($partial_result->{make_calls}, '', 'partially corrupt archive never runs Makefile/make');
+like($partial_result->{stderr}, qr/Incomplete or corrupt gzip tarball/,
+    'partial archive failure is explicitly diagnosed');
 
 my $corrupt_dir = File::Spec->catdir($root, 'corrupt');
 make_path($corrupt_dir);
