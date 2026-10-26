@@ -30,6 +30,38 @@ or the specifically inspected MetaCPAN latest release page. This
 **does not prove** that any `3.00_0x` artifact was never publicly
 distributed, nor that all public predecessors have been identified.
 
+## 2026-10-26 GitHub release/tag channel and public install-link observation
+
+A read-only GitHub API recheck on 2026-10-26 enumerated
+`/releases?per_page=100&page=1` and `page=2`: page 1 returned
+the sole public, non-draft, non-prerelease `v2.59` GitHub Release,
+with **zero attached assets**; page 2 returned zero results. The
+`/git/refs/tags` response listed **24 tag refs**; none were 3.x.
+This bounds currently visible GitHub Releases and tag refs only,
+**not** removed releases/tags, offsite copies or prior Actions access.
+The earlier confirmed exposure of `3.00_03` is unchanged.
+
+The `v2.59` GitHub Release continues to report
+`created_at=2026-09-20T10:55:44Z` but
+`published_at=2026-01-03T03:53:26Z`. This inconsistent ordering
+cannot establish original PAUSE publication chronology.
+
+The live [English installation page](https://kawamurashingo.github.io/JQ-Lite/index-en.html)
+currently documents HTTP requests for release metadata and CPAN
+tarballs. The prior v3 README also used HTTP and a bogus
+`JSON-PP-4.xx.tar.gz` placeholder. The corrected **v3-dev README**
+now requires HTTPS even on redirects, parses the response using
+Perl 5.14+'s core `JSON::PP`, and accepts only stable numeric
+versions. This does **not** change the deployed website. Identify
+and review the website publishing source separately, with explicit
+maintainer authorization before altering stable `main` or deployed
+content. Prefer `cpanm JQ::Lite` or independently verified HTTPS
+downloads until its public example is corrected.
+
+These bounded observations provide no original PAUSE receipts,
+historical access log or permission for public version selection.
+**Public release remains BLOCKED.**
+
 ## Confirmed historical Perl ordering anomaly (not a complete audit)
 
 The [CPAN SHINGO author tarball index](https://www.cpan.org/authors/id/S/SH/SHINGO/)

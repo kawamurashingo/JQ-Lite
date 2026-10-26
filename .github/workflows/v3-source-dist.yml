@@ -105,7 +105,8 @@ jobs:
             t/v3_cpantesters_upload_inventory.t \
             t/v3_public_ci_archive_nonpublication.t \
             t/v3_actions_exposure_metadata_archive.t \
-            t/v3_actions_exposure_snapshot_verifier.t; do
+            t/v3_actions_exposure_snapshot_verifier.t \
+            t/v3_secure_cpan_install_docs.t; do
             grep -Fq "/$required" "$RUNNER_TEMP/distribution-entries.txt"
           done
 
