@@ -169,7 +169,7 @@ like($large_result->{stderr}, qr/Uncompressed source tar exceeds 8 MB size budge
 my $partial_result = invoke($partial_file);
 ok($partial_result->{rc} != 0, 'partially parsed, corrupted archive rejected');
 is($partial_result->{make_calls}, '', 'partially corrupt archive never runs Makefile/make');
-like($partial_result->{stderr}, qr/Incomplete or corrupt gzip archive/,
+like($partial_result->{stderr}, qr/Invalid tar framing or missing end markers/,
     'partial archive failure is explicitly diagnosed');
 
 # Gzip CRC corruption and missing trailers must fail before make.
