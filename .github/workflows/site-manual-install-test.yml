@@ -1,0 +1,28 @@
+name: Public Pages stable CPAN install example regression
+
+on:
+  pull_request:
+    branches: [gh-pages]
+    paths:
+      - index-en.html
+      - tests/site_manual_cpan_install.t
+      - .github/workflows/site-manual-install-test.yml
+  push:
+    branches: [gh-pages]
+    paths:
+      - index-en.html
+      - tests/site_manual_cpan_install.t
+      - .github/workflows/site-manual-install-test.yml
+
+permissions:
+  contents: read
+
+jobs:
+  site-docs:
+    name: Offline HTTPS/stable release documentation test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check HTML shell example and mocked stable/invalid releases
+        run: perl tests/site_manual_cpan_install.t

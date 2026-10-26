@@ -265,14 +265,30 @@
     </div>
 
     <div class="card">
-      <h3>Manual install (CPAN tarball)</h3>
-      <pre><code>ver=$(curl -s http://fastapi.metacpan.org/v1/release/JQ-Lite \
-  | perl -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
+      <h3>Manual install (stable CPAN tarball)</h3>
+      <p>Requires Bash, curl, and Perl 5.14+. Download a stable
+      CPAN release over HTTPS only; internal developer builds are
+      not public install targets. For most users, prefer <code>cpanm JQ::Lite</code>.</p>
+      <pre><code>set -euo pipefail
 
-curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
+ver=$(
+  curl -fsSL --proto '=https' --proto-redir '=https' \
+    'https://fastapi.metacpan.org/v1/release/JQ-Lite' |
+  perl -MJSON::PP -0777 -ne '
+    my $release = decode_json($_);
+    die "Unexpected release metadata\n" unless ref($release) eq "HASH";
+    my $version = $release->{version};
+    die "Expected a stable numeric CPAN version\n"
+      unless defined($version) &amp;&amp; !ref($version)
+        &amp;&amp; $version =~ /\A[0-9]+\.[0-9]+(?:\.[0-9]+)*\z/;
+    print $version;
+  '
+)
+curl -fsSL --proto '=https' --proto-redir '=https' \
+  "https://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz" \
+  -o "JQ-Lite-$ver.tar.gz"
 
-tar xzf JQ-Lite-$ver.tar.gz
-
+tar xzf "JQ-Lite-$ver.tar.gz"
 export PATH="$PWD/JQ-Lite-$ver/bin:$PATH"</code></pre>
     </div>
   </div>
