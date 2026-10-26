@@ -109,33 +109,48 @@ use warnings;
 my ($archive, $root) = @ARGV;
 die "Unexpected distribution root\n"
   unless defined($root) && $root =~ /\AJQ-Lite-[0-9]+(?:\.[0-9]+)+\z/;
-my $tar = Archive::Tar->new;
-my $read_count = $tar->read($archive, 1);
-die "Incomplete or corrupt gzip tarball: " . ($tar->error || "no entries") . "\n"
-  unless $read_count && !$tar->error;
-my @entries = $tar->get_files;
-die "Empty archive\n" unless @entries;
-my (%seen, $makefile, $count);
-for my $entry (@entries) {
-  die "Too many archive members\n" if ++$count > 20000;
-  my $full = $entry->full_path; # USTAR prefix may be separate from name
-  die "Missing entry path\n" unless defined($full) && length($full);
-  die "Unsafe archive path: $full\n" if $full =~ /[\\\x00\r\n]/;
-  my $path = $full;
-  $path =~ s{/\z}{} if $entry->is_dir;
-  die "Entry outside distribution root: $full\n"
-    unless ($path eq $root && $entry->is_dir)
-      || $path =~ m{\A\Q$root\E/(?:[^/]+/)*[^/]+\z};
-  die "Unsafe dot/empty path segment: $full\n"
-    if grep { $_ eq "." || $_ eq ".." || !length($_) } split m{/}, $path, -1;
-  die "Unsafe link or special member: $full\n"
-    unless $entry->is_file || $entry->is_dir;
-  die "Duplicate archive path: $full\n" if $seen{$path}++;
-  die "Unsafe setuid/setgid mode: $full\n" if $entry->mode & 06000;
-  $makefile = 1 if $path eq "$root/Makefile.PL" && $entry->is_file;
+# Archive::Tar->read holds every member in memory. Use a streaming
+# iterator instead, bounding each member BEFORE the data is allocated.
+# Scan the complete archive first; only the second pass may extract.
+my $max_member = 16_000_000;
+my $max_total = 64_000_000;
+for my $pass (1, 2) {
+  $Archive::Tar::error = "";
+  my $next = Archive::Tar->iter($archive, 1, { filter_cb => sub {
+    my ($file) = @_;
+    die "Oversized archive member\n" if $file->size > $max_member;
+    return 1;
+  } });
+  die "Unreadable gzip archive\n" unless $next;
+  my ($count, $total, $makefile) = (0, 0, 0);
+  my %seen;
+  while (my $entry = $next->()) {
+    die "Too many archive members\n" if ++$count > 20000;
+    my $full = $entry->full_path;
+    die "Missing entry path\n" unless defined($full) && length($full);
+    die "Unsafe archive path: $full\n" if $full =~ /[\\\x00\r\n]/;
+    my $path = $full;
+    $path =~ s{/\z}{} if $entry->is_dir;
+    die "Entry outside distribution root: $full\n"
+      unless ($path eq $root && $entry->is_dir)
+        || $path =~ m{\A\Q$root\E/(?:[^/]+/)*[^/]+\z};
+    die "Unsafe dot/empty path segment: $full\n"
+      if grep { $_ eq "." || $_ eq ".." || !length($_) } split m{/}, $path, -1;
+    die "Unsafe link or special member: $full\n"
+      unless $entry->is_file || $entry->is_dir;
+    die "Duplicate archive path: $full\n" if $seen{$path}++;
+    die "Unsafe setuid/setgid mode: $full\n" if $entry->mode & 06000;
+    $total += $entry->size;
+    die "Archive exceeds decompressed size budget\n" if $total > $max_total;
+    $makefile = 1 if $path eq "$root/Makefile.PL" && $entry->is_file;
+    $entry->extract or die "Cannot extract validated member $full\n"
+      if $pass == 2;
+  }
+  die "Incomplete or corrupt gzip archive: " . Archive::Tar->error . "\n"
+    if Archive::Tar->error;
+  die "Empty archive\n" unless $count;
+  die "Archive lacks root Makefile.PL\n" unless $makefile;
 }
-die "Archive lacks root Makefile.PL\n" unless $makefile;
-$tar->extract or die "Extraction failed after validation\n";
 PERL
 if [[ ! -d "$DIST_DIR" || -L "$DIST_DIR" ]]; then
   echo '[ERROR] Archive did not create expected distribution directory.' >&2
