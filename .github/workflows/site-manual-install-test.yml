@@ -27,11 +27,18 @@ permissions:
 
 jobs:
   site-docs:
-    name: Offline HTTPS/stable release documentation test
+    name: Offline site installer test (Perl ${{ matrix.perl }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        perl: ["5.14", "5"]
     steps:
       - uses: actions/checkout@v4
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
       - name: Check HTML shell example and mocked stable/invalid releases
         run: |
           perl tests/site_manual_cpan_install.t
