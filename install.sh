@@ -91,7 +91,7 @@ if [[ -z "$TARBALL" ]]; then
         next unless -f $name;
         my $number = eval { version->parse($1) };
         next unless defined $number;
-        if (!defined($highest) || $number > $highest) {
+        if (!defined($highest) || ($number <=> $highest) > 0) {
           ($picked, $highest) = ($name, $number);
         }
       }
