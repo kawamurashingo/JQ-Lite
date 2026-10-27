@@ -84,7 +84,7 @@ sub invoke {
     my $err = gensym;
     my $prefix = File::Spec->catdir($root, 'install-prefix');
     my $pid = open3(my $in, my $out, $err,
-        'bash', $installer, '--skip-tests', '-p', $prefix, @extra, $archive);
+        'bash', $installer, '--skip-tests', '-p', $prefix, $archive, @extra);
     close $in;
     my $stdout = do { local $/; <$out> };
     my $stderr = do { local $/; <$err> };
