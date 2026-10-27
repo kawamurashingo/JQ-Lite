@@ -5,6 +5,7 @@ use FindBin;
 use File::Spec;
 use File::Temp qw(tempdir);
 use File::Path qw(make_path);
+use File::Copy qw(copy);
 use Archive::Tar ();
 use IO::Compress::Gzip qw(gzip $GzipError);
 use IPC::Open3 qw(open3);
@@ -84,7 +85,8 @@ sub invoke {
     my $err = gensym;
     my $prefix = File::Spec->catdir($root, 'install-prefix');
     my $pid = open3(my $in, my $out, $err,
-        'bash', $installer, '--skip-tests', '-p', $prefix, $archive, @extra);
+        'bash', $installer, '--skip-tests', '-p', $prefix,
+        (defined($archive) ? ($archive) : ()), @extra);
     close $in;
     my $stdout = do { local $/; <$out> };
     my $stderr = do { local $/; <$err> };
@@ -106,6 +108,60 @@ my $good = invoke($ok_archive);
 is($good->{rc}, 0, 'minimal valid stable tarball installs via mocked make');
 is($good->{make_calls}, "\ninstall\n",
     'valid archive reaches build and install steps');
+
+# A downloaded older tarball can have a newer filesystem mtime.
+# Auto-selection must use Perl's public version order, not copy time.
+my $auto_dir = File::Spec->catdir($root, 'auto-select');
+make_path($auto_dir);
+my $selected_path = File::Spec->catfile($root, 'auto-selected.txt');
+my $auto_makefile = <<'AUTO_MAKEFILE';
+open my $fh, '>', $ENV{AUTO_INSTALL_PICKED} or die $!;
+print {$fh} '__VERSION__';
+close $fh or die $!;
+1;
+AUTO_MAKEFILE
+my %auto_files;
+for my $ver ('2.58', '2.59') {
+    my $source = $auto_makefile;
+    $source =~ s/__VERSION__/$ver/;
+    my $archive = fixture("JQ-Lite-$ver.tar.gz",
+        ["JQ-Lite-$ver/Makefile.PL", $source],
+        ["JQ-Lite-$ver/lib/JQ/Lite.pm", "1;\n"]);
+    my $target = File::Spec->catfile($auto_dir, "JQ-Lite-$ver.tar.gz");
+    copy($archive, $target) or die "Cannot stage stable archive: $!";
+    $auto_files{$ver} = $target;
+}
+# 2.58 is newer on disk, but 2.59 is the highest stable Perl version.
+utime 1_700_000_200, 1_700_000_200, $auto_files{'2.58'}
+    or die "Cannot set older-release mtime: $!";
+utime 1_700_000_100, 1_700_000_100, $auto_files{'2.59'}
+    or die "Cannot set newer-release mtime: $!";
+my $original_auto_cwd = getcwd();
+chdir $auto_dir or die "Cannot enter archive selection directory: $!";
+my ($auto_result, $explicit_result, $auto_chosen, $explicit_chosen);
+{
+    local $ENV{AUTO_INSTALL_PICKED} = $selected_path;
+    $auto_result = invoke(undef);
+    if (-f $selected_path) {
+        open my $fh, '<', $selected_path or die $!;
+        $auto_chosen = do { local $/; <$fh> };
+        close $fh;
+    }
+    $explicit_result = invoke($auto_files{'2.58'});
+    if (-f $selected_path) {
+        open my $fh, '<', $selected_path or die $!;
+        $explicit_chosen = do { local $/; <$fh> };
+        close $fh;
+    }
+}
+chdir $original_auto_cwd or die "Cannot restore archive selection cwd: $!";
+is($auto_result->{rc}, 0, 'auto-select install succeeds');
+is($auto_chosen, '2.59', 'auto-select chooses highest stable version, not newest mtime');
+is($auto_result->{make_calls}, "\ninstall\n",
+    'auto-selected archive reaches mocked build and install');
+is($explicit_result->{rc}, 0, 'explicit lower-version install still succeeds');
+is($explicit_chosen, '2.58',
+    'explicit archive path overrides automatic version selection');
 
 # mktemp can return a relative path when TMPDIR is relative. The installer
 # must remove the real build directory, not an identically named path under
