@@ -109,7 +109,13 @@ else
 fi
 
 WORK_DIR=$(mktemp -d)
-trap 'rm -rf "$WORK_DIR"' EXIT
+# mktemp honors TMPDIR, which can be relative. Anchor cleanup to the
+# invoking directory before changing into the temporary build tree.
+case "$WORK_DIR" in
+  /*) ;;
+  *) WORK_DIR="$(pwd -P)/$WORK_DIR" ;;
+esac
+trap 'rm -rf -- "$WORK_DIR"' EXIT
 cd "$WORK_DIR"
 
 # --- Validate and extract with the *same* Perl archive parser ---
