@@ -7,6 +7,8 @@ on:
       - index-en.html
       - tests/site_manual_cpan_install.t
       - download.sh
+      - install.sh
+      - tests/site_install_archive_safety.t
       - tests/site_download_security.t
       - .github/workflows/site-manual-install-test.yml
   push:
@@ -15,6 +17,8 @@ on:
       - index-en.html
       - tests/site_manual_cpan_install.t
       - download.sh
+      - install.sh
+      - tests/site_install_archive_safety.t
       - tests/site_download_security.t
       - .github/workflows/site-manual-install-test.yml
 
@@ -23,12 +27,20 @@ permissions:
 
 jobs:
   site-docs:
-    name: Offline HTTPS/stable release documentation test
+    name: Offline site installer test (Perl ${{ matrix.perl }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        perl: ["5.14", "5"]
     steps:
       - uses: actions/checkout@v4
+      - uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
       - name: Check HTML shell example and mocked stable/invalid releases
         run: |
           perl tests/site_manual_cpan_install.t
           perl tests/site_download_security.t
+          perl tests/site_install_archive_safety.t
