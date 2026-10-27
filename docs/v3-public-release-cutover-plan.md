@@ -106,13 +106,19 @@ pretended absent. The odd GitHub `v2.59` `published_at` vs
   investigate whether *any* `3.00_0x` / `v3.00_0x` internal build
   was ever offered to the public, even temporarily, or shared outside
   the organization.
-- [ ] **Live installation-page HTTP usage:** the externally deployed
-  English installation guide still advertises HTTP requests for
-  CPAN metadata and tarballs as of the 2026-10-26 observation.
-  Updating the v3-dev README does not update the live website.
-  Identify the deployment source, separately review and approve its
-  HTTPS-only correction and verify the deployed result. Do not
-  mutate stable `main` as part of evidence gathering.
+- [x] **Live English installation-page HTTPS example (bounded
+  verification, 2026-10-28):** the earlier 2026-10-26 live-page HTTP
+  observation has been superseded. A read-only check of the [deployed
+  English page](https://kawamurashingo.github.io/JQ-Lite/index-en.html)
+  and its [`gh-pages` HTML source](https://github.com/kawamurashingo/JQ-Lite/blob/gh-pages/index-en.html)
+  found `https://fastapi.metacpan.org/v1/release/JQ-Lite` and
+  `https://cpan.metacpan.org/authors/id/S/SH/SHINGO/` tarball URLs,
+  both requested using `curl --proto '=https' --proto-redir '=https'`.
+  The checked source blob was `68da0417a93c090a7bdbc9b9fed0d6b2c2d1c0fb`.
+  This closes **only the current live English example's HTTP defect**;
+  it does not certify a downloaded archive, complete public download
+  history, PAUSE chronology, GitHub Actions exposure, other hosted pages
+  or the eventual public v3 installer. `main` is unchanged.
 - [ ] **Resolve contradictions and attest:** review any archive-set
   differences, disputed timestamps, missing entries, duplicates and the
   `0.99/0.100` inversion. Produce a *human-vetted* chronological
