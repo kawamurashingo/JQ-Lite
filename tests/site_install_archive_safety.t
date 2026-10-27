@@ -107,6 +107,42 @@ is($good->{rc}, 0, 'minimal valid stable tarball installs via mocked make');
 is($good->{make_calls}, "\ninstall\n",
     'valid archive reaches build and install steps');
 
+# Relative installation prefixes must resolve against the invoking cwd.
+# Otherwise MakeMaker installs into the temporary build tree that the
+# installer destroys on exit, silently losing the installation.
+my $args_path = File::Spec->catfile($root, 'makefile-args.txt');
+my $record_args = <<'MAKEFILE';
+use strict;
+use warnings;
+open my $log, '>', $ENV{INSTALL_MAKEFILE_ARGS} or die $!;
+print {$log} join("\n", @ARGV), "\n";
+close $log or die $!;
+1;
+MAKEFILE
+my $relative_archive = fixture('JQ-Lite-2.59.tar.gz',
+    ['JQ-Lite-2.59/Makefile.PL', $record_args],
+    ['JQ-Lite-2.59/lib/JQ/Lite.pm', "1;\n"]);
+my $relative;
+{
+    local $ENV{INSTALL_MAKEFILE_ARGS} = $args_path;
+    $relative = invoke($relative_archive, '-p', 'relative install prefix');
+}
+is($relative->{rc}, 0, 'relative install prefix is accepted');
+ok(-f $args_path, 'relative-prefix Makefile.PL received arguments');
+if (-f $args_path) {
+    open my $arg_file, '<', $args_path or die $!;
+    my $actual_args = do { local $/; <$arg_file> };
+    close $arg_file;
+    my $expected = File::Spec->catdir(getcwd(), 'relative install prefix');
+    is($actual_args, "INSTALL_BASE=$expected\n",
+        'relative prefix resolves against caller cwd, not deleted temp tree');
+}
+my $no_prefix = invoke($ok_archive, '-p');
+ok($no_prefix->{rc} != 0, 'missing -p value fails before installation');
+is($no_prefix->{make_calls}, '', 'missing -p value cannot start a build');
+like($no_prefix->{stderr}, qr/-p requires a non-empty prefix/,
+    'missing -p value has a useful diagnostic');
+
 my %bad = (
     traversal => ['JQ-Lite-2.59/../outside', 'bad'],
     absolute  => ['/tmp/outside', 'bad'],
