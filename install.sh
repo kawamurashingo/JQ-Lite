@@ -88,8 +88,9 @@ if [[ -z "$TARBALL" ]]; then
       my ($picked, $highest);
       for my $name (@ARGV) {
         next unless $name =~ /\AJQ-Lite-([0-9]+(?:\.[0-9]+)+)\.tar\.gz\z/;
+        my $candidate_version = $1;
         next unless -f $name;
-        my $number = eval { version->parse($1) };
+        my $number = eval { version->parse($candidate_version) };
         next unless defined $number;
         if (!defined($highest) || ($number <=> $highest) > 0) {
           ($picked, $highest) = ($name, $number);
