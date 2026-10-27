@@ -64,17 +64,40 @@ case "$PREFIX" in
   *) PREFIX="$(pwd -P)/$PREFIX" ;;
 esac
 
-# --- Locate a stable source tarball only ---
+# --- Verify the required Perl toolchain before selecting an archive ---
+for tool in perl make; do
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "[ERROR] '$tool' not found." >&2
+    exit 1
+  }
+done
+perl -e 'use 5.014; use Archive::Tar; 1' >/dev/null 2>&1 || {
+  echo '[ERROR] Perl 5.14+ with core Archive::Tar is required.' >&2
+  exit 1
+}
+
+# --- Locate the highest stable version, not the most recently copied file ---
 if [[ -z "$TARBALL" ]]; then
   shopt -s nullglob
   archives=(JQ-Lite-*.tar.gz)
   shopt -u nullglob
-  for candidate in "${archives[@]}"; do
-    [[ "$candidate" =~ ^JQ-Lite-[0-9]+(\.[0-9]+)+\.tar\.gz$ ]] || continue
-    if [[ -z "$TARBALL" || "$candidate" -nt "$TARBALL" ]]; then
-      TARBALL="$candidate"
-    fi
-  done
+  if (( ${#archives[@]} )); then
+    TARBALL=$(perl -Mversion -e '
+      use strict;
+      use warnings;
+      my ($picked, $highest);
+      for my $name (@ARGV) {
+        next unless $name =~ /\AJQ-Lite-([0-9]+(?:\.[0-9]+)+)\.tar\.gz\z/;
+        next unless -f $name;
+        my $number = eval { version->parse($1) };
+        next unless defined $number;
+        if (!defined($highest) || $number > $highest) {
+          ($picked, $highest) = ($name, $number);
+        }
+      }
+      print $picked if defined $picked;
+    ' "${archives[@]}")
+  fi
 fi
 if [[ -z "$TARBALL" || ! -f "$TARBALL" ]]; then
   echo '[ERROR] No stable JQ-Lite tarball found.' >&2
@@ -86,16 +109,6 @@ if [[ ! "$TARBALL_NAME" =~ ^JQ-Lite-[0-9]+(\.[0-9]+)+\.tar\.gz$ ]]; then
   exit 1
 fi
 DIST_DIR="${TARBALL_NAME%.tar.gz}"
-for tool in perl make; do
-  command -v "$tool" >/dev/null 2>&1 || {
-    echo "[ERROR] '$tool' not found." >&2
-    exit 1
-  }
-done
-perl -e 'use 5.014; use Archive::Tar; 1' >/dev/null 2>&1 || {
-  echo '[ERROR] Perl 5.14+ with core Archive::Tar is required.' >&2
-  exit 1
-}
 if [[ "$RUN_TESTS" -eq 1 ]] && ! command -v prove >/dev/null 2>&1; then
   echo "[WARN] 'prove' not found; skipping tests."
   RUN_TESTS=0
