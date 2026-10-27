@@ -21,8 +21,20 @@ USAGE
 
 while getopts ':v:o:h' opt; do
   case "$opt" in
-    v) SPECIFIED_VERSION="$OPTARG" ;;
-    o) OUT_DIR="$OPTARG" ;;
+    v)
+      if [[ -z "$OPTARG" ]]; then
+        echo '[ERROR] -v requires a non-empty stable version' >&2
+        exit 1
+      fi
+      SPECIFIED_VERSION="$OPTARG"
+      ;;
+    o)
+      if [[ -z "$OPTARG" ]]; then
+        echo '[ERROR] -o requires a non-empty output directory' >&2
+        exit 1
+      fi
+      OUT_DIR="$OPTARG"
+      ;;
     h) usage; exit 0 ;;
     :) echo "[ERROR] -$OPTARG requires a value" >&2; exit 1 ;;
     ?) echo "[ERROR] Unknown option: -$OPTARG" >&2; exit 1 ;;
