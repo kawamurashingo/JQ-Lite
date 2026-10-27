@@ -107,6 +107,30 @@ is($good->{rc}, 0, 'minimal valid stable tarball installs via mocked make');
 is($good->{make_calls}, "\ninstall\n",
     'valid archive reaches build and install steps');
 
+# mktemp can return a relative path when TMPDIR is relative. The installer
+# must remove the real build directory, not an identically named path under
+# the directory it later cd's into.
+my $tmp_caller = File::Spec->catdir($root, 'relative-tmp-caller');
+my $relative_tmp_root = File::Spec->catdir($tmp_caller, 'relative-tmp');
+make_path($relative_tmp_root);
+my $original_cwd = getcwd();
+chdir $tmp_caller or die "Cannot enter relative TMPDIR caller: $!";
+my $relative_tmp_result;
+{
+    local $ENV{TMPDIR} = 'relative-tmp';
+    $relative_tmp_result = invoke($ok_archive);
+}
+chdir $original_cwd or die "Cannot restore test cwd: $!";
+is($relative_tmp_result->{rc}, 0,
+    'install succeeds with caller-relative TMPDIR');
+is($relative_tmp_result->{make_calls}, "\ninstall\n",
+    'caller-relative TMPDIR still reaches mocked build and install');
+opendir my $tmp_dir, $relative_tmp_root or die $!;
+my @leftover_tmp = grep { $_ ne '.' && $_ ne '..' } readdir $tmp_dir;
+closedir $tmp_dir;
+is_deeply(\@leftover_tmp, [],
+    'build tree in relative TMPDIR is removed after install');
+
 # Relative installation prefixes must resolve against the invoking cwd.
 # Otherwise MakeMaker installs into the temporary build tree that the
 # installer destroys on exit, silently losing the installation.
