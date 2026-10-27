@@ -216,4 +216,18 @@ my $extra = run('', '', '-v', '2.62', '-o', $out, 'unexpected');
 ok($extra->{rc} != 0, 'extra positional input is rejected');
 is($extra->{calls}, '', 'unexpected argument never contacts network');
 
+# An explicitly empty version must fail closed, not silently select latest.
+# Likewise, an explicitly empty output directory must not fetch metadata.
+my $empty_version = run('', '', '-v', '', '-o', $out);
+ok($empty_version->{rc} != 0, 'empty explicit -v is rejected');
+is($empty_version->{calls}, '', 'empty -v never contacts MetaCPAN or CPAN');
+like($empty_version->{err}, qr/-v requires a non-empty stable version/,
+    'empty -v has an actionable diagnostic');
+
+my $empty_directory = run('', '', '-o', '');
+ok($empty_directory->{rc} != 0, 'empty explicit -o is rejected');
+is($empty_directory->{calls}, '', 'empty -o never contacts MetaCPAN or CPAN');
+like($empty_directory->{err}, qr/-o requires a non-empty output directory/,
+    'empty -o has an actionable diagnostic');
+
 done_testing;
