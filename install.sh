@@ -24,6 +24,10 @@ POSITIONAL=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -p)
+      if (( $# < 2 )) || [[ -z "${2:-}" ]]; then
+        echo '[ERROR] -p requires a non-empty prefix.' >&2
+        exit 1
+      fi
       PREFIX="$2"
       shift 2
       ;;
@@ -52,6 +56,13 @@ if [[ ${#POSITIONAL[@]} -gt 1 ]]; then
 fi
 
 TARBALL="${POSITIONAL[0]:-}"
+
+# Make an explicitly relative prefix relative to the caller's directory,
+# not the temporary build tree created below (which is removed on exit).
+case "$PREFIX" in
+  /*) ;;
+  *) PREFIX="$(pwd -P)/$PREFIX" ;;
+esac
 
 # --- Locate a stable source tarball only ---
 if [[ -z "$TARBALL" ]]; then
