@@ -90,6 +90,72 @@ These messages explain why current mirrors alone cannot serve as a
 complete past-publication ledger, while the 3 direct BackPAN archive
 observations verify that archive bytes are still independently available.
 
+## Follow-up: full observed version-set comparison (2026-10-28)
+
+A subsequent **read-only** audit compared the version-name set from one
+complete paginated PAUSE mailbox search to the **original extracted TSV
+files** in the previously saved [BackPAN-author/MetaCPAN evidence
+artifact](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40184472171/artifacts/12595646464).
+That original ZIP contains `backpan-author-observed.tsv` (259 records)
+and `metacpan-observed.tsv` (259 records), collected on 2026-10-25;
+the published observation already confirmed BackPAN/MetaCPAN equality.
+The present read-only recheck independently inspected both TSV files.
+
+| Compared observed version sets | Unique stable versions | Set difference |
+| --- | ---: | ---: |
+| PAUSE `CPAN Upload` mailbox subject inventory (one complete 265-message retrieval) | 259 | 0 vs BackPAN; 0 vs MetaCPAN |
+| Saved BackPAN-author archive TSV | 259 | 0 vs PAUSE and MetaCPAN |
+| Saved MetaCPAN release TSV | 259 | 0 vs PAUSE and BackPAN |
+
+To verify the **contents**, not just their cardinalities, all three
+version sets were deduplicated and sorted lexically, joined with a
+single `\\n` between version strings (without a final newline) and
+hashed as UTF-8 text. All three yielded the same SHA-256:
+`3d2a03f601a97eab03e9e956db37c8c3b0a1de58d8fe3bd589c16595610bb354`.
+This establishes **exact equality for those three retrieved
+snapshots**, not all-time completeness.
+
+**Search-reproducibility caveat:** Repeating the same paginated Gmail
+search also produced an incomplete 264-message / 258-version result.
+Therefore the successful 265/259 retrieval is **not an immutable,
+reproducible mailbox export**. The source may omit results inconsistently
+across searches. Absence of an email in one result set is not evidence
+that its upload never occurred. Original RFC822 source preservation,
+independently checked pagination, and private complete-ledger attestation
+remain mandatory.
+
+### Six original repeat-upload pairs
+
+The original bodies of both PAUSE receipts for **each** of `0.36`,
+`0.94`, `1.26`, `2.08`, `2.10` and `2.55` were directly read.
+Each pair has two different request-completion timestamps and
+**identical archive SHA-256 and byte size within that pair**.
+These are six observed *same-byte repeat uploads*, **not six additional
+unique version strings or different binary builds**. The complete
+chronology must retain both events rather than silently discard them.
+
+### Five verified indexing failures
+
+Original `Failed: PAUSE indexer report` bodies for `0.100`,
+`0.101`, `0.102`, `0.103` and `0.104` were read; each explicitly
+reports `Status of this distro: Decreasing version number` and an
+older indexed `0.99` as having the higher module version. Perl core
+`version->parse` confirms each of these five versions compares lower
+than `0.99`. This is a **historical** regression, not permission to
+accept a non-increasing *future* publication sequence. An independently
+read failed report for `0.09` identifies missing distribution metadata,
+a different kind of indexing failure. Later failed reports for `1.30`
+and `1.31` were reruns and must not be mistaken for the original upload
+time or for a new upload.
+
+**Gate status: PARTIAL PROVENANCE CROSS-CHECK PASSED;
+PUBLICATION STILL BLOCKED.** The 259-name set match does not settle
+missing/deleted correspondence, historical archive/channel completeness,
+independent private email preservation, the public Actions developer
+tarball exposure, the agreed version floor, or the required
+human-attested chronological ledger. Do **not** use `--history-reviewed`,
+choose a public version, merge `v3-dev` to `main` or publish.
+
 ## Remaining release gates — explicitly NOT signed off
 
 1. Independently retain a **private**, access-controlled export of all
