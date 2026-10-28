@@ -192,10 +192,10 @@ private, access-controlled storage (including provenance and hashes),
 then derive a **local** TSV from the actual PAUSE upload receipt **bodies**
 with this exact header:
 
-\`archive<TAB>version<TAB>completed_utc<TAB>bytes<TAB>sha256\`
+`archive<TAB>version<TAB>completed_utc<TAB>bytes<TAB>sha256`
 
-Use \`JQ-Lite-<version>.tar.gz\` as archive, the exact literal version,
-the **Request completed** UTC time as \`YYYY-MM-DDTHH:MM:SSZ\`,
+Use `JQ-Lite-<version>.tar.gz` as archive, the exact literal version,
+the **Request completed** UTC time as `YYYY-MM-DDTHH:MM:SSZ`,
 and PAUSE's reported bytes/SHA-256. Keep *every* repeated receipt
 as its own row, sorted or unsorted; the comparator sorts by completion
 time for its historic numeric-order diagnostics. Do not include sender,
@@ -204,12 +204,12 @@ recipient, mail link/ID, MIME source, tokens or private notes in the TSV.
 Run **locally, outside public CI** against previously downloaded,
 checksum-verified BackPAN author and MetaCPAN TSV observations:
 
-\`\`\`sh
+```sh
 perl ci/compare-backpan-author-metacpan-inventory.pl \
   --backpan-author /private/evidence/backpan-author-observed.tsv \
   --metacpan /private/evidence/metacpan-observed.tsv \
   --pause-receipts /private/evidence/pause-upload-receipts.tsv
-\`\`\`
+```
 
 The optional mode rejects malformed original-receipt fields, mismatched
 version sets, repeated exact events, same-version different-byte
@@ -219,8 +219,8 @@ without pretending they never happened. An observed set match (exit 0)
 proves **only agreement among the supplied files**. It cannot verify
 private source authenticity or completeness, removed/uploaded artifacts
 outside PAUSE, historical actions-access scope, or the chosen public
-version. This procedure does **not** run \`--history-reviewed\`, approve
-v3, or change the \`3.00_03\` exposure floor. Never commit the private
+version. This procedure does **not** run `--history-reviewed`, approve
+v3, or change the `3.00_03` exposure floor. Never commit the private
 receipt TSV or raw mail to this public repository.
 
 A reproducible primary-receipt validation still requires independent
