@@ -282,6 +282,49 @@ version. This procedure does **not** run `--history-reviewed`, approve
 v3, or change the `3.00_03` exposure floor. Never commit the private
 receipt TSV or raw mail to this public repository.
 
+### Local Google Takeout mbox comparison (no manual TSV required)
+
+The same offline comparison tool also supports `--pause-mbox` to read
+locally retained original PAUSE `CPAN Upload` message bodies directly
+from an **unmodified private Google Takeout `.mbox` archive**. The
+mailbox may contain unrelated private messages: keep it offline and
+access-controlled, never attach it to a public issue/PR or run it in
+public CI. The parser only processes the matching `CPAN Upload`
+subject for the JQ-Lite distribution under the PAUSE author path,
+and does not print senders, recipients, message IDs or unrelated mail
+contents.
+
+```sh
+# Run only on a private local machine with a verified copy of the
+# original Google Takeout mailbox and the separately saved public TSVs.
+perl ci/compare-backpan-author-metacpan-inventory.pl \
+  --backpan-author /private/evidence/backpan-author-observed.tsv \
+  --metacpan /private/evidence/metacpan-observed.tsv \
+  --pause-mbox /private/evidence/All-mail.mbox \
+  --expected-pause-events 265
+```
+
+Do not combine `--pause-mbox` with `--pause-receipts`. The optional
+expected-event count (265 **only in the observed 2026-10-28 dataset**)
+helps detect a lost repeat event; a correct count does **not** certify
+the original mailbox or all-time completeness. Preserve the mbox,
+its original export metadata, independent SHA-256, access controls,
+and any exceptional/unsupported MIME messages. The importer supports
+single-part text/plain PAUSE messages with 7bit/8bit, base64 or
+quoted-printable transport encoding. It deliberately **fails closed**
+on other target MIME structures rather than silently discarding
+them. If the export contains such a message, inspect that original
+privately and use the independently verified TSV path; do not
+silently edit or omit the original message.
+
+The comparator reports historical non-increases and observed version
+set discrepancies but **never** invokes `--history-reviewed`,
+certifies whole-mailbox completeness or authorizes a release.
+Even a clean offline mbox run needs human review of original
+chronology, deletion/renaming history and all non-PAUSE public
+distribution channels, especially the known Actions `3.00_03`
+exposure.
+
 A reproducible primary-receipt validation still requires independent
 private original-message export and a locally reviewed chronological
 ledger; Gmail search alone does not establish completeness.
