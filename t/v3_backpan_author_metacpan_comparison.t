@@ -330,15 +330,15 @@ for my $field ('file', 'size', 'sha256', 'Request completed') {
 for my $header (qw(Subject Content-Type Content-Transfer-Encoding)) {
     my $two_header = $mbox_text;
     if ($header eq 'Subject') {
-        $two_header =~ s/^(Subject: [^\n]+\n)/
-            $1 . "Subject: CPAN Upload: S\/SH\/SHINGO\/JQ-Lite-3.00_03.tar.gz\n"/em;
+        $two_header =~ s{^(Subject: [^\n]+\n)}{
+            $1 . "Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-3.00_03.tar.gz\n"}em;
     } elsif ($header eq 'Content-Type') {
-        $two_header =~ s/^(Content-Type: [^\n]+\n)/
-            $1 . "Content-Type: multipart\/mixed\n"/em;
+        $two_header =~ s{^(Content-Type: [^\n]+\n)}{
+            $1 . "Content-Type: multipart/mixed\n"}em;
     } else {
-        $two_header =~ s/^(Content-Type: [^\n]+\n)/
+        $two_header =~ s{^(Content-Type: [^\n]+\n)}{
             $1 . "Content-Transfer-Encoding: 8bit\n"
-               . "Content-Transfer-Encoding: base64\n"/em;
+               . "Content-Transfer-Encoding: base64\n"}em;
     }
     my $duplicate = run_tool($archive, $meta, undef,
         saved($two_header), 3);
