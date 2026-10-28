@@ -159,6 +159,65 @@ tarball exposure, the agreed version floor, or the required
 human-attested chronological ledger. Do **not** use `--history-reviewed`,
 choose a public version, merge `v3-dev` to `main` or publish.
 
+## Follow-up: 265 original receipt BODY checks (2026-10-29 local)
+
+This later read-only check **individually fetched all 265 messages**
+from a union of several paginated PAUSE mailbox search queries. It is
+stronger than the subject-name-only comparison above but **not** an
+independent retained RFC822 export or a completeness attestation.
+
+- All **265/265** message bodies parsed successfully: the archive name
+  matched the message subject; the distribution was reported as having
+  entered CPAN; each body contained a positive archive byte length,
+  a 64-hex SHA-256 digest and parseable `Request entered on` /
+  `Request completed` timestamps. No completion preceded its request.
+  This checks the **fields present in the messages**, not original
+  RFC822 signatures, independently downloaded bytes or every possible
+  account folder.
+- The bodies describe **259 distinct archive version names**.
+  This observed set agrees exactly (zero differences in either direction)
+  with the previously captured 259-version BackPAN-author and 259-version
+  MetaCPAN source-derived sets. It does not upgrade that snapshot
+  comparison into proof of complete historic publication.
+- Each of the six repeated versions—`0.36`, `0.94`, `1.26`,
+  `2.08`, `2.10`, `2.55`—has two distinct completion times and
+  the **same byte length and SHA-256 within its pair**. There were no
+  same-version conflicting bytes in the inspected receipts. Preserve all
+  265 events in a future private chronology; do not collapse the
+  repeats into a 259-row original-upload ledger.
+- Sorting the 265 directly read `Request completed` times reveals
+  five distinct-version **historical Perl ordering non-increases**:
+  all five `0.100` through `0.104` occurred after `0.99`. Their
+  original PAUSE failed-indexer reports were separately inspected and
+  explicitly identify `0.99` as the higher module version.
+
+| Version | PAUSE completion (UTC) | Version-order interpretation |
+| --- | --- | --- |
+| `0.99` | 2025-10-13 01:26:30 | Earlier, higher Perl numeric version |
+| `0.100` | 2025-10-13 03:50:59 | Historical non-increase |
+| `0.101` | 2025-10-13 10:22:29 | Historical non-increase |
+| `0.102` | 2025-10-13 12:01:10 | Historical non-increase |
+| `0.103` | 2025-10-13 12:37:28 | Historical non-increase |
+| `0.104` | 2025-10-13 14:04:01 | Historical non-increase |
+
+**Method and limits:** These results came from in-memory inspection of
+the connected mailbox and the previously retained public inventory.
+The newly merged `--pause-receipts` **offline** option has **not** yet
+been run against a complete privately saved TSV, and original RFC822
+messages have **not** been independently exported and hashed. Search
+pagination can return fewer messages on a separate attempt, so the
+265-message retrieval is not an immutable provider-side history.
+No private email text, account addresses, Gmail message IDs/links or
+recipient metadata are committed here. A reader must not infer no
+missing emails, no developer artifacts in other channels, or a
+reviewed public-history version floor.
+
+**Disposition:** Additional primary-message validation passed;
+**PUBLICATION REMAINS BLOCKED** pending independent private evidence
+retention, full all-channel chronological reconciliation and explicit
+maintainer history/version/publication approval. No `--history-reviewed`
+invocation is authorized by this observation.
+
 ## Remaining release gates — explicitly NOT signed off
 
 1. Independently retain a **private**, access-controlled export of all

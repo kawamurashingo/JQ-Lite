@@ -71,22 +71,36 @@ Observed external facts (not a complete public publication ledger):
 | [GitHub tags](https://github.com/kawamurashingo/JQ-Lite/tags) | 24 tag refs, none 3.x in the inspected response | A tag is not proof of a public dist, and refs need periodic rechecking |
 | [PAUSE operating model](https://pause.perl.org/pause/query?ACTION=pause_operating_model) | Deleted CPAN author files may remain on BackPAN | Explains why current CPAN listings **cannot** prove all-time history |
 
-The already-observed `0.99 -> 0.100` order is a historical Perl
-`version` **non-increase**, based on directory/index timestamps;
-it must be resolved against original upload order rather than
-pretended absent. The odd GitHub `v2.59` `published_at` vs
+The historical `0.99 -> 0.100` Perl `version` **non-increase**
+is now confirmed by the original PAUSE `CPAN Upload` completion
+timestamps and by the original failed-indexer reports, not solely by
+directory/index timestamps. The directly read receipts extend the
+historic non-increase to **five releases, `0.100` through `0.104`**.
+See the [primary-mailbox body recheck](v3-pause-primary-mailbox-observation-2026-10-28.md#follow-up-265-original-receipt-body-checks-2026-10-29-local).
+Historical non-increases still require explicit human acknowledgement
+after the **complete** publication ledger has been independently
+preserved and reviewed; they do not relax future monotonicity. The odd GitHub `v2.59` `published_at` vs
 `created_at` timestamps must **not** be used to order releases.
 
 ## Critical path: evidence before selecting a public number
 
-- [ ] **Original PAUSE upload chronology:** obtain the uploader's
-  historical PAUSE upload records/receipt emails and the underlying
-  author-upload history with timestamps and original archive names,
-  including deletions, retries, developer versions and any renames.
-  Preserve source/export date, original records, digest and a reviewable
-  filename/date table. If PAUSE has no complete export, record that
-  limitation and corroborate using separately preserved original records;
-  do **not** fabricate completeness from a current index.
+- [ ] **Original PAUSE upload chronology:** the original mailbox
+  has now been accessed read-only and **265 individual JQ-Lite
+  `CPAN Upload` receipt bodies / 259 distinct stable versions** were
+  checked against their stated filenames, hashes, byte lengths and
+  entered/completed UTC timestamps. Six same-byte repeat-upload pairs,
+  five historical Perl version-order inversions, original deletion
+  notices, and a 259-name set match against archived BackPAN/MetaCPAN
+  snapshots are recorded in the
+  [primary evidence observations](v3-pause-primary-mailbox-observation-2026-10-28.md).
+  **Not yet satisfied:** independently preserve and checksum the
+  complete private original RFC822 upload/indexer/deletion messages;
+  verify the full chronology including removed, renamed, alternate-
+  author and developer builds, independently check every public
+  distribution channel, and obtain maintainer sign-off. Search
+  pagination has been inconsistent. The prior in-memory read is
+  **not** a complete independently retained original-record export;
+  do **not** infer all-time completeness or run `--history-reviewed`.
 - [ ] **Independent historical archive:** obtain a *TLS-validated*
   BackPAN archive/index or another trustworthy independent archive
   (e.g. `backpan.perl.org`), record retrieval UTC time, URL, response
@@ -179,7 +193,7 @@ alone is not a publication history audit.
 
 | Gate | Human reviewer / immutable evidence | Decision |
 | --- | --- | --- |
-| Complete public PAUSE chronology incl. deletions and `3.00_0x` | _not supplied_ | **BLOCKED** |
+| Complete public PAUSE chronology incl. deletions and `3.00_0x` | _265 original receipt bodies inspected; private RFC822 preservation, all-channel reconciliation and human attestation outstanding_ | **BLOCKED** |
 | Independent historical archive + other channels | _not supplied_ | **BLOCKED** |
 | Chronological public-version ledger and highest predecessor | _not supplied_ | **BLOCKED** |
 | Approved strictly monotonic public version | _not selected_ | **BLOCKED** |
