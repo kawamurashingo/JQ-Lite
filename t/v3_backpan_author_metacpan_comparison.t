@@ -286,4 +286,44 @@ $conflict_mbox =~ s/sha256: a{64}\nRequest entered on: Sun, 26 Oct 2025 09:04:12
 ok(run_tool($archive, $meta, undef, saved($conflict_mbox))->{exit} != 0,
     'same-version non-unique event cannot hide a competing body digest');
 
+
+# PAUSE's actual file-hash summary may indent fields with spaces.
+my $aligned = $mbox_text;
+$aligned =~ s/^file:/  file:/mg;
+$aligned =~ s/^size:/  size:/mg;
+$aligned =~ s/^sha256:/  sha256:/mg;
+$aligned =~ s/^Request completed:/  Request completed:/mg;
+is(run_tool($archive, $meta, undef, saved($aligned), 3)->{exit}, 0,
+    'aligned PAUSE producer fields are recognized without loosening their values');
+
+# RFC 2047 subjects must be decoded BEFORE target/developer detection.
+my $q_subject = $mbox_text;
+$q_subject =~ s/^Subject: CPAN Upload: S\/SH\/SHINGO\/JQ-Lite-0\.05/
+    'Subject: =?UTF-8?Q?CPAN_Upload:?= S\/SH\/SHINGO\/JQ-Lite-0.05'/em;
+is(run_tool($archive, $meta, undef, saved($q_subject), 3)->{exit}, 0,
+    'quoted-printable MIME subject identifies intended PAUSE upload');
+my $b_subject = $mbox_text;
+my $encoded_title = encode_base64('CPAN Upload:', '');
+$b_subject =~ s/^Subject: CPAN Upload: S\/SH\/SHINGO\/JQ-Lite-0\.05/
+    'Subject: =?UTF-8?B?' . $encoded_title . '?= S\/SH\/SHINGO\/JQ-Lite-0.05'/em;
+is(run_tool($archive, $meta, undef, saved($b_subject), 3)->{exit}, 0,
+    'base64 MIME subject identifies intended PAUSE upload');
+my $encoded_dev = $dev_h . "\n" . $dev_b;
+$encoded_dev =~ s/^Subject: CPAN Upload: /
+    'Subject: =?UTF-8?Q?CPAN_Upload:?= '/em;
+my $with_encoded_dev = run_tool($archive, $meta, undef,
+    saved($mbox_text . $encoded_dev), 3);
+ok($with_encoded_dev->{exit} != 0,
+    'MIME-encoded developer receipt cannot bypass the release audit alert');
+
+for my $field ('file', 'size', 'sha256', 'Request completed') {
+    my $two = $mbox_text;
+    $two =~ s/^(\Q$field\E:[^\n]*\n)/$1$1/m;
+    my $result = run_tool($archive, $meta, undef, saved($two), 3);
+    ok($result->{exit} != 0,
+        "duplicate $field receipt evidence fails closed");
+    like($result->{err}, qr/Missing or duplicate PAUSE receipt field/,
+        "duplicate $field explanation never exposes raw mail");
+}
+
 done_testing;
