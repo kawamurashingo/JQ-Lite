@@ -18,10 +18,11 @@ sub saved {
     return $path;
 }
 sub run_tool {
-    my ($a, $b) = @_;
+    my ($a, $b, $pause) = @_;
     my $err = gensym;
     my $pid = open3(my $in, my $out, $err, $^X, $tool,
-        '--backpan-author', $a, '--metacpan', $b);
+        '--backpan-author', $a, '--metacpan', $b,
+        (defined($pause) ? ('--pause-receipts', $pause) : ()));
     close $in;
     my $stdout = do { local $/; <$out> } || '';
     my $stderr = do { local $/; <$err> } || '';
@@ -83,4 +84,99 @@ my $empty_meta = run_tool($archive, saved($mhead));
 ok($empty_meta->{exit} != 0, 'empty MetaCPAN search rejected');
 my $bad_time = run_tool(saved($ahead . ba('1.31')), saved($mhead . "JQ-Lite-1.31\t1.31\ttomorrow\tSHINGO\tbackpan\tobserved-metacpan-release\n"));
 ok($bad_time->{exit} != 0, 'invalid MetaCPAN timestamps rejected');
+
+# Optional PRIVATE PAUSE receipt schema: use non-sensitive synthetic data.
+my $phead = "archive\tversion\tcompleted_utc\tbytes\tsha256\n";
+sub pa {
+    my ($version, $when, $hash, $bytes) = @_;
+    $hash = 'a' x 64 unless defined $hash;
+    $bytes = 1234 unless defined $bytes;
+    return "JQ-Lite-$version.tar.gz\t$version\t$when\t$bytes\t$hash\n";
+}
+my $pause = saved($phead
+    . pa('0.05', '2025-03-29T03:37:10Z')
+    . pa('1.31', '2025-10-26T09:05:27Z')
+    . pa('1.32', '2025-10-26T11:09:49Z'));
+my $all_match = run_tool($archive, $meta, $pause);
+is($all_match->{exit}, 0,
+    'private PAUSE receipt version set matches independently saved observations');
+like($all_match->{out}, qr/PAUSE original receipt events: 3/,
+    'private receipt event count displayed without raw mail');
+like($all_match->{out}, qr/PAUSE distinct versions: 3/,
+    'distinct PAUSE version count shown');
+like($all_match->{out}, qr/REVIEW ONLY/,
+    'even three-way exact match does not certify original PAUSE ledger');
+
+my $repeat_pause = saved($phead
+    . pa('0.05', '2025-03-29T03:37:10Z')
+    . pa('1.31', '2025-10-26T09:05:27Z')
+    . pa('1.31', '2025-10-26T09:06:59Z')
+    . pa('1.32', '2025-10-26T11:09:49Z'));
+my $with_repeat = run_tool($archive, $meta, $repeat_pause);
+is($with_repeat->{exit}, 0, 'same-byte repeat with distinct completion time is retained');
+like($with_repeat->{out}, qr/PAUSE same-byte repeated uploads: 1/,
+    'repeat is counted instead of silently removed');
+
+my $conflict = run_tool($archive, $meta, saved($phead
+    . pa('0.05', '2025-03-29T03:37:10Z')
+    . pa('1.31', '2025-10-26T09:05:27Z')
+    . pa('1.31', '2025-10-26T09:06:59Z', 'b' x 64)
+    . pa('1.32', '2025-10-26T11:09:49Z')));
+ok($conflict->{exit} != 0, 'same version with different tarball SHA-256 fails closed');
+like($conflict->{err}, qr/Conflicting PAUSE archive size or SHA-256/,
+    'hash inconsistency is a review blocker');
+
+my $no_distinct = run_tool($archive, $meta, saved($phead
+    . pa('0.05', '2025-03-29T03:37:10Z')
+    . pa('1.31', '2025-10-26T09:05:27Z')));
+ok($no_distinct->{exit} != 0, 'missing PAUSE receipt version fails despite matching public indexes');
+like($no_distinct->{out}, qr/PAUSE-MISSING VERSION: 1\.32/,
+    'missing private-receipt evidence identified');
+
+my $pause_extra = run_tool($archive, $meta, saved($phead
+    . pa('0.05', '2025-03-29T03:37:10Z')
+    . pa('1.31', '2025-10-26T09:05:27Z')
+    . pa('1.32', '2025-10-26T11:09:49Z')
+    . pa('2.59', '2026-09-20T10:59:08Z')));
+ok($pause_extra->{exit} != 0, 'PAUSE-only version fails closed');
+like($pause_extra->{out}, qr/PAUSE-ONLY VERSION: 2\.59/,
+    'extra PAUSE version requires external corroboration');
+
+my $dupe_event = run_tool($archive, $meta, saved($phead
+    . pa('1.31', '2025-10-26T09:05:27Z')
+    . pa('1.31', '2025-10-26T09:05:27Z')));
+ok($dupe_event->{exit} != 0, 'same version and completion time cannot masquerade as two uploads');
+
+my $bad_receipt = run_tool($archive, $meta,
+    saved($phead . "JQ-Lite-1.31.tar.gz\t1.31\tnot-a-time\t1234\t" . ('a' x 64) . "\n"));
+ok($bad_receipt->{exit} != 0, 'missing original UTC completion time rejected');
+
+my $internal_receipt = run_tool($archive, $meta,
+    saved($phead . pa('3.00_03', '2026-10-25T00:00:00Z')));
+ok($internal_receipt->{exit} != 0,
+    'internal developer artifact cannot be laundered through PAUSE receipt input');
+
+my $historic_archive = saved($ahead . ba('0.99') . ba('0.100') . ba('1.00'));
+my $historic_meta = saved($mhead . ma('0.99') . ma('0.100') . ma('1.00'));
+my $historic_pause = saved($phead
+    . pa('0.99', '2025-10-13T01:26:30Z')
+    . pa('0.100', '2025-10-13T03:50:59Z')
+    . pa('1.00', '2025-10-14T21:14:59Z'));
+my $historic_result = run_tool($historic_archive, $historic_meta, $historic_pause);
+is($historic_result->{exit}, 0,
+    'historical non-increase is reported without rewriting real publication history');
+like($historic_result->{out}, qr/HISTORICAL NON-INCREASE: 0\.100 after 0\.99/,
+    'Perl version semantics identify original 0.99 to 0.100 regression');
+like($historic_result->{out}, qr/REVIEW ONLY/,
+    'historic regression observation does not imply approval');
+my $ambiguous = run_tool($historic_archive, $historic_meta,
+    saved($phead
+        . pa('0.99', '2025-10-13T01:26:30Z')
+        . pa('0.100', '2025-10-13T01:26:30Z')
+        . pa('1.00', '2025-10-14T21:14:59Z')));
+ok($ambiguous->{exit} != 0,
+    'identical UTC completion times across different versions require review');
+like($ambiguous->{out}, qr/AMBIGUOUS PAUSE COMPLETION TIME/,
+    'ambiguous original order is explicitly diagnosed');
+
 done_testing;
