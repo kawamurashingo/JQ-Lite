@@ -261,7 +261,7 @@ like($mbox_ok->{out}, qr/REVIEW ONLY/,
 my $body_from = $mbox_text;
 my $quoted_from = "From quoted\@example.invalid Tue Oct 28 not-a-time 2025\n";
 is(($body_from =~ s/(Request completed: Sat, 29 Mar 2025 03:37:10 GMT\n)/
-    $quoted_from . $1/ex), 1,
+    $quoted_from . $1/e), 1,
     'synthetic incomplete From line inserted into a receipt body');
 my $body_from_result = run_tool($archive, $meta, undef,
     saved($body_from), 3);
