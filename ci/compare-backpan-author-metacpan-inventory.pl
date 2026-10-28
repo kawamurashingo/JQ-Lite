@@ -150,6 +150,12 @@ sub parse_pause_mbox_message {
     for my $line (split /\n/, $header_text) {
         if ($line =~ /\A([A-Za-z0-9-]+):\s*(.*)\z/) {
             $last = lc $1;
+            # Refuse contradictory classification headers even when a
+            # duplicate Subject tries to hide a developer receipt.
+            # Do not print the original values: the source is private.
+            die "Duplicate MIME classification header in private mbox\n"
+                if exists($header{$last})
+                    && $last =~ /\A(?:subject|content-type|content-transfer-encoding)\z/;
             $header{$last} = $2 unless exists $header{$last};
         } elsif ($line =~ /\A[ \t]+(.*)\z/ && length($last)) {
             $header{$last} .= ' ' . $1;
