@@ -251,6 +251,28 @@ for my $i (0 .. 2) {
 is(run_tool($archive, $meta, undef, saved($encoded))->{exit}, 0,
     'base64 single-part PAUSE body supported');
 
+# Strict transfer decoding: Perl's MIME decoders otherwise accept malformed
+# source material, allowing a receipt with trailing corrupt bytes to pass.
+my $bad_base64_padding = run_tool($archive, $meta, undef,
+    saved($encoded . "=ZGVm\n"), 3);
+ok($bad_base64_padding->{exit} != 0,
+    'base64 receipt with trailing invalid padding is rejected');
+like($bad_base64_padding->{err}, qr/Malformed PAUSE base64 transfer encoding/,
+    'invalid base64 transfer content is diagnosed without logging mail');
+
+my $qp_soft = $qprint;
+$qp_soft =~ s/The=20uploaded file/The=20uploaded=\n file/g;
+is(run_tool($archive, $meta, undef, saved($qp_soft), 3)->{exit}, 0,
+    'valid quoted-printable soft line breaks remain supported');
+
+my $bad_quoted_printable = run_tool($archive, $meta, undef,
+    saved($qprint . "=GG\n"), 3);
+ok($bad_quoted_printable->{exit} != 0,
+    'invalid quoted-printable escape is rejected');
+like($bad_quoted_printable->{err},
+    qr/Malformed PAUSE quoted-printable transfer encoding/,
+    'invalid quoted-printable transfer content is diagnosed without logging mail');
+
 my $unsupported = $mbox_text;
 $unsupported =~ s/Content-Type: text\/plain; charset=UTF-8/Content-Type: multipart\/mixed; boundary="unsafe"/;
 my $bad_mime = run_tool($archive, $meta, undef, saved($unsupported));
