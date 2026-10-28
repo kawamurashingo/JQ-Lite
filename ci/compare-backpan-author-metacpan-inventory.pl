@@ -5,6 +5,7 @@ use Getopt::Long qw(GetOptions);
 use version ();
 use MIME::Base64 qw(decode_base64);
 use MIME::QuotedPrint qw(decode_qp);
+use Encode qw(decode FB_CROAK);
 use Time::Local qw(timegm);
 
 # Compare two independently saved observational sets. NOT a PAUSE ledger.
@@ -96,6 +97,49 @@ sub pause_utc {
         $year, $mon, $day, $hour, $min, $sec), $epoch);
 }
 
+
+# RFC 2047 encoded-word decoding for MIME transport headers. Never
+# silently ignore an encoded developer-build subject; fail closed on
+# malformed words rather than treating them as unrelated messages.
+sub decode_subject_words {
+    my ($subject) = @_;
+    $subject =~ s{(\?=)\s+(=\?)}{$1$2}g;
+    $subject =~ s{=\?([A-Za-z0-9_.-]+)\?([BQbq])\?([^?]*)\?=}{
+        my ($charset, $kind, $encoded) = ($1, uc($2), $3);
+        my $bytes;
+        if ($kind eq 'B') {
+            die "Invalid encoded MIME subject\n"
+                unless $encoded =~ /\A(?:[A-Za-z0-9+\/]{4})*
+                    (?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?\z/x;
+            $bytes = decode_base64($encoded);
+        } else {
+            die "Invalid encoded MIME subject\n"
+                unless $encoded =~ /\A(?:[^=]|=[0-9A-Fa-f]{2})*\z/;
+            $encoded =~ tr/_/ /;
+            $encoded =~ s/=([0-9A-Fa-f]{2})/chr(hex($1))/ge;
+            $bytes = $encoded;
+        }
+        my $decoded = eval { decode($charset, $bytes, FB_CROAK) };
+        die "Unsupported or malformed encoded MIME subject\n"
+            if $@ || !defined($decoded);
+        $decoded;
+    }gex;
+    die "Unparsed encoded MIME subject\n"
+        if $subject =~ /=\?[^ \t]*\?=/;
+    return $subject;
+}
+
+# Exactly one copy of each PAUSE producer field is required. Counting
+# labels before parsing values avoids a second conflicting 'sha256:' or
+# 'Request completed:' being silently hidden by scalar regexp capture.
+sub receipt_field {
+    my ($body, $name) = @_;
+    my @values = $body =~ /^[ \t]*\Q$name\E:[ \t]*([^\n]*?)[ \t]*$/gm;
+    die "Missing or duplicate PAUSE receipt field $name\n"
+        unless @values == 1;
+    return $values[0];
+}
+
 sub parse_pause_mbox_message {
     my ($raw, $rows) = @_;
     $raw =~ s/\r\n/\n/g;
@@ -114,8 +158,9 @@ sub parse_pause_mbox_message {
         }
     }
     my $subject = $header{subject};
-    return unless defined($subject)
-        && $subject =~ /\ACPAN Upload: S\/SH\/SHINGO\/JQ-Lite-(\d+(?:\.\d+)+(?:_\d+)?)\.tar\.gz\z/;
+    return unless defined $subject;
+    $subject = decode_subject_words($subject);
+    return unless $subject =~ /\ACPAN Upload: S\/SH\/SHINGO\/JQ-Lite-(\d+(?:\.\d+)+(?:_\d+)?)\.tar\.gz\z/;
     my $version = $1;
     die "Internal/developer PAUSE receipt needs independent investigation\n"
         if $version =~ /_/;
@@ -137,16 +182,19 @@ sub parse_pause_mbox_message {
     }
     $body =~ s/\r\n/\n/g;
     my $archive = "JQ-Lite-$version.tar.gz";
+    die "PAUSE message archive narrative mismatch\n"
+        unless $body =~ /\AThe uploaded file\s+\Q$archive\E\s+has entered CPAN as\s+/s;
+    my $path = receipt_field($body, 'file');
     die "PAUSE message archive/path mismatch\n"
-        unless $body =~ /\AThe uploaded file\s+\Q$archive\E\s+has entered CPAN as\s+/s
-            && $body =~ /^file: \$CPAN\/authors\/id\/S\/SH\/SHINGO\/\Q$archive\E$/m;
-    my ($bytes) = $body =~ /^size: ([1-9][0-9]*) bytes$/m;
-    my ($digest) = $body =~ /^sha256: ([0-9a-f]{64})$/m;
-    my ($entered) = $body =~ /^Request entered on: ([^\n]+)$/m;
-    my ($completed) = $body =~ /^Request completed: ([^\n]+)$/m;
-    die "Missing PAUSE receipt body fields\n"
-        unless defined($bytes) && defined($digest)
-            && defined($entered) && defined($completed);
+        unless $path eq '$CPAN/authors/id/S/SH/SHINGO/' . $archive;
+    my $size = receipt_field($body, 'size');
+    my $digest = receipt_field($body, 'sha256');
+    my $entered = receipt_field($body, 'Request entered on');
+    my $completed = receipt_field($body, 'Request completed');
+    die "Invalid PAUSE archive size or SHA-256\n"
+        unless $size =~ /\A([1-9][0-9]*) bytes\z/
+            && $digest =~ /\A[0-9a-f]{64}\z/;
+    my $bytes = $1;
     my ($iso, $finished_epoch) = pause_utc($completed);
     my ($entered_iso, $entered_epoch) = pause_utc($entered);
     die "PAUSE upload completed before request entry\n"
