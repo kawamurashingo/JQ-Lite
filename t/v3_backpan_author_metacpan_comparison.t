@@ -348,4 +348,28 @@ for my $header (qw(Subject Content-Type Content-Transfer-Encoding)) {
         "duplicate $header refusal never logs private message contents");
 }
 
+
+# Mailbox classifier must not silently drop public developer archive
+# receipts with a v-prefix, nor incomplete subject-only target messages.
+my $prefixed_dev_mail = $dev_h . "\n" . $dev_b;
+$prefixed_dev_mail =~ s/JQ-Lite-3\.00_03/JQ-Lite-v3.00_03/g;
+my $prefixed_dev_result = run_tool($archive, $meta, undef,
+    saved($mbox_text . $prefixed_dev_mail), 3);
+ok($prefixed_dev_result->{exit} != 0,
+    'v-prefixed developer PAUSE subject is explicitly rejected');
+like($prefixed_dev_result->{err},
+    qr/Internal\/developer PAUSE receipt/,
+    'v-prefixed developer archive is not silently skipped');
+
+my $truncated_target = $mbox_text
+    . "From synthetic\@example.invalid Tue Oct 28 00:00:00 2025\n"
+    . "Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-3.00_03.tar.gz\n";
+my $truncated_result = run_tool($archive, $meta, undef,
+    saved($truncated_target), 3);
+ok($truncated_result->{exit} != 0,
+    'incomplete developer receipt header cannot pass event-count gate');
+like($truncated_result->{err},
+    qr/Truncated PAUSE target receipt/,
+    'truncated target is rejected before it can be skipped');
+
 done_testing;
