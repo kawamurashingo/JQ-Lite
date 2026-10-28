@@ -150,6 +150,18 @@ my $dupe_event = run_tool($archive, $meta, saved($phead
     . pa('1.31', '2025-10-26T09:05:27Z')));
 ok($dupe_event->{exit} != 0, 'same version and completion time cannot masquerade as two uploads');
 
+# The private TSV path must never be echoed when the offline importer
+# cannot open it. Only a non-sensitive synthetic temporary file is used.
+my $private_missing_path = saved('synthetic only');
+unlink $private_missing_path or die "cannot remove synthetic fixture: $!";
+my $private_missing = run_tool($archive, $meta, $private_missing_path);
+ok($private_missing->{exit} != 0, 'unreadable private TSV fails closed');
+like($private_missing->{err}, qr/Cannot open private PAUSE receipts TSV/,
+    'private TSV open failure has a path-free diagnostic');
+unlike($private_missing->{out} . $private_missing->{err},
+    qr/\Q$private_missing_path\E/,
+    'private input path is not written to diagnostic output');
+
 my $bad_receipt = run_tool($archive, $meta,
     saved($phead . "JQ-Lite-1.31.tar.gz\t1.31\tnot-a-time\t1234\t" . ('a' x 64) . "\n"));
 ok($bad_receipt->{exit} != 0, 'missing original UTC completion time rejected');
