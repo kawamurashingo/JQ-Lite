@@ -92,8 +92,8 @@ observations verify that archive bytes are still independently available.
 
 ## Follow-up: full observed version-set comparison (2026-10-28)
 
-A subsequent **read-only** audit compared the version-name set from one
-complete paginated PAUSE mailbox search to the **original extracted TSV
+A subsequent **read-only** audit compared the version-name set transcribed from one
+265-message paginated PAUSE mailbox search to the **original extracted TSV
 files** in the previously saved [BackPAN-author/MetaCPAN evidence
 artifact](https://github.com/kawamurashingo/JQ-Lite/actions/runs/40184472171/artifacts/12595646464).
 That original ZIP contains `backpan-author-observed.tsv` (259 records)
@@ -103,17 +103,20 @@ The present read-only recheck independently inspected both TSV files.
 
 | Compared observed version sets | Unique stable versions | Set difference |
 | --- | ---: | ---: |
-| PAUSE `CPAN Upload` mailbox subject inventory (one complete 265-message retrieval) | 259 | 0 vs BackPAN; 0 vs MetaCPAN |
+| PAUSE `CPAN Upload` mailbox subject inventory (one 265-message retrieval) | 259 | 0 vs BackPAN; 0 vs MetaCPAN |
 | Saved BackPAN-author archive TSV | 259 | 0 vs PAUSE and MetaCPAN |
 | Saved MetaCPAN release TSV | 259 | 0 vs PAUSE and BackPAN |
 
 To verify the **contents**, not just their cardinalities, all three
 version sets were deduplicated and sorted lexically, joined with a
-single `\\n` between version strings (without a final newline) and
+single `\n` between version strings (without a final newline) and
 hashed as UTF-8 text. All three yielded the same SHA-256:
 `3d2a03f601a97eab03e9e956db37c8c3b0a1de58d8fe3bd589c16595610bb354`.
-This establishes **exact equality for those three retrieved
-snapshots**, not all-time completeness.
+The PAUSE names were **manually transcribed from the successful search
+result** into the local comparison; an independent raw mailbox export
+was **not** created. This establishes exact equality of the three
+compared name sets, not a reproducible complete PAUSE ledger or
+all-time completeness.
 
 **Search-reproducibility caveat:** Repeating the same paginated Gmail
 search also produced an incomplete 264-message / 258-version result.
