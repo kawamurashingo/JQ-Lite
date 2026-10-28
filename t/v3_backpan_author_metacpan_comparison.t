@@ -286,6 +286,41 @@ ok($invalid_envelope_result->{exit} != 0,
 like($invalid_envelope_result->{err}, qr/Invalid mbox envelope separator/,
     'invalid first envelope yields a source-safe diagnostic');
 
+# Conventional mbox separators may use a leading zero for day 1..9.
+# Preserve both one-digit and space-padded variants without accepting 00.
+my $original_mbox_envelope =
+    "From synthetic\@example.invalid Tue Oct 28 00:00:00 2025\n";
+for my $example (
+    ['Wed', '01'],
+    ['Wed', '08'],
+    ['Thu', '09'],
+    ['Wed', '8'],
+    ['Wed', ' 8'],
+) {
+    my ($weekday, $day) = @$example;
+    my $variant = $mbox_text;
+    my $new_envelope =
+        "From synthetic\@example.invalid $weekday Oct $day 00:00:00 2025\n";
+    is(($variant =~ s/\A\Q$original_mbox_envelope\E/$new_envelope/),
+        1, 'synthetic mbox envelope day form prepared');
+    my $result = run_tool($archive, $meta, undef, saved($variant), 3);
+    is($result->{exit}, 0,
+        'valid single-digit, zero-padded or space-padded mbox day accepted');
+    like($result->{out}, qr/PAUSE original receipt events: 3/,
+        'valid mbox day keeps all three PAUSE receipt events');
+}
+for my $day ('00', '32') {
+    my $variant = $mbox_text;
+    my $new_envelope =
+        "From synthetic\@example.invalid Wed Oct $day 00:00:00 2025\n";
+    is(($variant =~ s/\A\Q$original_mbox_envelope\E/$new_envelope/),
+        1, 'synthetic invalid mbox day prepared');
+    my $result = run_tool($archive, $meta, undef, saved($variant), 3);
+    ok($result->{exit} != 0, 'invalid zero-padded mbox day is rejected');
+    like($result->{err}, qr/Invalid mbox envelope separator/,
+        'invalid first-envelope date has a source-safe diagnostic');
+}
+
 my $wrong_count = run_tool($archive, $meta, undef, $mbox_file, 4);
 ok($wrong_count->{exit} != 0,
     'missing expected mbox upload event fails closed');
