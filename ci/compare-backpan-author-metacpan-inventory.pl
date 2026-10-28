@@ -106,6 +106,24 @@ sub pause_utc {
 }
 
 
+# Explicitly supplied private PAUSE TSV timestamps are not derived from
+# pause_utc(), so independently check the actual UTC calendar date.
+# A format-only match would accept impossible days such as February 31.
+sub valid_pause_iso_utc {
+    my ($value) = @_;
+    return 0 unless defined($value)
+        && $value =~ /\A(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)Z\z/;
+    my ($year, $mon, $day, $hour, $min, $sec) =
+        ($1, $2, $3, $4, $5, $6);
+    my $epoch = eval { timegm($sec, $min, $hour, $day, $mon - 1, $year) };
+    return 0 if $@ || !defined($epoch);
+    my @check = gmtime($epoch);
+    return @check && $check[5] + 1900 == $year
+        && $check[4] + 1 == $mon && $check[3] == $day
+        && $check[2] == $hour && $check[1] == $min && $check[0] == $sec;
+}
+
+
 # RFC 2047 encoded-word decoding for MIME transport headers. Never
 # silently ignore an encoded developer-build subject; fail closed on
 # malformed words rather than treating them as unrelated messages.
@@ -316,7 +334,7 @@ if (defined($pause_receipts) || defined($pause_mbox)) {
         die "Malformed PAUSE receipt (archive/version/timestamp/size/digest)\n"
             unless $version =~ /\A\d+(?:\.\d+)+\z/
             && $archive eq "JQ-Lite-$version.tar.gz"
-            && $utc =~ /\A\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\dZ\z/
+            && valid_pause_iso_utc($utc)
             && $bytes =~ /\A[1-9]\d*\z/
             && $digest =~ /\A[a-f0-9]{64}\z/;
         die "Repeated identical PAUSE version+completion-time event\n"
