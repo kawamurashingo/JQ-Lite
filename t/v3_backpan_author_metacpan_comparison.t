@@ -265,6 +265,25 @@ $qp_soft =~ s/The=20uploaded file/The=20uploaded=\n file/g;
 is(run_tool($archive, $meta, undef, saved($qp_soft), 3)->{exit}, 0,
     'valid quoted-printable soft line breaks remain supported');
 
+# RFC 2045 permits spaces/tabs as transport padding after a soft break.
+# Both formats must decode to the same receipt while invalid escapes fail.
+for my $padding (' ', "\t", " \t") {
+    my $padded = $qp_soft;
+    $padded =~ s/The=20uploaded=\n file/"The=20uploaded=" . $padding . "\n file"/e;
+    is(run_tool($archive, $meta, undef, saved($padded), 3)->{exit}, 0,
+        'quoted-printable soft break accepts RFC 2045 transport padding');
+}
+my $bad_soft_break = $qp_soft;
+$bad_soft_break =~ s/The=20uploaded=\n file/The=20uploaded= X\n file/;
+my $bad_soft_result = run_tool($archive, $meta, undef,
+    saved($bad_soft_break), 3);
+ok($bad_soft_result->{exit} != 0,
+    'quoted-printable equals followed by padding and non-newline remains invalid');
+like($bad_soft_result->{err},
+    qr/Malformed PAUSE quoted-printable transfer encoding/,
+    'malformed padded soft-break is diagnosed without private data');
+
+
 my $bad_quoted_printable = run_tool($archive, $meta, undef,
     saved($qprint . "=GG\n"), 3);
 ok($bad_quoted_printable->{exit} != 0,
