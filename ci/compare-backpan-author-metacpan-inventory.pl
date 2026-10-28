@@ -146,38 +146,41 @@ sub parse_pause_mbox_message {
     my ($header_text, $body) = split /\n\n/, $raw, 2;
     # Classify the subject first: a truncated PAUSE receipt is evidence
     # of an incomplete original export, not an unrelated empty mail.
-    my %header;
+    # Classify the message before rejecting duplicate MIME headers.
+    # Google Takeout can contain unrelated mail with malformed headers;
+    # those messages are not PAUSE evidence. A duplicate header on a
+    # matching receipt still fails closed, including mixed Subject lines.
+    my %headers;
     my $last = '';
     for my $line (split /\n/, $header_text) {
         if ($line =~ /\A([A-Za-z0-9-]+):\s*(.*)\z/) {
             $last = lc $1;
-            # Refuse contradictory classification headers even when a
-            # duplicate Subject tries to hide a developer receipt.
-            # Do not print the original values: the source is private.
-            die "Duplicate MIME classification header in private mbox\n"
-                if exists($header{$last})
-                    && $last =~ /\A(?:subject|content-type|content-transfer-encoding)\z/;
-            $header{$last} = $2 unless exists $header{$last};
+            push @{ $headers{$last} }, $2;
         } elsif ($line =~ /\A[ \t]+(.*)\z/ && length($last)) {
-            $header{$last} .= ' ' . $1;
+            $headers{$last}[-1] .= ' ' . $1;
         } else {
             $last = '';
         }
     }
-    my $subject = $header{subject};
+    my @subjects = map { decode_subject_words($_) }
+        @{ $headers{subject} || [] };
+    my $target_subject = qr{\ACPAN Upload: S/SH/SHINGO/JQ-Lite-((?:v)?\d+(?:\.\d+)+(?:_\d+)?)\.tar\.gz\z};
+    my ($subject) = grep { $_ =~ $target_subject } @subjects;
     return unless defined $subject;
-    $subject = decode_subject_words($subject);
-    return unless $subject =~ /\ACPAN Upload: S\/SH\/SHINGO\/JQ-Lite-((?:v)?\d+(?:\.\d+)+(?:_\d+)?)\.tar\.gz\z/;
-    my $version = $1;
+    for my $name (qw(subject content-type content-transfer-encoding)) {
+        die "Duplicate MIME classification header in private mbox\n"
+            if @{ $headers{$name} || [] } > 1;
+    }
+    my ($version) = $subject =~ $target_subject;
     die "Truncated PAUSE target receipt without body\n"
         unless defined $body;
     die "Internal/developer PAUSE receipt needs independent investigation\n"
         if $version =~ /_/;
 
-    my $type = lc($header{'content-type'} || 'text/plain');
+    my $type = lc(($headers{'content-type'} || [])->[0] || 'text/plain');
     die "Unsupported non-plain-text PAUSE receipt MIME content\n"
         unless $type =~ /\Atext\/plain(?:\s*;|\s*\z)/;
-    my $encoding = lc($header{'content-transfer-encoding'} || '7bit');
+    my $encoding = lc(($headers{'content-transfer-encoding'} || [])->[0] || '7bit');
     $encoding =~ s/\s+\z//;
     if ($encoding eq 'base64') {
         # MIME::Base64 silently ignores bad padding and trailing garbage;
