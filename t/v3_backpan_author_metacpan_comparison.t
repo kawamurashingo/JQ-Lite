@@ -299,6 +299,31 @@ ok($bad_mime->{exit} != 0, 'unparsed multipart target mail is not silently omitt
 like($bad_mime->{err}, qr/Unsupported non-plain-text PAUSE receipt MIME/,
     'unsupported MIME format fails closed without outputting mail data');
 
+# The PAUSE producer supplies a weekday as well as a GMT calendar date.
+# A valid-looking numeric date with a contradictory weekday is not
+# trustworthy original chronology evidence.
+my $wrong_completed_weekday = $mbox_text;
+is(($wrong_completed_weekday =~
+    s/Request completed: Sat, 29 Mar 2025/Request completed: Sun, 29 Mar 2025/),
+    1, 'synthetic completed-weekday corruption applied once');
+my $wrong_completed = run_tool($archive, $meta, undef,
+    saved($wrong_completed_weekday), 3);
+ok($wrong_completed->{exit} != 0,
+    'valid numeric completion date with wrong weekday is rejected');
+like($wrong_completed->{err}, qr/Invalid PAUSE UTC weekday\/date mismatch/,
+    'completion weekday mismatch gets a source-safe diagnostic');
+
+my $wrong_entered_weekday = $mbox_text;
+is(($wrong_entered_weekday =~
+    s/Request entered on: Sat, 29 Mar 2025/Request entered on: Sun, 29 Mar 2025/),
+    1, 'synthetic entered-weekday corruption applied once');
+my $wrong_entered = run_tool($archive, $meta, undef,
+    saved($wrong_entered_weekday), 3);
+ok($wrong_entered->{exit} != 0,
+    'valid numeric request-entry date with wrong weekday is rejected');
+like($wrong_entered->{err}, qr/Invalid PAUSE UTC weekday\/date mismatch/,
+    'entry weekday mismatch gets a source-safe diagnostic');
+
 my $bad_body = $mbox_text;
 $bad_body =~ s/Request completed on:/Request completed on:/;
 $bad_body =~ s/Request completed: Sat, 29 Mar 2025 03:37:10 GMT/Request completed: invalid date/;
