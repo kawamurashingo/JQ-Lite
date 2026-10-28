@@ -267,7 +267,17 @@ sub read_pause_mbox {
     open my $fh, '<', $path or die "Cannot open private PAUSE mbox\n";
     my (@rows, $record, $seen_envelope);
     while (my $line = <$fh>) {
-        if ($line =~ /\AFrom \S+ (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) /) {
+        # A weekday prefix alone is not an mbox separator: receipt bodies
+        # may quote lines beginning "From ... Tue ...". Require a complete
+        # Takeout-style envelope date before splitting original evidence.
+        # This is only framing, never proof of the mail's origin or date.
+        if ($line =~ /\AFrom[ \t]+\S+[ \t]+
+            (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[ \t]+
+            (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[ \t]+
+            (?:[1-9]|[12]\d|3[01])[ \t]+
+            (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d[ \t]+
+            (?:(?:[A-Z]{2,5}|[+-]\d{4})[ \t]+)?
+            \d{4}(?:[ \t]+[^\r\n]*)?\r?\n?\z/x) {
             if ($seen_envelope) {
                 parse_pause_mbox_message($record, \@rows);
             }

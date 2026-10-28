@@ -255,6 +255,37 @@ like($mbox_ok->{out}, qr/PAUSE original receipt events: 3/,
 like($mbox_ok->{out}, qr/REVIEW ONLY/,
     'a successful mbox observation never approves publication');
 
+# An incomplete "From ... weekday ..." line in an original mail BODY
+# is not a Takeout envelope. Never split and lose part of a PAUSE
+# receipt just because quoted text starts with an mbox-like prefix.
+my $body_from = $mbox_text;
+my $quoted_from = "From quoted\@example.invalid Tue Oct 28 not-a-time 2025\n";
+is(($body_from =~ s/(Request completed: Sat, 29 Mar 2025 03:37:10 GMT\n)/
+    $quoted_from . $1/e), 1,
+    'synthetic incomplete From line inserted into a receipt body');
+my $body_from_result = run_tool($archive, $meta, undef,
+    saved($body_from), 3);
+is($body_from_result->{exit}, 0,
+    'body From prefix without a full envelope does not truncate receipt');
+like($body_from_result->{out}, qr/PAUSE original receipt events: 3/,
+    'all three receipts survive embedded non-envelope From line');
+unlike($body_from_result->{out} . $body_from_result->{err},
+    qr/quoted\@example\.invalid|not-a-time/,
+    'private-style quoted From line is never echoed to diagnostics');
+
+# Conversely, a malformed first line must not be promoted to a real
+# mbox envelope or used to manufacture an apparently valid archive.
+my $malformed_first_envelope = $mbox_text;
+is(($malformed_first_envelope =~
+    s/\AFrom [^\n]+/From synthetic\@example.invalid Tue Oct 28 bad-clock 2025/),
+    1, 'synthetic malformed first envelope prepared');
+my $invalid_envelope_result = run_tool($archive, $meta, undef,
+    saved($malformed_first_envelope), 3);
+ok($invalid_envelope_result->{exit} != 0,
+    'malformed first envelope fails closed');
+like($invalid_envelope_result->{err}, qr/Invalid mbox envelope separator/,
+    'invalid first envelope yields a source-safe diagnostic');
+
 my $wrong_count = run_tool($archive, $meta, undef, $mbox_file, 4);
 ok($wrong_count->{exit} != 0,
     'missing expected mbox upload event fails closed');
