@@ -298,14 +298,14 @@ is(run_tool($archive, $meta, undef, saved($aligned), 3)->{exit}, 0,
 
 # RFC 2047 subjects must be decoded BEFORE target/developer detection.
 my $q_subject = $mbox_text;
-$q_subject =~ s/^Subject: CPAN Upload: S\/SH\/SHINGO\/JQ-Lite-0\.05/
-    'Subject: =?UTF-8?Q?CPAN_Upload:?= S/SH/SHINGO/JQ-Lite-0.05'/em;
+$q_subject =~ s{^Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-0\.05}{
+    'Subject: =?UTF-8?Q?CPAN_Upload:?= S/SH/SHINGO/JQ-Lite-0.05'}em;
 is(run_tool($archive, $meta, undef, saved($q_subject), 3)->{exit}, 0,
     'quoted-printable MIME subject identifies intended PAUSE upload');
 my $b_subject = $mbox_text;
 my $encoded_title = encode_base64('CPAN Upload:', '');
-$b_subject =~ s/^Subject: CPAN Upload: S\/SH\/SHINGO\/JQ-Lite-0\.05/
-    'Subject: =?UTF-8?B?' . $encoded_title . '?= S/SH/SHINGO/JQ-Lite-0.05'/em;
+$b_subject =~ s{^Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-0\.05}{
+    'Subject: =?UTF-8?B?' . $encoded_title . '?= S/SH/SHINGO/JQ-Lite-0.05'}em;
 is(run_tool($archive, $meta, undef, saved($b_subject), 3)->{exit}, 0,
     'base64 MIME subject identifies intended PAUSE upload');
 my $encoded_dev = $dev_h . "\n" . $dev_b;
