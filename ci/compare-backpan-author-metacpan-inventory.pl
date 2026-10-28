@@ -191,10 +191,11 @@ sub parse_pause_mbox_message {
     my $digest = receipt_field($body, 'sha256');
     my $entered = receipt_field($body, 'Request entered on');
     my $completed = receipt_field($body, 'Request completed');
-    die "Invalid PAUSE archive size or SHA-256\n"
-        unless $size =~ /\A([1-9][0-9]*) bytes\z/
-            && $digest =~ /\A[0-9a-f]{64}\z/;
+    die "Invalid PAUSE archive size\n"
+        unless $size =~ /\A([1-9][0-9]*) bytes\z/;
     my $bytes = $1;
+    die "Invalid PAUSE SHA-256\n"
+        unless $digest =~ /\A[0-9a-f]{64}\z/;
     my ($iso, $finished_epoch) = pause_utc($completed);
     my ($entered_iso, $entered_epoch) = pause_utc($entered);
     die "PAUSE upload completed before request entry\n"
