@@ -315,6 +315,41 @@ is($unrelated->{exit}, 0, 'unrelated local mbox messages are skipped');
 unlike($unrelated->{out} . $unrelated->{err}, qr/SECRETS_DO_NOT_LOG|example\.invalid/,
     'tool stdout/stderr never display unrelated private mail fields');
 
+# A large private Takeout can include unrelated mail with duplicate MIME
+# headers. These are not PAUSE receipts and must not block an otherwise
+# valid offline comparison or expose private body/header contents.
+my $unrelated_duplicates =
+    "From private\@example.invalid Tue Oct 28 00:00:00 2025\n"
+    . "Subject: Unrelated message A\n"
+    . "Subject: Unrelated message B\n"
+    . "Content-Type: text/plain\n"
+    . "Content-Type: multipart/mixed\n"
+    . "Content-Transfer-Encoding: 7bit\n"
+    . "Content-Transfer-Encoding: base64\n\n"
+    . "UNRELATED_PRIVATE_BODY_DO_NOT_LOG\n";
+my $with_unrelated_duplicates = run_tool($archive, $meta, undef,
+    saved($unrelated_duplicates . $mbox_text), 3);
+is($with_unrelated_duplicates->{exit}, 0,
+    'duplicate classification headers in unrelated Takeout mail are ignored');
+unlike($with_unrelated_duplicates->{out} . $with_unrelated_duplicates->{err},
+    qr/UNRELATED_PRIVATE_BODY_DO_NOT_LOG|example\.invalid/,
+    'unrelated duplicated MIME data never appears in stdout or stderr');
+
+# A duplicate Subject containing one PAUSE target and one unrelated
+# value must still fail closed; otherwise an injected first Subject
+# could hide a valid upload or internal developer artifact.
+my $mixed_subject = $mbox_text;
+$mixed_subject =~ s{^(Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-0\.05\.tar\.gz\n)}{
+    "Subject: Unrelated message\n" . $1
+}em;
+my $mixed_subject_result = run_tool($archive, $meta, undef,
+    saved($mixed_subject), 3);
+ok($mixed_subject_result->{exit} != 0,
+    'mixed unrelated/PAUSE duplicate Subject cannot hide target evidence');
+like($mixed_subject_result->{err},
+    qr/Duplicate MIME classification header/,
+    'matching PAUSE receipt still rejects contradictory Subject headers');
+
 my ($dev_h, $dev_b) = mbox_mail('3.00_03',
     'Sun, 26 Oct 2025 11:09:49 GMT', 'Sun, 26 Oct 2025 11:09:39 GMT');
 my $devmail = run_tool($archive, $meta, undef, saved($dev_h . "\n" . $dev_b));
