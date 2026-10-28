@@ -144,7 +144,8 @@ sub parse_pause_mbox_message {
     my ($raw, $rows) = @_;
     $raw =~ s/\r\n/\n/g;
     my ($header_text, $body) = split /\n\n/, $raw, 2;
-    return unless defined($body);  # A malformed unrelated message.
+    # Classify the subject first: a truncated PAUSE receipt is evidence
+    # of an incomplete original export, not an unrelated empty mail.
     my %header;
     my $last = '';
     for my $line (split /\n/, $header_text) {
@@ -166,8 +167,10 @@ sub parse_pause_mbox_message {
     my $subject = $header{subject};
     return unless defined $subject;
     $subject = decode_subject_words($subject);
-    return unless $subject =~ /\ACPAN Upload: S\/SH\/SHINGO\/JQ-Lite-(\d+(?:\.\d+)+(?:_\d+)?)\.tar\.gz\z/;
+    return unless $subject =~ /\ACPAN Upload: S\/SH\/SHINGO\/JQ-Lite-((?:v)?\d+(?:\.\d+)+(?:_\d+)?)\.tar\.gz\z/;
     my $version = $1;
+    die "Truncated PAUSE target receipt without body\n"
+        unless defined $body;
     die "Internal/developer PAUSE receipt needs independent investigation\n"
         if $version =~ /_/;
 
