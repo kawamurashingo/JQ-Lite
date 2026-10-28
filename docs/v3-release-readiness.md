@@ -5,6 +5,14 @@ the practical-v2-baseline release, **not** a release announcement, a claim
 of complete jq conformance, or an authorization to merge or publish.
 Tracked by [#619](https://github.com/kawamurashingo/JQ-Lite/issues/619).
 
+**2026-10-28 PAUSE primary-mailbox evidence (partial):**
+[the original receipt/deletion observation](v3-pause-primary-mailbox-observation-2026-10-28.md)
+records directly inspected historical PAUSE messages, including
+the original `0.99 -> 0.100` chronology and three archive hashes
+matching already preserved BackPAN bytes. **A complete private export,
+per-version reconciliation and human chronology attestation are still
+missing. Public version choice and all release actions remain BLOCKED.**
+
 ## Public cutover critical path (feature freeze; 2026-10-25)
 
 The [v3 public release cutover plan](v3-public-release-cutover-plan.md)
