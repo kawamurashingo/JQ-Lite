@@ -79,12 +79,16 @@ sub pause_utc {
         Jan => 1, Feb => 2, Mar => 3, Apr => 4, May => 5, Jun => 6,
         Jul => 7, Aug => 8, Sep => 9, Oct => 10, Nov => 11, Dec => 12,
     );
+    my %weekday = (
+        Sun => 0, Mon => 1, Tue => 2, Wed => 3,
+        Thu => 4, Fri => 5, Sat => 6,
+    );
     die "Invalid PAUSE Request completed UTC format\n"
         unless defined($value)
-            && $value =~ /\A(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\d{1,2}) ([A-Z][a-z]{2}) (\d{4}) (\d\d):(\d\d):(\d\d) GMT\z/
-            && exists $month{$2};
-    my ($day, $mon, $year, $hour, $min, $sec) =
-        ($1, $month{$2}, $3, $4, $5, $6);
+            && $value =~ /\A(Mon|Tue|Wed|Thu|Fri|Sat|Sun), (\d{1,2}) ([A-Z][a-z]{2}) (\d{4}) (\d\d):(\d\d):(\d\d) GMT\z/
+            && exists $month{$3};
+    my ($day_name, $day, $mon, $year, $hour, $min, $sec) =
+        ($1, $2, $month{$3}, $4, $5, $6, $7);
     die "Invalid PAUSE UTC calendar time\n"
         if $day < 1 || $day > 31 || $hour > 23 || $min > 59 || $sec > 59;
     my $epoch = eval { timegm($sec, $min, $hour, $day, $mon - 1, $year) };
@@ -93,6 +97,10 @@ sub pause_utc {
     die "Invalid PAUSE UTC calendar day\n"
         unless $check[3] == $day && $check[4] == $mon - 1
             && $check[5] + 1900 == $year;
+    # A plausible numeric timestamp with the wrong weekday is still
+    # inconsistent original evidence; validate both entered and completed.
+    die "Invalid PAUSE UTC weekday/date mismatch\n"
+        unless $check[6] == $weekday{$day_name};
     return (sprintf("%04d-%02d-%02dT%02d:%02d:%02dZ",
         $year, $mon, $day, $hour, $min, $sec), $epoch);
 }
