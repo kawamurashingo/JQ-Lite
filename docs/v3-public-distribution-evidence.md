@@ -46,17 +46,34 @@ The `v2.59` GitHub Release continues to report
 `published_at=2026-01-03T03:53:26Z`. This inconsistent ordering
 cannot establish original PAUSE publication chronology.
 
-The live [English installation page](https://kawamurashingo.github.io/JQ-Lite/index-en.html)
-currently documents HTTP requests for release metadata and CPAN
-tarballs. The prior v3 README also used HTTP and a bogus
-`JSON-PP-4.xx.tar.gz` placeholder. The corrected **v3-dev README**
-now requires HTTPS even on redirects, parses the response using
-Perl 5.14+'s core `JSON::PP`, and accepts only stable numeric
-versions. This does **not** change the deployed website. Identify
-and review the website publishing source separately, with explicit
-maintainer authorization before altering stable `main` or deployed
-content. Prefer `cpanm JQ::Lite` or independently verified HTTPS
-downloads until its public example is corrected.
+At the **2026-10-26 observation**, the live [English installation
+page](https://kawamurashingo.github.io/JQ-Lite/index-en.html)
+still documented HTTP requests for release metadata and CPAN
+tarballs. The previous v3 README had also used HTTP and a bogus
+`JSON-PP-4.xx.tar.gz` placeholder; this remains a *historical*
+observation rather than the current deployed-page state.
+
+### 2026-10-28 read-only recheck of the deployed English guide
+
+A read-only browse of the same deployed English page now shows two
+HTTPS-only requests: MetaCPAN `https://fastapi.metacpan.org/v1/release/JQ-Lite`
+and the stable CPAN tarball under
+`https://cpan.metacpan.org/authors/id/S/SH/SHINGO/`, each guarded
+with `curl --proto '=https' --proto-redir '=https'`. The corresponding
+[`gh-pages/index-en.html` source](https://github.com/kawamurashingo/JQ-Lite/blob/gh-pages/index-en.html)
+also contains these URLs/options (observed source blob
+`68da0417a93c090a7bdbc9b9fed0d6b2c2d1c0fb`). This recheck
+**supersedes the live English HTTP finding above**; it does not
+retroactively change the 2026-10-26 observation. The v3-dev README
+has a separately corrected HTTPS/JSON::PP example. No `main`
+modification is involved.
+
+This check establishes only the current visible English page and its
+corresponding site source, not archived response bytes, historic
+downloads, every public URL, a verified tarball, or original PAUSE
+upload chronology. No publication-history sign-off or public v3
+version approval follows. Until that independent audit is completed,
+prefer `cpanm JQ::Lite` or independently verified HTTPS downloads.
 
 These bounded observations provide no original PAUSE receipts,
 historical access log or permission for public version selection.
