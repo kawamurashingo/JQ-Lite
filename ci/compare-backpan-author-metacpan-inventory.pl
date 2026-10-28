@@ -180,10 +180,20 @@ sub parse_pause_mbox_message {
     my $encoding = lc($header{'content-transfer-encoding'} || '7bit');
     $encoding =~ s/\s+\z//;
     if ($encoding eq 'base64') {
+        # MIME::Base64 silently ignores bad padding and trailing garbage;
+        # validate the complete transfer payload before decoding.
+        my $encoded = $body;
+        $encoded =~ s/[ \t\r\n]//g;
         die "Malformed PAUSE base64 transfer encoding\n"
-            unless $body =~ /\A[A-Za-z0-9+\/=\s]*\z/;
-        $body = decode_base64($body);
+            unless $encoded =~ /\A(?:[A-Za-z0-9+\/]{4})*
+                (?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?\z/x;
+        $body = decode_base64($encoded);
     } elsif ($encoding eq 'quoted-printable') {
+        # MIME::QuotedPrint leaves invalid escapes untouched. RFC 2045
+        # permits transport padding after soft-break "=" before LF.
+        # Reject other malformed escapes without rejecting valid padding.
+        die "Malformed PAUSE quoted-printable transfer encoding\n"
+            if $body =~ /=(?![0-9A-Fa-f]{2}|[ \t]*\n)/;
         $body = decode_qp($body);
     } else {
         die "Unsupported PAUSE transfer encoding\n"
