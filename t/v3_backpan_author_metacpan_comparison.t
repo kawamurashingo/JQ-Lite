@@ -154,6 +154,30 @@ my $bad_receipt = run_tool($archive, $meta,
     saved($phead . "JQ-Lite-1.31.tar.gz\t1.31\tnot-a-time\t1234\t" . ('a' x 64) . "\n"));
 ok($bad_receipt->{exit} != 0, 'missing original UTC completion time rejected');
 
+# The manual PRIVATE_RECEIPTS.tsv format check must also validate the
+# real calendar, not only numeric fields. Synthetic dates only.
+for my $impossible (
+    '2025-02-31T03:37:10Z',
+    '2025-02-29T03:37:10Z',
+    '2025-04-31T03:37:10Z',
+) {
+    my $bad_date = run_tool($archive, $meta, saved($phead
+        . pa('0.05', $impossible)
+        . pa('1.31', '2025-10-26T09:05:27Z')
+        . pa('1.32', '2025-10-26T11:09:49Z')));
+    ok($bad_date->{exit} != 0,
+        'impossible Gregorian PAUSE TSV completion date is rejected');
+    like($bad_date->{err}, qr/Malformed PAUSE receipt/,
+        'impossible TSV calendar date has a safe diagnostic');
+}
+
+my $leap_date = run_tool($archive, $meta, saved($phead
+    . pa('0.05', '2024-02-29T03:37:10Z')
+    . pa('1.31', '2025-10-26T09:05:27Z')
+    . pa('1.32', '2025-10-26T11:09:49Z')));
+is($leap_date->{exit}, 0,
+    'real February 29 leap-day PAUSE TSV timestamp is accepted');
+
 my $internal_receipt = run_tool($archive, $meta,
     saved($phead . pa('3.00_03', '2026-10-25T00:00:00Z')));
 ok($internal_receipt->{exit} != 0,
