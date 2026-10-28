@@ -50,7 +50,14 @@ die "Invalid expected PAUSE event count\n"
 
 sub read_tsv {
     my ($file, $header, $width, $kind) = @_;
-    open my $fh, '<', $file or die "Cannot open $kind $file: $!\n";
+    my $fh;
+    unless (open $fh, '<', $file) {
+        # Private receipt paths may contain account names or mail export IDs.
+        # Never echo them to a public CI log or copied error report.
+        die "Cannot open private PAUSE receipts TSV\n"
+            if $kind eq 'PAUSE receipts';
+        die "Cannot open $kind $file: $!\n";
+    }
     my $first = <$fh>;
     die "Missing $kind TSV header\n" unless defined $first;
     $first =~ s/\r?\n\z//;
@@ -64,7 +71,11 @@ sub read_tsv {
         die "Invalid $kind TSV at line $line\n" unless @fields == $width;
         push @rows, \@fields;
     }
-    close $fh or die "Cannot close $kind $file: $!\n";
+    unless (close $fh) {
+        die "Cannot close private PAUSE receipts TSV\n"
+            if $kind eq 'PAUSE receipts';
+        die "Cannot close $kind $file: $!\n";
+    }
     die "Empty $kind observation set\n" unless @rows;
     return @rows;
 }
