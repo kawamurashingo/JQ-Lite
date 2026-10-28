@@ -189,10 +189,11 @@ sub parse_pause_mbox_message {
                 (?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?\z/x;
         $body = decode_base64($encoded);
     } elsif ($encoding eq 'quoted-printable') {
-        # MIME::QuotedPrint leaves invalid escapes untouched; this audit
-        # must not treat malformed original evidence as a valid message.
+        # MIME::QuotedPrint leaves invalid escapes untouched. RFC 2045
+        # permits transport padding after soft-break "=" before LF.
+        # Reject other malformed escapes without rejecting valid padding.
         die "Malformed PAUSE quoted-printable transfer encoding\n"
-            if $body =~ /=(?![0-9A-Fa-f]{2}|\n)/;
+            if $body =~ /=(?![0-9A-Fa-f]{2}|[ \t]*\n)/;
         $body = decode_qp($body);
     } else {
         die "Unsupported PAUSE transfer encoding\n"
