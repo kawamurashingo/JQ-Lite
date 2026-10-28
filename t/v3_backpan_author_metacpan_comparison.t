@@ -6,6 +6,7 @@ use File::Spec;
 use File::Temp qw(tempfile);
 use IPC::Open3 qw(open3);
 use Symbol qw(gensym);
+use MIME::Base64 qw(encode_base64);
 
 my $tool = File::Spec->catfile($FindBin::Bin, '..', 'ci',
     'compare-backpan-author-metacpan-inventory.pl');
@@ -18,11 +19,13 @@ sub saved {
     return $path;
 }
 sub run_tool {
-    my ($a, $b, $pause) = @_;
+    my ($a, $b, $pause, $mbox, $count) = @_;
     my $err = gensym;
     my $pid = open3(my $in, my $out, $err, $^X, $tool,
         '--backpan-author', $a, '--metacpan', $b,
-        (defined($pause) ? ('--pause-receipts', $pause) : ()));
+        (defined($pause) ? ('--pause-receipts', $pause) : ()),
+        (defined($mbox) ? ('--pause-mbox', $mbox) : ()),
+        (defined($count) ? ('--expected-pause-events', $count) : ()));
     close $in;
     my $stdout = do { local $/; <$out> } || '';
     my $stderr = do { local $/; <$err> } || '';
@@ -178,5 +181,195 @@ ok($ambiguous->{exit} != 0,
     'identical UTC completion times across different versions require review');
 like($ambiguous->{out}, qr/AMBIGUOUS PAUSE COMPLETION TIME/,
     'ambiguous original order is explicitly diagnosed');
+
+
+# Gmail Takeout-style local MBOX import; ALL fixtures are synthetic.
+# The real mailbox and its headers must never be checked into GitHub.
+sub mbox_mail {
+    my ($version, $utc, $entered) = @_;
+    my $archive = "JQ-Lite-$version.tar.gz";
+    my $header = "From synthetic\@example.invalid Tue Oct 28 00:00:00 2025\n"
+        . "Subject: CPAN Upload: S/SH/SHINGO/$archive\n"
+        . "Content-Type: text/plain; charset=UTF-8\n";
+    my $body = "The uploaded file\n\n$archive\n\nhas entered CPAN as\n\n"
+        . 'file: $CPAN/authors/id/S/SH/SHINGO/' . "$archive\n"
+        . "size: 1234 bytes\n"
+        . "sha256: " . ('a' x 64) . "\n\n"
+        . "Request entered on: $entered\n"
+        . "Request completed: $utc\n";
+    return ($header, $body);
+}
+my @raw = (
+    mbox_mail('0.05', 'Sat, 29 Mar 2025 03:37:10 GMT',
+        'Sat, 29 Mar 2025 03:36:06 GMT'),
+    mbox_mail('1.31', 'Sun, 26 Oct 2025 09:05:27 GMT',
+        'Sun, 26 Oct 2025 09:04:12 GMT'),
+    mbox_mail('1.32', 'Sun, 26 Oct 2025 11:09:49 GMT',
+        'Sun, 26 Oct 2025 11:09:39 GMT'),
+);
+my $mbox_text = '';
+for my $i (0 .. 2) {
+    $mbox_text .= $raw[$i * 2] . "\n" . $raw[$i * 2 + 1];
+}
+my $mbox_file = saved($mbox_text);
+my $mbox_ok = run_tool($archive, $meta, undef, $mbox_file, 3);
+is($mbox_ok->{exit}, 0, 'local mbox import agrees with source observations');
+like($mbox_ok->{out}, qr/PAUSE original receipt events: 3/,
+    'mbox imported three original receipt bodies');
+like($mbox_ok->{out}, qr/REVIEW ONLY/,
+    'a successful mbox observation never approves publication');
+
+my $wrong_count = run_tool($archive, $meta, undef, $mbox_file, 4);
+ok($wrong_count->{exit} != 0,
+    'missing expected mbox upload event fails closed');
+like($wrong_count->{err}, qr/Unexpected PAUSE receipt event count/,
+    'expected-event error is explicit without leaking mail headers');
+
+my $mbox_missing = run_tool($archive, $meta, undef,
+    saved($raw[0] . "\n" . $raw[1] . $raw[2] . "\n" . $raw[3]));
+ok($mbox_missing->{exit} != 0, 'incomplete mbox version-set fails');
+like($mbox_missing->{out}, qr/PAUSE-MISSING VERSION: 1\.32/,
+    'archive missing from partial original mbox is reported');
+
+my $mbox_duplicate = run_tool($archive, $meta, undef,
+    saved($mbox_text . $raw[2] . "\n" . $raw[3]));
+ok($mbox_duplicate->{exit} != 0,
+    'duplicate exact original upload completion event rejected');
+
+my $qprint = $mbox_text;
+$qprint =~ s/Content-Type: text\/plain; charset=UTF-8\n/Content-Type: text\/plain; charset=UTF-8\nContent-Transfer-Encoding: quoted-printable\n/g;
+$qprint =~ s/The uploaded file/The=20uploaded file/g;
+is(run_tool($archive, $meta, undef, saved($qprint))->{exit}, 0,
+    'quoted-printable single-part PAUSE body supported');
+
+my $encoded = '';
+for my $i (0 .. 2) {
+    my $head = $raw[$i * 2];
+    $head .= "Content-Transfer-Encoding: base64\n";
+    $encoded .= $head . "\n" . encode_base64($raw[$i * 2 + 1]);
+}
+is(run_tool($archive, $meta, undef, saved($encoded))->{exit}, 0,
+    'base64 single-part PAUSE body supported');
+
+my $unsupported = $mbox_text;
+$unsupported =~ s/Content-Type: text\/plain; charset=UTF-8/Content-Type: multipart\/mixed; boundary="unsafe"/;
+my $bad_mime = run_tool($archive, $meta, undef, saved($unsupported));
+ok($bad_mime->{exit} != 0, 'unparsed multipart target mail is not silently omitted');
+like($bad_mime->{err}, qr/Unsupported non-plain-text PAUSE receipt MIME/,
+    'unsupported MIME format fails closed without outputting mail data');
+
+my $bad_body = $mbox_text;
+$bad_body =~ s/Request completed on:/Request completed on:/;
+$bad_body =~ s/Request completed: Sat, 29 Mar 2025 03:37:10 GMT/Request completed: invalid date/;
+ok(run_tool($archive, $meta, undef, saved($bad_body))->{exit} != 0,
+    'malformed original completion timestamp rejected');
+
+my $private_unrelated =
+    "From private\@example.invalid Tue Oct 28 00:00:00 2025\n"
+    . "Subject: Private unrelated mail\n\n"
+    . "SECRETS_DO_NOT_LOG\n";
+my $unrelated = run_tool($archive, $meta, undef,
+    saved($private_unrelated . $mbox_text));
+is($unrelated->{exit}, 0, 'unrelated local mbox messages are skipped');
+unlike($unrelated->{out} . $unrelated->{err}, qr/SECRETS_DO_NOT_LOG|example\.invalid/,
+    'tool stdout/stderr never display unrelated private mail fields');
+
+my ($dev_h, $dev_b) = mbox_mail('3.00_03',
+    'Sun, 26 Oct 2025 11:09:49 GMT', 'Sun, 26 Oct 2025 11:09:39 GMT');
+my $devmail = run_tool($archive, $meta, undef, saved($dev_h . "\n" . $dev_b));
+ok($devmail->{exit} != 0,
+    'internal developer mbox receipt triggers manual audit instead of being ignored');
+
+my $conflict_mbox = $mbox_text . $raw[2] . "\n" . $raw[3];
+$conflict_mbox =~ s/sha256: a{64}\nRequest entered on: Sun, 26 Oct 2025 09:04:12 GMT/sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\nRequest entered on: Sun, 26 Oct 2025 09:04:12 GMT/;
+# The repeated event is the same UTC instant and is invalid regardless.
+ok(run_tool($archive, $meta, undef, saved($conflict_mbox))->{exit} != 0,
+    'same-version non-unique event cannot hide a competing body digest');
+
+
+# PAUSE's actual file-hash summary may indent fields with spaces.
+my $aligned = $mbox_text;
+$aligned =~ s/^file:/  file:/mg;
+$aligned =~ s/^size:/  size:/mg;
+$aligned =~ s/^sha256:/  sha256:/mg;
+$aligned =~ s/^Request completed:/  Request completed:/mg;
+is(run_tool($archive, $meta, undef, saved($aligned), 3)->{exit}, 0,
+    'aligned PAUSE producer fields are recognized without loosening their values');
+
+# RFC 2047 subjects must be decoded BEFORE target/developer detection.
+my $q_subject = $mbox_text;
+$q_subject =~ s{^Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-0\.05}{
+    'Subject: =?UTF-8?Q?CPAN_Upload:?= S/SH/SHINGO/JQ-Lite-0.05'}em;
+is(run_tool($archive, $meta, undef, saved($q_subject), 3)->{exit}, 0,
+    'quoted-printable MIME subject identifies intended PAUSE upload');
+my $b_subject = $mbox_text;
+my $encoded_title = encode_base64('CPAN Upload:', '');
+$b_subject =~ s{^Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-0\.05}{
+    'Subject: =?UTF-8?B?' . $encoded_title . '?= S/SH/SHINGO/JQ-Lite-0.05'}em;
+is(run_tool($archive, $meta, undef, saved($b_subject), 3)->{exit}, 0,
+    'base64 MIME subject identifies intended PAUSE upload');
+my $encoded_dev = $dev_h . "\n" . $dev_b;
+$encoded_dev =~ s/^Subject: CPAN Upload: /
+    'Subject: =?UTF-8?Q?CPAN_Upload:?= '/em;
+my $with_encoded_dev = run_tool($archive, $meta, undef,
+    saved($mbox_text . $encoded_dev), 3);
+ok($with_encoded_dev->{exit} != 0,
+    'MIME-encoded developer receipt cannot bypass the release audit alert');
+
+for my $field ('file', 'size', 'sha256', 'Request completed') {
+    my $two = $mbox_text;
+    $two =~ s/^(\Q$field\E:[^\n]*\n)/$1$1/m;
+    my $result = run_tool($archive, $meta, undef, saved($two), 3);
+    ok($result->{exit} != 0,
+        "duplicate $field receipt evidence fails closed");
+    like($result->{err}, qr/Missing or duplicate PAUSE receipt field/,
+        "duplicate $field explanation never exposes raw mail");
+}
+
+
+for my $header (qw(Subject Content-Type Content-Transfer-Encoding)) {
+    my $two_header = $mbox_text;
+    if ($header eq 'Subject') {
+        $two_header =~ s{^(Subject: [^\n]+\n)}{
+            $1 . "Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-3.00_03.tar.gz\n"}em;
+    } elsif ($header eq 'Content-Type') {
+        $two_header =~ s{^(Content-Type: [^\n]+\n)}{
+            $1 . "Content-Type: multipart/mixed\n"}em;
+    } else {
+        $two_header =~ s{^(Content-Type: [^\n]+\n)}{
+            $1 . "Content-Transfer-Encoding: 8bit\n"
+               . "Content-Transfer-Encoding: base64\n"}em;
+    }
+    my $duplicate = run_tool($archive, $meta, undef,
+        saved($two_header), 3);
+    ok($duplicate->{exit} != 0,
+        "duplicate $header cannot conceal contradictory private MIME evidence");
+    like($duplicate->{err}, qr/Duplicate MIME classification header/,
+        "duplicate $header refusal never logs private message contents");
+}
+
+
+# Mailbox classifier must not silently drop public developer archive
+# receipts with a v-prefix, nor incomplete subject-only target messages.
+my $prefixed_dev_mail = $dev_h . "\n" . $dev_b;
+$prefixed_dev_mail =~ s/JQ-Lite-3\.00_03/JQ-Lite-v3.00_03/g;
+my $prefixed_dev_result = run_tool($archive, $meta, undef,
+    saved($mbox_text . $prefixed_dev_mail), 3);
+ok($prefixed_dev_result->{exit} != 0,
+    'v-prefixed developer PAUSE subject is explicitly rejected');
+like($prefixed_dev_result->{err},
+    qr/Internal\/developer PAUSE receipt/,
+    'v-prefixed developer archive is not silently skipped');
+
+my $truncated_target = $mbox_text
+    . "From synthetic\@example.invalid Tue Oct 28 00:00:00 2025\n"
+    . "Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-3.00_03.tar.gz\n";
+my $truncated_result = run_tool($archive, $meta, undef,
+    saved($truncated_target), 3);
+ok($truncated_result->{exit} != 0,
+    'incomplete developer receipt header cannot pass event-count gate');
+like($truncated_result->{err},
+    qr/Truncated PAUSE target receipt/,
+    'truncated target is rejected before it can be skipped');
 
 done_testing;
