@@ -182,3 +182,7 @@ choose a public version, merge `v3-dev` to `main` or publish.
    maintainer permission before any `main` merge, release tag or upload.
 
 **Result: substantial new primary evidence; not yet release-ready.**
+
+A reproducible primary-receipt validation requires a private original-message
+export and a local offline check; a repeatable Gmail search alone does not
+establish completeness. No private messages or addresses belong in this repo.
