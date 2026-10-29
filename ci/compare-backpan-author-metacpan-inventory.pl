@@ -301,17 +301,29 @@ sub valid_mbox_envelope {
         Jan => 1, Feb => 2, Mar => 3, Apr => 4, May => 5, Jun => 6,
         Jul => 7, Aug => 8, Sep => 9, Oct => 10, Nov => 11, Dec => 12,
     );
+    my %weekdays = (
+        Sun => 0, Mon => 1, Tue => 2, Wed => 3,
+        Thu => 4, Fri => 5, Sat => 6,
+    );
     return 0 unless defined($line)
         && $line =~ /\AFrom[ \t]+\S+[ \t]+
-            (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[ \t]+
+            (Mon|Tue|Wed|Thu|Fri|Sat|Sun)[ \t]+
             (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[ \t]+
             (0?[1-9]|[12]\d|3[01])[ \t]+
             ((?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d)[ \t]+
             (?:(?:[A-Z]{2,5}|[+-]\d{4})[ \t]+)?
             (\d{4})(?:[ \t]+[^\r\n]*)?\r?\n?\z/x;
-    my ($month, $day, $clock, $year) = ($months{$1}, $2, $3, $4);
-    return valid_pause_iso_utc(
+    my ($weekday, $month, $day, $clock, $year) =
+        ($1, $months{$2}, $3, $4, $5);
+    return 0 unless valid_pause_iso_utc(
         sprintf("%04d-%02d-%02dT%sZ", $year, $month, $day, $clock));
+    # The mbox weekday describes the sender's written local calendar day,
+    # regardless of the optional zone. Check that date at UTC noon solely
+    # to derive its weekday; never use it as a PAUSE upload timestamp.
+    my $epoch = eval { timegm(0, 0, 12, $day, $month - 1, $year) };
+    return 0 if $@ || !defined($epoch);
+    my @check = gmtime($epoch);
+    return $check[6] == $weekdays{$weekday};
 }
 
 sub read_pause_mbox {
