@@ -376,8 +376,10 @@ for my $r (@a) {
     die "Invalid BackPAN classification\n" unless $class eq 'observed-archive'
         || $class eq 'INTERNAL-DEVELOPER-ARTIFACT-ALERT';
     die "Duplicate BackPAN author version $version\n" if $archived{$version}++;
+    # Any underscore-suffixed CPAN version denotes a developer build;
+    # do not restrict the alert to the known 3.00_03 incident.
     ++$developers if $class eq 'INTERNAL-DEVELOPER-ARTIFACT-ALERT'
-        || $version =~ /\A(?:v)?3\.0+_\d+\z/;
+        || $version =~ /_\d+\z/;
 }
 my @off_author;
 for my $r (@b) {
@@ -395,7 +397,7 @@ for my $r (@b) {
     die "Duplicate MetaCPAN version $version\n" if $indexed{$version}++;
     push @off_author, $version if $author ne 'SHINGO';
     ++$developers if $class eq 'INTERNAL-DEVELOPER-ARTIFACT-ALERT'
-        || $version =~ /\A(?:v)?3\.0+_\d+\z/;
+        || $version =~ /_\d+\z/;
 }
 # Optional private PAUSE receipt comparison: only public archive facts enter
 # output. No original emails, personal addresses or message identifiers.

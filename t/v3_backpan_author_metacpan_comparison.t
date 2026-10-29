@@ -69,6 +69,36 @@ my $vdev = run_tool(saved($ahead . ba('v3.00_01')),
     saved($mhead . ma('v3.00_01')));
 ok($vdev->{exit} != 0, 'v-prefixed internal build cannot evade guard');
 
+# Developer releases are identified by an underscore suffix regardless
+# of the major/minor version, including v-prefixed names. Even when both
+# independent public observations agree, they must not certify a release.
+for my $developer_version ('1.31_01', '3.01_01', 'v3.01_02') {
+    my $result = run_tool(
+        saved($ahead . ba($developer_version)),
+        saved($mhead . ma($developer_version)));
+    ok($result->{exit} != 0,
+        'synthetic non-3.00 underscore developer version fails closed');
+    like($result->{out}, qr/INTERNAL-DEVELOPER-ARTIFACT-ALERT:/,
+        'matching observations of developer release still emit an alert');
+}
+my $backpan_other_developer = run_tool(
+    saved($ahead . ba('0.05') . ba('1.31_01')),
+    saved($mhead . ma('0.05')));
+ok($backpan_other_developer->{exit} != 0,
+    'developer release in BackPAN-only evidence is blocked');
+like($backpan_other_developer->{out},
+    qr/INTERNAL-DEVELOPER-ARTIFACT-ALERT:/,
+    'BackPAN-only developer release emits the explicit alert');
+my $metacpan_other_developer = run_tool(
+    saved($ahead . ba('0.05')),
+    saved($mhead . ma('0.05') . ma('3.01_01')));
+ok($metacpan_other_developer->{exit} != 0,
+    'developer release in MetaCPAN-only evidence is blocked');
+like($metacpan_other_developer->{out},
+    qr/INTERNAL-DEVELOPER-ARTIFACT-ALERT:/,
+    'MetaCPAN-only developer release emits the explicit alert');
+
+
 my $duplicate = run_tool(saved($ahead . ba('1.31') . ba('1.31')), saved($mhead . ma('1.31')));
 ok($duplicate->{exit} != 0, 'duplicate source archive version rejected');
 like($duplicate->{err}, qr/Duplicate BackPAN/, 'duplicate diagnostic');
