@@ -241,8 +241,10 @@ sub parse_pause_mbox_message {
     # original PAUSE evidence. Do not classify it as unrelated mail simply
     # because its version or archive suffix fails the strict target grammar.
     # Other distributions and ordinary reply subjects remain unrelated.
+    # Even a missing, shortened or damaged PAUSE author path must not make
+    # a JQ-Lite upload notice disappear from the original mailbox audit.
     my $possible_upload_subject =
-        qr{\ACPAN Upload:[ \t]+(?:[A-Z0-9_-]+/){3}JQ-Lite-[^\r\n]*\z};
+        qr{\ACPAN Upload:[ \t]+(?:[^\r\n]*/)?JQ-Lite-[^\r\n]*\z};
     die "Malformed JQ-Lite PAUSE upload subject requires investigation\n"
         if grep { $_ =~ $possible_upload_subject
                 && $_ !~ $target_subject
