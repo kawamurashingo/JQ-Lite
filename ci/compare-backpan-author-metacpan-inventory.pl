@@ -135,6 +135,17 @@ sub valid_pause_iso_utc {
 }
 
 
+# BackPAN Last-Modified observations have minute precision rather than
+# ISO seconds. Validate the Gregorian UTC calendar and clock, not merely
+# the YYYY-MM-DD HH:MM spelling, before using them as historical evidence.
+sub valid_backpan_modified {
+    my ($value) = @_;
+    return 0 unless defined($value)
+        && $value =~ /\A(\d{4}-\d\d-\d\d) (\d\d:\d\d)\z/;
+    return valid_pause_iso_utc("$1" . "T$2:00Z");
+}
+
+
 # RFC 2047 encoded-word decoding for MIME transport headers. Never
 # silently ignore an encoded developer-build subject; fail closed on
 # malformed words rather than treating them as unrelated messages.
@@ -308,7 +319,7 @@ for my $r (@a) {
         unless $archive =~ /\AJQ-Lite-((?:v)?\d+(?:\.\d+)+(?:_\d+)?)\.tar\.gz\z/
             && $1 eq $version;
     die "Invalid BackPAN listing modification time\n"
-        unless $mtime =~ /\A\d{4}-\d\d-\d\d \d\d:\d\d\z/;
+        unless valid_backpan_modified($mtime);
     die "Invalid BackPAN classification\n" unless $class eq 'observed-archive'
         || $class eq 'INTERNAL-DEVELOPER-ARTIFACT-ALERT';
     die "Duplicate BackPAN author version $version\n" if $archived{$version}++;
