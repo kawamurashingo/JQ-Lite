@@ -740,6 +740,40 @@ like($encoded_altered_result->{err},
     qr/Malformed JQ-Lite PAUSE upload subject/,
     'encoded malformed notification gets the same source-safe diagnostic');
 
+# A lost or damaged PAUSE author path must not silently remove a
+# JQ-Lite upload notice from the original-source comparison. These are
+# synthetic subjects only; no actual account names are used.
+for my $malformed_path (
+    'JQ-Lite-0.05.tar.gz',
+    'S/SH/JQ-Lite-0.05.tar.gz',
+    'S/SH/SHINGO//JQ-Lite-0.05.tar.gz',
+    'S/SH/PRIVATE AUTH TOKEN/JQ-Lite-0.05.tar.gz',
+) {
+    my $damaged_header = $raw[0];
+    is(($damaged_header =~
+        s/^Subject: CPAN Upload: [^\n]+/Subject: CPAN Upload: $malformed_path/m),
+        1, 'synthetic missing or malformed author path prepared');
+    my $damaged = run_tool($archive, $meta, undef,
+        saved($mbox_text . $damaged_header . "\n" . $raw[1]), 3);
+    ok($damaged->{exit} != 0,
+        'malformed author path cannot be ignored despite expected event count');
+    like($damaged->{err}, qr/Malformed JQ-Lite PAUSE upload subject/,
+        'damaged author path has an explicit source-safe diagnostic');
+    unlike($damaged->{out} . $damaged->{err},
+        qr/PRIVATE AUTH TOKEN|S\/SH\/SHINGO\/\//,
+        'potentially private author-path details are not printed');
+}
+
+# A different distribution with JQ-Lite as a *substring* of its name
+# must not be incorrectly classified as this distribution's upload.
+my $other_named_header = $raw[0];
+is(($other_named_header =~ s/JQ-Lite-0\.05/Other-JQ-Lite-0.05/),
+    1, 'synthetic similarly named unrelated distribution prepared');
+my $other_named = run_tool($archive, $meta, undef,
+    saved($other_named_header . "\n" . $raw[1] . $mbox_text), 3);
+is($other_named->{exit}, 0,
+    'different distribution with JQ-Lite substring remains unrelated');
+
 # A discussion reply containing the exact upload title is not itself
 # a PAUSE CPAN Upload producer notification.
 my $reply_header = $raw[0];
