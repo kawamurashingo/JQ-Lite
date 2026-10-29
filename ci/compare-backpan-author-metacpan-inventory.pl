@@ -290,6 +290,30 @@ sub parse_pause_mbox_message {
     push @$rows, [$archive, $version, $iso, $bytes, $digest];
 }
 
+# An mbox envelope must be a full Takeout-style separator with a real
+# Gregorian calendar day, not just a well-shaped weekday/month/day prefix.
+# Otherwise an impossible "From ... Feb 31 ..." line inside a receipt body
+# could split the original message and corrupt the offline observation.
+# Do not interpret this local envelope timestamp as PAUSE chronology evidence.
+sub valid_mbox_envelope {
+    my ($line) = @_;
+    my %months = (
+        Jan => 1, Feb => 2, Mar => 3, Apr => 4, May => 5, Jun => 6,
+        Jul => 7, Aug => 8, Sep => 9, Oct => 10, Nov => 11, Dec => 12,
+    );
+    return 0 unless defined($line)
+        && $line =~ /\AFrom[ \t]+\S+[ \t]+
+            (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[ \t]+
+            (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[ \t]+
+            (0?[1-9]|[12]\d|3[01])[ \t]+
+            ((?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d)[ \t]+
+            (?:(?:[A-Z]{2,5}|[+-]\d{4})[ \t]+)?
+            (\d{4})(?:[ \t]+[^\r\n]*)?\r?\n?\z/x;
+    my ($month, $day, $clock, $year) = ($months{$1}, $2, $3, $4);
+    return valid_pause_iso_utc(
+        sprintf("%04d-%02d-%02dT%sZ", $year, $month, $day, $clock));
+}
+
 sub read_pause_mbox {
     my ($path) = @_;
     open my $fh, '<', $path or die "Cannot open private PAUSE mbox\n";
@@ -300,13 +324,7 @@ sub read_pause_mbox {
         # Takeout-style envelope date before splitting original evidence.
         # One-digit days may be zero-padded or space-padded in exports.
         # This is only framing, never proof of the mail's origin or date.
-        if ($line =~ /\AFrom[ \t]+\S+[ \t]+
-            (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[ \t]+
-            (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[ \t]+
-            (?:0?[1-9]|[12]\d|3[01])[ \t]+
-            (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d[ \t]+
-            (?:(?:[A-Z]{2,5}|[+-]\d{4})[ \t]+)?
-            \d{4}(?:[ \t]+[^\r\n]*)?\r?\n?\z/x) {
+        if (valid_mbox_envelope($line)) {
             if ($seen_envelope) {
                 parse_pause_mbox_message($record, \@rows);
             }

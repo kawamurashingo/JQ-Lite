@@ -389,6 +389,53 @@ for my $day ('00', '32') {
         'invalid first-envelope date has a source-safe diagnostic');
 }
 
+# A complete-looking From line with an impossible Gregorian date is
+# ordinary body text, not a trustworthy mbox envelope separator.
+# Place it before a required PAUSE field so accidental splitting fails.
+for my $fake_date ('Feb 31', 'Feb 29', 'Apr 31') {
+    my $body_with_fake = $mbox_text;
+    my $fake_line =
+        "From quoted\@example.invalid Tue $fake_date 00:00:00 2025\n";
+    is(($body_with_fake =~
+        s/(Request completed: Sat, 29 Mar 2025 03:37:10 GMT\n)/
+            $fake_line . $1/e), 1,
+        'synthetic impossible-date From line inserted in receipt body');
+    my $result = run_tool($archive, $meta, undef,
+        saved($body_with_fake), 3);
+    is($result->{exit}, 0,
+        'impossible-date From body line does not split target receipt');
+    like($result->{out}, qr/PAUSE original receipt events: 3/,
+        'all PAUSE events survive the impossible-date From body line');
+    unlike($result->{out} . $result->{err},
+        qr/quoted\@example\.invalid/,
+        'synthetic private-style From sender not logged');
+}
+my $invalid_calendar_envelope = $mbox_text;
+my $invalid_calendar_line =
+    "From synthetic\@example.invalid Tue Feb 31 00:00:00 2025";
+is(($invalid_calendar_envelope =~
+    s/\AFrom [^\n]+/$invalid_calendar_line/), 1,
+    'synthetic invalid first envelope date prepared');
+my $bad_calendar_result = run_tool($archive, $meta, undef,
+    saved($invalid_calendar_envelope), 3);
+ok($bad_calendar_result->{exit} != 0,
+    'invalid Gregorian date in first envelope fails closed');
+like($bad_calendar_result->{err}, qr/Invalid mbox envelope separator/,
+    'invalid first envelope calendar gets source-safe diagnostic');
+
+my $valid_leap_envelope = $mbox_text;
+my $valid_leap_line =
+    "From synthetic\@example.invalid Thu Feb 29 00:00:00 2024";
+is(($valid_leap_envelope =~
+    s/\AFrom [^\n]+/$valid_leap_line/), 1,
+    'synthetic leap-year envelope prepared');
+my $valid_leap_result = run_tool($archive, $meta, undef,
+    saved($valid_leap_envelope), 3);
+is($valid_leap_result->{exit}, 0,
+    'real February 29 mbox envelope remains supported');
+like($valid_leap_result->{out}, qr/PAUSE original receipt events: 3/,
+    'valid leap-day envelope preserves receipt event count');
+
 my $wrong_count = run_tool($archive, $meta, undef, $mbox_file, 4);
 ok($wrong_count->{exit} != 0,
     'missing expected mbox upload event fails closed');
