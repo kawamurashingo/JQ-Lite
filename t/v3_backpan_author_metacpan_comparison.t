@@ -702,6 +702,54 @@ ok($encoded_foreign->{exit} != 0,
 like($encoded_foreign->{err}, qr/Non-SHINGO JQ-Lite PAUSE receipt/,
     'encoded alternative-author notice is explicitly diagnosed');
 
+# An altered JQ-Lite CPAN Upload subject is still possible original
+# evidence, even if it cannot be parsed as the known PAUSE tar.gz form.
+# Reject without printing subject text or alternative-author details.
+for my $altered_path (
+    'S/SH/SHINGO/JQ-Lite-0.05.zip',
+    'S/SH/SHINGO/JQ-Lite-0.05.tar.gz EXTRA_PRIVATE_TOKEN',
+    'S/SH/SHINGO/JQ-Lite-3.00_03-extra.tar.gz',
+    'O/OT/OTHER/JQ-Lite-0.05.tar.bz2',
+) {
+    my $altered_header = $raw[0];
+    is(($altered_header =~
+        s/^Subject: CPAN Upload: [^\n]+/Subject: CPAN Upload: $altered_path/m),
+        1, 'synthetic malformed JQ-Lite upload notice prepared');
+    my $result = run_tool($archive, $meta, undef,
+        saved($mbox_text . $altered_header . "\n" . $raw[1]), 3);
+    ok($result->{exit} != 0,
+        'malformed JQ-Lite upload notice blocks apparent complete history');
+    like($result->{err}, qr/Malformed JQ-Lite PAUSE upload subject/,
+        'altered JQ-Lite notification is diagnosed without subject details');
+    unlike($result->{out} . $result->{err},
+        qr/EXTRA_PRIVATE_TOKEN|O\/OT\/OTHER/,
+        'subject-specific private metadata is absent from diagnostics');
+}
+
+my $encoded_altered_header = $raw[0];
+my $encoded_altered_subject =
+    'Subject: =?UTF-8?Q?CPAN_Upload:?= S/SH/SHINGO/JQ-Lite-0.05.zip';
+is(($encoded_altered_header =~
+    s/^Subject: CPAN Upload: [^\n]+/$encoded_altered_subject/m),
+    1, 'synthetic MIME-encoded malformed upload notice prepared');
+my $encoded_altered_result = run_tool($archive, $meta, undef,
+    saved($mbox_text . $encoded_altered_header . "\n" . $raw[1]), 3);
+ok($encoded_altered_result->{exit} != 0,
+    'encoded malformed JQ-Lite subject cannot evade strict classification');
+like($encoded_altered_result->{err},
+    qr/Malformed JQ-Lite PAUSE upload subject/,
+    'encoded malformed notification gets the same source-safe diagnostic');
+
+# A discussion reply containing the exact upload title is not itself
+# a PAUSE CPAN Upload producer notification.
+my $reply_header = $raw[0];
+is(($reply_header =~ s/^Subject: CPAN Upload:/Subject: Re: CPAN Upload:/m),
+    1, 'synthetic unrelated reply subject prepared');
+my $reply_result = run_tool($archive, $meta, undef,
+    saved($reply_header . "\n" . $raw[1] . $mbox_text), 3);
+is($reply_result->{exit}, 0,
+    'unrelated reply about a JQ-Lite upload is still ignored');
+
 # Other distributions should still be ignored; an unrelated CPAN
 # upload notification does not constitute JQ-Lite original evidence.
 my $unrelated_upload_header = $foreign_header;

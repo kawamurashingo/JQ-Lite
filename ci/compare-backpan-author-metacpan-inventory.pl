@@ -237,6 +237,16 @@ sub parse_pause_mbox_message {
     die "Non-SHINGO JQ-Lite PAUSE receipt requires independent investigation\n"
         if grep { $_ =~ $other_author_subject && $_ !~ $target_subject }
             @subjects;
+    # A malformed or altered JQ-Lite upload notification is still possible
+    # original PAUSE evidence. Do not classify it as unrelated mail simply
+    # because its version or archive suffix fails the strict target grammar.
+    # Other distributions and ordinary reply subjects remain unrelated.
+    my $possible_upload_subject =
+        qr{\ACPAN Upload:[ \t]+(?:[A-Z0-9_-]+/){3}JQ-Lite-[^\r\n]*\z};
+    die "Malformed JQ-Lite PAUSE upload subject requires investigation\n"
+        if grep { $_ =~ $possible_upload_subject
+                && $_ !~ $target_subject
+                && $_ !~ $other_author_subject } @subjects;
     my ($subject) = grep { $_ =~ $target_subject } @subjects;
     return unless defined $subject;
     for my $name (qw(subject content-type content-transfer-encoding)) {
