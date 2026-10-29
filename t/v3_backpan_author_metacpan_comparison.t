@@ -411,8 +411,10 @@ for my $fake_date ('Feb 31', 'Feb 29', 'Apr 31') {
         'synthetic private-style From sender not logged');
 }
 my $invalid_calendar_envelope = $mbox_text;
-is(($invalid_calendar_envelope =~ s/\AFrom [^\n]+/
-    From synthetic\@example.invalid Tue Feb 31 00:00:00 2025/x), 1,
+my $invalid_calendar_line =
+    "From synthetic\@example.invalid Tue Feb 31 00:00:00 2025";
+is(($invalid_calendar_envelope =~
+    s/\AFrom [^\n]+/$invalid_calendar_line/), 1,
     'synthetic invalid first envelope date prepared');
 my $bad_calendar_result = run_tool($archive, $meta, undef,
     saved($invalid_calendar_envelope), 3);
@@ -422,8 +424,10 @@ like($bad_calendar_result->{err}, qr/Invalid mbox envelope separator/,
     'invalid first envelope calendar gets source-safe diagnostic');
 
 my $valid_leap_envelope = $mbox_text;
-is(($valid_leap_envelope =~ s/\AFrom [^\n]+/
-    From synthetic\@example.invalid Thu Feb 29 00:00:00 2024/x), 1,
+my $valid_leap_line =
+    "From synthetic\@example.invalid Thu Feb 29 00:00:00 2024";
+is(($valid_leap_envelope =~
+    s/\AFrom [^\n]+/$valid_leap_line/), 1,
     'synthetic leap-year envelope prepared');
 my $valid_leap_result = run_tool($archive, $meta, undef,
     saved($valid_leap_envelope), 3);
