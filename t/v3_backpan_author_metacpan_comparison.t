@@ -436,6 +436,52 @@ is($valid_leap_result->{exit}, 0,
 like($valid_leap_result->{out}, qr/PAUSE original receipt events: 3/,
     'valid leap-day envelope preserves receipt event count');
 
+# Even a real Gregorian date should not split a receipt when the
+# envelope's weekday disagrees with its written local calendar date.
+# Optional timezones affect the instant, not that local weekday.
+for my $bad_envelope (
+    "From quoted\@example.invalid Mon Oct 28 00:00:00 2025\n",
+    "From quoted\@example.invalid Sun Oct 08 00:00:00 +0900 2025\n",
+) {
+    my $variant = $mbox_text;
+    is(($variant =~
+        s/(Request completed: Sat, 29 Mar 2025 03:37:10 GMT\n)/
+            $bad_envelope . $1/e), 1,
+        'synthetic wrong-weekday From line inserted into receipt body');
+    my $result = run_tool($archive, $meta, undef, saved($variant), 3);
+    is($result->{exit}, 0,
+        'mismatched-weekday From body text does not split receipt');
+    like($result->{out}, qr/PAUSE original receipt events: 3/,
+        'all PAUSE receipts survive incorrect-weekday body text');
+    unlike($result->{out} . $result->{err},
+        qr/quoted\@example\.invalid/,
+        'synthetic private-style sender is absent from audit diagnostics');
+}
+my $wrong_first_weekday = $mbox_text;
+my $wrong_first_line =
+    "From synthetic\@example.invalid Mon Oct 28 00:00:00 2025";
+is(($wrong_first_weekday =~
+    s/\AFrom [^\n]+/$wrong_first_line/), 1,
+    'synthetic wrong-weekday first envelope prepared');
+my $wrong_first_result = run_tool($archive, $meta, undef,
+    saved($wrong_first_weekday), 3);
+ok($wrong_first_result->{exit} != 0,
+    'first mbox envelope with mismatched weekday fails closed');
+like($wrong_first_result->{err}, qr/Invalid mbox envelope separator/,
+    'wrong-weekday first envelope has a path-free diagnostic');
+
+my $zoned_weekday = $mbox_text;
+my $zoned_line =
+    "From synthetic\@example.invalid Wed Oct 08 12:34:56 +0900 2025";
+is(($zoned_weekday =~ s/\AFrom [^\n]+/$zoned_line/), 1,
+    'synthetic matching-weekday zoned envelope prepared');
+my $zoned_result = run_tool($archive, $meta, undef,
+    saved($zoned_weekday), 3);
+is($zoned_result->{exit}, 0,
+    'matching local weekday with numeric zone remains accepted');
+like($zoned_result->{out}, qr/PAUSE original receipt events: 3/,
+    'matching zoned envelope preserves original receipt count');
+
 my $wrong_count = run_tool($archive, $meta, undef, $mbox_file, 4);
 ok($wrong_count->{exit} != 0,
     'missing expected mbox upload event fails closed');
