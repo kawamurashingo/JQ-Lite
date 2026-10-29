@@ -270,11 +270,12 @@ sub read_pause_mbox {
         # A weekday prefix alone is not an mbox separator: receipt bodies
         # may quote lines beginning "From ... Tue ...". Require a complete
         # Takeout-style envelope date before splitting original evidence.
+        # One-digit days may be zero-padded or space-padded in exports.
         # This is only framing, never proof of the mail's origin or date.
         if ($line =~ /\AFrom[ \t]+\S+[ \t]+
             (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[ \t]+
             (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[ \t]+
-            (?:[1-9]|[12]\d|3[01])[ \t]+
+            (?:0?[1-9]|[12]\d|3[01])[ \t]+
             (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d[ \t]+
             (?:(?:[A-Z]{2,5}|[+-]\d{4})[ \t]+)?
             \d{4}(?:[ \t]+[^\r\n]*)?\r?\n?\z/x) {
