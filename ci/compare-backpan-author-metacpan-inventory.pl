@@ -311,10 +311,16 @@ sub valid_mbox_envelope {
             (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[ \t]+
             (0?[1-9]|[12]\d|3[01])[ \t]+
             ((?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d)[ \t]+
-            (?:(?:[A-Z]{2,5}|[+-]\d{4})[ \t]+)?
+            (?:([A-Z]{2,5}|[+-]\d{4})[ \t]+)?
             (\d{4})(?:[ \t]+[^\r\n]*)?\r?\n?\z/x;
-    my ($weekday, $month, $day, $clock, $year) =
-        ($1, $months{$2}, $3, $4, $5);
+    my ($weekday, $month, $day, $clock, $zone, $year) =
+        ($1, $months{$2}, $3, $4, $5, $6);
+    # A numerical mbox zone is framing metadata. Check its bounds before
+    # treating this line as a separator, otherwise a quoted impossible
+    # offset may cut a private PAUSE receipt body into two messages.
+    if (defined($zone) && $zone =~ /\A[+-](\d\d)(\d\d)\z/) {
+        return 0 if $1 > 23 || $2 > 59;
+    }
     return 0 unless valid_pause_iso_utc(
         sprintf("%04d-%02d-%02dT%sZ", $year, $month, $day, $clock));
     # The mbox weekday describes the sender's written local calendar day,

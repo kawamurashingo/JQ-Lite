@@ -482,6 +482,52 @@ is($zoned_result->{exit}, 0,
 like($zoned_result->{out}, qr/PAUSE original receipt events: 3/,
     'matching zoned envelope preserves original receipt count');
 
+# Numerically malformed zone offsets are not credible mbox separators.
+# When quoted within a receipt, these complete-looking From lines must
+# remain body text rather than discarding its following PAUSE evidence.
+for my $bad_zone ('+2400', '+2360', '-0060', '-2500') {
+    my $variant = $mbox_text;
+    my $quoted_zone =
+        "From quoted\@example.invalid Tue Oct 28 00:00:00 $bad_zone 2025\n";
+    is(($variant =~
+        s/(Request completed: Sat, 29 Mar 2025 03:37:10 GMT\n)/
+            $quoted_zone . $1/e), 1,
+        'synthetic impossible-zone From body line prepared');
+    my $result = run_tool($archive, $meta, undef, saved($variant), 3);
+    is($result->{exit}, 0,
+        'impossible numeric zone in body does not split original receipt');
+    like($result->{out}, qr/PAUSE original receipt events: 3/,
+        'all PAUSE receipts survive impossible-zone From body text');
+    unlike($result->{out} . $result->{err},
+        qr/quoted\@example\.invalid/,
+        'private-style quoted sender is not printed in diagnostics');
+}
+my $invalid_zone_first = $mbox_text;
+my $invalid_zone_line =
+    "From synthetic\@example.invalid Tue Oct 28 00:00:00 +2400 2025";
+is(($invalid_zone_first =~
+    s/\AFrom [^\n]+/$invalid_zone_line/), 1,
+    'synthetic invalid first-envelope timezone prepared');
+my $invalid_zone_result = run_tool($archive, $meta, undef,
+    saved($invalid_zone_first), 3);
+ok($invalid_zone_result->{exit} != 0,
+    'first envelope with impossible timezone fails closed');
+like($invalid_zone_result->{err}, qr/Invalid mbox envelope separator/,
+    'impossible envelope timezone has a source-safe diagnostic');
+
+for my $good_zone ('+1400', '-0530', 'GMT') {
+    my $variant = $mbox_text;
+    my $valid_zone_line =
+        "From synthetic\@example.invalid Tue Oct 28 00:00:00 $good_zone 2025";
+    is(($variant =~ s/\AFrom [^\n]+/$valid_zone_line/), 1,
+        'synthetic valid numeric or named envelope zone prepared');
+    my $result = run_tool($archive, $meta, undef, saved($variant), 3);
+    is($result->{exit}, 0,
+        'valid numeric or named mbox envelope timezone remains supported');
+    like($result->{out}, qr/PAUSE original receipt events: 3/,
+        'valid timezone keeps all three PAUSE receipts');
+}
+
 my $wrong_count = run_tool($archive, $meta, undef, $mbox_file, 4);
 ok($wrong_count->{exit} != 0,
     'missing expected mbox upload event fails closed');
