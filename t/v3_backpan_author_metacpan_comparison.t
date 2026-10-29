@@ -118,6 +118,44 @@ is($leap_modified->{exit}, 0,
     'real BackPAN leap day with minute precision is accepted');
 
 
+# MetaCPAN dates may be zoned, fractional, or unzoned, but even a
+# syntactically plausible observation must represent an actual calendar
+# date, clock time, and bounded numeric timezone offset.
+for my $invalid_date (
+    '2025-02-31T11:09:00Z',
+    '2025-02-29T11:09:00Z',
+    '2025-04-31T11:09:00.123+09:00',
+    '2025-10-26T24:00:00Z',
+    '2025-10-26T11:60:00Z',
+    '2025-10-26T11:09:60Z',
+    '2025-10-26T11:09:00+24:00',
+    '2025-10-26T11:09:00-03:60',
+) {
+    my $row = ma('0.05');
+    is(($row =~ s/2025-10-26T11:09:00Z/$invalid_date/), 1,
+        'synthetic invalid MetaCPAN timestamp prepared');
+    my $result = run_tool($archive,
+        saved($mhead . $row . ma('1.31') . ma('1.32')));
+    ok($result->{exit} != 0,
+        'invalid MetaCPAN observation calendar, clock or offset is rejected');
+    like($result->{err}, qr/Invalid MetaCPAN date/,
+        'invalid MetaCPAN observation gets a source-safe diagnostic');
+}
+for my $valid_date (
+    '2024-02-29T23:59:59.123+14:00',
+    '2025-10-26T11:09:00-05:30',
+    '2025-10-26T11:09:00',
+    '2025-10-26T11:09:00Z',
+) {
+    my $row = ma('0.05');
+    is(($row =~ s/2025-10-26T11:09:00Z/$valid_date/), 1,
+        'synthetic valid MetaCPAN timestamp prepared');
+    my $result = run_tool($archive,
+        saved($mhead . $row . ma('1.31') . ma('1.32')));
+    is($result->{exit}, 0,
+        'valid MetaCPAN leap date, offset or optional zone is accepted');
+}
+
 # Optional PRIVATE PAUSE receipt schema: use non-sensitive synthetic data.
 my $phead = "archive\tversion\tcompleted_utc\tbytes\tsha256\n";
 sub pa {
