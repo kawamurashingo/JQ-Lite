@@ -88,6 +88,36 @@ ok($empty_meta->{exit} != 0, 'empty MetaCPAN search rejected');
 my $bad_time = run_tool(saved($ahead . ba('1.31')), saved($mhead . "JQ-Lite-1.31\t1.31\ttomorrow\tSHINGO\tbackpan\tobserved-metacpan-release\n"));
 ok($bad_time->{exit} != 0, 'invalid MetaCPAN timestamps rejected');
 
+
+# Public BackPAN Last-Modified timestamps must be real calendar dates
+# and UTC clock values, not merely strings matching the shape.
+for my $bad_modified (
+    '2025-02-31 11:09',
+    '2025-02-29 11:09',
+    '2025-04-31 11:09',
+    '2025-10-26 24:00',
+    '2025-10-26 11:60',
+) {
+    my $row = ba('0.05');
+    is(($row =~ s/2025-10-26 11:09/$bad_modified/), 1,
+        'synthetic invalid BackPAN timestamp prepared');
+    my $result = run_tool(
+        saved($ahead . $row . ba('1.31') . ba('1.32')), $meta);
+    ok($result->{exit} != 0,
+        'impossible BackPAN observation calendar/clock is rejected');
+    like($result->{err}, qr/Invalid BackPAN listing modification time/,
+        'invalid BackPAN timestamp gets a specific diagnostic');
+}
+my $leap_modified_row = ba('0.05');
+is(($leap_modified_row =~
+    s/2025-10-26 11:09/2024-02-29 12:34/), 1,
+    'synthetic valid BackPAN leap-day timestamp prepared');
+my $leap_modified = run_tool(
+    saved($ahead . $leap_modified_row . ba('1.31') . ba('1.32')), $meta);
+is($leap_modified->{exit}, 0,
+    'real BackPAN leap day with minute precision is accepted');
+
+
 # Optional PRIVATE PAUSE receipt schema: use non-sensitive synthetic data.
 my $phead = "archive\tversion\tcompleted_utc\tbytes\tsha256\n";
 sub pa {
