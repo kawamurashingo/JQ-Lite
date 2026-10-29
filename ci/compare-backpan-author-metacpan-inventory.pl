@@ -146,6 +146,23 @@ sub valid_backpan_modified {
 }
 
 
+# MetaCPAN observations may have fractional seconds and a numeric zone.
+# The offset changes the instant, not whether the written local calendar
+# date and clock exist. Check both the written time and the offset fields.
+sub valid_metacpan_date {
+    my ($value) = @_;
+    return 0 unless defined($value)
+        && $value =~ /\A(\d{4}-\d\d-\d\d)T(\d\d:\d\d:\d\d)(?:\.\d+)?(Z|[+-]\d\d:\d\d)?\z/;
+    my ($ymd, $clock, $zone) = ($1, $2, $3);
+    return 0 unless valid_pause_iso_utc("$ymd" . "T$clock" . "Z");
+    if (defined($zone) && $zone ne 'Z') {
+        my ($hours, $minutes) = $zone =~ /\A[+-](\d\d):(\d\d)\z/;
+        return 0 if $hours > 23 || $minutes > 59;
+    }
+    return 1;
+}
+
+
 # RFC 2047 encoded-word decoding for MIME transport headers. Never
 # silently ignore an encoded developer-build subject; fail closed on
 # malformed words rather than treating them as unrelated messages.
@@ -333,7 +350,7 @@ for my $r (@b) {
         unless $name =~ /\AJQ-Lite-((?:v)?\d+(?:\.\d+)+(?:_\d+)?)\z/
             && $1 eq $version;
     die "Invalid MetaCPAN date\n"
-        unless $date =~ /\A\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)?\z/;
+        unless valid_metacpan_date($date);
     die "Invalid MetaCPAN author\n" unless $author =~ /\A[A-Z0-9_-]+\z/;
     die "Invalid MetaCPAN status\n" unless $status =~ /\A[a-zA-Z0-9_-]+\z/;
     die "Invalid MetaCPAN classification\n" unless
