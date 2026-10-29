@@ -230,6 +230,13 @@ sub parse_pause_mbox_message {
     my @subjects = map { decode_subject_words($_) }
         @{ $headers{subject} || [] };
     my $target_subject = qr{\ACPAN Upload: S/SH/SHINGO/JQ-Lite-((?:v)?\d+(?:\.\d+)+(?:_\d+)?)\.tar\.gz\z};
+    # The original mailbox could also contain an upload notice for the
+    # same distribution from a different PAUSE author. Treat it as
+    # independent unresolved evidence, never as unrelated mail.
+    my $other_author_subject = qr{\ACPAN Upload: [A-Z0-9]/[A-Z0-9]{2}/[A-Z0-9_-]+/JQ-Lite-(?:v)?\d+(?:\.\d+)+(?:_\d+)?\.tar\.gz\z};
+    die "Non-SHINGO JQ-Lite PAUSE receipt requires independent investigation\n"
+        if grep { $_ =~ $other_author_subject && $_ !~ $target_subject }
+            @subjects;
     my ($subject) = grep { $_ =~ $target_subject } @subjects;
     return unless defined $subject;
     for my $name (qw(subject content-type content-transfer-encoding)) {

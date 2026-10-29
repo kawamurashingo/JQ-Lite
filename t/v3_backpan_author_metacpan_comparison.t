@@ -669,6 +669,49 @@ $bad_body =~ s/Request completed: Sat, 29 Mar 2025 03:37:10 GMT/Request complete
 ok(run_tool($archive, $meta, undef, saved($bad_body))->{exit} != 0,
     'malformed original completion timestamp rejected');
 
+# A JQ-Lite upload notice from another PAUSE author is not unrelated
+# mailbox traffic. Do not silently omit that independent evidence even
+# if all expected SHINGO receipt events were otherwise present.
+my $foreign_header = $raw[0];
+is(($foreign_header =~
+    s{^Subject: CPAN Upload: S/SH/SHINGO/JQ-Lite-0\.05}{Subject: CPAN Upload: O/OT/OTHER/JQ-Lite-0.05}m),
+    1, 'synthetic other-author JQ-Lite notice prepared');
+my $foreign_mail = $foreign_header . "\n" . $raw[1];
+for my $foreign_case (
+    $foreign_mail . $mbox_text,
+    $mbox_text . $foreign_mail,
+) {
+    my $result = run_tool($archive, $meta, undef,
+        saved($foreign_case), 3);
+    ok($result->{exit} != 0,
+        'other-author JQ-Lite notice fails closed before or after originals');
+    like($result->{err}, qr/Non-SHINGO JQ-Lite PAUSE receipt/,
+        'other-author upload has an explicit source-safe audit diagnostic');
+    unlike($result->{out} . $result->{err},
+        qr/O\/OT\/OTHER|OTHER\@example\.invalid/,
+        'alternative PAUSE author metadata is not printed');
+}
+my $encoded_foreign_header = $foreign_header;
+is(($encoded_foreign_header =~
+    s/^Subject: CPAN Upload: /Subject: =?UTF-8?Q?CPAN_Upload:?= /m),
+    1, 'synthetic encoded other-author subject prepared');
+my $encoded_foreign = run_tool($archive, $meta, undef,
+    saved($mbox_text . $encoded_foreign_header . "\n" . $raw[1]), 3);
+ok($encoded_foreign->{exit} != 0,
+    'encoded other-author JQ-Lite notice cannot evade the audit');
+like($encoded_foreign->{err}, qr/Non-SHINGO JQ-Lite PAUSE receipt/,
+    'encoded alternative-author notice is explicitly diagnosed');
+
+# Other distributions should still be ignored; an unrelated CPAN
+# upload notification does not constitute JQ-Lite original evidence.
+my $unrelated_upload_header = $foreign_header;
+is(($unrelated_upload_header =~ s/JQ-Lite-0\.05/Another-Dist-0.05/),
+    1, 'synthetic unrelated distribution notice prepared');
+my $unrelated_upload = run_tool($archive, $meta, undef,
+    saved($unrelated_upload_header . "\n" . $raw[1] . $mbox_text), 3);
+is($unrelated_upload->{exit}, 0,
+    'unrelated distribution upload notices remain safely ignored');
+
 my $private_unrelated =
     "From private\@example.invalid Tue Oct 28 00:00:00 2025\n"
     . "Subject: Private unrelated mail\n\n"
