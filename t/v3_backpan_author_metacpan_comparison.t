@@ -300,12 +300,42 @@ my $historic_pause = saved($phead
     . pa('0.100', '2025-10-13T03:50:59Z')
     . pa('1.00', '2025-10-14T21:14:59Z'));
 my $historic_result = run_tool($historic_archive, $historic_meta, $historic_pause);
-is($historic_result->{exit}, 0,
-    'historical non-increase is reported without rewriting real publication history');
+ok($historic_result->{exit} != 0,
+    'original chronology regression blocks an otherwise matching audit');
 like($historic_result->{out}, qr/HISTORICAL NON-INCREASE: 0\.100 after 0\.99/,
     'Perl version semantics identify original 0.99 to 0.100 regression');
+unlike($historic_result->{out}, qr/BACKPAN AUTHOR ONLY:|METACPAN ONLY:|PAUSE-ONLY VERSION:|PAUSE-MISSING VERSION:/,
+    'chronology alone blocks success despite identical version sets');
 like($historic_result->{out}, qr/REVIEW ONLY/,
     'historic regression observation does not imply approval');
+# Real repeated uploads of an identical version remain distinct events,
+# not a separate historical inversion; the existing repeat fixture must
+# stay successful rather than treating equality as a release regression.
+is($with_repeat->{exit}, 0,
+    'same-version repeat still succeeds when chronology is increasing');
+unlike($with_repeat->{out}, qr/HISTORICAL NON-INCREASE:/,
+    'same-version repeat produces no historical inversion alert');
+
+# A version regression in a separate three-way matching set must also
+# fail, even without duplicate times or missing observations.
+my $inverted_archive = saved($ahead
+    . ba('1.30') . ba('1.31') . ba('1.32'));
+my $inverted_meta = saved($mhead
+    . ma('1.30') . ma('1.31') . ma('1.32'));
+my $inverted_pause = saved($phead
+    . pa('1.31', '2025-10-24T01:00:00Z')
+    . pa('1.32', '2025-10-25T01:00:00Z')
+    . pa('1.30', '2025-10-26T01:00:00Z'));
+my $inverted_result = run_tool(
+    $inverted_archive, $inverted_meta, $inverted_pause);
+ok($inverted_result->{exit} != 0,
+    'different later lower version blocks otherwise complete observations');
+like($inverted_result->{out},
+    qr/HISTORICAL NON-INCREASE: 1\.30 after 1\.32/,
+    'version regression is reported with a public-version-only diagnostic');
+unlike($inverted_result->{out}, qr/PAUSE-ONLY VERSION:|PAUSE-MISSING VERSION:|BACKPAN AUTHOR ONLY:|METACPAN ONLY:/,
+    'complete three-source coverage does not conceal chronology regression');
+
 my $ambiguous = run_tool($historic_archive, $historic_meta,
     saved($phead
         . pa('0.99', '2025-10-13T01:26:30Z')
