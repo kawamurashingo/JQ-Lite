@@ -826,41 +826,6 @@ for my $encoded_control ('=0A', '=0D', '=00', '=09', '=7F') {
         'decoded subject and private-style mailbox sender stay out of logs');
 }
 
-# RFC 5322 allows literal HTAB as header whitespace. The decoded
-# control check must distinguish it from a MIME Q-encoded =09.
-my $unrelated_with_tab = $private_unrelated;
-is(($unrelated_with_tab =~
-    s/Subject: Private unrelated mail/Subject: Private\tunrelated mail/),
-    1, 'synthetic unrelated raw-tab Subject prepared');
-my $raw_tab_result = run_tool($archive, $meta, undef,
-    saved($unrelated_with_tab . $mbox_text), 3);
-is($raw_tab_result->{exit}, 0,
-    'ordinary unrelated Subject tab does not abort mailbox audit');
-like($raw_tab_result->{out}, qr/PAUSE original receipt events: 3/,
-    'all original receipts remain visible with unrelated raw-tab mail');
-
-my $folded_subject = $private_unrelated;
-is(($folded_subject =~
-    s/Subject: Private unrelated mail/Subject: Private\n\tunrelated mail/),
-    1, 'synthetic folded tab Subject prepared');
-my $folded_result = run_tool($archive, $meta, undef,
-    saved($folded_subject . $mbox_text), 3);
-is($folded_result->{exit}, 0,
-    'ordinary folded header tab does not abort mailbox audit');
-like($folded_result->{out}, qr/PAUSE original receipt events: 3/,
-    'folded unrelated Subject preserves original receipt count');
-
-my $target_with_tab = $mbox_text;
-is(($target_with_tab =~
-    s/^Subject: CPAN Upload: /"Subject: CPAN\tUpload: "/em), 1,
-    'synthetic raw-tab PAUSE Subject prepared');
-my $target_tab_result = run_tool($archive, $meta, undef,
-    saved($target_with_tab), 3);
-is($target_tab_result->{exit}, 0,
-    'literal header tab in PAUSE upload title is normalized to whitespace');
-like($target_tab_result->{out}, qr/PAUSE original receipt events: 3/,
-    'raw-tab target Subject still yields all three original receipts');
-
 # Printable quoted-printable escapes are valid MIME words; retain them
 # when they decode into an otherwise exact PAUSE Upload subject.
 my $printable_encoded = $mbox_text;
@@ -903,6 +868,41 @@ my $unrelated = run_tool($archive, $meta, undef,
 is($unrelated->{exit}, 0, 'unrelated local mbox messages are skipped');
 unlike($unrelated->{out} . $unrelated->{err}, qr/SECRETS_DO_NOT_LOG|example\.invalid/,
     'tool stdout/stderr never display unrelated private mail fields');
+
+# RFC 5322 allows literal HTAB as header whitespace. The decoded
+# control check must distinguish it from a MIME Q-encoded =09.
+my $unrelated_with_tab = $private_unrelated;
+is(($unrelated_with_tab =~
+    s/Subject: Private unrelated mail/Subject: Private\tunrelated mail/),
+    1, 'synthetic unrelated raw-tab Subject prepared');
+my $raw_tab_result = run_tool($archive, $meta, undef,
+    saved($unrelated_with_tab . $mbox_text), 3);
+is($raw_tab_result->{exit}, 0,
+    'ordinary unrelated Subject tab does not abort mailbox audit');
+like($raw_tab_result->{out}, qr/PAUSE original receipt events: 3/,
+    'all original receipts remain visible with unrelated raw-tab mail');
+
+my $folded_subject = $private_unrelated;
+is(($folded_subject =~
+    s/Subject: Private unrelated mail/Subject: Private\n\tunrelated mail/),
+    1, 'synthetic folded tab Subject prepared');
+my $folded_result = run_tool($archive, $meta, undef,
+    saved($folded_subject . $mbox_text), 3);
+is($folded_result->{exit}, 0,
+    'ordinary folded header tab does not abort mailbox audit');
+like($folded_result->{out}, qr/PAUSE original receipt events: 3/,
+    'folded unrelated Subject preserves original receipt count');
+
+my $target_with_tab = $mbox_text;
+is(($target_with_tab =~
+    s/^Subject: CPAN Upload: /"Subject: CPAN\tUpload: "/em), 1,
+    'synthetic raw-tab PAUSE Subject prepared');
+my $target_tab_result = run_tool($archive, $meta, undef,
+    saved($target_with_tab), 3);
+is($target_tab_result->{exit}, 0,
+    'literal header tab in PAUSE upload title is normalized to whitespace');
+like($target_tab_result->{out}, qr/PAUSE original receipt events: 3/,
+    'raw-tab target Subject still yields all three original receipts');
 
 # A large private Takeout can include unrelated mail with duplicate MIME
 # headers. These are not PAUSE receipts and must not block an otherwise
