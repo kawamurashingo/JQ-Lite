@@ -500,5 +500,9 @@ print "Comparison: ",scalar(@archive_only)," BackPAN-only; ",
     scalar(@meta_only)," MetaCPAN-only; ",scalar(@off_author),
     " non-SHINGO authors. REVIEW ONLY; no original PAUSE upload chronology, ",
     "complete all-time history, version signoff, or publication authority.\n";
+# A chronological version regression is unresolved original-source
+# evidence, even when the BackPAN/MetaCPAN/PAUSE version sets all match.
+# Reporting it with a successful exit would falsely imply a clean audit.
 exit((@archive_only || @meta_only || @off_author || $developers
-    || @pause_only || @pause_missing || @ambiguous_order) ? 1 : 0);
+    || @pause_only || @pause_missing || @ambiguous_order
+    || @historical_regressions) ? 1 : 0);
