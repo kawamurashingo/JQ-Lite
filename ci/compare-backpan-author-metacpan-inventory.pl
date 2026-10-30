@@ -191,6 +191,11 @@ sub decode_subject_words {
     }gex;
     die "Unparsed encoded MIME subject\n"
         if $subject =~ /=\?[^ \t]*\?=/;
+    # An encoded word can conceal CR, LF, NUL or other controls that
+    # would make a genuine PAUSE upload subject miss every classifier.
+    # Folded header whitespace was already normalized to a plain space.
+    die "Invalid MIME subject control character\n"
+        if $subject =~ /[\x00-\x1f\x7f]/;
     return $subject;
 }
 
