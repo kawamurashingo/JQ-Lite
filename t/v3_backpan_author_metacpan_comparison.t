@@ -804,6 +804,41 @@ my $other_named = run_tool($archive, $meta, undef,
 is($other_named->{exit}, 0,
     'different distribution with JQ-Lite substring remains unrelated');
 
+# Encoded MIME words can smuggle CR/LF/NUL/control bytes into what
+# otherwise resembles an exact PAUSE Upload subject. Without checking the
+# *decoded* value, the original receipt can be silently classified as
+# unrelated, leaving an apparently complete event-count comparison.
+for my $encoded_control ('=0A', '=0D', '=00', '=09', '=7F') {
+    my $control_header = $raw[0];
+    my $control_subject = 'Subject: =?UTF-8?Q?CPAN_Upload:_'
+        . 'S/SH/SHINGO/JQ-Lite-0.05.tar.gz' . $encoded_control . '?=';
+    is(($control_header =~
+        s/^Subject: CPAN Upload: [^\n]+/$control_subject/m), 1,
+        'synthetic MIME-encoded control in PAUSE subject prepared');
+    my $result = run_tool($archive, $meta, undef,
+        saved($mbox_text . $control_header . "\n" . $raw[1]), 3);
+    ok($result->{exit} != 0,
+        'encoded control cannot hide a possible original upload notice');
+    like($result->{err}, qr/Invalid MIME subject control character/,
+        'decoded MIME control triggers a source-safe error');
+    unlike($result->{out} . $result->{err},
+        qr/CPAN_Upload:|example\.invalid|JQ-Lite-0\.05\.tar\.gz/,
+        'decoded subject and private-style mailbox sender stay out of logs');
+}
+
+# Printable quoted-printable escapes are valid MIME words; retain them
+# when they decode into an otherwise exact PAUSE Upload subject.
+my $printable_encoded = $mbox_text;
+is(($printable_encoded =~
+    s/^Subject: CPAN Upload: /Subject: =?UTF-8?Q?CPAN_Upload=3A?= /m),
+    1, 'synthetic printable Q-encoded upload subject prepared');
+my $printable_result = run_tool(
+    $archive, $meta, undef, saved($printable_encoded), 3);
+is($printable_result->{exit}, 0,
+    'printable MIME Q escape remains a valid PAUSE subject');
+like($printable_result->{out}, qr/PAUSE original receipt events: 3/,
+    'normal encoded subject preserves all original receipt events');
+
 # A discussion reply containing the exact upload title is not itself
 # a PAUSE CPAN Upload producer notification.
 my $reply_header = $raw[0];
