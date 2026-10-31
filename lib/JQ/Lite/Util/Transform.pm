@@ -2581,6 +2581,10 @@ sub _apply_indices {
     return \@positions;
 }
 
+# v2.59 compatibility: has() returns false for null/non-numeric array
+# keys and stringifies object keys. jq 1.7 raises on some wrong-key
+# types, but the v3 practical-v2 baseline intentionally keeps these
+# existing Library semantics until a separate compatibility decision.
 sub _apply_has {
     my ($value, $needle) = @_;
 
