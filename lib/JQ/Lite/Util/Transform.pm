@@ -2529,8 +2529,9 @@ sub _apply_inside {
     return _deep_contains($container, $value, 'legacy') ? JSON::PP::true : JSON::PP::false;
 }
 
-# Share first/last search without allocating all match positions. Array
-# equality and scalar coercion retain their v2 meanings in this scoped fix.
+# Share first/last search without allocating all match positions.
+# Array searches use jq value identity: a numeric 1 is not string "1".
+# Keep the existing legacy equality helper for v2 membership functions.
 # jq 1.7 string search offsets count UTF-8 bytes rather than characters.
 sub _apply_index {
     my ($value, $needle, $last) = @_;
@@ -2538,7 +2539,7 @@ sub _apply_index {
     if (ref $value eq 'ARRAY') {
         my $step = $last ? -1 : 1;
         for (my $i = $last ? $#$value : 0; $i >= 0 && $i < @$value; $i += $step) {
-            return $i if _values_equal($value->[$i], $needle);
+            return $i if JQ::Lite::Value::equal($value->[$i], $needle);
         }
         return undef;
     }
@@ -2558,7 +2559,7 @@ sub _apply_indices {
     if (ref $value eq 'ARRAY') {
         my @matches;
         for (my $i = 0; $i < @$value; $i++) {
-            push @matches, $i if _values_equal($value->[$i], $needle);
+            push @matches, $i if JQ::Lite::Value::equal($value->[$i], $needle);
         }
         return \@matches;
     }
