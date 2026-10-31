@@ -2581,25 +2581,25 @@ sub _apply_indices {
     return \@positions;
 }
 
+# v2.59 compatibility: has() returns false for null/non-numeric array
+# keys and stringifies object keys. jq 1.7 raises on some wrong-key
+# types, but the v3 practical-v2 baseline intentionally keeps these
+# existing Library semantics until a separate compatibility decision.
 sub _apply_has {
     my ($value, $needle) = @_;
 
-    # Preserve the existing null-needle fallback for v2 callers.
     return JSON::PP::false if !defined $needle;
 
     if (ref $value eq 'HASH') {
-        my $type = JQ::Lite::Value::type_of($needle);
-        die JQ::Lite::Error::Evaluation->new(
-            message => "Cannot check whether object has a $type key"
-        ) unless $type eq 'string';
         return exists $value->{$needle} ? JSON::PP::true : JSON::PP::false;
     }
 
     if (ref $value eq 'ARRAY') {
-        my $type = JQ::Lite::Value::type_of($needle);
-        die JQ::Lite::Error::Evaluation->new(
-            message => "Cannot check whether array has a $type key"
-        ) unless $type eq 'number';
+        return JSON::PP::false if ref $needle;
+
+        my $sv = B::svref_2object(\$needle);
+        my $flags = $sv->FLAGS;
+        return JSON::PP::false unless ($flags & (B::SVp_IOK() | B::SVp_NOK()));
 
         my $index = int($needle);
         return ($index >= 0 && $index < @$value)
