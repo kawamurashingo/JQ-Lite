@@ -826,6 +826,35 @@ for my $encoded_control ('=0A', '=0D', '=00', '=09', '=7F') {
         'decoded subject and private-style mailbox sender stay out of logs');
 }
 
+# Legal raw header padding must not convert a genuine PAUSE upload
+# receipt into a malformed-notice error. Only strip literal FWS before
+# decoding; the existing encoded =09 control tests still fail closed.
+for my $padding (' ', "\t", " \t ") {
+    my $padded_subject = $mbox_text;
+    is(($padded_subject =~
+        s/^(Subject: CPAN Upload: [^\n]+)\n/$1 . $padding . "\n"/em),
+        1, 'synthetic raw Subject trailing padding prepared');
+    my $result = run_tool($archive, $meta, undef,
+        saved($padded_subject), 3);
+    is($result->{exit}, 0,
+        'valid PAUSE Subject accepts ordinary trailing space or tab');
+    like($result->{out}, qr/PAUSE original receipt events: 3/,
+        'raw Subject padding preserves the original receipt count');
+    unlike($result->{err}, qr/Malformed JQ-Lite PAUSE upload subject/,
+        'legal trailing whitespace is not diagnosed as a damaged receipt');
+}
+
+my $folded_padding = $mbox_text;
+is(($folded_padding =~
+    s/^(Subject: CPAN Upload: [^\n]+)\n/$1 . "\n\t\n"/em),
+    1, 'synthetic folded Subject trailing padding prepared');
+my $folded_padding_result = run_tool($archive, $meta, undef,
+    saved($folded_padding), 3);
+is($folded_padding_result->{exit}, 0,
+    'folded trailing header whitespace remains valid');
+like($folded_padding_result->{out}, qr/PAUSE original receipt events: 3/,
+    'folded trailing whitespace preserves all three PAUSE events');
+
 # Printable quoted-printable escapes are valid MIME words; retain them
 # when they decode into an otherwise exact PAUSE Upload subject.
 my $printable_encoded = $mbox_text;
