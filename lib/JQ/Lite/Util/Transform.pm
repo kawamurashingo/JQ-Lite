@@ -2584,18 +2584,22 @@ sub _apply_indices {
 sub _apply_has {
     my ($value, $needle) = @_;
 
+    # Preserve the existing null-needle fallback for v2 callers.
     return JSON::PP::false if !defined $needle;
 
     if (ref $value eq 'HASH') {
+        my $type = JQ::Lite::Value::type_of($needle);
+        die JQ::Lite::Error::Evaluation->new(
+            message => "Cannot check whether object has a $type key"
+        ) unless $type eq 'string';
         return exists $value->{$needle} ? JSON::PP::true : JSON::PP::false;
     }
 
     if (ref $value eq 'ARRAY') {
-        return JSON::PP::false if ref $needle;
-
-        my $sv = B::svref_2object(\$needle);
-        my $flags = $sv->FLAGS;
-        return JSON::PP::false unless ($flags & (B::SVp_IOK() | B::SVp_NOK()));
+        my $type = JQ::Lite::Value::type_of($needle);
+        die JQ::Lite::Error::Evaluation->new(
+            message => "Cannot check whether array has a $type key"
+        ) unless $type eq 'number';
 
         my $index = int($needle);
         return ($index >= 0 && $index < @$value)
