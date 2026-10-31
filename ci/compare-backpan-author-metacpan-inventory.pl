@@ -168,10 +168,11 @@ sub valid_metacpan_date {
 # malformed words rather than treating them as unrelated messages.
 sub decode_subject_words {
     my ($subject) = @_;
-    # Literal tabs are legal RFC 5322 header whitespace. Normalize them
-    # before decoding encoded-words, so an encoded =09 still fails the
-    # decoded-control check while unrelated plain-text mail is accepted.
+    # Literal tabs and trailing folding whitespace are legal RFC 5322
+    # header spacing. Normalize and trim raw whitespace *before* decoding
+    # encoded-words; an encoded =09 must still fail the control check.
     $subject =~ s/[ \t]+/ /g;
+    $subject =~ s/\A +| +\z//g;
     $subject =~ s{(\?=)\s+(=\?)}{$1$2}g;
     $subject =~ s{=\?([A-Za-z0-9_.-]+)\?([BQbq])\?([^?]*)\?=}{
         my ($charset, $kind, $encoded) = ($1, uc($2), $3);
