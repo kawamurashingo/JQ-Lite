@@ -1,5 +1,14 @@
 # v3 CI artifact exposure: maintainer decision and evidence retention
 
+## Current preparation update (2026-11-01)
+
+The current proposed candidate is 3.01, not yet released or approved for
+publication. The 3.00_03 identity below is the historical exposed developer
+build. The [new evidence report](v3-release-evidence-2026-11-01.md) records
+retained original messages and a fresh 172-row / 92-source-artifact metadata
+verification. The conservative exposure floor and no-deletion rule remain.
+
+
 **Status: PUBLIC RELEASE BLOCKED / NO ARTIFACT DELETION APPROVED.**
 Updated 2026-10-26. This records a distribution-channel risk
 discovered after #885 and mitigated by merged

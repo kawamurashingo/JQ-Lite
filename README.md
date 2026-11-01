@@ -253,6 +253,7 @@ for compatibility guarantees.
 * [`docs/jq-compatibility.md`](docs/jq-compatibility.md) — practical v3/jq 1.7 compatibility matrix, verified scope and documented differences
 * [`docs/v3-migration.md`](docs/v3-migration.md) — v2-to-v3 filter migration checklist and behavior changes
 * [`docs/jq-semantics-differences.md`](docs/jq-semantics-differences.md) — jq 1.7 semantic differences in the current 2.x series
+* [`docs/v3-3.01-release-notes.md`](docs/v3-3.01-release-notes.md) — proposed 3.01 candidate, not released; final history/version/publication approval pending
 * [`docs/v3-roadmap.md`](docs/v3-roadmap.md) — compatibility policy, migration plan, and release criteria for JQ::Lite 3.0
 * [`docs/v3-release-readiness.md`](docs/v3-release-readiness.md) — release candidate gates, unresolved decisions, and sign-off record
 * [`docs/v3-beta1-release-notes.md`](docs/v3-beta1-release-notes.md) — **draft, unpublished** 3.00_02 beta1 candidate notes and RC promotion gates

@@ -1,5 +1,14 @@
 # Primary PAUSE mailbox observation — 2026-10-28 (PARTIAL; no release authorization)
 
+## Superseding raw-record preservation (2026-11-01)
+
+The [new evidence report](v3-release-evidence-2026-11-01.md) records private
+retention of 532 original RFC822 messages and fresh cross-source comparison.
+The missing-export statements below describe the historical 2026-10-28
+checkpoint. Preservation is now complete for the fetched, search-bounded
+records; all-time completeness and human sign-off are still unclaimed.
+
+
 **Status: PRIMARY RECEIPTS LOCATED / PUBLIC RELEASE STILL BLOCKED.**
 This observation supplements [the v3 public-distribution evidence](v3-public-distribution-evidence.md)
 and the [public cutover gates](v3-public-release-cutover-plan.md).

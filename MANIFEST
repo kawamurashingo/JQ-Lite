@@ -376,3 +376,5 @@ t/v3_arithmetic_contract.t
 t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t
 t/v3_library_run_query_contract.t
+docs/v3-release-evidence-2026-11-01.md
+docs/v3-3.01-release-notes.md

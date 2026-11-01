@@ -1,5 +1,24 @@
 # JQ::Lite 3.0 release readiness gate
 
+## Current proposed candidate — 3.01 (2026-11-01)
+
+The maintainer requested preparation through the point immediately before
+release. The current `v3-dev` candidate is therefore **3.01, proposed and
+NOT RELEASED**. See [candidate notes](v3-3.01-release-notes.md) and the
+[new evidence reconciliation](v3-release-evidence-2026-11-01.md).
+532 original RFC822 messages have now been retained privately; the observed
+259-version sets agree. Human completeness/history acknowledgement and
+publication approval are still outstanding. `--history-reviewed` has not
+been invoked. Candidate preparation is not version/publication approval.
+
+For the current candidate, check `3.01` in module/POD/Changes and
+`JQ-Lite-3.01.tar.gz`, including `docs/v3-3.01-release-notes.md` in the archive.
+All later references to beta1/RC1 `3.00_0x` identities and their CI describe
+historical checkpoints, not the current candidate or current acceptance.
+Their exposure floor and nonpublication restrictions remain in effect.
+Require fresh CI and final-head review for 3.01; no main merge or publication.
+
+
 **Status: NOT RELEASE READY.** This is a working sign-off checklist for
 the practical-v2-baseline release, **not** a release announcement, a claim
 of complete jq conformance, or an authorization to merge or publish.

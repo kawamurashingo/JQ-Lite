@@ -1,3 +1,11 @@
+3.01  2026-11-01
+    [Proposed stable candidate - NOT RELEASED; date is staging date]
+    - Stage the practical-v2-baseline v3 candidate for final review; no new query features or dependencies.
+    - Retain the documented new/run_query Library contract and CLI exit/output behavior with dedicated regression suites.
+    - Include the selected jq 1.7 semantic corrections and migration guidance accumulated in the developer checkpoints below.
+    - Propose 3.01 to sort above the observed 3.00_03 Actions exposure under Perl version ordering; public-version approval remains pending.
+    - Preserve raw PAUSE receipt evidence privately and record the bounded cross-source reconciliation; human history acknowledgement and publication approval remain outstanding.
+
 3.00_03  2026-10-25
     [Developer release — INTERNAL RC1 candidate, NOT published]
     - Add an offline public version-order preflight with an explicit human-audited publication-history gate; reject developer-train publication and unsafe prerelease-to-stable downgrades without selecting a public version.

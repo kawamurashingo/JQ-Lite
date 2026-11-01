@@ -90,6 +90,7 @@ jobs:
             ci/inventory-cpantesters-jq-lite-uploads.pl \
             docs/v3-release-readiness.md docs/v3-beta1-release-notes.md \
             docs/v3-rc1-release-notes.md \
+            docs/v3-3.01-release-notes.md docs/v3-release-evidence-2026-11-01.md \
             docs/v3-ci-warning-audit.md \
             docs/v3-actions-exposure-snapshot-2026-10-25.md \
             docs/v3-migration.md \
