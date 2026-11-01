@@ -1,5 +1,24 @@
 # JQ::Lite v3 public release cutover: feature freeze and decision gates
 
+## 2026-11-01 preparation update
+
+[Original evidence is now retained and reconciled](v3-release-evidence-2026-11-01.md):
+532 raw messages, 265 original upload events / 259 versions, fresh
+BackPAN/MetaCPAN/CPAN/CPAN Testers responses, and matching hashes for all
+three archives missing from current CPAN. Search-bounded retention is
+complete; human confirmation of history scope is not.
+
+Under the maintainer's instruction to proceed to immediately before
+release, **3.01 is staged as an unapproved candidate for testing**.
+This permits reversible candidate preparation before final human review;
+it does not mark the remaining history, version or publication sign-offs
+complete. The original sequence below is the publication decision path.
+`--history-reviewed` remains gated on actual human review, and no `main`
+merge, tag, upload or promoted URL is authorized by this staging update.
+See [candidate notes](v3-3.01-release-notes.md). Historical 3.00_03 CI does
+not certify this new candidate.
+
+
 **Status (2026-10-25): FEATURE FROZEN / PUBLICATION BLOCKED.**
 This is a working plan for [#619](https://github.com/kawamurashingo/JQ-Lite/issues/619),
 **not** a release authorization or a choice of the final public version.
