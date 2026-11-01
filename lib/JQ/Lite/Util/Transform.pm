@@ -1504,7 +1504,12 @@ sub _evaluate_condition {
         my ($path, $op, $value_raw) = ($1, $2, $3);
 
         my $value = _parse_literal_argument($value_raw);
-        my @values = _traverse($item, $path, { missing_object_null => 1 });
+        my $scoped_path = ".$path";
+        my $steps = (index($path, '"') >= 0 || index($path, '?') >= 0)
+            ? _parse_v3_literal_iterator_path($scoped_path) : undef;
+        my @values = $steps
+            ? _traverse_v3_field_iterator($item, $scoped_path, $steps)
+            : _traverse($item, $path, { missing_object_null => 1 });
         for my $field_val (@values) {
             return 1 if _compare_values($field_val, $op, $value);
         }

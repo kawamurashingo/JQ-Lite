@@ -10,6 +10,29 @@ use JQ::Lite::Filters ();
 
 my $jq = JQ::Lite->new;
 
+subtest 'quoted paths retain nulls in constructors and resolve predicate keys' => sub {
+    for my $path ('."a"', '.["a"]', '."a"?', '.["a"]?') {
+        for my $input ('{}', 'null', '{"a":null}') {
+            is_deeply([$jq->run_query($input, "[$path]")], [[undef]],
+                "array keeps null: $input / $path");
+            is_deeply([$jq->run_query($input, "{x:$path}")], [{ x => undef }],
+                "object keeps null: $input / $path");
+        }
+        is_deeply([$jq->run_query('{"a":1}', "select($path == null)")], [],
+            "existing numeric field is not null: $path");
+        is_deeply([$jq->run_query('{"a":1}', "select($path == 1)")], [{ a => 1 }],
+            "predicate resolves the real field: $path");
+        is_deeply([$jq->run_query('{}', "select($path == null)")], [{}],
+            "missing quoted field is null: $path");
+        is_deeply([$jq->run_query('null', "select($path == null)")], [undef],
+            "null root remains one null: $path");
+    }
+    is_deeply([$jq->run_query('{"a.b":2}', 'select(.["a.b"] == 2)')],
+        [{ 'a.b' => 2 }], 'quoted key period remains literal');
+    is_deeply([$jq->run_query('{"a":{"b":2}}', 'select(."a"."b" == 2)')],
+        [{ a => { b => 2 } }], 'nested quoted predicate');
+};
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];

@@ -770,10 +770,10 @@ sub _evaluate_value_expression {
     # constructors instead of treating an inner comparison as a boolean.
     return ([], 0) if $copy =~ /^select\((.+)\)$/;
 
-    # Supported optional paths distinguish a missing/null lookup (one null)
+    # Supported optional/quoted paths distinguish a missing/null lookup (one null)
     # from a suppressed type error (no values). Preserve the scoped visitor's
     # stream semantics in constructors instead of using legacy traversal.
-    if (index($copy, '?') >= 0
+    if ((index($copy, '?') >= 0 || index($copy, '"') >= 0)
         && _parse_v3_literal_iterator_path($copy)
         && defined($self) && $self->can('run_query'))
     {
