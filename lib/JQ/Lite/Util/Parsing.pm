@@ -770,6 +770,17 @@ sub _evaluate_value_expression {
     # constructors instead of treating an inner comparison as a boolean.
     return ([], 0) if $copy =~ /^select\((.+)\)$/;
 
+    # Supported optional paths distinguish a missing/null lookup (one null)
+    # from a suppressed type error (no values). Preserve the scoped visitor's
+    # stream semantics in constructors instead of using legacy traversal.
+    if (index($copy, '?') >= 0
+        && _parse_v3_literal_iterator_path($copy)
+        && defined($self) && $self->can('run_query'))
+    {
+        my @values = $self->run_query(_encode_json($context), $copy);
+        return (\@values, 1);
+    }
+
     # Decode compound JSON literals before inspecting expression operators
     # or treating brackets as paths. Nonliteral constructors retain fallback.
     if ($copy =~ /\A[\[\{]/) {

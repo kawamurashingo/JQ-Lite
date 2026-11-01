@@ -9,6 +9,27 @@ use JQ::Lite::Parser ();
 
 my $jq = JQ::Lite->new;
 
+subtest 'constructors retain optional nulls and suppress only empty streams' => sub {
+    for my $input ('{}', 'null', '{"a":null}') {
+        for my $path ('.a?', '."a"?', '.["a"]?', '(.a?)') {
+            is_deeply([$jq->run_query($input, "[$path]")], [[undef]],
+                "array retains null: $input / $path");
+            is_deeply([$jq->run_query($input, "{x:$path}")], [{ x => undef }],
+                "object retains null: $input / $path");
+        }
+    }
+    for my $input ('7', 'true', '"text"', '[]') {
+        is_deeply([$jq->run_query($input, '[.a?]')], [[]],
+            "array preserves empty stream: $input");
+        is_deeply([$jq->run_query($input, '{x:.a?}')], [],
+            "object preserves empty stream: $input");
+    }
+    is_deeply([$jq->run_query('{"a":false}', '[.a?]')],
+        [[JSON::PP::false]], 'false is a real value');
+    is_deeply([$jq->run_query('[{},null,7,{"a":2}]', '[.[]?.a?]')],
+        [[undef, undef, 2]], 'ordered iterator retains nulls and omits type errors');
+};
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
