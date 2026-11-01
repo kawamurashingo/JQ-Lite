@@ -375,3 +375,4 @@ t/v3_secure_cpan_install_docs.t
 t/v3_arithmetic_contract.t
 t/v3_assignment_audit.t
 t/v3_shared_drop_tail_slicing.t
+t/v3_library_run_query_contract.t
