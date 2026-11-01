@@ -2,9 +2,9 @@ name: v3 source distribution candidate
 
 on:
   push:
-    branches: [v3-dev]
+    branches: [main, v3-dev]
   pull_request:
-    branches: [v3-dev]
+    branches: [main, v3-dev]
   workflow_dispatch:
 
 permissions:

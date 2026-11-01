@@ -2,9 +2,9 @@ name: jq 1.7 differential tests
 
 on:
   push:
-    branches: [v3-dev, "v3/**"]
+    branches: [main, v3-dev, "v3/**"]
   pull_request:
-    branches: [v3-dev]
+    branches: [main, v3-dev]
   workflow_dispatch:
 
 permissions:
