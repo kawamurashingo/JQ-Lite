@@ -4,6 +4,9 @@ use Test::More;
 use JSON::PP ();
 use JQ::Lite;
 use JQ::Lite::Error ();
+use FindBin;
+use IPC::Open3 qw(open3);
+use Symbol qw(gensym);
 
 my $jq = JQ::Lite->new;
 
@@ -175,6 +178,34 @@ subtest 'fixed-index traversal preserves nested update and deletion contracts' =
         '.root[0].detail.value |= false'),
         [{ root => [{ detail => { value => JSON::PP::false } }] }],
         'false deep replacement preserves the JSON boolean');
+};
+
+subtest 'update operator respects quotes and nesting in Library and CLI' => sub {
+    my @cases = (
+        ['null', '{x:"|="}', { x => '|=' }],
+        ['"a|=b"', 'contains("|=")', JSON::PP::true],
+        ['{}', '.x = "|="', { x => '|=' }],
+        ['null', '["|="]', ['|=']],
+        ['null', '{x:"a\"|=b"}', { x => 'a"|=b' }],
+        ['{}', '.x |= "|="', { x => '|=' }],
+        ['null', '{value:{x:"|="}}', { value => { x => '|=' } }],
+    );
+    for my $case (@cases) {
+        my ($input, $query, $expected) = @$case;
+        is_deeply(results($input, $query), [$expected], "Library: $query");
+        my $err = gensym;
+        my $pid = open3(my $in, my $out, $err, $^X,
+            "-I$FindBin::Bin/../lib", "$FindBin::Bin/../bin/jq-lite", '-c', $query);
+        print {$in} "$input\n";
+        close $in;
+        my $stdout = do { local $/; <$out> };
+        my $stderr = do { local $/; <$err> };
+        waitpid($pid, 0);
+        is($?, 0, "CLI success: $query");
+        is($stderr, '', "CLI has no warnings: $query");
+        is_deeply(JSON::PP->new->allow_nonref->decode($stdout), $expected,
+            "CLI result: $query");
+    }
 };
 
 done_testing;

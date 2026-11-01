@@ -37,10 +37,13 @@ sub apply {
 
     # v3 update assignment must run before expression/arithmetic shortcuts.
     # The RHS is a filter on the *old target value*, not the input root.
-    if (index($normalized, '|=') >= 0) {
-        my ($path, $spec, $operator, $rhs)
-            = JQ::Lite::Util::_parse_assignment_expression($normalized);
-        if ($operator ne '|=' || $normalized !~ /^\s*\./
+    my ($update_lhs, $update_rhs)
+        = JQ::Lite::Util::_split_top_level_operator($normalized, '|=');
+    if (defined $update_lhs) {
+        my ($path, $rhs) = ($update_lhs, $update_rhs);
+        $path =~ s/^\s+|\s+$//g;
+        $rhs =~ s/^\s+|\s+$//g;
+        if ($path !~ s/^\.//
             || !defined($rhs) || $rhs !~ /\S/)
         {
             die JQ::Lite::Error::Parse->new(
