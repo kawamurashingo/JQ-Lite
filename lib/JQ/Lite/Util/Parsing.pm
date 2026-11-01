@@ -279,7 +279,7 @@ sub _split_top_level_commas {
 sub _split_top_level_operator {
     my ($text, $operator) = @_;
 
-    return unless defined $text && defined $operator && length($operator) == 1;
+    return unless defined $text && defined $operator && length($operator);
 
     my @stack;
     my $string;
@@ -323,7 +323,7 @@ sub _split_top_level_operator {
             next;
         }
 
-        next if $char ne $operator;
+        next if substr($text, $i, length($operator)) ne $operator;
 
         if (!@stack) {
             if ($operator eq '+' || $operator eq '-') {
@@ -338,7 +338,7 @@ sub _split_top_level_operator {
             }
 
             my $lhs = substr($text, 0, $i);
-            my $rhs = substr($text, $i + 1);
+            my $rhs = substr($text, $i + length($operator));
             return ($lhs, $rhs);
         }
     }
@@ -993,7 +993,8 @@ sub _looks_like_assignment {
     return 0 unless defined $expr;
     return 0 if $expr =~ /[()]/;
     return 0 if $expr =~ /(?:==|!=|>=|<=|=>|=<)/;
-    return ($expr =~ /=/);
+    my ($lhs) = _split_top_level_operator($expr, '=');
+    return defined $lhs;
 }
 
 sub _parse_assignment_expression {
