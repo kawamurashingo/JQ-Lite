@@ -13,6 +13,37 @@ matching already preserved BackPAN bytes. **A complete private export,
 per-version reconciliation and human chronology attestation are still
 missing. Public version choice and all release actions remain BLOCKED.**
 
+## Library contract checkpoint (2026-11-01; merged #928)
+
+PR [#928](https://github.com/kawamurashingo/JQ-Lite/pull/928) is merged
+at `2d863c226582a93a83a91846ad612334f1bd4728`. Its final head was
+`f8a3c17b621c3433b750479923a82eeda293917d`, targeting base
+`60e63401dbf670511f07d9577c740026a2f518c5`.
+The associated PR workflows completed successfully:
+[Perl](https://github.com/kawamurashingo/JQ-Lite/actions/runs/41255935142),
+[jq 1.7](https://github.com/kawamurashingo/JQ-Lite/actions/runs/41255935173),
+and [source distribution](https://github.com/kawamurashingo/JQ-Lite/actions/runs/41255935074).
+The final-head Codex review completed with no findings. These are PR
+workflow results (synthetic merge testing), not independent certification
+of a future public candidate or every later branch head.
+
+The [Library contract](library-contract.md) now identifies the existing
+v3 contract suites, including #928's focused return-value regression.
+The release reproduction command and archive-presence check include that
+suite and the structured-error suite. No further Library API expansion
+is required to release v3; #601 is a separate issue, not an additional
+publication gate.
+
+**Next release-critical work is evidence reconciliation**, using the
+existing [private mbox procedure](v3-pause-primary-mailbox-observation-2026-10-28.md#local-google-takeout-mbox-comparison-no-manual-tsv-required):
+retain original upload/indexer/deletion records, reconcile their chronology
+with the archived public inventories and other distribution channels,
+and record maintainer review. Then obtain a public-version decision,
+prepare that exact candidate, and validate it afresh before publication
+approval. Parser micro-fixes or additional overlapping contract tests do
+not close these evidence gates. The internal `3.00_03` exposure floor and
+all existing publication restrictions remain in effect.
+
 ## Public cutover critical path (feature freeze; 2026-10-25)
 
 The [v3 public release cutover plan](v3-public-release-cutover-plan.md)
@@ -202,7 +233,8 @@ for this final release-candidate gate.
   Push/PR Perl/jq and packaging checks. **RC1 scope revalidation
   and final publication review are still separate unchecked gates.**
 - [ ] **Public contracts:** `t/cli_contract.t`,
-  `t/v3_library_api_contract.t` and `t/library_errors.t` pass. Preserve
+  `t/v3_library_api_contract.t`, `t/v3_library_run_query_contract.t`
+  and `t/library_errors.t` pass. Preserve
   `new` / `run_query` list-return semantics, output order, null vs no
   output, CLI exit 0/1/2/3/4/5, stderr categories and empty stdout on
   errors; compile-before-input and SIGPIPE/EPIPE remain covered.
@@ -391,7 +423,7 @@ paths, or a public stable version. No tag or release is automated.
 ```sh
 prove -lr t
 prove -l t/v3_release_metadata.t t/manifest_coverage.t
-prove -l t/cli_contract.t t/v3_library_api_contract.t t/library_errors.t
+prove -l t/cli_contract.t t/v3_library_api_contract.t t/v3_library_run_query_contract.t t/library_errors.t
 prove -l t/v3_arithmetic_contract.t t/v3_assignment_audit.t t/v3_practical_path_audit.t
 JQ_DIFFERENTIAL=1 prove -l t/jq_differential.t  # needs jq 1.7.x
 perl Makefile.PL

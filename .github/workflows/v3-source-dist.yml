@@ -94,6 +94,7 @@ jobs:
             docs/v3-actions-exposure-snapshot-2026-10-25.md \
             docs/v3-migration.md \
             t/cli_contract.t t/v3_library_api_contract.t \
+            t/v3_library_run_query_contract.t t/library_errors.t \
             t/jq_differential.t t/data/jq-differential.jsonl \
             t/manifest_coverage.t t/v3_release_metadata.t \
             t/v3_public_version_order.t t/v3_cpan_index_inventory.t \
