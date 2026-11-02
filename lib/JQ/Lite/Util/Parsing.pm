@@ -770,11 +770,13 @@ sub _evaluate_value_expression {
     # constructors instead of treating an inner comparison as a boolean.
     return ([], 0) if $copy =~ /^select\((.+)\)$/;
 
-    # All supported scoped paths (including plain numeric indices and
-    # iterators) distinguish one missing/null lookup from an empty stream.
-    # Keep bare JSON constructors/literals and simple legacy fields outside
-    # this path; the parser only admits the already-supported scoped forms.
+    # Scoped optional/quoted paths and bracket-to-field chains keep null
+    # results in constructors. Do not route standalone legacy iterators
+    # such as .[] through this visitor: reduce's existing empty-accumulator
+    # behavior relies on their v2 value-expression fallback.
     if ($copy =~ /^\./
+        && (index($copy, '?') >= 0 || index($copy, '"') >= 0
+            || $copy =~ /\]\s*\./)
         && defined($self) && $self->can('run_query')
         && _parse_v3_literal_iterator_path($copy))
     {
