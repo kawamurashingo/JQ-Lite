@@ -94,4 +94,19 @@ is_deeply(\@dotted_keys, ['x', 'y'], '.keys[] remains dotted field traversal');
 my @dotted_to_entries = $jq->run_query($builtin_named_fields, '.to_entries[]');
 is_deeply(\@dotted_to_entries, [1, 2], '.to_entries[] remains dotted field traversal');
 
+# An optional iterator on the RHS of // belongs to that operand; it
+# must not be hoisted to run after a successful left fallback value.
+my @fallback_kept = $jq->run_query('null', 'true // .[]?');
+is_deeply(\@fallback_kept, [JSON::PP::true],
+    'right optional iterator cannot consume a successful left fallback');
+my @fallback_rhs = $jq->run_query('[4,5]', 'false // .[]?');
+is_deeply(\@fallback_rhs, [4, 5],
+    'fallback right optional iterator still expands its own array input');
+my @fallback_empty_rhs = $jq->run_query('null', 'false // .[]?');
+is_deeply(\@fallback_empty_rhs, [],
+    'fallback right optional iterator can produce a genuinely empty stream');
+my @slash_literal_suffix = $jq->run_query('"a//b//c"', 'split("//")[]');
+is_deeply(\@slash_literal_suffix, ['a','b','c'],
+    'slashes inside a quoted separator do not suppress iterator suffix');
+
 done_testing();
