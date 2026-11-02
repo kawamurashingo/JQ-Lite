@@ -881,8 +881,15 @@ sub _evaluate_value_expression {
             # A missing named object field is one JSON null, not an empty
             # stream. Keep iterator/projection paths' existing empty behavior.
             my $named_path = $path =~ /\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\z/ ? 1 : 0;
-            return (($numeric_path || $named_path) ? [undef] : [], 1)
-                unless defined $context;
+            # A named slice through a missing or null field is also one
+            # null, not a zero-value stream. Keep this fallback restricted
+            # to ordinary named path prefixes; genuine empty iterators and
+            # unrelated computed/slice forms retain their existing behavior.
+            my ($slice_prefix) = $is_bracket_slice
+                ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[[^\[\]]*:[^\[\]]*\]\z/)
+                : ();
+            return (($numeric_path || $named_path || defined($slice_prefix))
+                ? [undef] : [], 1) unless defined $context;
 
             my @values = _traverse(
                 $context, $path,
@@ -892,6 +899,11 @@ sub _evaluate_value_expression {
                     missing_object_null => $named_path,
                 }
             );
+            if (!@values && defined $slice_prefix) {
+                my @targets = _traverse($context, $slice_prefix,
+                    { missing_object_null => 1 });
+                return ([undef], 1) if @targets == 1 && !defined $targets[0];
+            }
             return (\@values, 1);
         }
     }
