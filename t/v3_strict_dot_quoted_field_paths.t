@@ -33,6 +33,29 @@ subtest 'quoted paths retain nulls in constructors and resolve predicate keys' =
         [{ a => { b => 2 } }], 'nested quoted predicate');
 };
 
+
+# A bracketed predicate is not a missing string key. Dispatch the same
+# scoped paths as ordinary lookups before a null comparison.
+subtest 'unquoted bracket selectors resolve real predicate values' => sub {
+    my $input = '{"a":[1],"i":0}';
+    for my $path ('.a[-1]', '.a[ 0 ]', '.a[.i]', '.a[0]') {
+        is_deeply([$jq->run_query($input, "select($path == null)")],
+            [], "existing indexed value is not null: $path");
+        is_deeply([$jq->run_query($input, "select($path == 1)")],
+            [{a => [1], i => 0}], "numeric selector resolves 1: $path");
+    }
+    is_deeply([$jq->run_query('{"a":[{}]}',
+        'select(.a[0].b == null)')], [{a => [{}]}],
+        'missing indexed field is one null');
+    is_deeply([$jq->run_query('{"a":[{"b":2}]}',
+        'select(.a[0].b == null)')], [],
+        'indexed existing field is not a missing null');
+    is_deeply([$jq->run_query('{"a":[]}',
+        'select(.a[].b == null)')], [],
+        'empty iterator does not fabricate a null predicate value');
+};
+
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
