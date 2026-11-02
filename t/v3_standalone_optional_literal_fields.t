@@ -55,6 +55,31 @@ subtest 'indexed paths retain null values in constructors' => sub {
 };
 
 
+
+# The main promotion review found a missing-key *slice* regression after
+# removing the constructor's blanket null fallback. Only missing/null
+# targets should emit null; real empty slices must remain array values.
+subtest 'named slice constructors retain null without fabricating streams' => sub {
+    for my $input ('{}', 'null', '{"a":null}') {
+        is_deeply([$jq->run_query($input, '[.a[0:1]]')], [[undef]],
+            "missing/null slice yields a null array item: $input");
+        is_deeply([$jq->run_query($input, '{x:.a[0:1]}')],
+            [{x => undef}],
+            "missing/null slice yields a null object value: $input");
+    }
+    is_deeply([$jq->run_query('{"a":{}}', '[.a.b[0:1]]')],
+        [[undef]], 'nested missing slice key retains null');
+    is_deeply([$jq->run_query('{"a":[]}', '[.a[0:1]]')],
+        [[[]]], 'slice of empty array remains an array value');
+    is_deeply([$jq->run_query('{"a":[1,2]}', '[.a[0:1]]')],
+        [[[1]]], 'existing array slice keeps selected elements');
+    is_deeply([$jq->run_query('{"a":[1,2]}', '{x:.a[0:1]}')],
+        [{x => [1]}], 'existing array slice remains an object value');
+    is_deeply([$jq->run_query('{"a":[]}', '[.a[].b]')],
+        [[]], 'genuinely empty iterator stays empty');
+};
+
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
