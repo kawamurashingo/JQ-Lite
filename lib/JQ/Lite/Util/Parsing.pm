@@ -766,9 +766,12 @@ sub _evaluate_value_expression {
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
 
-    # select() emits its input or no values; use its filter dispatcher in
-    # constructors instead of treating an inner comparison as a boolean.
-    return ([], 0) if $copy =~ /^select\((.+)\)$/;
+    # Only a *complete* select(...) call belongs to the filter dispatcher.
+    # A larger expression such as select(true) + select(true) must continue
+    # through value-expression arithmetic instead of turning into null.
+    my ($select_body) = $copy =~ /^select\((.*)\)$/s;
+    return ([], 0) if defined($select_body)
+        && _are_brackets_balanced($select_body);
 
     # Scoped optional/quoted paths and bracket-to-field chains keep null
     # results in constructors. Do not route standalone legacy iterators
@@ -776,7 +779,7 @@ sub _evaluate_value_expression {
     # behavior relies on their v2 value-expression fallback.
     if ($copy =~ /^\./
         && (index($copy, '?') >= 0 || index($copy, '"') >= 0
-            || $copy =~ /\]\s*\./)
+            || $copy =~ /\]\s*\./ || $copy =~ /\[\s*\./)
         && defined($self) && $self->can('run_query')
         && _parse_v3_literal_iterator_path($copy))
     {
