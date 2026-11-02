@@ -770,12 +770,13 @@ sub _evaluate_value_expression {
     # constructors instead of treating an inner comparison as a boolean.
     return ([], 0) if $copy =~ /^select\((.+)\)$/;
 
-    # Supported optional/quoted paths distinguish a missing/null lookup (one null)
-    # from a suppressed type error (no values). Preserve the scoped visitor's
-    # stream semantics in constructors instead of using legacy traversal.
-    if ((index($copy, '?') >= 0 || index($copy, '"') >= 0)
-        && _parse_v3_literal_iterator_path($copy)
-        && defined($self) && $self->can('run_query'))
+    # All supported scoped paths (including plain numeric indices and
+    # iterators) distinguish one missing/null lookup from an empty stream.
+    # Keep bare JSON constructors/literals and simple legacy fields outside
+    # this path; the parser only admits the already-supported scoped forms.
+    if ($copy =~ /^\./
+        && defined($self) && $self->can('run_query')
+        && _parse_v3_literal_iterator_path($copy))
     {
         my @values = $self->run_query(_encode_json($context), $copy);
         return (\@values, 1);
