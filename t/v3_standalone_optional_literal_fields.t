@@ -30,6 +30,31 @@ subtest 'constructors retain optional nulls and suppress only empty streams' => 
         [[undef, undef, 2]], 'ordered iterator retains nulls and omits type errors');
 };
 
+
+# Main-promotion review: ordinary *unquoted* indexed and iterator paths
+# are scoped paths too. Constructors must not convert an emitted JSON
+# null into no output, while real empty iterator streams remain empty.
+subtest 'indexed paths retain null values in constructors' => sub {
+    for my $path ('.a[0].b', '.a[].b', '(.a[0].b)') {
+        my $input = '{"a":[{}]}';
+        is_deeply([$jq->run_query($input, "[$path]")], [[undef]],
+            "missing nested field survives array constructor: $path");
+        is_deeply([$jq->run_query($input, "{x:$path}")], [{x => undef}],
+            "missing nested field survives object constructor: $path");
+    }
+    is_deeply([$jq->run_query('{"a":[{"b":null}]}', '[.a[0].b]')],
+        [[undef]], 'explicit indexed null remains a value');
+    is_deeply([$jq->run_query('{"a":[{"b":false}]}', '[.a[].b]')],
+        [[JSON::PP::false]], 'iterator preserves false rather than dropping it');
+    is_deeply([$jq->run_query('{"a":[{},{"b":2}]}', '[.a[].b]')],
+        [[undef, 2]], 'iterator keeps ordered null and non-null values');
+    is_deeply([$jq->run_query('{"a":[]}', '[.a[].b]')],
+        [[]], 'empty iterator remains an empty constructed array');
+    is_deeply([$jq->run_query('{"a":[]}', '{x:.a[].b}')],
+        [], 'empty iterator does not manufacture an object');
+};
+
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
