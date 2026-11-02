@@ -766,9 +766,26 @@ sub _evaluate_value_expression {
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
 
-    # select() emits its input or no values; use its filter dispatcher in
-    # constructors instead of treating an inner comparison as a boolean.
-    return ([], 0) if $copy =~ /^select\((.+)\)$/;
+    # Only a *complete* select(...) call belongs to the filter dispatcher.
+    # A larger expression such as select(true) + select(true) must continue
+    # through value-expression arithmetic instead of turning into null.
+    my ($select_body) = $copy =~ /^select\((.*)\)$/s;
+    return ([], 0) if defined($select_body)
+        && _are_brackets_balanced($select_body);
+
+    # Scoped optional/quoted paths and bracket-to-field chains keep null
+    # results in constructors. Do not route standalone legacy iterators
+    # such as .[] through this visitor: reduce's existing empty-accumulator
+    # behavior relies on their v2 value-expression fallback.
+    if ($copy =~ /^\./
+        && (index($copy, '?') >= 0 || index($copy, '"') >= 0
+            || $copy =~ /\]\s*\./ || $copy =~ /\[\s*\./)
+        && defined($self) && $self->can('run_query')
+        && _parse_v3_literal_iterator_path($copy))
+    {
+        my @values = $self->run_query(_encode_json($context), $copy);
+        return (\@values, 1);
+    }
 
     # Decode compound JSON literals before inspecting expression operators
     # or treating brackets as paths. Nonliteral constructors retain fallback.
@@ -867,8 +884,15 @@ sub _evaluate_value_expression {
             # A missing named object field is one JSON null, not an empty
             # stream. Keep iterator/projection paths' existing empty behavior.
             my $named_path = $path =~ /\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\z/ ? 1 : 0;
-            return (($numeric_path || $named_path) ? [undef] : [], 1)
-                unless defined $context;
+            # A named slice through a missing or null field is also one
+            # null, not a zero-value stream. Keep this fallback restricted
+            # to ordinary named path prefixes; genuine empty iterators and
+            # unrelated computed/slice forms retain their existing behavior.
+            my ($slice_prefix) = $is_bracket_slice
+                ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[[^\[\]]*:[^\[\]]*\]\z/)
+                : ();
+            return (($numeric_path || $named_path || defined($slice_prefix))
+                ? [undef] : [], 1) unless defined $context;
 
             my @values = _traverse(
                 $context, $path,
@@ -878,6 +902,11 @@ sub _evaluate_value_expression {
                     missing_object_null => $named_path,
                 }
             );
+            if (!@values && defined $slice_prefix) {
+                my @targets = _traverse($context, $slice_prefix,
+                    { missing_object_null => 1 });
+                return ([undef], 1) if @targets == 1 && !defined $targets[0];
+            }
             return (\@values, 1);
         }
     }

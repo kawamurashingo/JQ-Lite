@@ -90,6 +90,13 @@ sub _nonpath_iterator_suffix {
     return if defined $comparison_operator;
     return unless $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s;
     my ($filter, $optional) = ($1, $2);
+    # The []/? suffix belongs to the *right operand* of a top-level
+    # fallback, not to the fallback's complete result. Reuse the existing
+    # quote/bracket-aware operator scanner rather than checking only a
+    # trailing // token in the extracted prefix.
+    my ($fallback_left) =
+        JQ::Lite::Util::_split_top_level_operator($part, '//');
+    return if defined $fallback_left;
     $filter =~ s/\s+$//;
     return if $filter !~ /\S/ || $filter =~ /\Atry\b/
         || $filter =~ m{(?:[=!<>]|//)\z};

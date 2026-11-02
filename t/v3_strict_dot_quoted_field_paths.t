@@ -10,6 +10,52 @@ use JQ::Lite::Filters ();
 
 my $jq = JQ::Lite->new;
 
+subtest 'quoted paths retain nulls in constructors and resolve predicate keys' => sub {
+    for my $path ('."a"', '.["a"]', '."a"?', '.["a"]?') {
+        for my $input ('{}', 'null', '{"a":null}') {
+            is_deeply([$jq->run_query($input, "[$path]")], [[undef]],
+                "array keeps null: $input / $path");
+            is_deeply([$jq->run_query($input, "{x:$path}")], [{ x => undef }],
+                "object keeps null: $input / $path");
+        }
+        is_deeply([$jq->run_query('{"a":1}', "select($path == null)")], [],
+            "existing numeric field is not null: $path");
+        is_deeply([$jq->run_query('{"a":1}', "select($path == 1)")], [{ a => 1 }],
+            "predicate resolves the real field: $path");
+        is_deeply([$jq->run_query('{}', "select($path == null)")], [{}],
+            "missing quoted field is null: $path");
+        is_deeply([$jq->run_query('null', "select($path == null)")], [undef],
+            "null root remains one null: $path");
+    }
+    is_deeply([$jq->run_query('{"a.b":2}', 'select(.["a.b"] == 2)')],
+        [{ 'a.b' => 2 }], 'quoted key period remains literal');
+    is_deeply([$jq->run_query('{"a":{"b":2}}', 'select(."a"."b" == 2)')],
+        [{ a => { b => 2 } }], 'nested quoted predicate');
+};
+
+
+# A bracketed predicate is not a missing string key. Dispatch the same
+# scoped paths as ordinary lookups before a null comparison.
+subtest 'unquoted bracket selectors resolve real predicate values' => sub {
+    my $input = '{"a":[1],"i":0}';
+    for my $path ('.a[-1]', '.a[ 0 ]', '.a[.i]', '.a[0]') {
+        is_deeply([$jq->run_query($input, "select($path == null)")],
+            [], "existing indexed value is not null: $path");
+        is_deeply([$jq->run_query($input, "select($path == 1)")],
+            [{a => [1], i => 0}], "numeric selector resolves 1: $path");
+    }
+    is_deeply([$jq->run_query('{"a":[{}]}',
+        'select(.a[0].b == null)')], [{a => [{}]}],
+        'missing indexed field is one null');
+    is_deeply([$jq->run_query('{"a":[{"b":2}]}',
+        'select(.a[0].b == null)')], [],
+        'indexed existing field is not a missing null');
+    is_deeply([$jq->run_query('{"a":[]}',
+        'select(.a[].b == null)')], [],
+        'empty iterator does not fabricate a null predicate value');
+};
+
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];

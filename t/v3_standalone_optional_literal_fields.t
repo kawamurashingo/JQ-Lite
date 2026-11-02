@@ -9,6 +9,97 @@ use JQ::Lite::Parser ();
 
 my $jq = JQ::Lite->new;
 
+subtest 'constructors retain optional nulls and suppress only empty streams' => sub {
+    for my $input ('{}', 'null', '{"a":null}') {
+        for my $path ('.a?', '."a"?', '.["a"]?', '(.a?)') {
+            is_deeply([$jq->run_query($input, "[$path]")], [[undef]],
+                "array retains null: $input / $path");
+            is_deeply([$jq->run_query($input, "{x:$path}")], [{ x => undef }],
+                "object retains null: $input / $path");
+        }
+    }
+    for my $input ('7', 'true', '"text"', '[]') {
+        is_deeply([$jq->run_query($input, '[.a?]')], [[]],
+            "array preserves empty stream: $input");
+        is_deeply([$jq->run_query($input, '{x:.a?}')], [],
+            "object preserves empty stream: $input");
+    }
+    is_deeply([$jq->run_query('{"a":false}', '[.a?]')],
+        [[JSON::PP::false]], 'false is a real value');
+    is_deeply([$jq->run_query('[{},null,7,{"a":2}]', '[.[]?.a?]')],
+        [[undef, undef, 2]], 'ordered iterator retains nulls and omits type errors');
+};
+
+
+# Main-promotion review: ordinary *unquoted* indexed and iterator paths
+# are scoped paths too. Constructors must not convert an emitted JSON
+# null into no output, while real empty iterator streams remain empty.
+subtest 'indexed paths retain null values in constructors' => sub {
+    for my $path ('.a[0].b', '.a[].b', '(.a[0].b)') {
+        my $input = '{"a":[{}]}';
+        is_deeply([$jq->run_query($input, "[$path]")], [[undef]],
+            "missing nested field survives array constructor: $path");
+        is_deeply([$jq->run_query($input, "{x:$path}")], [{x => undef}],
+            "missing nested field survives object constructor: $path");
+    }
+    is_deeply([$jq->run_query('{"a":[{"b":null}]}', '[.a[0].b]')],
+        [[undef]], 'explicit indexed null remains a value');
+    is_deeply([$jq->run_query('{"a":[{"b":false}]}', '[.a[].b]')],
+        [[JSON::PP::false]], 'iterator preserves false rather than dropping it');
+    is_deeply([$jq->run_query('{"a":[{},{"b":2}]}', '[.a[].b]')],
+        [[undef, 2]], 'iterator keeps ordered null and non-null values');
+    is_deeply([$jq->run_query('{"a":[]}', '[.a[].b]')],
+        [[]], 'empty iterator remains an empty constructed array');
+    is_deeply([$jq->run_query('{"a":[]}', '{x:.a[].b}')],
+        [], 'empty iterator does not manufacture an object');
+};
+
+
+
+# The main promotion review found a missing-key *slice* regression after
+# removing the constructor's blanket null fallback. Only missing/null
+# targets should emit null; real empty slices must remain array values.
+subtest 'named slice constructors retain null without fabricating streams' => sub {
+    for my $input ('{}', 'null', '{"a":null}') {
+        is_deeply([$jq->run_query($input, '[.a[0:1]]')], [[undef]],
+            "missing/null slice yields a null array item: $input");
+        is_deeply([$jq->run_query($input, '{x:.a[0:1]}')],
+            [{x => undef}],
+            "missing/null slice yields a null object value: $input");
+    }
+    is_deeply([$jq->run_query('{"a":{}}', '[.a.b[0:1]]')],
+        [[undef]], 'nested missing slice key retains null');
+    is_deeply([$jq->run_query('{"a":[]}', '[.a[0:1]]')],
+        [[[]]], 'slice of empty array remains an array value');
+    is_deeply([$jq->run_query('{"a":[1,2]}', '[.a[0:1]]')],
+        [[[1]]], 'existing array slice keeps selected elements');
+    is_deeply([$jq->run_query('{"a":[1,2]}', '{x:.a[0:1]}')],
+        [{x => [1]}], 'existing array slice remains an object value');
+    is_deeply([$jq->run_query('{"a":[]}', '[.a[].b]')],
+        [[]], 'genuinely empty iterator stays empty');
+};
+
+
+
+# Computed selectors without '?' or quoted keys still use the existing
+# scoped visitor in constructors, including null-valued selected slots.
+subtest 'computed-selector constructors keep null versus empty values' => sub {
+    my $input = '{"a":[null],"i":0}';
+    is_deeply([$jq->run_query($input, '[.a[.i]]')], [[undef]],
+        'computed index emits a null array element');
+    is_deeply([$jq->run_query($input, '{x:.a[.i]}')], [{x => undef}],
+        'computed index emits a null object field');
+    is_deeply([$jq->run_query('{"a":[false],"i":0}', '[.a[.i]]')],
+        [[JSON::PP::false]], 'computed index retains false value');
+    is_deeply([$jq->run_query('{"a":[7],"i":0}', '[.a[.i]]')],
+        [[7]], 'computed index retains an existing numeric value');
+    is_deeply([$jq->run_query('{"a":[],"i":0}', '[.a[.i]]')],
+        [[undef]], 'out-of-range computed index still yields null');
+    is_deeply([$jq->run_query('{"a":[],"i":0}', '[.a[]]')],
+        [[]], 'ordinary empty iterator remains empty');
+};
+
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
