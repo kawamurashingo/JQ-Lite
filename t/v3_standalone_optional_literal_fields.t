@@ -80,6 +80,26 @@ subtest 'named slice constructors retain null without fabricating streams' => su
 };
 
 
+
+# Computed selectors without '?' or quoted keys still use the existing
+# scoped visitor in constructors, including null-valued selected slots.
+subtest 'computed-selector constructors keep null versus empty values' => sub {
+    my $input = '{"a":[null],"i":0}';
+    is_deeply([$jq->run_query($input, '[.a[.i]]')], [[undef]],
+        'computed index emits a null array element');
+    is_deeply([$jq->run_query($input, '{x:.a[.i]}')], [{x => undef}],
+        'computed index emits a null object field');
+    is_deeply([$jq->run_query('{"a":[false],"i":0}', '[.a[.i]]')],
+        [[JSON::PP::false]], 'computed index retains false value');
+    is_deeply([$jq->run_query('{"a":[7],"i":0}', '[.a[.i]]')],
+        [[7]], 'computed index retains an existing numeric value');
+    is_deeply([$jq->run_query('{"a":[],"i":0}', '[.a[.i]]')],
+        [[undef]], 'out-of-range computed index still yields null');
+    is_deeply([$jq->run_query('{"a":[],"i":0}', '[.a[]]')],
+        [[]], 'ordinary empty iterator remains empty');
+};
+
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
