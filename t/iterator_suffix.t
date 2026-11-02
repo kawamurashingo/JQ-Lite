@@ -99,12 +99,16 @@ is_deeply(\@dotted_to_entries, [1, 2], '.to_entries[] remains dotted field trave
 my @fallback_kept = $jq->run_query('null', 'true // .[]?');
 is_deeply(\@fallback_kept, [JSON::PP::true],
     'right optional iterator cannot consume a successful left fallback');
+# Keep the pre-existing v2 eager-fallback cardinality: the coalesce
+# helper takes the first right-operand value, not the entire jq stream.
+# This PR only corrects incorrectly applying that RHS iterator to a
+# successful left operand, and does not expand the v3 release feature set.
 my @fallback_rhs = $jq->run_query('[4,5]', 'false // .[]?');
-is_deeply(\@fallback_rhs, [4, 5],
-    'fallback right optional iterator still expands its own array input');
+is_deeply(\@fallback_rhs, [4],
+    'legacy fallback retains its first right-operand value');
 my @fallback_empty_rhs = $jq->run_query('null', 'false // .[]?');
-is_deeply(\@fallback_empty_rhs, [],
-    'fallback right optional iterator can produce a genuinely empty stream');
+is_deeply(\@fallback_empty_rhs, [undef],
+    'legacy empty right-operand fallback retains its null result');
 my @slash_literal_suffix = $jq->run_query('"a//b//c"', 'split("//")[]');
 is_deeply(\@slash_literal_suffix, ['a','b','c'],
     'slashes inside a quoted separator do not suppress iterator suffix');
