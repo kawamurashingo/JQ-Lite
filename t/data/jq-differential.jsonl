@@ -4046,3 +4046,18 @@
 {"name":"v3-comma-update-rhs-array","input":{"a":0,"b":2},"filter":".a |= [1,2], .b","status":"compatible","expected":"ok"}
 {"name":"v3-comma-wrapped-branches","input":{"a":0,"b":2},"filter":"(.a |= 1, .b)","status":"compatible","expected":"ok"}
 {"name":"v3-comma-update-literal-sibling","input":{"a":0,"b":2},"filter":".a |= 1, 99","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-missing-equals-null","input":{},"filter":".a[0:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-missing-differs-from-zero","input":{},"filter":".a[0:1] != 0","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-missing-right-operand","input":{},"filter":"null == .a[0:1]","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-missing-select","input":{},"filter":"select(.a[0:1] == null)","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-null-root-equals-null","input":null,"filter":".a[0:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-explicit-null-equals-null","input":{"a":null},"filter":".a[0:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-nested-missing-equals-null","input":{"a":{}},"filter":".a.b[0:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-nested-explicit-null-equals-null","input":{"a":{"b":null}},"filter":".a.b[0:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-missing-omitted-start","input":{},"filter":".a[:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-missing-omitted-end","input":{},"filter":".a[0:] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-empty-array-not-null","input":{"a":[]},"filter":".a[0:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-empty-array-equals-empty","input":{"a":[]},"filter":".a[0:1] == []","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-present-array-slice-equals","input":{"a":[3,4]},"filter":".a[0:1] == [3]","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-empty-iterator-comparison","input":{"a":[]},"filter":".a[] == null","status":"compatible","expected":"ok"}
+{"name":"v3-named-slice-comparison-empty-iterator-select","input":{"a":[]},"filter":"select(.a[] == null)","status":"compatible","expected":"ok"}
