@@ -1276,12 +1276,19 @@ sub _traverse {
 
             # array slice access: [start:end]
             if ($step =~ /^\[(.*):(.*)\]$/s) {
-                my @args = _parse_bracket_slice_arguments($1, $2);
+                my ($raw_start, $raw_end) = ($1, $2);
+                # 'empty' is a zero-result bound expression, not a
+                # nonnumeric literal to pass to _apply_bracket_slice.
+                next if $raw_start =~ /^\s*empty\s*$/
+                     || $raw_end =~ /^\s*empty\s*$/;
+                my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
                 push @next_stack, _apply_bracket_slice($item, @args);
             }
             # array slice access: key[start:end]
             elsif ($step =~ /^(.*?)\[(.*):(.*)\]$/s) {
                 my ($key, $raw_start, $raw_end) = ($1, $2, $3);
+                next if $raw_start =~ /^\s*empty\s*$/
+                     || $raw_end =~ /^\s*empty\s*$/;
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
                     push @next_stack, _apply_bracket_slice($item->{$key}, @args);
@@ -1512,6 +1519,16 @@ sub _evaluate_condition {
         my @values = $steps
             ? _traverse_v3_field_iterator($item, $scoped_path, $steps)
             : _traverse($item, $path, { missing_object_null => 1 });
+        # Only literal/omitted nonnegative named-slice bounds may reuse
+        # the null fallback. Computed bounds such as `empty` can produce
+        # no values and must never fabricate a null predicate result.
+        if (!@values
+            && $scoped_path =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*\d*\s*:\s*\d*\s*\]\z/)
+        {
+            my ($slice_values, $ok) =
+                _evaluate_value_expression(undef, $item, $scoped_path);
+            @values = @$slice_values if $ok;
+        }
         for my $field_val (@values) {
             return 1 if _compare_values($field_val, $op, $value);
         }
