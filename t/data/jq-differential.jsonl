@@ -4069,3 +4069,26 @@
 {"name":"v3-named-slice-comparison-empty-bound-present-start-select","input":{"a":[1,2]},"filter":"select(.a[empty:1] == null)","status":"compatible","expected":"ok"}
 {"name":"v3-named-slice-comparison-empty-bound-present-end-compare","input":{"a":[1,2]},"filter":".a[0:empty] == null","status":"compatible","expected":"ok"}
 {"name":"v3-named-slice-comparison-empty-bound-present-end-select","input":{"a":[1,2]},"filter":"select(.a[0:empty] == null)","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-single-field-literal-equals","input":{"a":1},"filter":"[.a] == [1]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-single-field-self-equals","input":{"a":1},"filter":"[.a] == [.a]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-single-field-not-equal","input":{"a":1},"filter":"[.a] != [2]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-single-field-empty-array","input":{"a":1},"filter":"[.a] == []","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-single-field-right-only","input":{"a":1},"filter":"null == [.a]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-single-field-other-field","input":{"a":1},"filter":"[.a] == [.b]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-multiple-fields","input":{"a":1,"b":2},"filter":"[.a, .b] == [1, 2]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-existing-null","input":{"a":null},"filter":"[.a] == [null]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-missing-keys","input":{},"filter":"[.a] == [.a]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-literal-string","input":{},"filter":"[\"literal\"] == [\"literal\"]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-array-literal-number","input":{},"filter":"[1] == [1]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-array-start","input":null,"filter":"[.[0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-object-start","input":null,"filter":"{x:.[0:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-array-omit-start","input":null,"filter":"[.[:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-object-omit-start","input":null,"filter":"{x:.[:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-array-omit-end","input":null,"filter":"[.[0:]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-object-omit-end","input":null,"filter":"{x:.[0:]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-array-equal-bounds","input":null,"filter":"[.[1:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-object-equal-bounds","input":null,"filter":"{x:.[1:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-empty-end","input":null,"filter":"[.[0:empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-empty-start","input":null,"filter":"{x:.[empty:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-present-empty-array","input":[],"filter":"[.[0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-root-slice-null-direct-comparison","input":null,"filter":".[0:1] == null","status":"compatible","expected":"ok"}
