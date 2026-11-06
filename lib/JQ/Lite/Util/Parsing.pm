@@ -884,12 +884,11 @@ sub _evaluate_value_expression {
             # A missing named object field is one JSON null, not an empty
             # stream. Keep iterator/projection paths' existing empty behavior.
             my $named_path = $path =~ /\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\z/ ? 1 : 0;
-            # A named slice through a missing or null field is also one
-            # null, not a zero-value stream. Keep this fallback restricted
-            # to ordinary named path prefixes; genuine empty iterators and
-            # unrelated computed/slice forms retain their existing behavior.
+            # Named slices with literal/omitted nonnegative bounds through a
+            # missing or null field produce one null. Computed bounds like
+            # `empty` may instead produce no values, even on a null root.
             my ($slice_prefix) = $is_bracket_slice
-                ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[[^\[\]]*:[^\[\]]*\]\z/)
+                ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[\s*\d*\s*:\s*\d*\s*\]\z/)
                 : ();
             # A literal-bound root slice on null also yields one null.
             # Exclude computed bounds (notably `empty`) which can emit
