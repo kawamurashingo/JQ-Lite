@@ -56,6 +56,43 @@ subtest 'unquoted bracket selectors resolve real predicate values' => sub {
 };
 
 
+# Promotion review: a missing/null named slice is one JSON null in
+# comparison operands, just as in constructors. An empty array slice is
+# an array value and a genuinely empty iterator is still no output.
+subtest 'named slice comparisons retain null without inventing streams' => sub {
+    for my $input ('{}', 'null', '{"a":null}') {
+        is_deeply([$jq->run_query($input, '.a[0:1] == null')],
+            [JSON::PP::true], "missing/null slice equals null: $input");
+        is_deeply([$jq->run_query($input, '.a[0:1] != 0')],
+            [JSON::PP::true], "missing/null slice differs from 0: $input");
+        is_deeply([$jq->run_query($input, 'null == .a[0:1]')],
+            [JSON::PP::true], "RHS missing/null slice equals null: $input");
+        my $expected = JSON::PP->new->decode($input);
+        is_deeply([$jq->run_query($input, 'select(.a[0:1] == null)')],
+            [$expected], "select keeps null-valued named slice: $input");
+    }
+
+    is_deeply([$jq->run_query('{"a":{}}', '.a.b[0:1] == null')],
+        [JSON::PP::true], 'nested missing named slice is null');
+    is_deeply([$jq->run_query('{"a":{"b":null}}', '.a.b[0:1] == null')],
+        [JSON::PP::true], 'nested explicit null slice is null');
+    is_deeply([$jq->run_query('{}', '.a[:1] == null')],
+        [JSON::PP::true], 'missing named slice with omitted start');
+    is_deeply([$jq->run_query('{}', '.a[0:] == null')],
+        [JSON::PP::true], 'missing named slice with omitted end');
+    is_deeply([$jq->run_query('{"a":[]}', '.a[0:1] == null')],
+        [JSON::PP::false], 'existing empty array slice is not null');
+    is_deeply([$jq->run_query('{"a":[]}', '.a[0:1] == []')],
+        [JSON::PP::true], 'existing empty array slice equals empty array');
+    is_deeply([$jq->run_query('{"a":[3,4]}', '.a[0:1] == [3]')],
+        [JSON::PP::true], 'existing array slice comparison unchanged');
+    is_deeply([$jq->run_query('{"a":[]}', '.a[] == null')],
+        [], 'empty iterator comparison remains zero results');
+    is_deeply([$jq->run_query('{"a":[]}', 'select(.a[] == null)')],
+        [], 'empty iterator predicate does not invent null');
+};
+
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
