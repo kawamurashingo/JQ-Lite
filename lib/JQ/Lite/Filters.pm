@@ -1901,11 +1901,10 @@ sub _evaluate_comparison_operand {
     my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
 
-    # Named slices on absent/null fields are one null value, not an empty
-    # stream. _evaluate_value_expression already handles that case; other
-    # scoped paths still use run_query so empty iterators stay empty.
-    my $named_slice = $copy =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[[^\[\]]*:[^\[\]]*\]\z/
-        && $copy !~ /[+\-*\/]/;
+    # Only literal/omitted nonnegative slice bounds can take this null
+    # fallback: computed bounds such as `empty` must keep zero outputs.
+    # Other scoped paths still use run_query for their stream behavior.
+    my $named_slice = $copy =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*\d*\s*:\s*\d*\s*\]\z/;
 
     if ($copy !~ /\A\./
         || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/
