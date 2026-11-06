@@ -4035,3 +4035,14 @@
 {"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".[0]? = 9","input":[{"?":1}],"name":"assignment-audit-rejected-plain-optional-root-index","status":"unsupported"}
 {"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".a[0]?.n = 9","input":{"a":[{"?":{"n":1}}]},"name":"assignment-audit-rejected-plain-optional-index-suffix","status":"unsupported"}
 {"assignment_scope":"rejected-selector","assignment_v3":{"kind":"runtime-error","out":[]},"expected":"ok","filter":".a[0]? = 9","input":null,"name":"assignment-audit-rejected-plain-optional-index-null-root","status":"unsupported"}
+{"name":"v3-comma-update-then-field","input":{"a":0,"b":2},"filter":".a |= 1, .b","status":"compatible","expected":"ok"}
+{"name":"v3-comma-field-then-update","input":{"a":0,"b":2},"filter":".a, .b |= 1","status":"compatible","expected":"ok"}
+{"name":"v3-comma-parenthesized-update","input":{"a":0,"b":2},"filter":"(.a |= 1), .b","status":"compatible","expected":"ok"}
+{"name":"v3-comma-update-nested-rhs","input":{"a":0,"b":2},"filter":".a |= (1,2), .b","status":"compatible","expected":"ok"}
+{"name":"v3-comma-update-nested-rhs-only","input":{"a":0,"b":2},"filter":".a |= (1,2)","status":"compatible","expected":"ok"}
+{"name":"v3-comma-update-quoted-rhs","input":{"a":0,"b":2},"filter":".a |= \"x,y\", .b","status":"compatible","expected":"ok"}
+{"name":"v3-comma-two-update-branches","input":{"a":0,"b":2},"filter":".a |= 1, .b |= 3","status":"compatible","expected":"ok"}
+{"name":"v3-comma-update-rhs-arithmetic","input":{"a":0,"b":2},"filter":".a |= (. + 1), .b","status":"compatible","expected":"ok"}
+{"name":"v3-comma-update-rhs-array","input":{"a":0,"b":2},"filter":".a |= [1,2], .b","status":"compatible","expected":"ok"}
+{"name":"v3-comma-wrapped-branches","input":{"a":0,"b":2},"filter":"(.a |= 1, .b)","status":"compatible","expected":"ok"}
+{"name":"v3-comma-update-literal-sibling","input":{"a":0,"b":2},"filter":".a |= 1, 99","status":"compatible","expected":"ok"}
