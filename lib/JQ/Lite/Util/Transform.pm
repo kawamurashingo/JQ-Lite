@@ -1276,12 +1276,19 @@ sub _traverse {
 
             # array slice access: [start:end]
             if ($step =~ /^\[(.*):(.*)\]$/s) {
-                my @args = _parse_bracket_slice_arguments($1, $2);
+                my ($raw_start, $raw_end) = ($1, $2);
+                # 'empty' is a zero-result bound expression, not a
+                # nonnumeric literal to pass to _apply_bracket_slice.
+                next if $raw_start =~ /^\s*empty\s*$/
+                     || $raw_end =~ /^\s*empty\s*$/;
+                my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
                 push @next_stack, _apply_bracket_slice($item, @args);
             }
             # array slice access: key[start:end]
             elsif ($step =~ /^(.*?)\[(.*):(.*)\]$/s) {
                 my ($key, $raw_start, $raw_end) = ($1, $2, $3);
+                next if $raw_start =~ /^\s*empty\s*$/
+                     || $raw_end =~ /^\s*empty\s*$/;
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
                     push @next_stack, _apply_bracket_slice($item->{$key}, @args);
