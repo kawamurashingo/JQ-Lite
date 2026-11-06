@@ -1901,6 +1901,19 @@ sub _evaluate_comparison_operand {
     my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
 
+    # Nonliteral bracket arrays are filter constructors, not index paths.
+    # The value helper parses their leading '[' as a legacy bracket lookup
+    # and can report a successful empty stream for a valid array filter.
+    # JSON literal arrays remain on the existing value shortcut.
+    if ($copy =~ /\A\[/) {
+        my $is_json_literal = eval {
+            JQ::Lite::Util::_decode_json($copy);
+            1;
+        };
+        return $self->run_query(JQ::Lite::Util::_encode_json($context), $expr)
+            unless $is_json_literal;
+    }
+
     # Only literal/omitted nonnegative slice bounds can take this null
     # fallback: computed bounds such as `empty` must keep zero outputs.
     # Other scoped paths still use run_query for their stream behavior.
