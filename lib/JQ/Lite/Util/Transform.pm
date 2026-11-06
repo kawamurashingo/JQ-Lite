@@ -1512,12 +1512,11 @@ sub _evaluate_condition {
         my @values = $steps
             ? _traverse_v3_field_iterator($item, $scoped_path, $steps)
             : _traverse($item, $path, { missing_object_null => 1 });
-        # For a simple named slice, a missing/null source is one null
-        # value, not an empty stream. Reuse the existing value-context
-        # handling rather than treating the predicate as false.
+        # Only literal/omitted nonnegative named-slice bounds may reuse
+        # the null fallback. Computed bounds such as `empty` can produce
+        # no values and must never fabricate a null predicate result.
         if (!@values
-            && $scoped_path =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[[^\[\]]*:[^\[\]]*\]\z/
-            && $scoped_path !~ /[+\-*\/]/)
+            && $scoped_path =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*\d*\s*:\s*\d*\s*\]\z/)
         {
             my ($slice_values, $ok) =
                 _evaluate_value_expression(undef, $item, $scoped_path);
