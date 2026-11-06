@@ -1901,8 +1901,15 @@ sub _evaluate_comparison_operand {
     my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
 
+    # Named slices on absent/null fields are one null value, not an empty
+    # stream. _evaluate_value_expression already handles that case; other
+    # scoped paths still use run_query so empty iterators stay empty.
+    my $named_slice = $copy =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[[^\[\]]*:[^\[\]]*\]\z/
+        && $copy !~ /[+\-*\/]/;
+
     if ($copy !~ /\A\./
-        || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/)
+        || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/
+        || $named_slice)
     {
         my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $copy);
         return @$values if $ok;
