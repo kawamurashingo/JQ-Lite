@@ -35,10 +35,16 @@ sub apply {
         return 0;
     }
 
-    # v3 update assignment must run before expression/arithmetic shortcuts.
-    # The RHS is a filter on the *old target value*, not the input root.
-    my ($update_lhs, $update_rhs)
-        = JQ::Lite::Util::_split_top_level_operator($normalized, '|=');
+    # Comma alternatives are separate filters on the original input.
+    # Split them before checking for update assignment, so .a |= 1, .b
+    # does not treat the .b branch as part of the update RHS.
+    my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($normalized);
+
+    # v3 update assignment runs before expression/arithmetic shortcuts, but
+    # only for a single comma branch. Its RHS filters the old target value.
+    my ($update_lhs, $update_rhs) = @sequence_parts == 1
+        ? JQ::Lite::Util::_split_top_level_operator($normalized, '|=')
+        : ();
     if (defined $update_lhs) {
         my ($path, $rhs) = ($update_lhs, $update_rhs);
         $path =~ s/^\s+|\s+$//g;
@@ -59,7 +65,6 @@ sub apply {
         return 1;
     }
 
-        my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($normalized);
         if (@sequence_parts > 1) {
             @next_results = ();
 
@@ -79,6 +84,7 @@ sub apply {
                     # that shortcut can return an incorrect null for
                     # e.g. .items[][0]? before the visitor sees it.
                     if ($filter !~ /^\s*[\[{(]/
+                        && index($filter, '|=') < 0
                         && !JQ::Lite::Util::_parse_v3_literal_iterator_path($filter))
                     {
                         my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $filter);
