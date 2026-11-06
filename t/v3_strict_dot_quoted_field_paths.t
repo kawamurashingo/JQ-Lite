@@ -103,6 +103,48 @@ subtest 'named slice comparisons retain null without inventing streams' => sub {
 };
 
 
+# Main-target Codex review: nonliteral bracket arrays used as comparison
+# operands must be evaluated as filters rather than legacy index paths.
+subtest 'array constructor comparison operands retain their values' => sub {
+    my @cases = (
+        ['{"a":1}', '[.a] == [1]', JSON::PP::true],
+        ['{"a":1}', '[.a] == [.a]', JSON::PP::true],
+        ['{"a":1}', '[.a] != [2]', JSON::PP::true],
+        ['{"a":1}', '[.a] == []', JSON::PP::false],
+        ['{"a":1}', 'null == [.a]', JSON::PP::false],
+        ['{"a":1}', '[.a] == [.b]', JSON::PP::false],
+        ['{"a":1,"b":2}', '[.a, .b] == [1, 2]', JSON::PP::true],
+        ['{"a":null}', '[.a] == [null]', JSON::PP::true],
+        ['{}', '[.a] == [.a]', JSON::PP::true],
+        ['{}', '["literal"] == ["literal"]', JSON::PP::true],
+        ['{}', '[1] == [1]', JSON::PP::true],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected) = @$case;
+        is_deeply([$jq->run_query($input, $filter)], [$expected],
+            "comparison array constructor: $filter on $input");
+    }
+};
+
+# Root slice on JSON null is one null result, including in constructors.
+# The empty-bound variant must stay an empty stream, not a synthesized null.
+subtest 'null root slice constructors retain null and empty streams' => sub {
+    for my $slice ('.[0:1]', '.[:1]', '.[0:]', '.[1:1]') {
+        is_deeply([$jq->run_query('null', "[$slice]")], [[undef]],
+            "root slice array constructor: $slice");
+        is_deeply([$jq->run_query('null', "{x:$slice}")], [{x => undef}],
+            "root slice object constructor: $slice");
+    }
+    is_deeply([$jq->run_query('null', '[.[0:empty]]')], [[]],
+        'empty upper-bound stream makes empty array constructor');
+    is_deeply([$jq->run_query('null', '{x:.[empty:1]}')], [],
+        'empty lower-bound stream makes no object constructor');
+    is_deeply([$jq->run_query('[]', '[.[0:1]]')], [[[]]],
+        'existing empty array root slice stays an empty array value');
+    is_deeply([$jq->run_query('null', '.[0:1] == null')],
+        [JSON::PP::true], 'direct null root slice comparison remains true');
+};
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
