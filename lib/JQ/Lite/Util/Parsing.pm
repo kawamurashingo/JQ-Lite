@@ -891,7 +891,13 @@ sub _evaluate_value_expression {
             my ($slice_prefix) = $is_bracket_slice
                 ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[[^\[\]]*:[^\[\]]*\]\z/)
                 : ();
-            return (($numeric_path || $named_path || defined($slice_prefix))
+            # A literal-bound root slice on null also yields one null.
+            # Exclude computed bounds (notably `empty`) which can emit
+            # no values; the named-slice path retains its own handling.
+            my $root_literal_slice = $is_bracket_slice
+                && $path =~ /\A\[\s*\d*\s*:\s*\d*\s*\]\z/;
+            return (($numeric_path || $named_path || defined($slice_prefix)
+                     || $root_literal_slice)
                 ? [undef] : [], 1) unless defined $context;
 
             my @values = _traverse(
