@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 11;
+use Test::More tests => 22;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use JQ::Lite;
@@ -37,7 +37,7 @@ is_deeply(
 );
 
 my @fallback = $jq->run_query('{}', '(.missing), 1');
-is_deeply(\@fallback, [1], 'comma skips branches that produce no output');
+is_deeply(\@fallback, [undef, 1], 'comma preserves JSON null from a missing field');
 
 my @chain = $jq->run_query('null', '1, 2, 3');
 is_deeply(\@chain, [1, 2, 3], 'comma is left-associative and preserves order');
@@ -57,3 +57,38 @@ is_deeply(\@paren, [1, 2, 3], 'parenthesised sequence composes with subsequent b
 my @trailing_empty = $jq->run_query('null', '1, empty');
 is_deeply(\@trailing_empty, [1], 'empty trailing branch does not add results');
 
+
+# A top-level comma binds more loosely than update assignment. Each
+# alternative receives the unchanged input; a comma inside the RHS is not
+# a sibling filter when nested in parentheses, arrays or quoted strings.
+my $update_json = '{"a":0,"b":2}';
+my @update_comma_cases = (
+    ['.a |= 1, .b', [{ a => 1, b => 2 }, 2],
+        'update followed by field alternative'],
+    ['.a, .b |= 1', [0, { a => 0, b => 1 }],
+        'field before update alternative'],
+    ['(.a |= 1), .b', [{ a => 1, b => 2 }, 2],
+        'parenthesized update remains a separate branch'],
+    ['.a |= (1,2), .b', [{ a => 1, b => 2 }, 2],
+        'parenthesized RHS comma takes only its first result'],
+    ['.a |= (1,2)', [{ a => 1, b => 2 }],
+        'parenthesized RHS comma without sibling does not branch'],
+    ['.a |= "x,y", .b', [{ a => 'x,y', b => 2 }, 2],
+        'quoted comma stays within update RHS'],
+    ['.a |= 1, .b |= 3',
+        [{ a => 1, b => 2 }, { a => 0, b => 3 }],
+        'two updates each start from the original input'],
+    ['.a |= (. + 1), .b', [{ a => 1, b => 2 }, 2],
+        'update RHS arithmetic stays scoped to old leaf'],
+    ['.a |= [1,2], .b', [{ a => [1, 2], b => 2 }, 2],
+        'array constructor comma stays inside the RHS'],
+    ['(.a |= 1, .b)', [{ a => 1, b => 2 }, 2],
+        'wrapped top-level alternatives retain update precedence'],
+    ['.a |= 1, 99', [{ a => 1, b => 2 }, 99],
+        'literal sibling still evaluates after update'],
+);
+for my $case (@update_comma_cases) {
+    my ($filter, $expected, $label) = @$case;
+    my @actual = $jq->run_query($update_json, $filter);
+    is_deeply(\@actual, $expected, $label);
+}

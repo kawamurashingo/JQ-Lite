@@ -38,21 +38,22 @@ sub type_of {
     return 'string';
 }
 
+# Reuse the fixed jq type ordering across recursive array/object comparisons.
+my %TYPE_RANK = (
+    null    => 0,
+    boolean => 1,
+    number  => 2,
+    string  => 3,
+    array   => 4,
+    object  => 5,
+);
+
 sub compare {
     my ($left, $right) = @_;
 
-    my %rank = (
-        null    => 0,
-        boolean => 1,
-        number  => 2,
-        string  => 3,
-        array   => 4,
-        object  => 5,
-    );
-
     my $left_type  = type_of($left);
     my $right_type = type_of($right);
-    return $rank{$left_type} <=> $rank{$right_type}
+    return $TYPE_RANK{$left_type} <=> $TYPE_RANK{$right_type}
         if $left_type ne $right_type;
 
     return 0 if $left_type eq 'null';
@@ -62,7 +63,8 @@ sub compare {
 
     if ($left_type eq 'array') {
         my $limit = @{$left} < @{$right} ? @{$left} : @{$right};
-        for my $index ($limit ? (0 .. $limit - 1) : ()) {
+        # Avoid allocating an index range for every recursive comparison.
+        for (my $index = 0; $index < $limit; $index++) {
             my $ordering = compare($left->[$index], $right->[$index]);
             return $ordering if $ordering;
         }
@@ -71,8 +73,15 @@ sub compare {
 
     my @left_keys  = sort keys %{$left};
     my @right_keys = sort keys %{$right};
-    my $key_ordering = compare(\@left_keys, \@right_keys);
-    return $key_ordering if $key_ordering;
+    # Compare the keys directly instead of recursively comparing two
+    # temporary array references. Retain compare()'s type/flag behavior
+    # for every key, and the short-prefix ordering of arrays.
+    my $limit = @left_keys < @right_keys ? @left_keys : @right_keys;
+    for (my $index = 0; $index < $limit; $index++) {
+        my $ordering = compare($left_keys[$index], $right_keys[$index]);
+        return $ordering if $ordering;
+    }
+    return @left_keys <=> @right_keys if @left_keys != @right_keys;
     for my $key (@left_keys) {
         my $ordering = compare($left->{$key}, $right->{$key});
         return $ordering if $ordering;

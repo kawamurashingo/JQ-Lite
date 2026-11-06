@@ -28,7 +28,7 @@ my @string_rindex = $jq->run_query($json, '.phrase | rindex("an")');
 is($string_rindex[0], 3, 'rindex on strings returns the final substring position');
 
 my @empty_fragment = $jq->run_query($json, '.phrase | rindex("")');
-is($empty_fragment[0], 6, 'rindex("") returns the string length, matching jq');
+is_deeply(\@empty_fragment, [undef], 'rindex("") emits one null, matching jq 1.7');
 
 my @bool_rindex = $jq->run_query($json, '.flags | rindex(true)');
 is($bool_rindex[0], 2, 'rindex handles JSON::PP::Boolean values correctly');

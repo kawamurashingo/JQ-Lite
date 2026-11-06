@@ -1,3 +1,162 @@
+3.01  2026-11-01
+    [Proposed stable candidate - NOT RELEASED; date is staging date]
+    - Stage the practical-v2-baseline v3 candidate for final review; no new query features or dependencies.
+    - Retain the documented new/run_query Library contract and CLI exit/output behavior with dedicated regression suites.
+    - Include the selected jq 1.7 semantic corrections and migration guidance accumulated in the developer checkpoints below.
+    - Propose 3.01 to sort above the observed 3.00_03 Actions exposure under Perl version ordering; public-version approval remains pending.
+    - Preserve raw PAUSE receipt evidence privately and record the bounded cross-source reconciliation; human history acknowledgement and publication approval remain outstanding.
+
+3.00_03  2026-10-25
+    [Developer release — INTERNAL RC1 candidate, NOT published]
+    - Add an offline public version-order preflight with an explicit human-audited publication-history gate; reject developer-train publication and unsafe prerelease-to-stable downgrades without selecting a public version.
+    - Stage a separate RC1 validation checkpoint after closed scoped #623/#625/#626 audits and #867 warning-gate sign-off; preserve practical v2.59 feature scope.
+    - Freeze Library/CLI contracts and existing Perl 5.14+ pure-Perl dependencies; continue all Push/PR jq 1.7, warning-clean and source tarball test gates without adding new jq grammar.
+    - Keep all 3.00_0x archives permanently internal-only: public beta/RC requires a separately approved monotonically increasing Perl version sequence through stable; the future stable number remains undecided.
+    - Draft internal RC1 notes and independent final-head/package/review gates; no CPAN upload, public tag, GitHub Release or stable main change.
+
+3.00_02  2026-10-21
+    [Developer release — beta1 candidate, NOT published]
+    - Gate successful Perl/jq/package tests against unexpected warnings and fix legacy path deletion-sort comparator warnings on older Perl versions; no jq feature expansion.
+    - Document that Perl treats 3.00_02 as newer than stable 3.00; keep all 3.00_0x developer archives permanently unpublished. Any public beta or RC requires advance approval of a strictly increasing Perl version sequence through stable. Stable-only 3.00 remains conditional on no developer archive ever being published.
+    - Stage the scoped 3.0 beta1 developer-release version and draft release notes; no public tag, CPAN upload or stable publication.
+    - Preserve the documented practical v2.59 baseline, selected jq 1.7 semantic corrections, CLI/Library contract, Perl 5.14+, and existing dependencies.
+    - Require final candidate Perl/jq CI, extracted-tarball tests, clean install, maintainer scope sign-off and final Codex review before promotion.
+
+3.00_01  2026-09-23
+    [Developer release]
+    - Add pre-release source-distribution verification with Perl 5.14/latest disttest, clean tarball install, installed CLI/Library smoke checks, and aligned version/metadata regression; no public release or stable version bump.
+    - Freeze the practical v3 path/iterator release subset (50 jq-compatible snapshots, four retained v2 differences), guard Library and CLI stream/error semantics, and record source-size/migration boundaries.
+    - Freeze the practical v3 assignment/update release scope (40 compatible, 39 intentional differences, 22 unsupported), with Library snapshot classifications, CLI invalid-target contracts, and explicit setter migration choices.
+    - Freeze the v3 practical arithmetic release scope and jq 1.7 exception set with fixture-classification, structured Library error and CLI runtime-contract regressions.
+    - Record v3.0 release readiness gates, pending semantic sign-offs and candidate validation evidence without claiming a stable release.
+    - Reuse lazily validated substr() start/length bounds across nested arrays without evaluating arguments for passthrough-only branches.
+    - Reuse a lazily prepared literal split separator and regex across nested input arrays, avoiding repeated pattern preparation while retaining flattening, null, and Boolean behavior.
+    - Reuse lazily prepared literal search and replacement text across nested replace() arrays, avoiding repeated quotemeta and operand coercion per string element.
+    - Build delpaths deletion-sort parent signatures directly from path segments without materializing intermediate arrays, keeping the exact legacy key encoding and ordering.
+    - Reuse validated setpath path arrays across recursive updates with an index instead of rebuilding remaining-segment arrays at each depth; retain immutable source and replacement handling.
+    - Pass validated setpath path arrays directly to the persistent setter, avoiding an unnecessary per-path clone while retaining path validation and updates.
+    - Create one child path per leaf_paths/paths(scalars) recursion step instead of copying each emitted leaf path, retaining stable ordered independent paths.
+    - Reuse each emitted paths() path as its read-only recursion prefix, avoiding a second path-array copy at every container child while preserving depth-first order.
+    - Avoid copying quantifier input arrays and short-circuit all()/any() child-result truth tests, retaining v2 empty-result and scalar truthiness rules.
+    - Walk delpaths deletion paths directly without copying segment arrays, preserving empty/single-segment paths, nested deletion results and the original path values.
+    - Pass validated delpaths deletion paths directly to the in-place walker, avoiding a redundant per-path array copy while retaining untouched path arguments and deletion order.
+    - Cache delpaths deletion-sort parent signatures and depths once per path instead of recalculating them on each comparison; retain descending array-index deletion order.
+    - Reuse the fixed supported-regex-flag lookup across test()/match() calls, keeping all imsx combinations, duplicate flags and existing error messages.
+    - Push reversed recurse() children to its depth-first stack in one operation, retaining sibling order, references and error propagation.
+    - Normalize pick() arguments in a single pass instead of map-then-grep, retaining null exclusion, stringified keys and fallback argument parsing.
+    - Stop scanning implode() arrays at the first nested reference instead of counting all referenced elements; preserve flat conversion, recursive arrays and opaque values.
+    - Extract explode() Unicode code points directly with unpack('U*') instead of allocating an intermediate split character list; preserve byte, Unicode, boolean and nested-array behavior.
+    - Add regression coverage for internal assignment get/set path walkers, retaining Perl's optimized foreach ranges and validating nested, negative-index and missing-leaf behavior.
+    - Compare sorted object keys without an intermediate array-comparison call, retaining jq type ordering, prefix rules and nested value semantics.
+    - Filter and coerce numeric aggregate inputs in one pass instead of allocating an intermediate grep list, preserving booleans, numeric strings and per-consumer results.
+    - Reuse the unary stream mapper in argument-taking clamp while retaining numeric bound normalization, recursive values and empty-stream behavior.
+    - Reuse unary stream mapping for argument-taking has, contains, contains_subset and inside while retaining their distinct matching, error and capture rules.
+    - Reuse unary stream mapping for argument-taking string builtins (trim/predicate/split, substr, replace), retaining parsed captures, stream order and opaque references.
+    - Scan balanced brackets incrementally with a character regex instead of a temporary split list, avoiding quadratic UTF-8 indexed substr lookups while retaining quote and escape rules.
+    - Build rest() output from a shallow array copy instead of constructing a numeric index slice; preserve empty arrays, JSON types and nested references.
+    - Reuse the unary stream mapper for argument-taking flatten_depth and nth, preserving capture isolation, ordering, null slots and reference identity.
+    - Accumulate add, sum and avg values without a temporary numeric map list, keeping List::Util overflow promotion plus null, boolean, string and empty-array rules.
+    - Avoid JSON round-trip cloning of compound-assignment old values while retaining a local scalar copy to preserve numeric-looking string flags during coercion.
+    - Reuse the leaf found during update-assignment path validation instead of parsing and reading the same path twice; preserve missing, null, array and deletion semantics.
+    - Avoid temporary index lists in enumerate and transpose, and find the shortest transpose row without a temporary lengths list.
+    - Reuse unary stream mapping for keys and keys_unsorted while preserving hash ordering, array indexes and distinct invalid-input behavior.
+    - Merge object fields incrementally instead of rebuilding the accumulated hash for every array element, retaining last-wins and shallow values.
+    - Rebuild contiguous numeric-key from_entries arrays without generating a temporary index list, retaining sparse and duplicate key rules.
+    - Build array to_entries results without a temporary index list, preserving ordered keys and value references.
+    - Reuse unary stream mapping for abs while retaining v2 scalar coercion and shallow array handling.
+    - Reuse parser bracket lookups in comparison and boolean-keyword splitters, preserving their independent parsing policies.
+    - Reuse fixed bracket-pair lookups across top-level parser scans without changing quote, nesting, or split behavior.
+    - Avoid temporary array index lists in indices and recursive containment while preserving match order and duplicate rules.
+    - Reuse the stateless projected-key comparator across min_by/max_by and group_by without changing numeric or lexical ordering.
+    - Avoid temporary index ranges when collecting paths and leaf paths, retaining depth-first traversal and empty-container behavior.
+    - Iterate array comparisons by index without building temporary index lists, keeping recursive ordering and prefix behavior.
+    - Reuse a fixed jq type-rank lookup across recursive value comparisons instead of rebuilding it per call.
+    - Keep Type standalone loading lightweight by moving shared stream mapping to a dependency-free module, avoiding Util-wide load side effects.
+    - Reuse shared unary stream mapping for length, type, values and count while retaining type filters and standalone registration.
+    - Reuse unary stream mapping for aggregate builtins while preserving empty-array values, numeric coercion and non-array fallbacks.
+    - Reuse the shared unary stream mapper for first/last, rest, reverse, flatten and compact while preserving array and non-array behavior.
+    - Share unary stream mapping across string, numeric, encoding and object builtins without changing result ordering or error propagation.
+    - Share guarded Perl scalar flag inspection for CSV number quoting and string-only operations without changing numeric-looking string behavior.
+    - Reuse shared input-to-text coercion for @uri and @base64 while retaining URI escaping and the @base64d null policy.
+    - Remove duplicate path-index and scalar-leaf aliases; getpath/setpath share the same coercion while retaining distinct bounds behavior.
+    - Add public Library API compatibility regression coverage for constructor options, ordered result lists, JSON result types and structured error classes.
+    - Share median_by() numeric projection with sum_by()/avg_by() while keeping numeric counting, addition order and v2 passthrough behavior.
+    - Reuse the shared numeric-value extractor for median_by() projections, preserving iterator output order and numeric coercion.
+    - Reuse the existing first-key projection for min_by()/max_by(), preserving comparator conversion, missing-key and tie behavior.
+    - Reuse the existing numeric array recursion for clamp() and to_number() without changing coercion, passthrough or output stream shape.
+    - Delegate paths(scalars) root-type checks to its existing leaf collector while retaining the empty stream for scalar roots.
+    - Document practical jq 1.7 compatibility classifications and a v2-to-v3 migration guide without expanding the supported grammar.
+    - Share index()/rindex()/indices() filter argument decoding and dispatch while retaining first/last/all-match, UTF-8 and v2 fallback behavior.
+    - Delegate absent substr argument captures to the common parser without changing slicing, coercion or stream semantics.
+    - Let the common argument parser handle omitted/empty flatten_depth captures while preserving depth fallback and stream behavior.
+    - Delegate flatten input type checks to its utility to retain non-array passthrough without redundant builtin guards.
+    - Return the initial empty hash from merge_objects directly, removing redundant presence tracking while retaining merge precedence.
+    - Share to_entries/from_entries/merge_objects stream registration while retaining entry reconstruction, errors and object merge behavior.
+    - Simplify guaranteed-array flatten recursion and share one-level/full-depth builtin registration without changing output streams.
+    - Share bounded and unlimited flatten recursion while retaining depth stopping rules, nested values and stream behavior.
+    - Share arrays/objects/scalars type-filter dispatch while retaining exact scalar, boolean and stream behavior.
+    - Share first/last array endpoint dispatch while preserving null slots, element types and v2 non-array fallbacks.
+    - Reuse the one-argument map wrapper for ceil/floor/round while preserving numeric recursion, coercion and output streams.
+    - Inline escaped literal split separators while keeping regex metacharacter, UTF-8 and stream behavior.
+    - Simplify product aggregation by using the multiplicative identity for empty/all-null arrays without a redundant seen flag.
+    - Reuse the existing stream map wrapper for titlecase/upper/lower/ascii_upcase/ascii_downcase without changing case conversion semantics.
+    - Reuse literal argument decoding for string arguments while preserving JSON null-to-empty and legacy text fallback behavior.
+    - Remove redundant array-boolean coercion in recursive split while preserving JSON value types and flattened streams.
+    - Reuse string-argument dispatch for split while preserving literal delimiter parsing and flattened array results.
+    - Share ltrimstr/rtrimstr/startswith/endswith string-argument dispatch while preserving mode-specific string and array behavior.
+    - Share contains/contains_subset/inside literal-argument dispatch while retaining jq-type errors and distinct legacy membership/duplicate semantics.
+    - Share keys/keys_unsorted container enumeration while preserving sorted/unsorted order, key spelling, array indexes and distinct scalar errors.
+    - Reject unsupported bracket targets and optional numeric-index suffixes in plain/compound assignment before partial-prefix mutation; audit and document retained assignment differences.
+    - Apply strict v3 arithmetic types and errors in simple select predicates, preserve select streams in constructors, and document the practical arithmetic contract.
+    - Share drop()/tail() suffix-array dispatch while retaining zero, length, oversized count and non-array v2 behavior.
+    - Record a practical v2/v3/jq path audit with live differential and Library checks; document retained scalar-field and string-slice differences.
+    - Share median()/median_by() numeric median calculation while preserving distinct empty-array, projection and v2 passthrough rules.
+    - Reuse first-key path projection across unique_by(), group_by() and group_count() without changing key signatures or ordering.
+    - Share group_by()/group_count() first-key projection and call dispatch while retaining distinct grouping, missing-key, and non-array rules.
+    - Reuse normalized path arguments in unique_by() without changing first-key selection, missing-key handling or v2 passthrough.
+    - Share sum_by()/avg_by() numeric projection, coercion and accumulation while retaining zero-result and v2 non-array behavior.
+    - Unify sum_by()/avg_by() filter dispatch without changing per-stream ordering, projected values or non-array passthrough.
+    - Share variance/stddev population-statistics dispatch while preserving numeric extraction, empty values and scalar passthrough.
+    - Share sort/sort_desc array dispatch while retaining smart comparison, ascending/descending order and v2 passthrough.
+    - Share limit/drop/tail/chunks non-negative count validation without changing array slicing, v2 scalar passthrough or function-specific errors.
+    - Share all()/any() stream dispatch and array/scalar quantifier evaluation while retaining v2 truthiness, empty streams, and short-circuit behavior.
+    - Share max_by()/min_by() path normalization and array dispatch without changing selection, tie handling or v2 scalar passthrough.
+    - Share @base64/@base64d input text normalization while preserving scalar type checks, null and boolean behavior, strict decoder validation, and UTF-8 output.
+    - Share CSV/TSV row dispatch and field formatting while preserving numeric SV identity, escapes and v2 scalar/container behavior.
+    - Share test()/match() regex validation and function-specific errors while retaining existing safe compilation, captures and flags.
+    - Reuse balanced one-character operator scanning for object-colon splitting while preserving literal, nested and null-field behavior.
+    - Reuse common array/object iteration for standalone and path iterators, retaining strict/optional error and null/empty-stream semantics.
+    - Share numeric scoped array index lookup while retaining null values, optional field access and ordered iterator streams.
+    - Share identical top-level comma/semicolon scanners while preserving v2 parsing, null/empty streams and iterator output order.
+    - Share literal getpath/setpath array-of-path validation while keeping dynamic path and null/error semantics unchanged.
+    - Share slice()/bracket-slice numeric bound validation without changing v2 length, jq-exclusive end, or error precedence.
+    - Reuse the shared semicolon parser for v2 practical range arguments, retaining output order, blank slots and error behavior.
+    - Verify MANIFEST completeness against Git-tracked non-skipped files and catch missing distribution assets without new dependencies.
+    - Reuse the leaf-path collector for scalar-path container traversal while preserving root/null and v2 leaf_paths output contracts.
+    - Share paths/paths(scalars) output-stream dispatch; preserve the v2 paths() and null-leaf differences without broadening jq syntax.
+    - Share test()/match() literal regex argument dispatch while retaining each function's v2 results, jq 1.7 subset and specific regex errors.
+    - Share array path-index normalization for getpath/setpath without altering v2 coercion, jq-compatible bounds, or error policies.
+    - Share non-path iterator-suffix eligibility across comma branches and standalone filters without expanding v2 syntax.
+    - Keep a literal empty-array fallback in supported // expressions instead of treating it as an iterator suffix; document the practical scope.
+    - Keep UTF-8 base64/JSON text results as character strings; share structured tostring()/tojson() conversion and preserve parser fallbacks.
+    - Normalize UTF-8 raw input, --arg and --rawfile strings before JSON wrapping/binding and encode raw output once; cover search in line, slurp and variable modes.
+    - Align indices() empty-needle, UTF-8 byte-position and null-input results with jq 1.7; retain documented v2 array/coercion fallbacks.
+    - Share index()/rindex() lookup, emit null for empty string needles and use jq 1.7 UTF-8 byte offsets; document retained v2 search differences.
+    - Preserve empty comparison operands, right-first evaluation and null/missing distinctions; keep right-hand iterator suffixes on their operands.
+    - Keep ordinary dotted field paths distinct from builtin names and literals, including .type, .length, .empty and .null.
+    - Make type/type() preserve empty streams while retaining explicit null classification; document migration.
+    - Preserve zero-output values in existing array/object constructors instead of inserting JSON null.
+    - Make comparison operators and simple select() predicates use shared JSON-type-sensitive equality and jq value ordering.
+    - Preserve compound JSON comparison literals and share type() classification; document empty-stream differences and migration.
+    - Make contains() use jq-style recursive containment for literal arrays and objects, with JSON type identity.
+    - Preserve contains_subset(), inside(), and the infix contains extension; document migration for membership/key lookups.
+    - Evaluate contains() predicates in select() and validate the corrected scope against jq 1.7.
+    - Begin the JQ::Lite 3.x developer-release series for intentional semantic changes.
+    - Make arithmetic use JSON type identity instead of Perl implicit numeric coercion.
+    - Reject boolean and numeric-looking string operands in numeric arithmetic with structured evaluation errors.
+    - Preserve jq-style + overloading for compatible numbers, strings, arrays, objects, and null identity.
+    - Preserve runtime error handling for division/modulo by zero and document explicit migration via tonumber()/to_number().
+
 2.59  2026-09-20
 
   - Make the dual-valued scalar regression test independent of the

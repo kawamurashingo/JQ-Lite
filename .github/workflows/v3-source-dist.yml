@@ -1,0 +1,158 @@
+name: v3 source distribution candidate
+
+on:
+  push:
+    branches: [main, v3-dev]
+  pull_request:
+    branches: [main, v3-dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package and install (Perl ${{ matrix.perl }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        perl: ["5.14", "5"]
+
+    steps:
+      - name: Check out candidate source
+        uses: actions/checkout@v7
+
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+
+      - name: Show candidate checkout and Perl
+        env:
+          CI_EVENT: ${{ github.event_name }}
+          CI_RUN_SHA: ${{ github.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          echo "CI event: $CI_EVENT"
+          echo "CI run SHA: $CI_RUN_SHA"
+          checked_out_sha="$(git rev-parse HEAD)"
+          echo "Checked-out SHA: $checked_out_sha"
+          test "$checked_out_sha" = "$CI_RUN_SHA"
+          if [ "$CI_EVENT" = 'pull_request' ]; then
+            test -n "$PR_HEAD_SHA"
+            test -n "$PR_BASE_SHA"
+            echo "PR head SHA: $PR_HEAD_SHA"
+            echo "PR base SHA: $PR_BASE_SHA"
+            echo "PR synthetic merge SHA: $checked_out_sha"
+          fi
+          perl -v
+
+      - name: Build and test source distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          perl Makefile.PL
+          make
+          sh ci/fail-on-test-stderr.sh make test
+          make dist
+          sh ci/fail-on-test-stderr.sh make disttest
+
+      - name: Check archive contents and clean installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(JQ-Lite-*.tar.gz)
+          test "${#archives[@]}" -eq 1
+          archive="${archives[0]}"
+          candidate_version="$(perl -Ilib -MJQ::Lite -e 'print $JQ::Lite::VERSION')"
+          echo "Source archive: $archive (module version $candidate_version)"
+          test "$archive" = "JQ-Lite-$candidate_version.tar.gz"
+          # Validate and record the checksum in logs without exporting an
+          # INTERNAL-only developer tarball as a publicly downloadable
+          # GitHub Actions artifact. The tarball remains on this job runner.
+          echo "Local source archive SHA-256 (not a release or download):"
+          sha256sum "$archive"
+          tar -tzf "$archive" > "$RUNNER_TEMP/distribution-entries.txt"
+          for required in \
+            lib/JQ/Lite.pm bin/jq-lite Makefile.PL Changes README.md \
+            ci/fail-on-test-stderr.sh \
+            ci/check-public-version-order.pl \
+            ci/verify-actions-exposure-snapshot.pl \
+            ci/inventory-cpan-jq-lite-index.pl \
+            ci/reconcile-cpan-public-history.pl \
+            ci/compare-backpan-cpan-inventory.pl \
+            ci/compare-backpan-author-metacpan-inventory.pl \
+            ci/inventory-backpan-jq-lite-index.pl \
+            ci/inventory-metacpan-jq-lite-releases.pl \
+            ci/inventory-cpantesters-jq-lite-uploads.pl \
+            docs/v3-release-readiness.md docs/v3-beta1-release-notes.md \
+            docs/v3-rc1-release-notes.md \
+            docs/v3-3.01-release-notes.md docs/v3-release-evidence-2026-11-01.md \
+            docs/v3-ci-warning-audit.md \
+            docs/v3-actions-exposure-snapshot-2026-10-25.md \
+            docs/v3-migration.md \
+            t/cli_contract.t t/v3_library_api_contract.t \
+            t/v3_library_run_query_contract.t t/library_errors.t \
+            t/jq_differential.t t/data/jq-differential.jsonl \
+            t/manifest_coverage.t t/v3_release_metadata.t \
+            t/v3_public_version_order.t t/v3_cpan_index_inventory.t \
+            t/v3_cpan_history_reconciliation.t \
+            t/v3_backpan_cpan_comparison.t \
+            t/v3_backpan_author_metacpan_comparison.t \
+            t/v3_backpan_index_inventory.t \
+            t/v3_metacpan_release_inventory.t \
+            t/v3_cpantesters_upload_inventory.t \
+            t/v3_public_ci_archive_nonpublication.t \
+            t/v3_actions_exposure_metadata_archive.t \
+            t/v3_actions_exposure_snapshot_verifier.t \
+            t/v3_secure_cpan_install_docs.t; do
+            grep -Fq "/$required" "$RUNNER_TEMP/distribution-entries.txt"
+          done
+
+          extract="$RUNNER_TEMP/extracted"
+          install="$RUNNER_TEMP/installed"
+          mkdir -p "$extract" "$install"
+          tar -xzf "$archive" -C "$extract"
+          mapfile -t dirs < <(find "$extract" -mindepth 1 -maxdepth 1 -type d)
+          test "${#dirs[@]}" -eq 1
+          cd "${dirs[0]}"
+          # Run the complete suite against the *actual tarball contents*.
+          # MakeMaker disttest recreates a distdir from MANIFEST; it is not
+          # itself a test of the already-generated .tar.gz archive.
+          perl Makefile.PL INSTALL_BASE="$install"
+          make
+          # Gate tests from the *actual extracted tarball* as well.
+          sh ci/fail-on-test-stderr.sh make test
+          make install
+          test -f "$install/lib/perl5/JQ/Lite.pm"
+          test -x "$install/bin/jq-lite"
+
+          # Leave the extracted tree before testing the installation, so
+          # Perl 5.14's default '.' include path cannot use source modules.
+          cd "$RUNNER_TEMP"
+          # Only the freshly installed package is on Perl's non-core path.
+          export PERL5LIB="$install/lib/perl5"
+          perl -MJQ::Lite -e '
+            my $jq = JQ::Lite->new;
+            my @n = $jq->run_query(q({"n":4}), q(.n));
+            die "wrong installed Library output\n" unless @n == 1 && $n[0] == 4;
+            my @missing = $jq->run_query(q({}), q(.missing));
+            die "missing/null cardinality changed\n"
+              unless @missing == 1 && !defined $missing[0];
+            my @empty = $jq->run_query(q([]), q(.[]));
+            die "empty iterator returned a value\n" unless @empty == 0;
+          '
+
+          printf '{"n":4}\n' | "$install/bin/jq-lite" -c '.n' \
+            > "$RUNNER_TEMP/cli-output.txt"
+          test "$(cat "$RUNNER_TEMP/cli-output.txt")" = '4'
+
+          # The source archive must not silently ship runtime XS modules.
+          if grep -E '\.(so|dll|bundle|xs)$' "$RUNNER_TEMP/distribution-entries.txt"; then
+            echo 'Unexpected native extension in source distribution' >&2
+            exit 1
+          fi
+

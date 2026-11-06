@@ -7,6 +7,7 @@ use JSON::PP ();
 use Scalar::Util qw(looks_like_number);
 use Encode qw(encode is_utf8);
 use JQ::Lite::Expression ();
+use JQ::Lite::Value ();
 
 our $JSON_DECODER     = _build_json_decoder();
 our $FROMJSON_DECODER = _build_json_decoder();
@@ -37,23 +38,29 @@ sub _decode_json {
     return $JSON_DECODER->decode($text);
 }
 
+# Fixed bracket pairs are shared by independent parser scans. Their quote,
+# nesting, and early-return policies stay local to each parser.
+my %BRACKET_PAIRS = (
+    '(' => ')',
+    '[' => ']',
+    '{' => '}',
+);
+my %BRACKET_CLOSING = reverse %BRACKET_PAIRS;
+
 sub _are_brackets_balanced {
     my ($text) = @_;
 
     return 1 unless defined $text && length $text;
 
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
     my @stack;
     my $string;
     my $escape = 0;
 
-    for my $char (split //, $text) {
+    # A global regex advances by one character without creating a split
+    # list or repeatedly seeking UTF-8 character offsets with substr.
+    pos($text) = 0;
+    while ($text =~ /\G(.)/sg) {
+        my $char = $1;
         if (defined $string) {
             if ($escape) {
                 $escape = 0;
@@ -77,15 +84,15 @@ sub _are_brackets_balanced {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return 0 unless @stack;
             my $open = pop @stack;
-            return 0 unless $pairs{$open} eq $char;
+            return 0 unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
     }
@@ -111,17 +118,10 @@ sub _strip_wrapping_parens {
     return $copy;
 }
 
-sub _split_top_level_semicolons {
-    my ($text) = @_;
+sub _split_top_level_delimiter {
+    my ($text, $delimiter) = @_;
 
     return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
 
     my @stack;
     my $string;
@@ -155,19 +155,19 @@ sub _split_top_level_semicolons {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return unless @stack;
             my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
+            return unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
 
-        next unless $char eq ';';
+        next unless $char eq $delimiter;
 
         if (!@stack) {
             my $chunk = substr($text, $start, $i - $start);
@@ -181,17 +181,15 @@ sub _split_top_level_semicolons {
     return @parts;
 }
 
+# Preserve both existing parsing entry points and their list/empty semantics.
+sub _split_top_level_semicolons {
+    return _split_top_level_delimiter($_[0], ';');
+}
+
 sub _split_top_level_pipes {
     my ($text) = @_;
 
     return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
 
     my @stack;
     my $string;
@@ -227,7 +225,7 @@ sub _split_top_level_pipes {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
@@ -246,14 +244,16 @@ sub _split_top_level_pipes {
             }
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return unless @stack;
             my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
+            return unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
 
         next unless $char eq '|';
+        # Update assignment is one operator, not a pipeline boundary.
+        next if substr($text, $i, 2) eq '|=';
         next if $in_try;
         if (substr($text, $i, 2) eq '||') {
             $i++;
@@ -273,86 +273,13 @@ sub _split_top_level_pipes {
 }
 
 sub _split_top_level_commas {
-    my ($text) = @_;
-
-    return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
-    my @stack;
-    my $string;
-    my $escape = 0;
-    my @parts;
-    my $start = 0;
-
-    for (my $i = 0; $i < length $text; $i++) {
-        my $char = substr($text, $i, 1);
-
-        if (defined $string) {
-            if ($escape) {
-                $escape = 0;
-                next;
-            }
-
-            if ($char eq '\\') {
-                $escape = 1;
-                next;
-            }
-
-            if ($char eq $string) {
-                undef $string;
-            }
-
-            next;
-        }
-
-        if ($char eq "'" || $char eq '"') {
-            $string = $char;
-            next;
-        }
-
-        if (exists $pairs{$char}) {
-            push @stack, $char;
-            next;
-        }
-
-        if (exists $closing{$char}) {
-            return unless @stack;
-            my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
-            next;
-        }
-
-        next unless $char eq ',';
-
-        if (!@stack) {
-            my $chunk = substr($text, $start, $i - $start);
-            push @parts, $chunk;
-            $start = $i + 1;
-        }
-    }
-
-    push @parts, substr($text, $start) if $start <= length $text;
-
-    return @parts;
+    return _split_top_level_delimiter($_[0], ',');
 }
 
 sub _split_top_level_operator {
     my ($text, $operator) = @_;
 
-    return unless defined $text && defined $operator && length($operator) == 1;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
+    return unless defined $text && defined $operator && length($operator);
 
     my @stack;
     my $string;
@@ -384,19 +311,19 @@ sub _split_top_level_operator {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return if !@stack;
             my $open = pop @stack;
-            return if $pairs{$open} ne $char;
+            return if $BRACKET_PAIRS{$open} ne $char;
             next;
         }
 
-        next if $char ne $operator;
+        next if substr($text, $i, length($operator)) ne $operator;
 
         if (!@stack) {
             if ($operator eq '+' || $operator eq '-') {
@@ -411,7 +338,7 @@ sub _split_top_level_operator {
             }
 
             my $lhs = substr($text, 0, $i);
-            my $rhs = substr($text, $i + 1);
+            my $rhs = substr($text, $i + length($operator));
             return ($lhs, $rhs);
         }
     }
@@ -421,10 +348,8 @@ sub _split_top_level_operator {
 
 sub _split_top_level_comparison {
     my ($text) = @_;
-    return unless defined $text;
+    return unless defined $text && $text =~ /(?:==|!=|[<>])/;
 
-    my %close = ('(' => ')', '[' => ']', '{' => '}');
-    my %open = reverse %close;
     my (@stack, $quote, $escape, @comparison);
 
     for (my $i = 0; $i < length($text); $i++) {
@@ -436,8 +361,8 @@ sub _split_top_level_comparison {
             next;
         }
         if ($char eq q{"} || $char eq q{'}) { $quote = $char; next; }
-        if (exists $close{$char}) { push @stack, $char; next; }
-        if (exists $open{$char}) { pop @stack if @stack; next; }
+        if (exists $BRACKET_PAIRS{$char}) { push @stack, $char; next; }
+        if (exists $BRACKET_CLOSING{$char}) { pop @stack if @stack; next; }
         next if @stack;
 
         my $tail = substr($text, $i);
@@ -455,6 +380,10 @@ sub _split_top_level_comparison {
             @comparison = (substr($text, 0, $i), $operator, substr($text, $i + length($operator)));
         }
     }
+    # Only complete operands can use the comparison evaluator. Control flow
+    # and incomplete variable suffixes retain their existing evaluation path.
+    return if @comparison && ($comparison[0] !~ /\S/ || $comparison[2] !~ /\S/
+        || $comparison[0] =~ /\b(?:if|then|elif|else|end|try|catch)\b/);
     return @comparison;
 }
 
@@ -462,8 +391,6 @@ sub _split_top_level_keyword {
     my ($text, $keyword) = @_;
     return ($text) unless defined $text && defined $keyword && length $keyword;
 
-    my %close = ('(' => ')', '[' => ']', '{' => '}');
-    my %open = reverse %close;
     my (@stack, $quote, $escape, @parts);
     my $start = 0;
 
@@ -476,8 +403,8 @@ sub _split_top_level_keyword {
             next;
         }
         if ($char eq q{"} || $char eq q{'}) { $quote = $char; next; }
-        if (exists $close{$char}) { push @stack, $char; next; }
-        if (exists $open{$char}) { pop @stack if @stack; next; }
+        if (exists $BRACKET_PAIRS{$char}) { push @stack, $char; next; }
+        if (exists $BRACKET_CLOSING{$char}) { pop @stack if @stack; next; }
         next if @stack;
 
         my $before = $i > 0 ? substr($text, $i - 1, 1) : '';
@@ -496,70 +423,10 @@ sub _split_top_level_keyword {
     return @parts;
 }
 
+# Colon splitting is the same first top-level operator scan. Reuse its
+# quote, bracket, and mismatch handling without changing the public helper.
 sub _split_top_level_colon {
-    my ($text) = @_;
-
-    return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
-    my @stack;
-    my $string;
-    my $escape = 0;
-
-    for (my $i = 0; $i < length $text; $i++) {
-        my $char = substr($text, $i, 1);
-
-        if (defined $string) {
-            if ($escape) {
-                $escape = 0;
-                next;
-            }
-
-            if ($char eq '\\') {
-                $escape = 1;
-                next;
-            }
-
-            if ($char eq $string) {
-                undef $string;
-            }
-
-            next;
-        }
-
-        if ($char eq "'" || $char eq '"') {
-            $string = $char;
-            next;
-        }
-
-        if (exists $pairs{$char}) {
-            push @stack, $char;
-            next;
-        }
-
-        if (exists $closing{$char}) {
-            return unless @stack;
-            my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
-            next;
-        }
-
-        next if $char ne ':';
-
-        if (!@stack) {
-            my $lhs = substr($text, 0, $i);
-            my $rhs = substr($text, $i + 1);
-            return ($lhs, $rhs);
-        }
-    }
-
-    return;
+    return _split_top_level_operator($_[0], ':');
 }
 
 sub _interpret_object_key {
@@ -883,6 +750,8 @@ sub _evaluate_variable_reference {
 
     my $expr = $suffix;
     $expr =~ s/^\s+//;
+    # Variable bracket suffixes are paths, not compound JSON literals.
+    $expr = ".$expr" if $expr =~ /\A\[/;
 
     my ($values, $ok) = _evaluate_value_expression($self, $value, $expr);
     return $ok ? @$values : ();
@@ -896,6 +765,42 @@ sub _evaluate_value_expression {
     my $copy = _strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
+
+    # Only a *complete* select(...) call belongs to the filter dispatcher.
+    # A larger expression such as select(true) + select(true) must continue
+    # through value-expression arithmetic instead of turning into null.
+    my ($select_body) = $copy =~ /^select\((.*)\)$/s;
+    return ([], 0) if defined($select_body)
+        && _are_brackets_balanced($select_body);
+
+    # Scoped optional/quoted paths and bracket-to-field chains keep null
+    # results in constructors. Do not route standalone legacy iterators
+    # such as .[] through this visitor: reduce's existing empty-accumulator
+    # behavior relies on their v2 value-expression fallback.
+    if ($copy =~ /^\./
+        && (index($copy, '?') >= 0 || index($copy, '"') >= 0
+            || $copy =~ /\]\s*\./ || $copy =~ /\[\s*\./)
+        && defined($self) && $self->can('run_query')
+        && _parse_v3_literal_iterator_path($copy))
+    {
+        my @values = $self->run_query(_encode_json($context), $copy);
+        return (\@values, 1);
+    }
+
+    # Decode compound JSON literals before inspecting expression operators
+    # or treating brackets as paths. Nonliteral constructors retain fallback.
+    if ($copy =~ /\A[\[\{]/) {
+        my $decoded = eval { _decode_json($copy) };
+        return ([ $decoded ], 1) unless $@;
+    }
+
+    # Comparison values must preserve their filter streams in constructors
+    # and other value contexts instead of using the scalar expression path.
+    my (undef, $comparison_operator) = _split_top_level_comparison($copy);
+    if (defined($comparison_operator) && defined($self) && $self->can('run_query')) {
+        my @values = $self->run_query(_encode_json($context), $copy);
+        return (\@values, 1);
+    }
 
     if (_looks_like_expression($copy)) {
         my %builtins = (
@@ -926,7 +831,14 @@ sub _evaluate_value_expression {
             resolve_path  => sub {
                 my ($ctx, $path) = @_;
                 return $ctx if !defined $path || $path eq '';
-                my @values = _traverse($ctx, $path);
+                my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
+                my @values = _traverse(
+                    $ctx, $path,
+                    {
+                        numeric_object_index_error => $numeric_path,
+                        numeric_null_index => $numeric_path,
+                    }
+                );
                 return @values ? $values[0] : undef;
             },
             coerce_number => \&_coerce_number_strict,
@@ -967,10 +879,34 @@ sub _evaluate_value_expression {
 
         my $is_bracket_slice = $path =~ /\[[^\]]*:[^\]]*\]/;
         if (($path !~ /\s/ || $is_bracket_slice) && $path !~ /[+\-*\/]/) {
-            return ([], 1) unless defined $context;
             return ([], 1) if $path eq '';
+            my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
+            # A missing named object field is one JSON null, not an empty
+            # stream. Keep iterator/projection paths' existing empty behavior.
+            my $named_path = $path =~ /\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\z/ ? 1 : 0;
+            # A named slice through a missing or null field is also one
+            # null, not a zero-value stream. Keep this fallback restricted
+            # to ordinary named path prefixes; genuine empty iterators and
+            # unrelated computed/slice forms retain their existing behavior.
+            my ($slice_prefix) = $is_bracket_slice
+                ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[[^\[\]]*:[^\[\]]*\]\z/)
+                : ();
+            return (($numeric_path || $named_path || defined($slice_prefix))
+                ? [undef] : [], 1) unless defined $context;
 
-            my @values = _traverse($context, $path);
+            my @values = _traverse(
+                $context, $path,
+                {
+                    numeric_object_index_error => $numeric_path,
+                    numeric_null_index => $numeric_path,
+                    missing_object_null => $named_path,
+                }
+            );
+            if (!@values && defined $slice_prefix) {
+                my @targets = _traverse($context, $slice_prefix,
+                    { missing_object_null => 1 });
+                return ([undef], 1) if @targets == 1 && !defined $targets[0];
+            }
             return (\@values, 1);
         }
     }
@@ -1031,72 +967,15 @@ sub _evaluate_value_expression {
 }
 
 sub _apply_addition {
-    my ($left, $right) = @_;
-
-    return $right if !defined $left;
-    return $left  if !defined $right;
-
-    if (ref($left) eq 'JSON::PP::Boolean') {
-        $left = $left ? 1 : 0;
-    }
-
-    if (ref($right) eq 'JSON::PP::Boolean') {
-        $right = $right ? 1 : 0;
-    }
-
-    if (!ref $left && !ref $right) {
-        my $left_is_string  = _is_string_scalar($left);
-        my $right_is_string = _is_string_scalar($right);
-
-        if ($left_is_string || $right_is_string) {
-            die 'addition operands must both be strings' if !$left_is_string || !$right_is_string;
-            $left  = '' unless defined $left;
-            $right = '' unless defined $right;
-            return "$left$right";
-        }
-
-        if (looks_like_number($left) && looks_like_number($right)) {
-            return 0 + $left + $right;
-        }
-
-        die 'addition operands must both be numbers or both be strings';
-    }
-
-    if (ref $left eq 'ARRAY' && ref $right eq 'ARRAY') {
-        return [ @$left, @$right ];
-    }
-
-    if (ref $left eq 'ARRAY') {
-        return [ @$left, $right ];
-    }
-
-    if (ref $right eq 'ARRAY') {
-        return [ $left, @$right ];
-    }
-
-    if (ref $left eq 'HASH' && ref $right eq 'HASH') {
-        return { %$left, %$right };
-    }
-
-    return $right if !ref $left && ref $right eq 'HASH';
-    return $left  if ref $left eq 'HASH' && !ref $right;
-
-    return undef;
+    return JQ::Lite::Expression::_apply_addition(@_);
 }
 
 sub _coerce_number_strict {
     my ($value, $label) = @_;
 
     $label ||= 'value';
-
-    die "$label must be a number" unless defined $value;
-
-    if (ref($value) eq 'JSON::PP::Boolean') {
-        return $value ? 1 : 0;
-    }
-
-    die "$label must be a number" if ref $value;
-    die "$label must be a number" unless looks_like_number($value);
+    my $type = JQ::Lite::Value::type_of($value);
+    die "$label must be a number, got $type" unless $type eq 'number';
 
     return 0 + $value;
 }
@@ -1131,6 +1010,7 @@ sub _looks_like_expression {
     return 0 if $expr =~ /^\s*[\{\[]/;
     return 0 if $expr =~ /^[A-Za-z_]\w*\s*\(/;
     return 1 if $expr =~ /[\-*\/%]/;
+    return 1 if $expr =~ /\+/ && $expr !~ /\|/;
     return 1 if $expr =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b)/i;
 
     return 0;
@@ -1142,7 +1022,8 @@ sub _looks_like_assignment {
     return 0 unless defined $expr;
     return 0 if $expr =~ /[()]/;
     return 0 if $expr =~ /(?:==|!=|>=|<=|=>|=<)/;
-    return ($expr =~ /=/);
+    my ($lhs) = _split_top_level_operator($expr, '=');
+    return defined $lhs;
 }
 
 sub _parse_assignment_expression {
@@ -1150,7 +1031,7 @@ sub _parse_assignment_expression {
 
     $expr //= '';
 
-    my ($lhs, $op, $rhs) = ($expr =~ /^(.*?)\s*([+\-*\/]?=)\s*(.*)$/);
+    my ($lhs, $op, $rhs) = ($expr =~ /^(.*?)\s*(\|=|[+\-*\/]?=)\s*(.*)$/s);
 
     $lhs //= '';
     $rhs //= '';
@@ -1163,7 +1044,7 @@ sub _parse_assignment_expression {
 
     my $value_spec = _parse_assignment_value($rhs);
 
-    return ($lhs, $value_spec, $op);
+    return ($lhs, $value_spec, $op, $rhs);
 }
 
 sub _parse_assignment_value {

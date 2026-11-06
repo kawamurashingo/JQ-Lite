@@ -31,4 +31,16 @@ is_deeply(
     'select() still handles basic comparison predicates'
 );
 
+my @scalar_kept = $jq->run_query('2', 'select(. > 1)');
+is_deeply(\@scalar_kept, [2],
+    'select() compares the current numeric scalar using a dot-only LHS');
+
+my @scalar_filtered = $jq->run_query('1', 'select(. > 1)');
+is_deeply(\@scalar_filtered, [],
+    'select() filters scalar that does not satisfy dot-only comparison');
+
+my @null_filtered = $jq->run_query('null', 'select(. > 1)');
+is_deeply(\@null_filtered, [],
+    'select() applies jq type ordering to JSON null and numeric literal');
+
 done_testing();
