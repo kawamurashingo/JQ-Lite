@@ -4092,3 +4092,15 @@
 {"name":"v3-promotion-root-slice-null-empty-start","input":null,"filter":"{x:.[empty:1]}","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-root-slice-present-empty-array","input":[],"filter":"[.[0:1]]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-root-slice-null-direct-comparison","input":null,"filter":".[0:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-start-null-root-array","input":null,"filter":"[.a[empty:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-start-null-root-object","input":null,"filter":"{x:.a[empty:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-end-null-root-array","input":null,"filter":"[.a[0:empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-end-null-root-object","input":null,"filter":"{x:.a[0:empty]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-start-missing-array","input":{},"filter":"[.a[empty:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-start-missing-object","input":{},"filter":"{x:.a[empty:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-end-missing-array","input":{},"filter":"[.a[0:empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-end-missing-object","input":{},"filter":"{x:.a[0:empty]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-start-explicit-null-array","input":{"a":null},"filter":"[.a[empty:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-start-explicit-null-object","input":{"a":null},"filter":"{x:.a[empty:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-end-explicit-null-array","input":{"a":null},"filter":"[.a[0:empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-named-empty-end-explicit-null-object","input":{"a":null},"filter":"{x:.a[0:empty]}","status":"compatible","expected":"ok"}
