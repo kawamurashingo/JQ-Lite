@@ -90,6 +90,16 @@ subtest 'named slice comparisons retain null without inventing streams' => sub {
         [], 'empty iterator comparison remains zero results');
     is_deeply([$jq->run_query('{"a":[]}', 'select(.a[] == null)')],
         [], 'empty iterator predicate does not invent null');
+    # A computed bound can itself be an empty stream: neither plain
+    # comparison nor select() may reinterpret it as a missing-field null.
+    for my $input ('{}', '{"a":[1,2]}') {
+        for my $slice ('.a[empty:1]', '.a[0:empty]') {
+            is_deeply([$jq->run_query($input, "$slice == null")], [],
+                "computed empty slice bound gives no comparison: $input / $slice");
+            is_deeply([$jq->run_query($input, "select($slice == null)")], [],
+                "computed empty slice bound gives no selection: $input / $slice");
+        }
+    }
 };
 
 
