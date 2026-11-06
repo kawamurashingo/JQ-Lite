@@ -143,6 +143,16 @@ subtest 'null root slice constructors retain null and empty streams' => sub {
         'existing empty array root slice stays an empty array value');
     is_deeply([$jq->run_query('null', '.[0:1] == null')],
         [JSON::PP::true], 'direct null root slice comparison remains true');
+    # Named slices with computed `empty` bounds also retain zero results
+    # when their source is absent, an explicit null, or the root is null.
+    for my $input ('null', '{}', '{"a":null}') {
+        for my $slice ('.a[empty:1]', '.a[0:empty]') {
+            is_deeply([$jq->run_query($input, "[$slice]")], [[]],
+                "named computed empty bound in array: $input / $slice");
+            is_deeply([$jq->run_query($input, "{x:$slice}")], [],
+                "named computed empty bound in object: $input / $slice");
+        }
+    }
 };
 
 sub results {
