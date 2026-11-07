@@ -922,30 +922,9 @@ sub _evaluate_value_expression {
                         ? _traverse($context, $slice_prefix,
                             { missing_object_null => 1 })
                         : ($context);
-                    my @values;
-                    for my $source (@sources) {
-                        if (ref $source ne 'ARRAY') {
-                            push @values, _apply_bracket_slice($source, @args);
-                            next;
-                        }
-                        my $size = scalar @$source;
-                        my $start = defined $args[0] ? $args[0] : 0;
-                        my $end = defined $args[1] ? $args[1] : $size;
-                        $start += $size if $start < 0;
-                        $end += $size if $end < 0;
-                        # int() truncates towards zero; adjust for floor
-                        # and ceil after negative bounds are made relative.
-                        my $from = int($start);
-                        $from-- if $start < $from;
-                        my $to = int($end);
-                        $to++ if $end > $to;
-                        $from = 0 if $from < 0;
-                        $to = 0 if $to < 0;
-                        $from = $size if $from > $size;
-                        $to = $size if $to > $size;
-                        push @values, $from < $to
-                            ? [ @$source[$from .. $to - 1] ] : [];
-                    }
+                    my @values = map {
+                        _apply_value_bracket_slice($_, @args)
+                    } @sources;
                     return (\@values, 1);
                 }
             }
