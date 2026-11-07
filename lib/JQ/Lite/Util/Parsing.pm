@@ -904,21 +904,50 @@ sub _evaluate_value_expression {
                 ? [undef] : [], 1) unless defined $context;
 
             # Legacy traversal splits on every '.', including decimal points
-            # inside slice bounds. For a *literal* decimal slice only, read
-            # its simple field prefix separately and apply the existing
-            # bracket-slice evaluator. Other path and iterator dispatch stays
-            # untouched; computed bounds still use normal stream semantics.
-            if (($root_literal_slice || defined($slice_prefix))
-                && $path =~ /\[[^\[\]]*\d\.\d+[^\[\]]*\]\z/)
-            {
+            # inside slice bounds. Fractional JSON numbers also need jq's
+            # floor(start)/ceil(end) convention, not slice()'s int/int.
+            # Keep this correction restricted to single literal-bound slices
+            # so the legacy slice() API and other traversal stay unchanged.
+            if ($root_literal_slice || defined($slice_prefix)) {
                 my ($raw_start, $raw_end) =
                     $path =~ /\[([^\[\]]*):([^\[\]]*)\]\z/;
                 my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
-                my @sources = defined($slice_prefix)
-                    ? _traverse($context, $slice_prefix,
-                        { missing_object_null => 1 })
-                    : ($context);
-                return ([ map { _apply_bracket_slice($_, @args) } @sources ], 1);
+                my $has_decimal_dot =
+                    $path =~ /\[[^\[\]]*\d\.\d+[^\[\]]*\]\z/;
+                my $has_fraction = grep {
+                    defined($_) && $_ != int($_)
+                } @args;
+                if ($has_decimal_dot || $has_fraction) {
+                    my @sources = defined($slice_prefix)
+                        ? _traverse($context, $slice_prefix,
+                            { missing_object_null => 1 })
+                        : ($context);
+                    my @values;
+                    for my $source (@sources) {
+                        if (ref $source ne 'ARRAY') {
+                            push @values, _apply_bracket_slice($source, @args);
+                            next;
+                        }
+                        my $size = scalar @$source;
+                        my $start = defined $args[0] ? $args[0] : 0;
+                        my $end = defined $args[1] ? $args[1] : $size;
+                        $start += $size if $start < 0;
+                        $end += $size if $end < 0;
+                        # int() truncates towards zero; adjust for floor
+                        # and ceil after negative bounds are made relative.
+                        my $from = int($start);
+                        $from-- if $start < $from;
+                        my $to = int($end);
+                        $to++ if $end > $to;
+                        $from = 0 if $from < 0;
+                        $to = 0 if $to < 0;
+                        $from = $size if $from > $size;
+                        $to = $size if $to > $size;
+                        push @values, $from < $to
+                            ? [ @$source[$from .. $to - 1] ] : [];
+                    }
+                    return (\@values, 1);
+                }
             }
 
             my @values = _traverse(
