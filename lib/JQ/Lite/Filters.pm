@@ -869,8 +869,7 @@ sub apply {
             }
 
             for my $item (@results) {
-                my %built;
-                my $has_output = 1;
+                my @built = ({});
 
                 for my $pair (@pairs) {
                     next if !defined $pair;
@@ -885,31 +884,31 @@ sub apply {
                     $value_expr =~ s/^\s+|\s+$//g;
                     next if $value_expr eq '';
 
-                    my $value;
+                    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression(
+                        $self, $item, $value_expr
+                    );
+                    my @values = $ok ? @$values
+                        : $self->run_query(
+                            JQ::Lite::Util::_encode_json($item), $value_expr
+                        );
 
-                    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $value_expr);
-                    if ($ok) {
-                        if (!@$values) {
-                            $has_output = 0;
-                            last;
-                        }
-                        $value = $values->[0];
+                    # jq emits an object for each combination of emitted
+                    # field values. A zero-value field suppresses the entire
+                    # object stream; a single JSON null is still one value.
+                    if (!@values) {
+                        @built = ();
+                        last;
                     }
-                    else {
-                        my $json = JQ::Lite::Util::_encode_json($item);
-                        my @outputs = $self->run_query($json, $value_expr);
-                        if (!@outputs) {
-                            $has_output = 0;
-                            last;
+                    my @next_built;
+                    for my $partial (@built) {
+                        for my $value (@values) {
+                            push @next_built, { %$partial, $key => $value };
                         }
-                        $value = $outputs[0];
                     }
-
-                    $built{$key} = $value;
+                    @built = @next_built;
                 }
 
-                # A field with no output suppresses this object, unlike null.
-                push @next_results, \%built if $has_output;
+                push @next_results, @built;
             }
 
             if (!@pairs) {
@@ -1900,6 +1899,19 @@ sub _evaluate_comparison_operand {
     my ($self, $context, $expr) = @_;
     my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
+
+    # Nonliteral bracket arrays are filter constructors, not index paths.
+    # The value helper parses their leading '[' as a legacy bracket lookup
+    # and can report a successful empty stream for a valid array filter.
+    # JSON literal arrays remain on the existing value shortcut.
+    if ($copy =~ /\A\[/) {
+        my $is_json_literal = eval {
+            JQ::Lite::Util::_decode_json($copy);
+            1;
+        };
+        return $self->run_query(JQ::Lite::Util::_encode_json($context), $expr)
+            unless $is_json_literal;
+    }
 
     # Only literal/omitted nonnegative slice bounds can take this null
     # fallback: computed bounds such as `empty` must keep zero outputs.

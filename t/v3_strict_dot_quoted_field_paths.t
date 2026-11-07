@@ -103,6 +103,244 @@ subtest 'named slice comparisons retain null without inventing streams' => sub {
 };
 
 
+# Main-target Codex review: nonliteral bracket arrays used as comparison
+# operands must be evaluated as filters rather than legacy index paths.
+subtest 'array constructor comparison operands retain their values' => sub {
+    my @cases = (
+        ['{"a":1}', '[.a] == [1]', JSON::PP::true],
+        ['{"a":1}', '[.a] == [.a]', JSON::PP::true],
+        ['{"a":1}', '[.a] != [2]', JSON::PP::true],
+        ['{"a":1}', '[.a] == []', JSON::PP::false],
+        ['{"a":1}', 'null == [.a]', JSON::PP::false],
+        ['{"a":1}', '[.a] == [.b]', JSON::PP::false],
+        ['{"a":1,"b":2}', '[.a, .b] == [1, 2]', JSON::PP::true],
+        ['{"a":null}', '[.a] == [null]', JSON::PP::true],
+        ['{}', '[.a] == [.a]', JSON::PP::true],
+        ['{}', '["literal"] == ["literal"]', JSON::PP::true],
+        ['{}', '[1] == [1]', JSON::PP::true],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected) = @$case;
+        is_deeply([$jq->run_query($input, $filter)], [$expected],
+            "comparison array constructor: $filter on $input");
+    }
+};
+
+# Root slice on JSON null is one null result, including in constructors.
+# The empty-bound variant must stay an empty stream, not a synthesized null.
+subtest 'null root slice constructors retain null and empty streams' => sub {
+    for my $slice ('.[0:1]', '.[:1]', '.[0:]', '.[1:1]') {
+        is_deeply([$jq->run_query('null', "[$slice]")], [[undef]],
+            "root slice array constructor: $slice");
+        is_deeply([$jq->run_query('null', "{x:$slice}")], [{x => undef}],
+            "root slice object constructor: $slice");
+    }
+    is_deeply([$jq->run_query('null', '[.[0:empty]]')], [[]],
+        'empty upper-bound stream makes empty array constructor');
+    is_deeply([$jq->run_query('null', '{x:.[empty:1]}')], [],
+        'empty lower-bound stream makes no object constructor');
+    is_deeply([$jq->run_query('[]', '[.[0:1]]')], [[[]]],
+        'existing empty array root slice stays an empty array value');
+    is_deeply([$jq->run_query('null', '.[0:1] == null')],
+        [JSON::PP::true], 'direct null root slice comparison remains true');
+    # Named slices with computed `empty` bounds also retain zero results
+    # when their source is absent, an explicit null, or the root is null.
+    for my $input ('null', '{}', '{"a":null}') {
+        for my $slice ('.a[empty:1]', '.a[0:empty]') {
+            is_deeply([$jq->run_query($input, "[$slice]")], [[]],
+                "named computed empty bound in array: $input / $slice");
+            is_deeply([$jq->run_query($input, "{x:$slice}")], [],
+                "named computed empty bound in object: $input / $slice");
+        }
+    }
+};
+
+# Codex follow-up: a literal JSON null slice bound is a value, not
+# the zero-output stream from the filter `empty`. Preserve both named
+# missing-field and root-null slice values inside constructors.
+subtest 'null-valued slice bounds remain values in constructors' => sub {
+    for my $input ('null', '{}', '{"a":null}') {
+        for my $bounds ('null:1', '0:null', 'null:null') {
+            my $slice = ".a[$bounds]";
+            is_deeply([$jq->run_query($input, "[$slice]")], [[undef]],
+                "named null bound in array constructor: $input / $slice");
+            is_deeply([$jq->run_query($input, "{x:$slice}")], [{x => undef}],
+                "named null bound in object constructor: $input / $slice");
+        }
+    }
+    my @present = (
+        ['null:1', [1]],
+        ['0:null', [1,2]],
+        ['null:null', [1,2]],
+    );
+    for my $case (@present) {
+        my ($bounds, $expected) = @$case;
+        my $slice = ".a[$bounds]";
+        is_deeply([$jq->run_query('{"a":[1,2]}', "[$slice]")],
+            [[$expected]], "present named null bound array: $slice");
+        is_deeply([$jq->run_query('{"a":[1,2]}', "{x:$slice}")],
+            [{x => $expected}], "present named null bound object: $slice");
+    }
+    for my $bounds ('null:1', '0:null', 'null:null') {
+        my $slice = ".[$bounds]";
+        is_deeply([$jq->run_query('null', "[$slice]")], [[undef]],
+            "root-null slice bound in array constructor: $slice");
+        is_deeply([$jq->run_query('null', "{x:$slice}")], [{x => undef}],
+            "root-null slice bound in object constructor: $slice");
+    }
+    for my $case (@present) {
+        my ($bounds, $expected) = @$case;
+        my $slice = ".[$bounds]";
+        is_deeply([$jq->run_query('[1,2]', "[$slice]")], [[$expected]],
+            "present root null bound array: $slice");
+        is_deeply([$jq->run_query('[1,2]', "{x:$slice}")], [{x => $expected}],
+            "present root null bound object: $slice");
+    }
+};
+
+# A numeric slice bound is still a value when written using JSON
+# fractional, signed, or scientific notation. On null/missing sources it
+# must not be mistaken for the empty output stream of the filter 'empty'.
+subtest 'numeric literal slice spellings preserve value streams' => sub {
+    my @cases = (
+        ['0e0:1', [1]],
+        ['2E+0:3', [3]],
+        ['-1:2', []],
+        ['0.5:2', [1,2]],
+        ['1e-1:2', [1,2]],
+    );
+    for my $case (@cases) {
+        my ($bounds, $expected) = @$case;
+        my $named = ".a[$bounds]";
+        my $root = ".[$bounds]";
+        for my $input ('null', '{}', '{"a":null}') {
+            is_deeply([$jq->run_query($input, "[$named]")], [[undef]],
+                "named numeric spelling in null array: $input / $named");
+            is_deeply([$jq->run_query($input, "{x:$named}")], [{x => undef}],
+                "named numeric spelling in null object: $input / $named");
+        }
+        is_deeply([$jq->run_query('{"a":[1,2,3]}', "[$named]")],
+            [[$expected]], "named numeric spelling present array: $named");
+        is_deeply([$jq->run_query('{"a":[1,2,3]}', "{x:$named}")],
+            [{x => $expected}], "named numeric spelling present object: $named");
+        is_deeply([$jq->run_query('null', "[$root]")], [[undef]],
+            "root numeric spelling null array: $root");
+        is_deeply([$jq->run_query('null', "{x:$root}")], [{x => undef}],
+            "root numeric spelling null object: $root");
+        is_deeply([$jq->run_query('[1,2,3]', "[$root]")],
+            [[$expected]], "root numeric spelling present array: $root");
+        is_deeply([$jq->run_query('[1,2,3]', "{x:$root}")],
+            [{x => $expected}], "root numeric spelling present object: $root");
+    }
+};
+
+# jq uses floor for a fractional array slice start and ceil for its end.
+# This differs from the legacy slice() builtin, whose rounding is unchanged.
+subtest 'fractional slice upper bounds use jq rounding' => sub {
+    my @cases = (
+        ['0:1.5', [1,2]],
+        ['0:1e-1', [1]],
+        ['1.5:2.5', [2,3]],
+        ['-2.5:-0.5', [1,2,3]],
+        ['2.2:2.4', [3]],
+        ['0:0.1', [1]],
+        ['0:1.0', [1]],
+        ['-1.5:-0.5', [2,3]],
+    );
+    for my $case (@cases) {
+        my ($bounds, $expected) = @$case;
+        for my $form ('.a', '.') {
+            my $input = $form eq '.' ? '[1,2,3]' : '{"a":[1,2,3]}';
+            my $slice = "$form\[$bounds]";
+            is_deeply([$jq->run_query($input, "[$slice]")], [[$expected]],
+                "fractional upper bound in array: $slice");
+            is_deeply([$jq->run_query($input, "{x:$slice}")], [{x => $expected}],
+                "fractional upper bound in object: $slice");
+        }
+    }
+};
+
+# Bracket-bound filters evaluate to streams. Parenthesized expressions
+# returning null/number are not the zero-output stream emitted by empty.
+subtest 'computed slice bounds distinguish null values from empty' => sub {
+    for my $input ('null', '{}', '{"a":null}') {
+        for my $bounds ('(null):1', '(0):1', '((null)):1',
+                        '(1+1):3', 'null:(1+0)') {
+            my $slice = ".a[$bounds]";
+            is_deeply([$jq->run_query($input, "[$slice]")], [[undef]],
+                "computed value bound in array: $input / $slice");
+            is_deeply([$jq->run_query($input, "{x:$slice}")], [{x => undef}],
+                "computed value bound in object: $input / $slice");
+        }
+        my $empty = '.a[(empty):1]';
+        is_deeply([$jq->run_query($input, "[$empty]")], [[]],
+            "computed empty bound in array: $input");
+        is_deeply([$jq->run_query($input, "{x:$empty}")], [],
+            "computed empty bound in object: $input");
+    }
+    my @present = (
+        ['(null):1', [1]],
+        ['(0):1', [1]],
+        ['(1+1):3', [3]],
+        ['(empty):1', undef],
+        ['(.i):2', [2]],
+    );
+    for my $case (@present) {
+        my ($bounds, $expected) = @$case;
+        my $slice = ".a[$bounds]";
+        my $array = [$jq->run_query('{"a":[1,2,3],"i":1}', "[$slice]")];
+        my $object = [$jq->run_query('{"a":[1,2,3],"i":1}', "{x:$slice}")];
+        is_deeply($array, defined($expected) ? [[$expected]] : [[]],
+            "computed bound on populated array: $slice");
+        is_deeply($object, defined($expected) ? [{x => $expected}] : [],
+            "computed bound on populated object: $slice");
+    }
+    for my $bounds ('(null):1', '(0):1', '(empty):1') {
+        my $slice = ".[$bounds]";
+        my $emits = $bounds !~ /empty/;
+        is_deeply([$jq->run_query('null', "[$slice]")],
+            $emits ? [[undef]] : [[]],
+            "computed root bound on null in array: $slice");
+        is_deeply([$jq->run_query('null', "{x:$slice}")],
+            $emits ? [{x => undef}] : [],
+            "computed root bound on null in object: $slice");
+    }
+};
+
+# Computed bounds retain every value of comma/arithmetic streams and do
+# not evaluate an end bound after the start yields an empty stream.
+subtest 'computed arithmetic slice bounds preserve jq streams' => sub {
+    my @cases = (
+        ['{"a":[1,2,3]}', '[.a[((0,1)+1):3]]', [[[2,3],[3]]]],
+        ['{"a":[1,2,3]}', '[.a[(empty+1):3]]', [[]]],
+        ['{"a":[1,2,3]}', '[.a[0:(1,2)]]', [[[1],[1,2]]]],
+        ['{"a":[1,2,3]}', '{x:.a[(0,1):3]}',
+            [{x => [1,2,3]}, {x => [2,3]}]],
+        ['null', '[.a[((0,1)+1):3]]', [[undef,undef]]],
+        ['{}', '[.a[((0,1)+1):3]]', [[undef,undef]]],
+        ['[1,2,3]', '[.[(empty):(1/0)]]', [[]]],
+        ['[1,2,3]', '{x:.[(empty):(1/0)]}', []],
+        ['{"a":[1,2,3]}', '[.a[(empty):(1/0)]]', [[]]],
+        ['[1,2,3]', '[.[0:(1,2)]]', [[[1],[1,2]]]],
+        ['{"a":[1,2,3]}', '[.a[(1+1):3]]', [[[3]]]],
+        ['{"a":[1,2,3]}', '{x:.a[(empty+1):3]}', []],
+        ['{"a":[1,2,3],"b":[7,8,9]}',
+            '{x:.a[(0,1):3],y:.b[(0,1):3]}',
+            [
+                {x => [1,2,3], y => [7,8,9]},
+                {x => [1,2,3], y => [8,9]},
+                {x => [2,3], y => [7,8,9]},
+                {x => [2,3], y => [8,9]},
+            ]],
+        ['{"a":[1,2,3]}', '{x:.a[(0,1):3],y:empty}', []],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected) = @$case;
+        is_deeply([$jq->run_query($input, $filter)], $expected,
+            "computed-bound stream parity: $filter on $input");
+    }
+};
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
@@ -262,6 +500,152 @@ subtest 'parser and dispatch boundaries' => sub {
     is_deeply(results('{"items":[{"a.b":7}]}',
         '.items[]."a.b"'), [7],
         'previous quoted iterator path unchanged');
+};
+
+
+# Codex review: computed addition bounds evaluate RHS first and preserve
+# its stream-major order, including errors on reachable RHS expressions.
+subtest 'slice-bound addition follows jq RHS-first stream order' => sub {
+    my $input = '{"a":[0,1,2]}';
+    is_deeply([$jq->run_query($input, '[.a[((0,1)+(0,2)):3]]')],
+        [[[0,1,2], [1,2], [2], []]],
+        'both operands emit values in right-major order');
+    is_deeply([$jq->run_query($input, '{x:.a[((0,1)+(0,2)):3]}')],
+        [
+            {x => [0,1,2]}, {x => [1,2]},
+            {x => [2]}, {x => []},
+        ], 'right-major order retained in object constructor');
+    is_deeply([$jq->run_query($input, '[.a[((1/0)+empty):3]]')],
+        [[]], 'empty RHS suppresses evaluation of throwing LHS');
+    runtime_error($input, '[.a[(empty+(1/0)):3]]',
+        'Division by zero', 'throwing RHS evaluated before empty LHS');
+};
+
+# A fractional index cannot turn a bad opposite bound (including a
+# numeric-looking JSON string) into an accepted numeric index.
+subtest 'fractional slices validate both index types' => sub {
+    my $input = '{"a":[0,1,2]}';
+    # The legacy slice() path throws a plain Perl runtime error, whereas
+    # strict quoted-field lookup wraps JQ::Lite::Error::Evaluation.
+    # Preserve the slice error contract rather than changing production API.
+    my $slice_error = sub {
+        my ($filter, $fragment, $label) = @_;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        my $error = $@;
+        ok(!$ok, "$label: fails");
+        like("$error", qr/\Q$fragment\E/, "$label: numeric validation");
+    };
+    $slice_error->('[.a[5e-1:"x"]]',
+        'slice(): length must be numeric', 'invalid end after fractional start');
+    $slice_error->('{x:.a[5e-1:"x"]}',
+        'slice(): length must be numeric', 'object constructor validates end');
+    $slice_error->('[.a["0.5":2]]',
+        'slice(): start must be numeric', 'numeric-looking string start rejected');
+    $slice_error->('[.a[0.5:"2"]]',
+        'slice(): length must be numeric', 'numeric-looking string end rejected');
+    is_deeply([$jq->run_query($input, '[.a[0.5:2]]')],
+        [[[0,1]]], 'valid fractional bounds still round as before');
+};
+
+
+# jq pipe binds after comma: each preceding bound value must flow through
+# every following pipe stage. In particular, empty suppresses them all.
+subtest 'computed slice-bound pipelines consume complete comma streams' => sub {
+    my $input = '{"a":[0,1,2]}';
+    my @cases = (
+        ['[.a[(0,1 | empty):3]]', [[]]],
+        ['{x:.a[(0,1 | empty):3]}', []],
+        ['[.a[(0,1 | .+1):3]]', [[[1,2],[2]]]],
+        ['{x:.a[(0,1 | .+1):3]}', [{x => [1,2]}, {x => [2]}]],
+        ['[.a[(0,1 | empty,2):3]]', [[[2],[2]]]],
+        ['[.a[(0,1 | .+1 | .+1):3]]', [[[2],[]]]],
+        ['[.a[(0,1 | (empty,2)):3]]', [[[2],[2]]]],
+    );
+    for my $case (@cases) {
+        my ($filter, $expected) = @$case;
+        is_deeply([$jq->run_query($input, $filter)], $expected,
+            "slice-bound pipeline: $filter");
+    }
+    is_deeply([$jq->run_query('{}', '[.a[(0,1 | empty):3]]')],
+        [[]], 'missing named slice still respects empty pipeline');
+    is_deeply([$jq->run_query('null', '[.[(0,1 | empty):3]]')],
+        [[]], 'null root slice still respects empty pipeline');
+};
+
+
+# A pipeline must finish each input's downstream stages before evaluating
+# the next input. Both error precedence and observable output order matter.
+subtest 'computed slice pipelines are depth-first across stages' => sub {
+    my $input = '{"a":[0,1,2]}';
+    is_deeply([$jq->run_query($input, 'try [.a[(0,"x" | .+1 | 1/0):3]] catch contains("zero")')],
+        [JSON::PP::true], 'first source reaches division before next input addition');
+    is_deeply([$jq->run_query($input, 'try {x:.a[(0,"x" | .+1 | 1/0):3]} catch contains("zero")')],
+        [JSON::PP::true], 'object constructor observes same early error');
+    is_deeply([$jq->run_query($input, 'try [.a[(0,(1/0) | "x"+1):3]] catch contains("zero")')],
+        [JSON::PP::false], 'later upstream division must not preempt first downstream type error');
+    is_deeply([$jq->run_query($input, 'try [.a[(0,(1/0) | "x"+1):3]] catch contains("string")')],
+        [JSON::PP::true], 'first downstream type error is handled');
+    is_deeply([$jq->run_query($input, 'try [.a[(0,"x" | .+1 | 1/0):3]] catch contains("string")')],
+        [JSON::PP::false], 'first downstream division preempts later input');
+    is_deeply([$jq->run_query($input, '[.a[(0,1 | (.+1,.+2) | (.+0,.+1)):3]]')],
+        [[[1,2],[2],[2],[],[2],[],[],[]]], 'nested alternatives preserve depth-first output order');
+};
+
+
+# Bound streams must feed their outputs into slice application immediately.
+# A bad first index must beat a later start/end division under try/catch.
+subtest 'computed slices apply bound pairs before reading later values' => sub {
+    my $input = '{"a":[0,1,2]}';
+    is_deeply([$jq->run_query($input, 'try [.a[("x",1/0):3]] catch contains("zero")')],
+        [JSON::PP::false], 'start type failure precedes next start expression');
+    is_deeply([$jq->run_query($input, 'try [.a[0:("x",1/0)]] catch contains("zero")')],
+        [JSON::PP::false], 'end type failure precedes next end expression');
+    is_deeply([$jq->run_query($input, 'try {x:.a[("x",1/0):3]} catch contains("zero")')],
+        [JSON::PP::false], 'object constructor start ordering');
+    is_deeply([$jq->run_query($input, 'try {x:.a[0:("x",1/0)]} catch contains("zero")')],
+        [JSON::PP::false], 'object constructor end ordering');
+    is_deeply([$jq->run_query($input, 'try [.a[(0,"x",1/0):3]] catch contains("zero")')],
+        [JSON::PP::false], 'successful slice before failing start');
+    is_deeply([$jq->run_query($input, 'try [.a[0:(0,"x",1/0)]] catch contains("zero")')],
+        [JSON::PP::false], 'successful slice before failing end');
+    is_deeply([$jq->run_query($input, '[.a[(0,1):(1,2)]]')],
+        [[[0],[0,1],[],[1]]], 'start-major end-minor Cartesian ordering');
+    is_deeply([$jq->run_query($input, '[.a[(0,1):empty]]')],
+        [[]], 'end empty still emits no slices');
+    is_deeply([$jq->run_query($input, '[.a[empty:(1/0)]]')],
+        [[]], 'start empty still avoids evaluating end');
+};
+
+
+
+# Conditional branch streams must be consumed in lockstep with slice
+# application; otherwise a later error incorrectly wins under try/catch.
+subtest 'computed conditional bound streams emit before later errors' => sub {
+    my $input = '{"a":[0,1,2]}';
+    is_deeply([$jq->run_query($input, 'try [.a[(if true then ("x",1/0) else 0 end):3]] catch contains("zero")')],
+        [JSON::PP::false], 'conditional start first type error beats later division');
+    is_deeply([$jq->run_query($input, 'try [.a[0:(if true then ("x",1/0) else 3 end)]] catch contains("zero")')],
+        [JSON::PP::false], 'conditional end first type error beats later division');
+    is_deeply([$jq->run_query($input, 'try {x:.a[(if true then ("x",1/0) else 0 end):3]} catch contains("zero")')],
+        [JSON::PP::false], 'conditional object start short circuits');
+    is_deeply([$jq->run_query($input, 'try {x:.a[0:(if true then ("x",1/0) else 3 end)]} catch contains("zero")')],
+        [JSON::PP::false], 'conditional object end short circuits');
+    is_deeply([$jq->run_query($input, '[.a[(if true then (0,1) else 2 end):3]]')],
+        [[[0,1,2],[1,2]]], 'then branch emits every start');
+    is_deeply([$jq->run_query($input, '[.a[(if false then 0 else (1,2) end):3]]')],
+        [[[1,2],[2]]], 'else branch emits every start');
+    is_deeply([$jq->run_query($input, '[.a[(if true then (if false then 0 else (1,2) end) else 0 end):3]]')],
+        [[[1,2],[2]]], 'nested conditional branches retain streams');
+    is_deeply([$jq->run_query($input, '[.a[(if false then 0 elif true then (1,2) else 0 end):3]]')],
+        [[[1,2],[2]]], 'elif conditional emits streams');
+    is_deeply([$jq->run_query($input, 'try [.a[(if true then (0,"x",1/0) else 2 end):3]] catch contains("zero")')],
+        [JSON::PP::false], 'valid initial slice followed by invalid index');
+    is_deeply([$jq->run_query($input, '[.a[((if true then (0,1) else 2 end) | .+1):3]]')],
+        [[[1,2],[2]]], 'conditional stream flows to downstream pipeline');
+    is_deeply([$jq->run_query($input, '[.a[(if (true,false) then (0,1) else 2 end):3]]')],
+        [[[0,1,2],[1,2],[2]]], 'each condition value selects branch independently');
+    is_deeply([$jq->run_query($input, '[.a[(if empty then 0 else 2 end):3]]')],
+        [[]], 'empty condition does not evaluate else');
 };
 
 done_testing;
