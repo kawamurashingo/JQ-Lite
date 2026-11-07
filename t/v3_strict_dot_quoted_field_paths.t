@@ -591,4 +591,30 @@ subtest 'computed slice pipelines are depth-first across stages' => sub {
         [[[1,2],[2],[2],[],[2],[],[],[]]], 'nested alternatives preserve depth-first output order');
 };
 
+
+# Bound streams must feed their outputs into slice application immediately.
+# A bad first index must beat a later start/end division under try/catch.
+subtest 'computed slices apply bound pairs before reading later values' => sub {
+    my $input = '{"a":[0,1,2]}';
+    is_deeply([$jq->run_query($input, 'try [.a[("x",1/0):3]] catch contains("zero")')],
+        [JSON::PP::false], 'start type failure precedes next start expression');
+    is_deeply([$jq->run_query($input, 'try [.a[0:("x",1/0)]] catch contains("zero")')],
+        [JSON::PP::false], 'end type failure precedes next end expression');
+    is_deeply([$jq->run_query($input, 'try {x:.a[("x",1/0):3]} catch contains("zero")')],
+        [JSON::PP::false], 'object constructor start ordering');
+    is_deeply([$jq->run_query($input, 'try {x:.a[0:("x",1/0)]} catch contains("zero")')],
+        [JSON::PP::false], 'object constructor end ordering');
+    is_deeply([$jq->run_query($input, 'try [.a[(0,"x",1/0):3]] catch contains("zero")')],
+        [JSON::PP::false], 'successful slice before failing start');
+    is_deeply([$jq->run_query($input, 'try [.a[0:(0,"x",1/0)]] catch contains("zero")')],
+        [JSON::PP::false], 'successful slice before failing end');
+    is_deeply([$jq->run_query($input, '[.a[(0,1):(1,2)]]')],
+        [[[0],[0,1],[],[1]]], 'start-major end-minor Cartesian ordering');
+    is_deeply([$jq->run_query($input, '[.a[(0,1):empty]]')],
+        [[]], 'end empty still emits no slices');
+    is_deeply([$jq->run_query($input, '[.a[empty:(1/0)]]')],
+        [[]], 'start empty still avoids evaluating end');
+};
+
+
 done_testing;

@@ -907,28 +907,46 @@ sub _evaluate_value_expression {
             && ($bound_start !~ $literal_bound || $bound_end !~ $literal_bound)
             && defined($self) && $self->can('run_query'))
         {
-            my $json = _encode_json($context);
-            my @starts = $bound_start =~ $literal_bound
-                ? (_parse_slice_argument($bound_start))
-                : _evaluate_slice_bound_stream($self, $context, $bound_start);
-            # jq does not evaluate the end bound when the start emits none:
-            # .[(empty):(1/0)] is an empty stream, not division by zero.
-            return ([], 1) unless @starts;
-            my @ends = $bound_end =~ $literal_bound
-                ? (_parse_slice_argument($bound_end))
-                : _evaluate_slice_bound_stream($self, $context, $bound_end);
-            return ([], 1) unless @ends;
-            my @sources = length($computed_prefix)
-                ? _traverse($context, $computed_prefix,
-                    { missing_object_null => 1 })
-                : ($context);
+            # Emit-and-apply each bound pair immediately: jq reports the
+            # first invalid slice before evaluating later bound alternatives.
+            # Keep sources lazy so empty bound streams skip traversal too.
             my @values;
-            for my $start (@starts) {
-                for my $end (@ends) {
-                    push @values, map {
-                        _apply_value_bracket_slice($_, $start, $end)
-                    } @sources;
+            my @sources;
+            my $sources_loaded = 0;
+            my $emit_pair = sub {
+                my ($start, $end) = @_;
+                if (!$sources_loaded) {
+                    @sources = length($computed_prefix)
+                        ? _traverse($context, $computed_prefix,
+                            { missing_object_null => 1 })
+                        : ($context);
+                    $sources_loaded = 1;
                 }
+                push @values, map {
+                    _apply_value_bracket_slice($_, $start, $end)
+                } @sources;
+            };
+            my $emit_start = sub {
+                my ($start) = @_;
+                my $emit_end = sub {
+                    $emit_pair->($start, $_[0]);
+                };
+                if ($bound_end =~ $literal_bound) {
+                    $emit_end->(_parse_slice_argument($bound_end));
+                }
+                else {
+                    _emit_slice_bound_stream(
+                        $self, $context, $bound_end, $emit_end
+                    );
+                }
+            };
+            if ($bound_start =~ $literal_bound) {
+                $emit_start->(_parse_slice_argument($bound_start));
+            }
+            else {
+                _emit_slice_bound_stream(
+                    $self, $context, $bound_start, $emit_start
+                );
             }
             return (\@values, 1);
         }
