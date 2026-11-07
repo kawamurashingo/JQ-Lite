@@ -1052,65 +1052,87 @@ sub _evaluate_value_expression {
 # the legacy slice() builtin retain their existing behavior.
 sub _evaluate_slice_bound_stream {
     my ($self, $context, $expr) = @_;
+    my @values;
+
+    # The caller still receives a list, but the dedicated bound evaluator
+    # emits each value immediately. This avoids evaluating a later upstream
+    # input before an earlier value has traversed every downstream pipe.
+    _emit_slice_bound_stream($self, $context, $expr, sub {
+        push @values, $_[0];
+    });
+    return @values;
+}
+
+sub _emit_slice_bound_pipeline {
+    my ($self, $context, $stages, $index, $emit) = @_;
+
+    if ($index >= @$stages) {
+        $emit->($context);
+        return;
+    }
+
+    _emit_slice_bound_stream($self, $context, $stages->[$index], sub {
+        _emit_slice_bound_pipeline(
+            $self, $_[0], $stages, $index + 1, $emit
+        );
+    });
+}
+
+sub _emit_slice_bound_stream {
+    my ($self, $context, $expr, $emit) = @_;
     my $copy = _strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
 
     my $literal = eval { _decode_json($copy) };
-    return ($literal) unless $@;
-    return () if $copy eq 'empty';
+    if (!$@) {
+        $emit->($literal);
+        return;
+    }
+    return if $copy eq 'empty';
 
-    # A pipe consumes the entire preceding stream, including comma
-    # alternatives. Splitting commas before pipes incorrectly retains
-    # values that a downstream empty filter must suppress.
-    # Keep this precedence fix local to bracket-bound expressions.
+    # A pipeline consumes the whole comma stream to its left. Depth-first
+    # emission also preserves jq's error precedence across pipe stages.
     my @pipeline = _split_top_level_pipes($copy);
     if (@pipeline > 1) {
-        my @values = _evaluate_slice_bound_stream(
-            $self, $context, shift @pipeline
-        );
-        for my $stage (@pipeline) {
-            my @next_values;
-            for my $value (@values) {
-                push @next_values,
-                    _evaluate_slice_bound_stream($self, $value, $stage);
-            }
-            @values = @next_values;
-            last unless @values;
-        }
-        return @values;
+        my $first = shift @pipeline;
+        _emit_slice_bound_stream($self, $context, $first, sub {
+            _emit_slice_bound_pipeline(
+                $self, $_[0], \@pipeline, 0, $emit
+            );
+        });
+        return;
     }
 
     my @alternatives = _split_top_level_commas($copy);
     if (@alternatives > 1) {
-        my @values;
         for my $alternative (@alternatives) {
-            push @values,
-                _evaluate_slice_bound_stream($self, $context, $alternative);
+            _emit_slice_bound_stream(
+                $self, $context, $alternative, $emit
+            );
         }
-        return @values;
+        return;
     }
 
     my ($lhs, $rhs) = _split_top_level_operator($copy, '+');
     if (defined($lhs) && defined($rhs) && $lhs =~ /\S/ && $rhs =~ /\S/) {
-        # jq evaluates the right operand first. In particular,
-        # empty + (1/0) raises while (1/0) + empty emits nothing.
-        # Right-major iteration also preserves jq's Cartesian order.
-        my @right = _evaluate_slice_bound_stream($self, $context, $rhs);
-        return () unless @right;
-        my @left = _evaluate_slice_bound_stream($self, $context, $lhs);
-        return () unless @left;
-        my @values;
-        for my $right (@right) {
-            for my $left (@left) {
-                push @values, _apply_addition($left, $right);
-            }
-        }
-        return @values;
+        # jq evaluates the right operand first, and produces its
+        # right-major product. Emit results before visiting the next
+        # right-hand value so downstream errors retain jq precedence.
+        _emit_slice_bound_stream($self, $context, $rhs, sub {
+            my $right = $_[0];
+            _emit_slice_bound_stream($self, $context, $lhs, sub {
+                $emit->(_apply_addition($_[0], $right));
+            });
+        });
+        return;
     }
 
     my ($values, $ok) = _evaluate_value_expression($self, $context, $copy);
-    return @$values if $ok;
-    return $self->run_query(_encode_json($context), $copy);
+    if ($ok) {
+        $emit->($_) for @$values;
+        return;
+    }
+    $emit->($_) for $self->run_query(_encode_json($context), $copy);
 }
 
 # Value-context bracket slices use jq's floor(start)/ceil(end) rounding

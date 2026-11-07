@@ -4316,3 +4316,9 @@
 {"name":"v3-promotion-bound-pipeline-parenthesized-rhs-comma","input":{"a":[0,1,2]},"filter":"[.a[(0,1 | (empty,2)):3]]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-bound-pipeline-missing-empty","input":{},"filter":"[.a[(0,1 | empty):3]]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-bound-pipeline-null-root-empty","input":null,"filter":"[.[(0,1 | empty):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-pipeline-depth-error-first-source-pipeline-array","input":{"a":[0,1,2]},"filter":"try [.a[(0,\"x\" | .+1 | 1/0):3]] catch contains(\"zero\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-pipeline-depth-error-first-source-pipeline-object","input":{"a":[0,1,2]},"filter":"try {x:.a[(0,\"x\" | .+1 | 1/0):3]} catch contains(\"zero\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-pipeline-depth-error-first-upstream-vs-downstream","input":{"a":[0,1,2]},"filter":"try [.a[(0,(1/0) | \"x\"+1):3]] catch contains(\"zero\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-pipeline-depth-error-first-upstream-type-detection","input":{"a":[0,1,2]},"filter":"try [.a[(0,(1/0) | \"x\"+1):3]] catch contains(\"string\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-pipeline-depth-error-first-source-not-type","input":{"a":[0,1,2]},"filter":"try [.a[(0,\"x\" | .+1 | 1/0):3]] catch contains(\"string\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-pipeline-depth-multistage-multiple-alternatives","input":{"a":[0,1,2]},"filter":"[.a[(0,1 | (.+1,.+2) | (.+0,.+1)):3]]","status":"compatible","expected":"ok"}

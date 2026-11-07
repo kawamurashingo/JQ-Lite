@@ -572,4 +572,23 @@ subtest 'computed slice-bound pipelines consume complete comma streams' => sub {
         [[]], 'null root slice still respects empty pipeline');
 };
 
+
+# A pipeline must finish each input's downstream stages before evaluating
+# the next input. Both error precedence and observable output order matter.
+subtest 'computed slice pipelines are depth-first across stages' => sub {
+    my $input = '{"a":[0,1,2]}';
+    is_deeply([$jq->run_query($input, 'try [.a[(0,"x" | .+1 | 1/0):3]] catch contains("zero")')],
+        [JSON::PP::true], 'first source reaches division before next input addition');
+    is_deeply([$jq->run_query($input, 'try {x:.a[(0,"x" | .+1 | 1/0):3]} catch contains("zero")')],
+        [JSON::PP::true], 'object constructor observes same early error');
+    is_deeply([$jq->run_query($input, 'try [.a[(0,(1/0) | "x"+1):3]] catch contains("zero")')],
+        [JSON::PP::false], 'later upstream division must not preempt first downstream type error');
+    is_deeply([$jq->run_query($input, 'try [.a[(0,(1/0) | "x"+1):3]] catch contains("string")')],
+        [JSON::PP::true], 'first downstream type error is handled');
+    is_deeply([$jq->run_query($input, 'try [.a[(0,"x" | .+1 | 1/0):3]] catch contains("string")')],
+        [JSON::PP::false], 'first downstream division preempts later input');
+    is_deeply([$jq->run_query($input, '[.a[(0,1 | (.+1,.+2) | (.+0,.+1)):3]]')],
+        [[[[1,2],[2],[2],[],[2],[],[],[]]]], 'nested alternatives preserve depth-first output order');
+};
+
 done_testing;
