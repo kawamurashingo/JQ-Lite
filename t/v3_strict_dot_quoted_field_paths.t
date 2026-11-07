@@ -198,6 +198,42 @@ subtest 'null-valued slice bounds remain values in constructors' => sub {
     }
 };
 
+# A numeric slice bound is still a value when written using JSON
+# fractional, signed, or scientific notation. On null/missing sources it
+# must not be mistaken for the empty output stream of the filter 'empty'.
+subtest 'numeric literal slice spellings preserve value streams' => sub {
+    my @cases = (
+        ['0e0:1', [1]],
+        ['2E+0:3', [3]],
+        ['-1:2', []],
+        ['0.5:2', [1,2]],
+        ['1e-1:2', [1,2]],
+    );
+    for my $case (@cases) {
+        my ($bounds, $expected) = @$case;
+        my $named = ".a[$bounds]";
+        my $root = ".[$bounds]";
+        for my $input ('null', '{}', '{"a":null}') {
+            is_deeply([$jq->run_query($input, "[$named]")], [[undef]],
+                "named numeric spelling in null array: $input / $named");
+            is_deeply([$jq->run_query($input, "{x:$named}")], [{x => undef}],
+                "named numeric spelling in null object: $input / $named");
+        }
+        is_deeply([$jq->run_query('{"a":[1,2,3]}', "[$named]")],
+            [[$expected]], "named numeric spelling present array: $named");
+        is_deeply([$jq->run_query('{"a":[1,2,3]}', "{x:$named}")],
+            [{x => $expected}], "named numeric spelling present object: $named");
+        is_deeply([$jq->run_query('null', "[$root]")], [[undef]],
+            "root numeric spelling null array: $root");
+        is_deeply([$jq->run_query('null', "{x:$root}")], [{x => undef}],
+            "root numeric spelling null object: $root");
+        is_deeply([$jq->run_query('[1,2,3]', "[$root]")],
+            [[$expected]], "root numeric spelling present array: $root");
+        is_deeply([$jq->run_query('[1,2,3]', "{x:$root}")],
+            [{x => $expected}], "root numeric spelling present object: $root");
+    }
+};
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
