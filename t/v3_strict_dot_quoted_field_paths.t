@@ -502,4 +502,39 @@ subtest 'parser and dispatch boundaries' => sub {
         'previous quoted iterator path unchanged');
 };
 
+
+# Codex review: computed addition bounds evaluate RHS first and preserve
+# its stream-major order, including errors on reachable RHS expressions.
+subtest 'slice-bound addition follows jq RHS-first stream order' => sub {
+    my $input = '{"a":[0,1,2]}';
+    is_deeply([$jq->run_query($input, '[.a[((0,1)+(0,2)):3]]')],
+        [[[0,1,2], [1,2], [2], []]],
+        'both operands emit values in right-major order');
+    is_deeply([$jq->run_query($input, '{x:.a[((0,1)+(0,2)):3]}')],
+        [
+            {x => [0,1,2]}, {x => [1,2]},
+            {x => [2]}, {x => []},
+        ], 'right-major order retained in object constructor');
+    is_deeply([$jq->run_query($input, '[.a[((1/0)+empty):3]]')],
+        [[]], 'empty RHS suppresses evaluation of throwing LHS');
+    runtime_error($input, '[.a[(empty+(1/0)):3]]',
+        'Division by zero', 'throwing RHS evaluated before empty LHS');
+};
+
+# A fractional index cannot turn a bad opposite bound (including a
+# numeric-looking JSON string) into an accepted numeric index.
+subtest 'fractional slices validate both index types' => sub {
+    my $input = '{"a":[0,1,2]}';
+    runtime_error($input, '[.a[5e-1:"x"]]',
+        'slice(): length must be numeric', 'invalid end after fractional start');
+    runtime_error($input, '{x:.a[5e-1:"x"]}',
+        'slice(): length must be numeric', 'object constructor validates end');
+    runtime_error($input, '[.a["0.5":2]]',
+        'slice(): start must be numeric', 'numeric-looking string start rejected');
+    runtime_error($input, '[.a[0.5:"2"]]',
+        'slice(): length must be numeric', 'numeric-looking string end rejected');
+    is_deeply([$jq->run_query($input, '[.a[0.5:2]]')],
+        [[[0,1]]], 'valid fractional bounds still round as before');
+};
+
 done_testing;

@@ -1071,13 +1071,16 @@ sub _evaluate_slice_bound_stream {
 
     my ($lhs, $rhs) = _split_top_level_operator($copy, '+');
     if (defined($lhs) && defined($rhs) && $lhs =~ /\S/ && $rhs =~ /\S/) {
-        my @left = _evaluate_slice_bound_stream($self, $context, $lhs);
-        return () unless @left;
+        # jq evaluates the right operand first. In particular,
+        # empty + (1/0) raises while (1/0) + empty emits nothing.
+        # Right-major iteration also preserves jq's Cartesian order.
         my @right = _evaluate_slice_bound_stream($self, $context, $rhs);
         return () unless @right;
+        my @left = _evaluate_slice_bound_stream($self, $context, $lhs);
+        return () unless @left;
         my @values;
-        for my $left (@left) {
-            for my $right (@right) {
+        for my $right (@right) {
+            for my $left (@left) {
                 push @values, _apply_addition($left, $right);
             }
         }
@@ -1101,6 +1104,14 @@ sub _apply_value_bracket_slice {
             && $raw_end != int($raw_end));
     return _apply_bracket_slice($value, $raw_start, $raw_end)
         unless $fractional && ref $value eq 'ARRAY';
+
+    # Fractional rounding must not bypass the existing v2-compatible
+    # numeric/type guards. In particular, JSON strings such as "0.5"
+    # are invalid slice indices even if looks_like_number accepts them.
+    # _slice_numeric_bound validates and discards its truncated result;
+    # rounding below still uses the original fractional values.
+    _slice_numeric_bound($raw_start, 'start') if defined $raw_start;
+    _slice_numeric_bound($raw_end, 'length') if defined $raw_end;
 
     my $size = scalar @$value;
     my $start = defined $raw_start ? $raw_start : 0;
