@@ -4284,3 +4284,15 @@
 {"name":"v3-promotion-computed-root-null-parenthesized-zero-object","input":null,"filter":"{x:.[(0):1]}","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-computed-root-null-parenthesized-empty-array","input":null,"filter":"[.[(empty):1]]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-computed-root-null-parenthesized-empty-object","input":null,"filter":"{x:.[(empty):1]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-multi-start-arithmetic","input":{"a":[1,2,3]},"filter":"[.a[((0,1)+1):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-empty-plus-arithmetic","input":{"a":[1,2,3]},"filter":"[.a[(empty+1):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-multi-end-computed","input":{"a":[1,2,3]},"filter":"[.a[0:(1,2)]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-multi-start-object","input":{"a":[1,2,3]},"filter":"{x:.a[(0,1):3]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-multi-start-null-root","input":null,"filter":"[.a[((0,1)+1):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-multi-start-missing","input":{},"filter":"[.a[((0,1)+1):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-unreachable-division-root","input":[1,2,3],"filter":"[.[(empty):(1/0)]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-unreachable-division-object","input":[1,2,3],"filter":"{x:.[(empty):(1/0)]}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-unreachable-division-named","input":{"a":[1,2,3]},"filter":"[.a[(empty):(1/0)]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-multi-end-root","input":[1,2,3],"filter":"[.[0:(1,2)]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-normal-add","input":{"a":[1,2,3]},"filter":"[.a[(1+1):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-stream-empty-plus-object","input":{"a":[1,2,3]},"filter":"{x:.a[(empty+1):3]}","status":"compatible","expected":"ok"}
