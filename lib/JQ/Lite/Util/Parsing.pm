@@ -1022,6 +1022,37 @@ sub _evaluate_value_expression {
     return ([], 0);
 }
 
+# Value-context bracket slices use jq's floor(start)/ceil(end) rounding
+# for fractional array bounds. The legacy slice() builtin deliberately keeps
+# its existing int/int contract; only this scoped helper uses jq rounding.
+sub _apply_value_bracket_slice {
+    my ($value, $raw_start, $raw_end) = @_;
+
+    my $fractional = (defined($raw_start) && looks_like_number($raw_start)
+            && $raw_start != int($raw_start))
+        || (defined($raw_end) && looks_like_number($raw_end)
+            && $raw_end != int($raw_end));
+    return _apply_bracket_slice($value, $raw_start, $raw_end)
+        unless $fractional && ref $value eq 'ARRAY';
+
+    my $size = scalar @$value;
+    my $start = defined $raw_start ? $raw_start : 0;
+    my $end = defined $raw_end ? $raw_end : $size;
+    $start += $size if $start < 0;
+    $end += $size if $end < 0;
+
+    my $from = int($start);
+    $from-- if $start < $from;
+    my $to = int($end);
+    $to++ if $end > $to;
+    $from = 0 if $from < 0;
+    $to = 0 if $to < 0;
+    $from = $size if $from > $size;
+    $to = $size if $to > $size;
+
+    return $from < $to ? [ @$value[$from .. $to - 1] ] : [];
+}
+
 sub _apply_addition {
     return JQ::Lite::Expression::_apply_addition(@_);
 }
