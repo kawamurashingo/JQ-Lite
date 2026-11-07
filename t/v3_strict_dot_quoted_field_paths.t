@@ -234,6 +234,79 @@ subtest 'numeric literal slice spellings preserve value streams' => sub {
     }
 };
 
+# jq uses floor for a fractional array slice start and ceil for its end.
+# This differs from the legacy slice() builtin, whose rounding is unchanged.
+subtest 'fractional slice upper bounds use jq rounding' => sub {
+    my @cases = (
+        ['0:1.5', [1,2]],
+        ['0:1e-1', [1]],
+        ['1.5:2.5', [2,3]],
+        ['-2.5:-0.5', [1,2,3]],
+        ['2.2:2.4', [3]],
+        ['0:0.1', [1]],
+        ['0:1.0', [1]],
+        ['-1.5:-0.5', [2,3]],
+    );
+    for my $case (@cases) {
+        my ($bounds, $expected) = @$case;
+        for my $form ('.a', '.') {
+            my $input = $form eq '.' ? '[1,2,3]' : '{"a":[1,2,3]}';
+            my $slice = "$form\[$bounds]";
+            is_deeply([$jq->run_query($input, "[$slice]")], [[$expected]],
+                "fractional upper bound in array: $slice");
+            is_deeply([$jq->run_query($input, "{x:$slice}")], [{x => $expected}],
+                "fractional upper bound in object: $slice");
+        }
+    }
+};
+
+# Bracket-bound filters evaluate to streams. Parenthesized expressions
+# returning null/number are not the zero-output stream emitted by empty.
+subtest 'computed slice bounds distinguish null values from empty' => sub {
+    for my $input ('null', '{}', '{"a":null}') {
+        for my $bounds ('(null):1', '(0):1', '((null)):1',
+                        '(1+1):3', 'null:(1+0)') {
+            my $slice = ".a[$bounds]";
+            is_deeply([$jq->run_query($input, "[$slice]")], [[undef]],
+                "computed value bound in array: $input / $slice");
+            is_deeply([$jq->run_query($input, "{x:$slice}")], [{x => undef}],
+                "computed value bound in object: $input / $slice");
+        }
+        my $empty = '.a[(empty):1]';
+        is_deeply([$jq->run_query($input, "[$empty]")], [[]],
+            "computed empty bound in array: $input");
+        is_deeply([$jq->run_query($input, "{x:$empty}")], [],
+            "computed empty bound in object: $input");
+    }
+    my @present = (
+        ['(null):1', [1]],
+        ['(0):1', [1]],
+        ['(1+1):3', [3]],
+        ['(empty):1', undef],
+        ['(.i):2', [2]],
+    );
+    for my $case (@present) {
+        my ($bounds, $expected) = @$case;
+        my $slice = ".a[$bounds]";
+        my $array = [$jq->run_query('{"a":[1,2,3],"i":1}', "[$slice]")];
+        my $object = [$jq->run_query('{"a":[1,2,3],"i":1}', "{x:$slice}")];
+        is_deeply($array, defined($expected) ? [$expected] : [[]],
+            "computed bound on populated array: $slice");
+        is_deeply($object, defined($expected) ? [{x => $expected}] : [],
+            "computed bound on populated object: $slice");
+    }
+    for my $bounds ('(null):1', '(0):1', '(empty):1') {
+        my $slice = ".[$bounds]";
+        my $emits = $bounds !~ /empty/;
+        is_deeply([$jq->run_query('null', "[$slice]")],
+            $emits ? [[undef]] : [[]],
+            "computed root bound on null in array: $slice");
+        is_deeply([$jq->run_query('null', "{x:$slice}")],
+            $emits ? [{x => undef}] : [],
+            "computed root bound on null in object: $slice");
+    }
+};
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
