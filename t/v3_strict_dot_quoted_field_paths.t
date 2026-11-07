@@ -307,6 +307,31 @@ subtest 'computed slice bounds distinguish null values from empty' => sub {
     }
 };
 
+# Computed bounds retain every value of comma/arithmetic streams and do
+# not evaluate an end bound after the start yields an empty stream.
+subtest 'computed arithmetic slice bounds preserve jq streams' => sub {
+    my @cases = (
+        ['{"a":[1,2,3]}', '[.a[((0,1)+1):3]]', [[[2,3],[3]]]],
+        ['{"a":[1,2,3]}', '[.a[(empty+1):3]]', [[]]],
+        ['{"a":[1,2,3]}', '[.a[0:(1,2)]]', [[[1],[1,2]]]],
+        ['{"a":[1,2,3]}', '{x:.a[(0,1):3]}',
+            [{x => [1,2,3]}, {x => [2,3]}]],
+        ['null', '[.a[((0,1)+1):3]]', [[undef,undef]]],
+        ['{}', '[.a[((0,1)+1):3]]', [[undef,undef]]],
+        ['[1,2,3]', '[.[(empty):(1/0)]]', [[]]],
+        ['[1,2,3]', '{x:.[(empty):(1/0)]}', []],
+        ['{"a":[1,2,3]}', '[.a[(empty):(1/0)]]', [[]]],
+        ['[1,2,3]', '[.[0:(1,2)]]', [[[1],[1,2]]]],
+        ['{"a":[1,2,3]}', '[.a[(1+1):3]]', [[[3]]]],
+        ['{"a":[1,2,3]}', '{x:.a[(empty+1):3]}', []],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected) = @$case;
+        is_deeply([$jq->run_query($input, $filter)], $expected,
+            "computed-bound stream parity: $filter on $input");
+    }
+};
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
