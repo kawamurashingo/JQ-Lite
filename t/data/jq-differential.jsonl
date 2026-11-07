@@ -4331,3 +4331,15 @@
 {"name":"v3-promotion-bound-early-apply-pair-cartesian","input":{"a":[0,1,2]},"filter":"[.a[(0,1):(1,2)]]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-bound-early-apply-end-empty","input":{"a":[0,1,2]},"filter":"[.a[(0,1):empty]]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-bound-early-apply-start-empty","input":{"a":[0,1,2]},"filter":"[.a[empty:(1/0)]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-first-start-invalid","input":{"a":[0,1,2]},"filter":"try [.a[(if true then (\"x\",1/0) else 0 end):3]] catch contains(\"zero\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-first-end-invalid","input":{"a":[0,1,2]},"filter":"try [.a[0:(if true then (\"x\",1/0) else 3 end)]] catch contains(\"zero\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-object-start-invalid","input":{"a":[0,1,2]},"filter":"try {x:.a[(if true then (\"x\",1/0) else 0 end):3]} catch contains(\"zero\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-object-end-invalid","input":{"a":[0,1,2]},"filter":"try {x:.a[0:(if true then (\"x\",1/0) else 3 end)]} catch contains(\"zero\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-then-stream","input":{"a":[0,1,2]},"filter":"[.a[(if true then (0,1) else 2 end):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-else-stream","input":{"a":[0,1,2]},"filter":"[.a[(if false then 0 else (1,2) end):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-nested","input":{"a":[0,1,2]},"filter":"[.a[(if true then (if false then 0 else (1,2) end) else 0 end):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-elif","input":{"a":[0,1,2]},"filter":"[.a[(if false then 0 elif true then (1,2) else 0 end):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-invalid-second","input":{"a":[0,1,2]},"filter":"try [.a[(if true then (0,\"x\",1/0) else 2 end):3]] catch contains(\"zero\")","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-piped","input":{"a":[0,1,2]},"filter":"[.a[((if true then (0,1) else 2 end) | .+1):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-bool-stream","input":{"a":[0,1,2]},"filter":"[.a[(if (true,false) then (0,1) else 2 end):3]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-bound-if-incremental-conditional-empty-condition","input":{"a":[0,1,2]},"filter":"[.a[(if empty then 0 else 2 end):3]]","status":"compatible","expected":"ok"}

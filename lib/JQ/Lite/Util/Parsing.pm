@@ -1096,6 +1096,35 @@ sub _emit_slice_bound_pipeline {
     });
 }
 
+# An 'if' bound has to emit the chosen branch one value at a time.
+# The ordinary run_query fallback collects the whole branch first, letting
+# a later expression error preempt an earlier invalid slice index.
+# This helper stays scoped to computed bracket bounds.
+sub _emit_slice_bound_if {
+    my ($self, $context, $if_expr, $index, $emit) = @_;
+
+    my $branches = $if_expr->{branches};
+    if ($index >= @$branches) {
+        _emit_slice_bound_stream($self, $context, $if_expr->{else}, $emit)
+            if defined $if_expr->{else};
+        return;
+    }
+
+    my $branch = $branches->[$index];
+    _emit_slice_bound_stream($self, $context, $branch->{condition}, sub {
+        if (_is_truthy($_[0])) {
+            _emit_slice_bound_stream(
+                $self, $context, $branch->{then}, $emit
+            );
+        }
+        else {
+            _emit_slice_bound_if(
+                $self, $context, $if_expr, $index + 1, $emit
+            );
+        }
+    });
+}
+
 sub _emit_slice_bound_stream {
     my ($self, $context, $expr, $emit) = @_;
     my $copy = _strip_wrapping_parens($expr);
@@ -1107,6 +1136,14 @@ sub _emit_slice_bound_stream {
         return;
     }
     return if $copy eq 'empty';
+
+    # A complete conditional can contain comma-producing branch filters.
+    # Dispatch its chosen branches incrementally before generic fallback.
+    my $if_expr = _parse_if_expression($copy);
+    if ($if_expr) {
+        _emit_slice_bound_if($self, $context, $if_expr, 0, $emit);
+        return;
+    }
 
     # A pipeline consumes the whole comma stream to its left. Depth-first
     # emission also preserves jq's error precedence across pipe stages.

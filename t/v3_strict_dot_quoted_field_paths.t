@@ -617,4 +617,35 @@ subtest 'computed slices apply bound pairs before reading later values' => sub {
 };
 
 
+
+# Conditional branch streams must be consumed in lockstep with slice
+# application; otherwise a later error incorrectly wins under try/catch.
+subtest 'computed conditional bound streams emit before later errors' => sub {
+    my $input = '{"a":[0,1,2]}';
+    is_deeply([$jq->run_query($input, 'try [.a[(if true then ("x",1/0) else 0 end):3]] catch contains("zero")')],
+        [JSON::PP::false], 'conditional start first type error beats later division');
+    is_deeply([$jq->run_query($input, 'try [.a[0:(if true then ("x",1/0) else 3 end)]] catch contains("zero")')],
+        [JSON::PP::false], 'conditional end first type error beats later division');
+    is_deeply([$jq->run_query($input, 'try {x:.a[(if true then ("x",1/0) else 0 end):3]} catch contains("zero")')],
+        [JSON::PP::false], 'conditional object start short circuits');
+    is_deeply([$jq->run_query($input, 'try {x:.a[0:(if true then ("x",1/0) else 3 end)]} catch contains("zero")')],
+        [JSON::PP::false], 'conditional object end short circuits');
+    is_deeply([$jq->run_query($input, '[.a[(if true then (0,1) else 2 end):3]]')],
+        [[[0,1,2],[1,2]]], 'then branch emits every start');
+    is_deeply([$jq->run_query($input, '[.a[(if false then 0 else (1,2) end):3]]')],
+        [[[1,2],[2]]], 'else branch emits every start');
+    is_deeply([$jq->run_query($input, '[.a[(if true then (if false then 0 else (1,2) end) else 0 end):3]]')],
+        [[[1,2],[2]]], 'nested conditional branches retain streams');
+    is_deeply([$jq->run_query($input, '[.a[(if false then 0 elif true then (1,2) else 0 end):3]]')],
+        [[[1,2],[2]]], 'elif conditional emits streams');
+    is_deeply([$jq->run_query($input, 'try [.a[(if true then (0,"x",1/0) else 2 end):3]] catch contains("zero")')],
+        [JSON::PP::false], 'valid initial slice followed by invalid index');
+    is_deeply([$jq->run_query($input, '[.a[((if true then (0,1) else 2 end) | .+1):3]]')],
+        [[[1,2],[2]]], 'conditional stream flows to downstream pipeline');
+    is_deeply([$jq->run_query($input, '[.a[(if (true,false) then (0,1) else 2 end):3]]')],
+        [[[0,1,2],[1,2],[2]]], 'each condition value selects branch independently');
+    is_deeply([$jq->run_query($input, '[.a[(if empty then 0 else 2 end):3]]')],
+        [[]], 'empty condition does not evaluate else');
+};
+
 done_testing;
