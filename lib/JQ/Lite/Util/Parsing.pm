@@ -878,23 +878,27 @@ sub _evaluate_value_expression {
         $path =~ s/^\s+|\s+$//g;
 
         my $is_bracket_slice = $path =~ /\[[^\]]*:[^\]]*\]/;
-        if (($path !~ /\s/ || $is_bracket_slice) && $path !~ /[+\-*\/]/) {
+        # Accept all JSON number spellings: -1, 0.5, 0e0, 2E+0.
+        # Only literals emit an unconditional value; empty-bound filters
+        # may emit no values and must not get this null fallback.
+        my $json_number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+        my $literal_slice_tail =
+            qr/\[\s*(?:$json_number|null)?\s*:\s*(?:$json_number|null)?\s*\]\z/;
+        my ($slice_prefix) = $is_bracket_slice
+            ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)$literal_slice_tail/)
+            : ();
+        my $root_literal_slice = $is_bracket_slice
+            && $path =~ /\A$literal_slice_tail/;
+        # Numeric literals may contain arithmetic-shaped +/- signs.
+        if (($path !~ /\s/ || $is_bracket_slice)
+            && ($path !~ /[+\-*\/]/ || defined($slice_prefix) || $root_literal_slice)) {
             return ([], 1) if $path eq '';
             my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
             # A missing named object field is one JSON null, not an empty
             # stream. Keep iterator/projection paths' existing empty behavior.
             my $named_path = $path =~ /\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\z/ ? 1 : 0;
-            # Named slices with literal integer, null or omitted bounds
-            # through a missing/null field produce one null. Computed bounds
-            # like `empty` may instead produce no values, even on a null root.
-            my ($slice_prefix) = $is_bracket_slice
-                ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[\s*(?:\d+|null)?\s*:\s*(?:\d+|null)?\s*\]\z/)
-                : ();
-            # Root slices with literal integer/null/omitted bounds on JSON
-            # null also yield one null. An `empty` bound instead emits no
-            # values, so keep computed bounds out of this shortcut.
-            my $root_literal_slice = $is_bracket_slice
-                && $path =~ /\A\[\s*(?:\d+|null)?\s*:\s*(?:\d+|null)?\s*\]\z/;
+
+
             return (($numeric_path || $named_path || defined($slice_prefix)
                      || $root_literal_slice)
                 ? [undef] : [], 1) unless defined $context;
