@@ -908,24 +908,16 @@ sub _evaluate_value_expression {
             && defined($self) && $self->can('run_query'))
         {
             my $json = _encode_json($context);
-            my @starts;
-            if ($bound_start =~ $literal_bound) {
-                @starts = (_parse_slice_argument($bound_start));
-            }
-            else {
-                my ($values, $ok) =
-                    _evaluate_value_expression($self, $context, $bound_start);
-                @starts = $ok ? @$values : $self->run_query($json, $bound_start);
-            }
-            my @ends;
-            if ($bound_end =~ $literal_bound) {
-                @ends = (_parse_slice_argument($bound_end));
-            }
-            else {
-                my ($values, $ok) =
-                    _evaluate_value_expression($self, $context, $bound_end);
-                @ends = $ok ? @$values : $self->run_query($json, $bound_end);
-            }
+            my @starts = $bound_start =~ $literal_bound
+                ? (_parse_slice_argument($bound_start))
+                : _evaluate_slice_bound_stream($self, $context, $bound_start);
+            # jq does not evaluate the end bound when the start emits none:
+            # .[(empty):(1/0)] is an empty stream, not division by zero.
+            return ([], 1) unless @starts;
+            my @ends = $bound_end =~ $literal_bound
+                ? (_parse_slice_argument($bound_end))
+                : _evaluate_slice_bound_stream($self, $context, $bound_end);
+            return ([], 1) unless @ends;
             my @sources = length($computed_prefix)
                 ? _traverse($context, $computed_prefix,
                     { missing_object_null => 1 })
