@@ -1053,6 +1053,50 @@ sub _evaluate_value_expression {
     return ([], 0);
 }
 
+# Bracket-bound expressions are filters, not scalar values. Evaluate each
+# emitted alternative and distribute addition rather than using the scalar
+# expression helper's first-value/empty-as-null fallback. Keep this small
+# stream evaluator scoped to bracket bounds; ordinary expression dispatch and
+# the legacy slice() builtin retain their existing behavior.
+sub _evaluate_slice_bound_stream {
+    my ($self, $context, $expr) = @_;
+    my $copy = _strip_wrapping_parens($expr);
+    $copy =~ s/^\s+|\s+$//g;
+
+    my $literal = eval { _decode_json($copy) };
+    return ($literal) unless $@;
+    return () if $copy eq 'empty';
+
+    my @alternatives = _split_top_level_commas($copy);
+    if (@alternatives > 1) {
+        my @values;
+        for my $alternative (@alternatives) {
+            push @values,
+                _evaluate_slice_bound_stream($self, $context, $alternative);
+        }
+        return @values;
+    }
+
+    my ($lhs, $rhs) = _split_top_level_operator($copy, '+');
+    if (defined($lhs) && defined($rhs) && $lhs =~ /\S/ && $rhs =~ /\S/) {
+        my @left = _evaluate_slice_bound_stream($self, $context, $lhs);
+        return () unless @left;
+        my @right = _evaluate_slice_bound_stream($self, $context, $rhs);
+        return () unless @right;
+        my @values;
+        for my $left (@left) {
+            for my $right (@right) {
+                push @values, _apply_addition($left, $right);
+            }
+        }
+        return @values;
+    }
+
+    my ($values, $ok) = _evaluate_value_expression($self, $context, $copy);
+    return @$values if $ok;
+    return $self->run_query(_encode_json($context), $copy);
+}
+
 # Value-context bracket slices use jq's floor(start)/ceil(end) rounding
 # for fractional array bounds. The legacy slice() builtin deliberately keeps
 # its existing int/int contract; only this scoped helper uses jq rounding.
