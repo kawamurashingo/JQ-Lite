@@ -802,7 +802,12 @@ sub _evaluate_value_expression {
         return (\@values, 1);
     }
 
-    if (_looks_like_expression($copy)) {
+    # A complete simple bracket-slice is a path filter, even when a bound
+    # contains '-' or '+' (scientific notation, negative literals, or a
+    # parenthesized expression). Do not misclassify it as scalar arithmetic.
+    my $simple_bracket_slice = $copy =~
+        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\z/;
+    if (_looks_like_expression($copy) && !$simple_bracket_slice) {
         my %builtins = (
             floor => sub {
                 my ($value) = @_;
