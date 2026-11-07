@@ -290,7 +290,7 @@ subtest 'computed slice bounds distinguish null values from empty' => sub {
         my $slice = ".a[$bounds]";
         my $array = [$jq->run_query('{"a":[1,2,3],"i":1}', "[$slice]")];
         my $object = [$jq->run_query('{"a":[1,2,3],"i":1}', "{x:$slice}")];
-        is_deeply($array, defined($expected) ? [$expected] : [[]],
+        is_deeply($array, defined($expected) ? [[$expected]] : [[]],
             "computed bound on populated array: $slice");
         is_deeply($object, defined($expected) ? [{x => $expected}] : [],
             "computed bound on populated object: $slice");
