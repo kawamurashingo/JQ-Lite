@@ -1059,6 +1059,27 @@ sub _evaluate_slice_bound_stream {
     return ($literal) unless $@;
     return () if $copy eq 'empty';
 
+    # A pipe consumes the entire preceding stream, including comma
+    # alternatives. Splitting commas before pipes incorrectly retains
+    # values that a downstream empty filter must suppress.
+    # Keep this precedence fix local to bracket-bound expressions.
+    my @pipeline = _split_top_level_pipes($copy);
+    if (@pipeline > 1) {
+        my @values = _evaluate_slice_bound_stream(
+            $self, $context, shift @pipeline
+        );
+        for my $stage (@pipeline) {
+            my @next_values;
+            for my $value (@values) {
+                push @next_values,
+                    _evaluate_slice_bound_stream($self, $value, $stage);
+            }
+            @values = @next_values;
+            last unless @values;
+        }
+        return @values;
+    }
+
     my @alternatives = _split_top_level_commas($copy);
     if (@alternatives > 1) {
         my @values;

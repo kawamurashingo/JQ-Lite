@@ -547,4 +547,29 @@ subtest 'fractional slices validate both index types' => sub {
         [[[0,1]]], 'valid fractional bounds still round as before');
 };
 
+
+# jq pipe binds after comma: each preceding bound value must flow through
+# every following pipe stage. In particular, empty suppresses them all.
+subtest 'computed slice-bound pipelines consume complete comma streams' => sub {
+    my $input = '{"a":[0,1,2]}';
+    my @cases = (
+        ['[.a[(0,1 | empty):3]]', [[]]],
+        ['{x:.a[(0,1 | empty):3]}', []],
+        ['[.a[(0,1 | .+1):3]]', [[[1,2],[2]]]],
+        ['{x:.a[(0,1 | .+1):3]}', [{x => [1,2]}, {x => [2]}]],
+        ['[.a[(0,1 | empty,2):3]]', [[[2],[2]]]],
+        ['[.a[(0,1 | .+1 | .+1):3]]', [[[2],[]]]],
+        ['[.a[(0,1 | (empty,2)):3]]', [[[2],[2]]]],
+    );
+    for my $case (@cases) {
+        my ($filter, $expected) = @$case;
+        is_deeply([$jq->run_query($input, $filter)], $expected,
+            "slice-bound pipeline: $filter");
+    }
+    is_deeply([$jq->run_query('{}', '[.a[(0,1 | empty):3]]')],
+        [[]], 'missing named slice still respects empty pipeline');
+    is_deeply([$jq->run_query('null', '[.[(0,1 | empty):3]]')],
+        [[]], 'null root slice still respects empty pipeline');
+};
+
 done_testing;
