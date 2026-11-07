@@ -155,6 +155,49 @@ subtest 'null root slice constructors retain null and empty streams' => sub {
     }
 };
 
+# Codex follow-up: a literal JSON null slice bound is a value, not
+# the zero-output stream from the filter `empty`. Preserve both named
+# missing-field and root-null slice values inside constructors.
+subtest 'null-valued slice bounds remain values in constructors' => sub {
+    for my $input ('null', '{}', '{"a":null}') {
+        for my $bounds ('null:1', '0:null', 'null:null') {
+            my $slice = ".a[$bounds]";
+            is_deeply([$jq->run_query($input, "[$slice]")], [[undef]],
+                "named null bound in array constructor: $input / $slice");
+            is_deeply([$jq->run_query($input, "{x:$slice}")], [{x => undef}],
+                "named null bound in object constructor: $input / $slice");
+        }
+    }
+    my @present = (
+        ['null:1', [1]],
+        ['0:null', [1,2]],
+        ['null:null', [1,2]],
+    );
+    for my $case (@present) {
+        my ($bounds, $expected) = @$case;
+        my $slice = ".a[$bounds]";
+        is_deeply([$jq->run_query('{"a":[1,2]}', "[$slice]")],
+            [[$expected]], "present named null bound array: $slice");
+        is_deeply([$jq->run_query('{"a":[1,2]}', "{x:$slice}")],
+            [{x => $expected}], "present named null bound object: $slice");
+    }
+    for my $bounds ('null:1', '0:null', 'null:null') {
+        my $slice = ".[$bounds]";
+        is_deeply([$jq->run_query('null', "[$slice]")], [[undef]],
+            "root-null slice bound in array constructor: $slice");
+        is_deeply([$jq->run_query('null', "{x:$slice}")], [{x => undef}],
+            "root-null slice bound in object constructor: $slice");
+    }
+    for my $case (@present) {
+        my ($bounds, $expected) = @$case;
+        my $slice = ".[$bounds]";
+        is_deeply([$jq->run_query('[1,2]', "[$slice]")], [[$expected]],
+            "present root null bound array: $slice");
+        is_deeply([$jq->run_query('[1,2]', "{x:$slice}")], [{x => $expected}],
+            "present root null bound object: $slice");
+    }
+};
+
 sub results {
     my ($json, $filter) = @_;
     return [ $jq->run_query($json, $filter) ];
