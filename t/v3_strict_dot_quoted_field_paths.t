@@ -525,13 +525,23 @@ subtest 'slice-bound addition follows jq RHS-first stream order' => sub {
 # numeric-looking JSON string) into an accepted numeric index.
 subtest 'fractional slices validate both index types' => sub {
     my $input = '{"a":[0,1,2]}';
-    runtime_error($input, '[.a[5e-1:"x"]]',
+    # The legacy slice() path throws a plain Perl runtime error, whereas
+    # strict quoted-field lookup wraps JQ::Lite::Error::Evaluation.
+    # Preserve the slice error contract rather than changing production API.
+    my $slice_error = sub {
+        my ($filter, $fragment, $label) = @_;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        my $error = $@;
+        ok(!$ok, "$label: fails");
+        like("$error", qr/\Q$fragment\E/, "$label: numeric validation");
+    };
+    $slice_error->('[.a[5e-1:"x"]]',
         'slice(): length must be numeric', 'invalid end after fractional start');
-    runtime_error($input, '{x:.a[5e-1:"x"]}',
+    $slice_error->('{x:.a[5e-1:"x"]}',
         'slice(): length must be numeric', 'object constructor validates end');
-    runtime_error($input, '[.a["0.5":2]]',
+    $slice_error->('[.a["0.5":2]]',
         'slice(): start must be numeric', 'numeric-looking string start rejected');
-    runtime_error($input, '[.a[0.5:"2"]]',
+    $slice_error->('[.a[0.5:"2"]]',
         'slice(): length must be numeric', 'numeric-looking string end rejected');
     is_deeply([$jq->run_query($input, '[.a[0.5:2]]')],
         [[[0,1]]], 'valid fractional bounds still round as before');
