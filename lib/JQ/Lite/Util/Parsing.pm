@@ -889,6 +889,41 @@ sub _evaluate_value_expression {
             : ();
         my $root_literal_slice = $is_bracket_slice
             && $path =~ /\A$literal_slice_tail/;
+
+        # Evaluate computed bounds as filters on the original input rather
+        # than classifying a legacy missing-field lookup as no output.
+        # Parenthesized (null)/(0) emit one value; (empty) emits none.
+        # Restrict this to complete simple root/named slices, leaving all
+        # other path expressions on their existing dispatch.
+        my ($computed_prefix, $bound_start, $bound_end) =
+            $path =~ /\A((?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?)\[([^\[\]]*):([^\[\]]*)\]\z/;
+        my $literal_bound = qr/\A\s*(?:$json_number|null)?\s*\z/;
+        if (defined($bound_start)
+            && ($bound_start !~ $literal_bound || $bound_end !~ $literal_bound)
+            && defined($self) && $self->can('run_query'))
+        {
+            my $json = _encode_json($context);
+            my @starts = $bound_start =~ $literal_bound
+                ? (_parse_slice_argument($bound_start))
+                : $self->run_query($json, $bound_start);
+            my @ends = $bound_end =~ $literal_bound
+                ? (_parse_slice_argument($bound_end))
+                : $self->run_query($json, $bound_end);
+            my @sources = length($computed_prefix)
+                ? _traverse($context, $computed_prefix,
+                    { missing_object_null => 1 })
+                : ($context);
+            my @values;
+            for my $start (@starts) {
+                for my $end (@ends) {
+                    push @values, map {
+                        _apply_value_bracket_slice($_, $start, $end)
+                    } @sources;
+                }
+            }
+            return (\@values, 1);
+        }
+
         # Numeric literals may contain arithmetic-shaped +/- signs.
         if (($path !~ /\s/ || $is_bracket_slice)
             && ($path !~ /[+\-*\/]/ || defined($slice_prefix) || $root_literal_slice)) {
