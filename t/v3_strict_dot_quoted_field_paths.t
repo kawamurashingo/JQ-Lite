@@ -588,7 +588,7 @@ subtest 'computed slice pipelines are depth-first across stages' => sub {
     is_deeply([$jq->run_query($input, 'try [.a[(0,"x" | .+1 | 1/0):3]] catch contains("string")')],
         [JSON::PP::false], 'first downstream division preempts later input');
     is_deeply([$jq->run_query($input, '[.a[(0,1 | (.+1,.+2) | (.+0,.+1)):3]]')],
-        [[[[1,2],[2],[2],[],[2],[],[],[]]]], 'nested alternatives preserve depth-first output order');
+        [[[1,2],[2],[2],[],[2],[],[],[]]], 'nested alternatives preserve depth-first output order');
 };
 
 done_testing;
