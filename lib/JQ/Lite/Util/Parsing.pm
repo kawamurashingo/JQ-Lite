@@ -903,6 +903,24 @@ sub _evaluate_value_expression {
                      || $root_literal_slice)
                 ? [undef] : [], 1) unless defined $context;
 
+            # Legacy traversal splits on every '.', including decimal points
+            # inside slice bounds. For a *literal* decimal slice only, read
+            # its simple field prefix separately and apply the existing
+            # bracket-slice evaluator. Other path and iterator dispatch stays
+            # untouched; computed bounds still use normal stream semantics.
+            if (($root_literal_slice || defined($slice_prefix))
+                && $path =~ /\[[^\[\]]*\d\.\d+[^\[\]]*\]\z/)
+            {
+                my ($raw_start, $raw_end) =
+                    $path =~ /\[([^\[\]]*):([^\[\]]*)\]\z/;
+                my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
+                my @sources = defined($slice_prefix)
+                    ? _traverse($context, $slice_prefix,
+                        { missing_object_null => 1 })
+                    : ($context);
+                return ([ map { _apply_bracket_slice($_, @args) } @sources ], 1);
+            }
+
             my @values = _traverse(
                 $context, $path,
                 {
