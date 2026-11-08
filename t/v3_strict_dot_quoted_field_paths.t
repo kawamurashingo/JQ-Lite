@@ -648,4 +648,32 @@ subtest 'computed conditional bound streams emit before later errors' => sub {
         [[]], 'empty condition does not evaluate else');
 };
 
+
+# A streamed conditional test must retain jq operator precedence: '+' binds
+# inside comparisons, and comparisons bind inside boolean and/or. Preserve
+# both value results and their use as slice bounds (start and end).
+subtest 'conditional bound comparisons keep arithmetic precedence' => sub {
+    my $input = '{"a":[0,1,2]}';
+    my @cases = (
+        ['[.a[(if (1+1 == 2) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'eq-start'],
+        ['[.a[0:(if (1+1 == 2) then 2 else 1 end)]]', '[[[0,1]]]', 'eq-end'],
+        ['{x:.a[(if (1+1 == 2) then 0 else 1 end):3]}', '[{"x":[0,1,2]}]', 'eq-object-start'],
+        ['[.a[(if (1+1 != 2) then 0 else 1 end):3]]', '[[[1,2]]]', 'ne-false-start'],
+        ['[.a[(if (1+1 <= 2 and 2+2 == 4) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'compound-and'],
+        ['[.a[(if (1+1 > 2 or 3+1 == 4) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'compound-or'],
+        ['[.a[(if (1+1 == 3 or 1+2 == 3) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'compound-or-second'],
+        ['[.a[(if (1+1 == 2 and 2+2 < 5) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'compound-and-second'],
+        ['[.a[(if (1+1 == 2) then (0,1) else 2 end):3]]', '[[[0,1,2],[1,2]]]', 'eq-then-stream'],
+        ['[.a[(if (1+1 == 2) then (if (3+1 == 4) then 1 else 2 end) else 0 end):3]]', '[[[1,2]]]', 'eq-nested-if'],
+        ['[.a[(if (3-1 >= 2) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'ge-subtract'],
+        ['[.a[(if (2+2 > 4) then 0 else 1 end):3]]', '[[[1,2]]]', 'gt-false'],
+    );
+    for my $case (@cases) {
+        my ($filter, $expected_json, $label) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "comparison precedence: $label");
+    }
+};
+
 done_testing;

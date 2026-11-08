@@ -1168,6 +1168,24 @@ sub _emit_slice_bound_stream {
         return;
     }
 
+    # Comparison and boolean operators bind outside arithmetic. Do not
+    # split the '+' inside a conditional test like (1+1 == 2), as that
+    # turns the numeric addition into 1 + (1 == 2). Delegate this entire
+    # expression to the existing jq-compatible value evaluator.
+    my (undef, $comparison) = _split_top_level_comparison($copy);
+    my @ands = _split_top_level_keyword($copy, 'and');
+    my @ors = _split_top_level_keyword($copy, 'or');
+    if (defined($comparison) || @ands > 1 || @ors > 1) {
+        my ($values, $ok) = _evaluate_value_expression($self, $context, $copy);
+        if ($ok) {
+            $emit->($_) for @$values;
+        }
+        else {
+            $emit->($_) for $self->run_query(_encode_json($context), $copy);
+        }
+        return;
+    }
+
     my ($lhs, $rhs) = _split_top_level_operator($copy, '+');
     if (defined($lhs) && defined($rhs) && $lhs =~ /\S/ && $rhs =~ /\S/) {
         # jq evaluates the right operand first, and produces its
