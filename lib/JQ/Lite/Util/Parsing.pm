@@ -1125,6 +1125,25 @@ sub _emit_slice_bound_if {
     });
 }
 
+# Boolean operators bind outside comparisons and arithmetic.
+# Keep their short-circuit behavior and emitted booleans in this scoped
+# stream evaluator rather than routing compound predicates to the scalar
+# addition fallback in the legacy query dispatcher.
+sub _emit_slice_bound_boolean_chain {
+    my ($self, $context, $parts, $index, $is_or, $emit) = @_;
+
+    _emit_slice_bound_stream($self, $context, $parts->[$index], sub {
+        my $truthy = _is_truthy($_[0]) ? 1 : 0;
+        if ($index == $#$parts || ($is_or ? $truthy : !$truthy)) {
+            $emit->($truthy ? JSON::PP::true : JSON::PP::false);
+            return;
+        }
+        _emit_slice_bound_boolean_chain(
+            $self, $context, $parts, $index + 1, $is_or, $emit
+        );
+    });
+}
+
 sub _emit_slice_bound_stream {
     my ($self, $context, $expr, $emit) = @_;
     my $copy = _strip_wrapping_parens($expr);
@@ -1168,14 +1187,28 @@ sub _emit_slice_bound_stream {
         return;
     }
 
-    # Comparison and boolean operators bind outside arithmetic. Do not
-    # split the '+' inside a conditional test like (1+1 == 2), as that
-    # turns the numeric addition into 1 + (1 == 2). Delegate this entire
-    # expression to the existing jq-compatible value evaluator.
-    my (undef, $comparison) = _split_top_level_comparison($copy);
-    my @ands = _split_top_level_keyword($copy, 'and');
+    # jq logical precedence is or < and < comparison < arithmetic.
+    # Handle and/or as lazy boolean streams before distributing addition;
+    # otherwise the legacy scalar fallback may add two boolean results.
     my @ors = _split_top_level_keyword($copy, 'or');
-    if (defined($comparison) || @ands > 1 || @ors > 1) {
+    if (@ors > 1) {
+        _emit_slice_bound_boolean_chain(
+            $self, $context, \@ors, 0, 1, $emit
+        );
+        return;
+    }
+    my @ands = _split_top_level_keyword($copy, 'and');
+    if (@ands > 1) {
+        _emit_slice_bound_boolean_chain(
+            $self, $context, \@ands, 0, 0, $emit
+        );
+        return;
+    }
+
+    # Comparison consumes complete arithmetic operands. Do not split '+'
+    # inside (1+1 == 2) and attempt 1 + (1 == 2).
+    my (undef, $comparison) = _split_top_level_comparison($copy);
+    if (defined $comparison) {
         my ($values, $ok) = _evaluate_value_expression($self, $context, $copy);
         if ($ok) {
             $emit->($_) for @$values;
