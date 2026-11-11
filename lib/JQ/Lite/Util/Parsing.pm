@@ -1187,7 +1187,27 @@ sub _emit_slice_bound_stream {
         return;
     }
 
-    # jq logical precedence is or < and < comparison < arithmetic.
+    # jq '//' binds more loosely than boolean or/and. Evaluate its left
+    # stream completely; keep every non-null/non-false value, or evaluate the
+    # right once only when no such value was emitted. Emit incrementally so
+    # a slice error takes precedence over later bound-stream errors.
+    my ($fallback_lhs, $fallback_rhs) =
+        _split_top_level_operator($copy, '//');
+    if (defined($fallback_lhs) && defined($fallback_rhs)
+        && $fallback_lhs =~ /\S/ && $fallback_rhs =~ /\S/) {
+        my $have_value = 0;
+        _emit_slice_bound_stream($self, $context, $fallback_lhs, sub {
+            my $value = $_[0];
+            return unless _is_truthy($value);
+            $have_value = 1;
+            $emit->($value);
+        });
+        _emit_slice_bound_stream($self, $context, $fallback_rhs, $emit)
+            unless $have_value;
+        return;
+    }
+
+    # jq precedence is // < or < and < comparison < arithmetic.
     # Handle and/or as lazy boolean streams before distributing addition;
     # otherwise the legacy scalar fallback may add two boolean results.
     my @ors = _split_top_level_keyword($copy, 'or');

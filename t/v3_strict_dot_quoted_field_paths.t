@@ -676,4 +676,39 @@ subtest 'conditional bound comparisons keep arithmetic precedence' => sub {
     }
 };
 
+# The alternative operator binds outside boolean or/and in slice-bound
+# conditionals. A false/null/empty left stream triggers its RHS once,
+# while valid values and first-error ordering are preserved.
+subtest 'computed slice alternatives respect boolean precedence' => sub {
+    my $input = '{"a":[0,1,2]}';
+    my @cases = (
+        ['[.a[(if (empty or true // false) then 0 else 1 end):3]]', '[[[1,2]]]', 'or-empty-fallback'],
+        ['[.a[(if (empty and true // false) then 0 else 1 end):3]]', '[[[1,2]]]', 'and-empty-fallback'],
+        ['[.a[0:(if (empty or true // false) then 2 else 1 end)]]', '[[[0]]]', 'end-empty-fallback'],
+        ['{x:.a[(if (empty or true // false) then 0 else 1 end):3]}', '[{"x":[1,2]}]', 'object-empty-fallback'],
+        ['[.a[(if (true and false // true) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'and-false-fallback'],
+        ['[.a[(if (false or false // true) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'or-false-fallback'],
+        ['[.a[(if (false or true // false) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'or-true-no-fallback'],
+        ['[.a[(if (null or true // 0) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'or-null-left'],
+        ['[.a[(if (false // true or false) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'nested-bool-fallback'],
+        ['[.a[((null,1) // 0):3]]', '[[[1,2]]]', 'null-and-value-stream'],
+        ['[.a[((null,false) // 1):3]]', '[[[1,2]]]', 'only-false-null-stream'],
+        ['[.a[(empty // 1 // 0):3]]', '[[[1,2]]]', 'nested-alternatives'],
+        ['[.a[(0 // 2):3]]', '[[[0,1,2]]]', 'zero-valid'],
+        ['[.a[(if ((null // true) and true) then 0 else 1 end):3]]', '[[[0,1,2]]]', 'inner-fallback-before-and'],
+        ['[.a[(if ("a//b" == "a//b") then 0 else 1 end):3]]', '[[[0,1,2]]]', 'quoted-slashes'],
+        ['[.a[(if (true, false // true) then 0 else 1 end):3]]', '[[[0,1,2],[0,1,2]]]', 'comma-with-fallback'],
+        ['[.a[(if (empty or true // false) then (0,1) else 2 end):3]]', '[[[2]]]', 'multiple-if-values'],
+        ['[.a[(if (empty and true // false) then 0 else 1 end):(if (empty or true // false) then 3 else 2 end)]]', '[[[1]]]', 'start-and-end-bools'],
+        ['try [.a[(("x",1/0) // 0):3]] catch contains("zero")', '[false]', 'first-invalid-before-division'],
+        ['try [.a[((null,"x",1/0) // 0):3]] catch contains("zero")', '[false]', 'null-first-invalid-before-division'],
+    );
+    for my $case (@cases) {
+        my ($filter, $expected_json, $label) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "alternative precedence: $label");
+    }
+};
+
 done_testing;
