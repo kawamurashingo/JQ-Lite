@@ -1188,9 +1188,9 @@ sub _emit_slice_bound_stream {
     }
 
     # jq '//' binds more loosely than boolean or/and. Evaluate its left
-    # stream completely; keep every non-null/non-false value, or evaluate the
-    # right once only when no such value was emitted. Emit incrementally so
-    # a slice error takes precedence over later bound-stream errors.
+    # stream completely; keep every non-null/non-false value (including 0,
+    # empty strings and empty containers), or evaluate the right once when
+    # none was emitted. Emit immediately so slice errors win over later errors.
     my ($fallback_lhs, $fallback_rhs) =
         _split_top_level_operator($copy, '//');
     if (defined($fallback_lhs) && defined($fallback_rhs)
@@ -1198,7 +1198,8 @@ sub _emit_slice_bound_stream {
         my $have_value = 0;
         _emit_slice_bound_stream($self, $context, $fallback_lhs, sub {
             my $value = $_[0];
-            return unless _is_truthy($value);
+            return unless defined($value)
+                && !(JSON::PP::is_bool($value) && !$value);
             $have_value = 1;
             $emit->($value);
         });
