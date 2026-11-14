@@ -745,6 +745,8 @@ subtest 'comparison slices preserve null and zero-output bounds' => sub {
         ['{}', 'null == .a[(0):1]', '[true]'],
         ['{}', 'select(.a[(0):1] == null)', '[{}]'],
         ['{}', 'select(.a[0.5:1] == null)', '[{}]'],
+        ['{}', 'select(.a[(empty):1] == null)', '[]'],
+        ['{}', 'select(.a[0:(empty)] == null)', '[]'],
         ['{"a":[0,1,2]}', '.a[(0):(1,2)] == [0]', '[true,false]'],
     );
     for my $case (@cases) {
