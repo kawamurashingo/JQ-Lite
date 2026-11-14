@@ -79,6 +79,30 @@ sub parse_ast {
     return JQ::Lite::AST->pipeline(@filters);
 }
 
+# Keep suffix eligibility identical for standalone filters and comma branches.
+# Dotted paths own their iterators; comparisons/alternatives may have [] as
+# their right operand rather than as a suffix.
+sub _nonpath_iterator_suffix {
+    my ($part) = @_;
+    return if $part =~ /^\s*\./s;
+    my (undef, $comparison_operator)
+        = JQ::Lite::Util::_split_top_level_comparison($part);
+    return if defined $comparison_operator;
+    return unless $part =~ /^(.*?)\s*\[\s*\](\?)?\s*$/s;
+    my ($filter, $optional) = ($1, $2);
+    # The []/? suffix belongs to the *right operand* of a top-level
+    # fallback, not to the fallback's complete result. Reuse the existing
+    # quote/bracket-aware operator scanner rather than checking only a
+    # trailing // token in the extracted prefix.
+    my ($fallback_left) =
+        JQ::Lite::Util::_split_top_level_operator($part, '//');
+    return if defined $fallback_left;
+    $filter =~ s/\s+$//;
+    return if $filter !~ /\S/ || $filter =~ /\Atry\b/
+        || $filter =~ m{(?:[=!<>]|//)\z};
+    return ($filter, defined $optional ? '.[]?' : '.[]');
+}
+
 sub parse_query {
     my ($query) = @_;
 
@@ -95,36 +119,26 @@ sub parse_query {
         $part;
     } @parts;
 
-    # Expand jq's iterator suffix before path normalization. This preserves
-    # existing dotted path traversal such as .values[] while allowing any
-    # non-path filter that produces an array or object (for example keys,
-    # split(","), or an array constructor) to reuse the existing .[] logic.
+    # Expand non-path iterator suffixes before path normalization. Comma
+    # branches keep their iterator local; standalone filters append .[].
     my @iterator_expanded;
     for my $part (@parts) {
         my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($part);
         if (@sequence_parts > 1) {
             for my $sequence_part (@sequence_parts) {
                 $sequence_part =~ s/^\s+|\s+$//g;
-                next if $sequence_part =~ /^\./s;
-                if ($sequence_part =~ /^(.*?)\s*\[\s*\]\s*$/s) {
-                    my $filter = $1;
-                    $filter =~ s/\s+$//;
-                    $sequence_part = "($filter | .[])" if $filter =~ /\S/;
-                }
+                my ($filter, $iterator)
+                    = _nonpath_iterator_suffix($sequence_part);
+                $sequence_part = "($filter | $iterator)"
+                    if defined $iterator;
             }
             push @iterator_expanded, join(', ', @sequence_parts);
             next;
         }
 
-        if ($part !~ /^\s*\./s && $part =~ /^(.*?)\s*\[\s*\]\s*$/s) {
-            my $filter = $1;
-            $filter =~ s/\s+$//;
-            if ($filter =~ /\S/) {
-                push @iterator_expanded, $filter, '.[]';
-            }
-            else {
-                push @iterator_expanded, $part;
-            }
+        my ($filter, $iterator) = _nonpath_iterator_suffix($part);
+        if (defined $iterator) {
+            push @iterator_expanded, $filter, $iterator;
         }
         else {
             push @iterator_expanded, $part;
@@ -133,19 +147,46 @@ sub parse_query {
     @parts = @iterator_expanded;
 
     @parts = map {
-        if ($_ eq '.[]') {
-            '.[]';
+        if ($_ eq '.[]' || $_ eq '.[]?') {
+            $_;
         }
         elsif ($_ =~ /^\.(.+)$/) {
             my $rest = $1;
-            if ($rest eq 'count') {
+            # Rooted ordinary field paths must stay distinct from builtin
+            # names and literals, e.g. .type, .length, .empty and .null.
+            if ($rest =~ /\A[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*\z/) {
                 $_;
             }
-            elsif ($rest =~ /,/) {
+            elsif ($rest =~ /,/ || $rest =~ /\|=/) {
+                # Keep the dot on update-assignment paths, including .a |= .
                 $_;
             }
             elsif ($rest =~ /^\s*\[/) {
                 $_;
+            }
+            # Keep the leading dot for supported literal, optional and
+            # whitespace-separated path stages. Each shape uses the same
+            # full-path validator, so call it once after the cheap checks.
+            elsif (
+                (
+                    $rest =~ /\A"/
+                    || $rest =~ /\.\s+\[/
+                    || $rest =~ /\s+\.(?:[A-Za-z_]|"|\[)/
+                    || $rest =~ /\s+\[\s*\./
+                    || $rest =~ /\[\s+\]|\s+\[\s*\]/
+                    || $rest =~ /\s+\[\s*"/
+                )
+                && JQ::Lite::Util::_parse_v3_literal_iterator_path($_)
+            ) {
+                $_;
+            }
+            # Literal iterator paths with signed indices or JSON-quoted
+            # field names can contain '-', '+', '/', or even '=' INSIDE
+            # a quoted key.  Detect them before arithmetic heuristics and
+            # decode their fields only in the scoped path evaluator.
+            elsif (JQ::Lite::Util::_parse_v3_literal_iterator_path($rest))
+            {
+                $rest;
             }
             elsif ($rest =~ /^\s*[+\-*\/%]/
                 || $rest =~ /[+\-*\/%]/

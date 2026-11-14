@@ -52,4 +52,11 @@ is_deeply(
     'empty constructors yield empty arrays for each input',
 );
 
+# Multiple select(...) calls joined by arithmetic are not a single
+# select filter. Preserve the existing expression and constructor output.
+is_deeply([ $jq->run_query('2', 'select(true) + select(true)') ],
+    [4], 'addition between complete select calls retains both values');
+is_deeply([ $jq->run_query('2', '[select(true) + select(true)]') ],
+    [[4]], 'array constructor retains arithmetic between select calls');
+
 done_testing();

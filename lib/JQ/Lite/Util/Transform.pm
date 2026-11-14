@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use JSON::PP ();
+use JQ::Lite::Value ();
 use List::Util qw(sum min max);
 use Scalar::Util qw(looks_like_number);
 use MIME::Base64 qw(encode_base64 decode_base64);
@@ -27,17 +28,13 @@ sub _apply_tostring {
         return "$value";
     }
 
-    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        return $TOJSON_ENCODER->encode($value);
-    }
-
-    return $TOJSON_ENCODER->encode($value);
+    return _apply_tojson($value);
 }
 
 sub _apply_tojson {
     my ($value) = @_;
 
-    return $TOJSON_ENCODER->encode($value);
+    return Encode::decode('UTF-8', $TOJSON_ENCODER->encode($value));
 }
 
 sub _apply_fromjson {
@@ -52,6 +49,7 @@ sub _apply_fromjson {
     return $value if ref $value;
 
     my $text = "$value";
+    $text = encode('UTF-8', $text) if is_utf8($text, 1);
     my $decoded = eval { $FROMJSON_DECODER->decode($text) };
 
     return $@ ? $value : $decoded;
@@ -81,22 +79,9 @@ sub _apply_numeric_function {
 sub _apply_clamp {
     my ($value, $min, $max) = @_;
 
-    return undef if !defined $value;
-
-    if (JSON::PP::is_bool($value)) {
-        my $numeric = $value ? 1 : 0;
-        return _clamp_scalar($numeric, $min, $max);
-    }
-
-    if (!ref $value) {
-        return _clamp_scalar($value, $min, $max);
-    }
-
-    if (ref $value eq 'ARRAY') {
-        return [ map { _apply_clamp($_, $min, $max) } @$value ];
-    }
-
-    return $value;
+    return _apply_numeric_function($value, sub {
+        return _clamp_scalar($_[0], $min, $max);
+    });
 }
 
 sub _normalize_numeric_bound {
@@ -126,21 +111,7 @@ sub _clamp_scalar {
 sub _apply_to_number {
     my ($value) = @_;
 
-    return undef if !defined $value;
-
-    if (JSON::PP::is_bool($value)) {
-        return $value ? 1 : 0;
-    }
-
-    if (!ref $value) {
-        return looks_like_number($value) ? 0 + $value : $value;
-    }
-
-    if (ref $value eq 'ARRAY') {
-        return [ map { _apply_to_number($_) } @$value ];
-    }
-
-    return $value;
+    return _apply_numeric_function($value, sub { 0 + $_[0] });
 }
 
 sub _extract_numeric_values {
@@ -148,11 +119,26 @@ sub _extract_numeric_values {
 
     return () unless ref $values eq 'ARRAY';
 
-    return map {
-        JSON::PP::is_bool($_) ? ($_ ? 1 : 0) : 0 + $_;
-    } grep {
-        defined $_ && (JSON::PP::is_bool($_) || (!ref $_ && looks_like_number($_)));
-    } @$values;
+    # Filter and coerce in one traversal; the result list is still needed
+    # by callers, but the intermediate grep list is not.
+    my @numbers;
+    for my $value (@$values) {
+        next unless defined $value
+            && (JSON::PP::is_bool($value)
+                || (!ref $value && looks_like_number($value)));
+        push @numbers, JSON::PP::is_bool($value)
+            ? ($value ? 1 : 0) : 0 + $value;
+    }
+    return @numbers;
+}
+
+# Share only the numeric median; callers retain their own input policies.
+sub _median_value {
+    return undef unless @_;
+    my @numbers = sort { $a <=> $b } @_;
+    my $middle = int(@numbers / 2);
+    return @numbers % 2 ? $numbers[$middle]
+        : ($numbers[$middle - 1] + $numbers[$middle]) / 2;
 }
 
 sub _normalize_percentile {
@@ -211,15 +197,16 @@ sub _apply_merge_objects {
 
     if (ref $value eq 'ARRAY') {
         my %merged;
-        my $saw_object = 0;
 
         for my $element (@$value) {
             next unless ref $element eq 'HASH';
-            %merged = (%merged, %$element);
-            $saw_object = 1;
+            # Only copy fields from the next object, not the full result.
+            for my $key (keys %$element) {
+                $merged{$key} = $element->{$key};
+            }
         }
 
-        return $saw_object ? \%merged : {};
+        return \%merged;
     }
 
     if (ref $value eq 'HASH') {
@@ -237,22 +224,25 @@ sub _to_entries {
     }
 
     if (ref $value eq 'ARRAY') {
-        return [ map { { key => $_, value => $value->[$_] } } 0 .. $#$value ];
+        my @entries;
+        for (my $index = 0; $index < @$value; $index++) {
+            push @entries, { key => $index, value => $value->[$index] };
+        }
+        return \@entries;
     }
 
     return $value;
 }
 
-sub _is_string_scalar {
+# Preserve scalar type flags; numeric-looking JSON strings are strings.
+sub _scalar_flags {
     my ($value) = @_;
+    return 0 if !defined $value || ref $value;
+    return B::svref_2object(\$value)->FLAGS;
+}
 
-    return 0 if !defined $value;
-    return 0 if ref $value;
-
-    my $sv    = B::svref_2object(\$value);
-    my $flags = $sv->FLAGS;
-
-    return $flags & B::SVp_POK() ? 1 : 0;
+sub _is_string_scalar {
+    return (_scalar_flags($_[0]) & B::SVp_POK()) ? 1 : 0;
 }
 
 sub _from_entries {
@@ -306,7 +296,10 @@ sub _from_entries {
         }
 
         if ($max_index + 1 == scalar(keys %result) && $max_index + 1 == scalar(@numeric_keys)) {
-            my @array = map { $result{$_} } 0 .. $max_index;
+            my @array;
+            for (my $index = 0; $index <= $max_index; $index++) {
+                push @array, $result{$index};
+            }
             return \@array;
         }
     }
@@ -389,12 +382,32 @@ sub _apply_walk {
 sub _apply_recurse {
     my ($self, $value, $filter) = @_;
 
+    # Plain recurse walks only containers and stops at scalar leaves, just
+    # like jq's optional child iterator.  An *explicit* .[] child filter is
+    # different: jq raises an error when it tries to iterate a scalar/null.
+    # Keep this scoped to recurse rather than changing legacy .[] filters.
+    my $explicit_iterator = defined($filter)
+        && _strip_wrapping_parens($filter) =~ /\A\s*\.\[\]\s*(?:\||\z)/;
+
     my @stack   = ($value);
     my @outputs;
 
     while (@stack) {
         my $current = pop @stack;
         push @outputs, $current;
+
+        if ($explicit_iterator
+            && ref($current) ne 'ARRAY' && ref($current) ne 'HASH')
+        {
+            my $type = !defined($current) ? 'null'
+                : JSON::PP::is_bool($current) ? 'boolean'
+                : _is_string_scalar($current) ? 'string'
+                : 'number';
+            die JQ::Lite::Error::Evaluation->new(
+                message => 'Cannot iterate over ' . $type
+                    . ' (' . _encode_json($current) . ')'
+            );
+        }
 
         next unless defined $current;
 
@@ -412,9 +425,8 @@ sub _apply_recurse {
 
         next unless @children;
 
-        for my $child (reverse @children) {
-            push @stack, $child;
-        }
+        # Push in reverse for depth-first, left-to-right traversal.
+        push @stack, reverse @children;
     }
 
     return @outputs;
@@ -475,7 +487,9 @@ sub _apply_delpaths {
     for my $path (@ordered) {
         next unless ref $path eq 'ARRAY';
         next unless @$path;
-        _delete_path_inplace($clone, [@$path]);
+        # The callee already makes a private segment list before popping.
+        # Pass the original validated path, avoiding a second array copy.
+        _delete_path_inplace($clone, $path);
     }
 
     return $clone;
@@ -484,15 +498,26 @@ sub _apply_delpaths {
 sub _sort_paths_for_deletion {
     my (@paths) = @_;
 
-    return sort {
-        my $depth_cmp = @$b <=> @$a;
-        return $depth_cmp if $depth_cmp;
-
-        my $prefix_cmp = _path_prefix_key($a) cmp _path_prefix_key($b);
-        return $prefix_cmp if $prefix_cmp;
-
-        return _compare_path_segments($b->[-1], $a->[-1]);
+    # Sorting compares each path repeatedly. Cache the depth and parent
+    # signature once per path, preserving the existing comparison rules.
+    my @decorated = map {
+        {
+            path   => $_,
+            depth  => scalar(@$_),
+            prefix => _path_prefix_key($_),
+        }
     } @paths;
+
+    # A sort comparator must yield its value as the final expression:
+    # explicit "return" here can leave sort with an undefined comparator
+    # result on older Perls, emitting warnings even when tests pass.
+    return map { $_->{path} } sort {
+        ($b->{depth} <=> $a->{depth})
+            || ($a->{prefix} cmp $b->{prefix})
+            || _compare_path_segments(
+                $b->{path}[-1], $a->{path}[-1]
+            );
+    } @decorated;
 }
 
 sub _path_prefix_key {
@@ -500,8 +525,13 @@ sub _path_prefix_key {
 
     return '' if !$path || @$path < 2;
 
-    my @segments = @$path[0 .. $#$path - 1];
-    return join "\x1f", map { _path_segment_key($_) } @segments;
+    # Keep the original delimiter and segment encoding without building
+    # a temporary array of parent segments or their encoded counterparts.
+    my $prefix = _path_segment_key($path->[0]);
+    for (my $i = 1; $i < $#$path; $i++) {
+        $prefix .= "\x1f" . _path_segment_key($path->[$i]);
+    }
+    return $prefix;
 }
 
 sub _path_segment_key {
@@ -553,11 +583,12 @@ sub _delete_path_inplace {
     return unless ref $path eq 'ARRAY';
     return unless @$path;
 
-    my @segments = @$path;
-    my $last     = pop @segments;
-
+    # Walk all but the final segment without cloning the path array.
+    # Only the target container is modified; the path stays read-only.
+    my $last   = $path->[-1];
     my $cursor = $value;
-    for my $segment (@segments) {
+    for my $index (0 .. $#$path - 1) {
+        my $segment = $path->[$index];
         if (ref $cursor eq 'HASH') {
             my $key = _coerce_hash_key($segment);
             return unless defined $key;
@@ -632,7 +663,12 @@ sub _apply_coalesce {
 
     my @lhs_values = _evaluate_coalesce_operand($self, $value, $lhs_expr);
     for my $candidate (@lhs_values) {
-        return $candidate if defined $candidate;
+        # jq's alternative operator discards only null and JSON false.
+        # In particular, numeric zero, empty strings and empty containers
+        # remain valid left-hand results.
+        next unless defined $candidate;
+        next if JSON::PP::is_bool($candidate) && !$candidate;
+        return $candidate;
     }
 
     my @rhs_values = _evaluate_coalesce_operand($self, $value, $rhs_expr);
@@ -686,8 +722,539 @@ sub _evaluate_coalesce_operand {
     return _traverse($context, $path);
 }
 
+# Parse the subset of jq paths consisting of literal unquoted field names,
+# JSON-string bracket keys (or ."key"), signed numeric indices (with
+# optional [N]? in scoped ordered paths), []/[]?,
+# and simple computed selectors [.key] / [.parent."quoted.key"] /
+# [.parent["quoted.key"]], optionally ?. Quoted names stay literal.
+# Signed numeric array indices are accepted inside selector paths, e.g.
+# [.keys[0]] or [.cfg["names"][-1]].
+# Paths with an iterator, an audited computed selector, an optional
+# literal numeric index/field, a strict negative literal numeric
+# index, or a strict JSON-quoted field are accepted. Strict positive
+# literal numeric stages now also enter the visitor. Strict-only
+# unquoted paths otherwise keep their legacy dispatch. A bare "string"
+# must remain a JSON string literal.
+# Decode a computed selector made only of dot-separated unquoted names or
+# JSON-quoted field names.  Parsing rather than split /\./ preserves literal
+# periods, escaped quotes/backslashes, empty names and Unicode escapes.
+# Numeric index steps are represented as ['index', N] or
+# ['index', N, 1] for an optional lookup; optional named fields use
+# ['field', NAME, 1]. Existing strict string field steps keep their
+# scalar representation for compatibility.
+# Dynamic expressions, iterator stages and generators remain separate audits.
+sub _parse_v3_computed_selector_fields {
+    my ($selector) = @_;
+    return undef unless defined($selector) && $selector =~ /\A\./;
+
+    my $rest = substr($selector, 1);
+    my @fields;
+    while (length $rest) {
+        my $field;
+        if ($rest =~ s/\A([A-Za-z_]\w*)(\?)?//) {
+            my $name = $1;
+            my $optional = defined($2) ? 1 : 0;
+            $field = $optional ? ['field', $name, 1] : $name;
+        }
+        elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")(\?)?//s) {
+            my $json_name = $1;
+            my $optional = defined($2) ? 1 : 0;
+            my $name = eval { _decode_json($json_name) };
+            return undef if $@ || !defined($name) || ref($name);
+            $field = $optional ? ['field', $name, 1] : $name;
+        }
+        elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\](\?)?//s) {
+            my $json_name = $1;
+            my $optional = defined($2) ? 1 : 0;
+            my $name = eval { _decode_json($json_name) };
+            return undef if $@ || !defined($name) || ref($name);
+            $field = $optional ? ['field', $name, 1] : $name;
+        }
+        elsif ($rest =~ s/\A\[\s*(-?\d+)\s*\](\?)?//) {
+            # The '?' belongs to the selector's numeric index, not to
+            # the outer computed index, and only suppresses its own
+            # invalid target types. Existing strict steps keep their shape.
+            my $index = 0 + $1;
+            my $optional = defined($2) ? 1 : 0;
+            $field = ['index', $index];
+            push @{$field}, 1 if $optional;
+        }
+        else {
+            return undef;
+        }
+
+        push @fields, $field;
+        last unless length $rest;
+        # Bracket-quoted and numeric-index steps can follow a field
+        # directly (.cfg["selected"][0]) or follow an explicit dot.
+        if ($rest =~ s/\A\.//) {
+            return undef unless length $rest;
+        }
+        elsif ($rest =~ /\A\[\s*(?:"|-?\d+\s*\])/s) {
+            # Leave a quoted field / numeric index for the next stage.
+        }
+        else {
+            return undef;
+        }
+    }
+
+    return @fields ? \@fields : undef;
+}
+
+# Consume a complete [.selector] or [.selector]? prefix. An inner
+# ["field"] has its own brackets, and literal ] inside JSON strings must
+# not close the outer selector. Never treat arbitrary [expression] as a
+# path: validate the extracted selector with the restricted field parser.
+sub _parse_v3_computed_selector_prefix {
+    my ($text) = @_;
+    return undef unless defined($text) && $text =~ /\A\[\s*\./s;
+
+    my $depth = 0;
+    my $in_string = 0;
+    my $escaped = 0;
+    my $close;
+    for (my $i = 0; $i < length($text); ++$i) {
+        my $char = substr($text, $i, 1);
+        if ($in_string) {
+            if ($escaped) {
+                $escaped = 0;
+            }
+            elsif ($char eq '\\') {
+                $escaped = 1;
+            }
+            elsif ($char eq '"') {
+                $in_string = 0;
+            }
+            next;
+        }
+
+        if ($char eq '"') {
+            $in_string = 1;
+        }
+        elsif ($char eq '[') {
+            ++$depth;
+        }
+        elsif ($char eq ']') {
+            --$depth;
+            return undef if $depth < 0;
+            if ($depth == 0) {
+                $close = $i;
+                last;
+            }
+        }
+    }
+
+    return undef unless defined $close;
+    my $selector = substr($text, 1, $close - 1);
+    $selector =~ s/\A\s+|\s+\z//g;
+    return undef unless _parse_v3_computed_selector_fields($selector);
+
+    my $consumed = $close + 1;
+    my $optional = substr($text, $consumed, 1) eq '?' ? 1 : 0;
+    ++$consumed if $optional;
+    return [$selector, $optional, $consumed];
+}
+
+sub _parse_v3_literal_iterator_path {
+    my ($path) = @_;
+    return undef unless defined($path) && length($path);
+
+    my $rest = $path;
+    $rest =~ s/\A\.//;  # jq's leading dot is retained for bracket paths.
+
+    my @steps;
+    my $has_iterator = 0;
+    my $has_computed_key = 0;
+    my $has_optional_numeric_index = 0;
+    my $has_optional_field = 0;
+    my $has_strict_negative_index = 0;
+    my $has_strict_positive_index = 0;
+    my $has_strict_bracket_quoted_field = 0;
+    my $has_strict_dot_quoted_field = 0;
+    my $after_step = 0;
+
+    while (length $rest) {
+        # jq permits spaces before a dotted suffix when there is
+        # already a literal path stage: .items[0] .name, .items[]
+        # ."field", and .obj["key"] .[0]. A bracket may also follow
+        # whitespace AFTER the dot: .items[0] . [1]. A dot followed
+        # by whitespace and a bare unquoted name is still invalid.
+        # Require a rooted path, and parse the full next stage below.
+        $rest =~ s/\A\s+(?=\.(?:[A-Za-z_]|"|\[|\s+\[))//
+            if @steps && $path =~ /\A\./;
+        if ($rest =~ s/\A\.//) {
+            return undef unless $after_step && length($rest);
+            $after_step = 0;
+        }
+
+        # jq permits whitespace between a literal path stage (or
+        # root dot) and a following numeric/JSON-quoted bracket.
+        # Only consume this gap when the next *entire bracket* is a
+        # literal signed integer or quoted string. In particular do
+        # not route slices, computed expressions or bare constructors.
+        $rest =~ s/\A\s+(?=\[\s*-?\d+\s*\])//;
+        # A simple computed selector may follow whitespace after a
+        # rooted literal stage: .obj [.key] and . [.key]. Do not
+        # interpret dotless expressions such as try [.key] as paths.
+        # _parse_v3_computed_selector_prefix performs the full
+        # restricted selector validation after this lexical gap.
+        $rest =~ s/\A\s+(?=\[\s*\.)//
+            if $path =~ /\A\./;
+        # Spaced iterator syntax also requires the explicit root dot.
+        # Otherwise 'try [ ]' could be misread as a field and iterator.
+        $rest =~ s/\A\s+(?=\[\s*\])//
+            if $path =~ /\A\./;
+        # Require the explicit root dot for this new whitespace form:
+        # otherwise 'try ["catch me"]' would be mistaken for a
+        # dotless literal path rather than a try/array expression.
+        $rest =~ s/\A\s+(?=\[\s*"(?:[^"\\]|\\.)*"\s*\])//s
+            if $path =~ /\A\./;
+
+        if ($rest =~ s/\A([A-Za-z_]\w*)(\?)?//) {
+            # An optional field is distinct from an optional index and
+            # suppresses only its own invalid lookup target type.
+            my $name = $1;
+            my $optional = defined($2) ? 1 : 0;
+            return undef if $after_step;
+            my @field_step = ('field', $name);
+            push @field_step, 1 if $optional;
+            push @steps, \@field_step;
+            $has_optional_field = 1 if $optional;
+        }
+        # A simple computed selector [.key] can follow literal fields,
+        # indices, or iterators. jq evaluates the selector against the
+        # filter's ORIGINAL input, not against the intermediate value being
+        # indexed. Keep the existing computed_root step for compatibility
+        # with callers that inspect parsed paths.
+        elsif (my $computed = _parse_v3_computed_selector_prefix($rest))
+        {
+            # Keep previous computed_root / computed_context step shapes.
+            # A balanced prefix is consumed only after restricted validation.
+            my ($selector, $optional, $consumed) = @{$computed};
+            return undef unless @steps || $path =~ /\A\.\s*\[/;
+            substr($rest, 0, $consumed, '');
+            my @computed_step = (
+                @steps ? 'computed_context' : 'computed_root', $selector
+            );
+            push @computed_step, 1 if $optional;
+            push @steps, \@computed_step;
+            $has_computed_key = 1;
+        }
+        elsif ($rest =~ s/\A\[\s*("(?:[^"\\]|\\.)*")\s*\](\?)?//s) {
+            # Bare ["key"] is a jq array constructor. Only a rooted
+            # .["key"] or a bracket stage after an existing path field
+            # can be treated as a literal field lookup.
+            my $quoted = $1;
+            my $optional = defined($2) ? 1 : 0;
+            return undef unless @steps || $path =~ /\A\.\s*\[/;
+            my $name = eval { _decode_json($quoted) };
+            return undef if $@ || !defined($name) || ref($name);
+            my @field_step = ('field', $name);
+            push @field_step, 1 if $optional;
+            push @steps, \@field_step;
+            $has_optional_field = 1 if $optional;
+            $has_strict_bracket_quoted_field = 1 unless $optional;
+        }
+        elsif ($rest =~ s/\A("(?:[^"\\]|\\.)*")(\?)?//s) {
+            my $quoted = $1;
+            my $optional = defined($2) ? 1 : 0;
+            return undef if $after_step;
+            # Only ."...", or a quoted stage after another path
+            # step, can enable the strict visitor. A bare "..." is
+            # a JSON string literal, not a field lookup.
+            my $is_strict_dot_field = !$optional
+                && (@steps || $path =~ /\A\./);
+            my $name = eval { _decode_json($quoted) };
+            return undef if $@ || !defined($name) || ref($name);
+            my @field_step = ('field', $name);
+            push @field_step, 1 if $optional;
+            push @steps, \@field_step;
+            $has_optional_field = 1 if $optional;
+            $has_strict_dot_quoted_field = 1 if $is_strict_dot_field;
+        }
+        elsif ($rest =~ s/\A\[(\s*)\](\?)?//) {
+            # A bracket containing only whitespace is the same jq
+            # iterator as []; optional ? belongs to this stage.
+            # Rooted . [ ] and .[ ] are valid, but bare [ ] constructs
+            # an empty array, and try [ ] is not a field path.
+            my $inner_space = $1;
+            my $optional = defined($2) ? 1 : 0;
+            return undef unless @steps || $path =~ /\A\.\s*\[/;
+            # Legacy dotless .name[] normalizations still work as
+            # before, but new whitespace forms must retain the dot.
+            return undef if length($inner_space) && $path !~ /\A\./;
+            push @steps, ['iterator', $optional];
+            $has_iterator = 1;
+        }
+        elsif ($rest =~ s/\A\[\s*(-?\d+)\s*\](\?)?//) {
+            # jq permits whitespace on either side of a literal numeric
+            # bracket index, including when the stage is optional.
+            # Capture both matches before checking the root path:
+            # a second regex on $path would clear $1 and $2.
+            my $index = 0 + $1;
+            my $optional = defined($2) ? 1 : 0;
+            # A root bracket numeric lookup must start with an explicit
+            # dot; bare [ 0 ] is an array constructor, not a path.
+            return undef unless @steps || $path =~ /\A\.\s*\[/;
+            my @index_step = ('index', $index);
+            push @index_step, 1 if $optional;
+            push @steps, \@index_step;
+            $has_optional_numeric_index = 1 if $optional;
+            $has_strict_negative_index = 1 if $index < 0 && !$optional;
+            $has_strict_positive_index = 1 if $index >= 0 && !$optional;
+        }
+        else {
+            return undef;
+        }
+
+        $after_step = 1;
+        # A bare name or quoted name after a prior step must be separated
+        # by '.', except for bracket-form access, indices, and iterators.
+        return undef if $rest =~ /\A[A-Za-z_"']/
+            && $after_step;
+    }
+
+    return ($has_iterator || $has_computed_key
+        || $has_optional_numeric_index || $has_optional_field
+        || $has_strict_negative_index || $has_strict_positive_index
+        || $has_strict_bracket_quoted_field || $has_strict_dot_quoted_field)
+        ? \@steps : undef;
+}
+
+# The simple selector expression inside [.key] is evaluated against the
+# full input for this filter, never against an intermediate path result.
+# Resolve selectors before visiting path stages: jq evaluates a malformed
+# selector field lookup even if a preceding [] would emit no values.
+sub _resolve_v3_computed_key_selector {
+    my ($input, $selector, $no_output_ref) = @_;
+    my $fields = _parse_v3_computed_selector_fields($selector);
+    die JQ::Lite::Error::Parse->new(
+        message => 'Invalid simple computed-key selector'
+    ) unless $fields;
+
+    my $selected = $input;
+    for my $field (@{$fields}) {
+        if (ref($field) eq 'ARRAY' && $field->[0] eq 'index') {
+            # jq numeric indexing: arrays accept signed indices, null
+            # produces one null, and other types are runtime errors.
+            if (!defined $selected) {
+                $selected = undef;
+            }
+            elsif (ref($selected) eq 'ARRAY') {
+                my $index = $field->[1];
+                $index += scalar(@{$selected}) if $index < 0;
+                $selected = $index >= 0 && $index < @{$selected}
+                    ? $selected->[$index] : undef;
+            }
+            else {
+                # Optional selector stages emit *no result* for invalid
+                # types. They do not convert such failures to JSON null.
+                # Do not suppress failures from earlier strict stages.
+                if ($field->[2]) {
+                    if ($no_output_ref) {
+                        $$no_output_ref = 1;
+                        return undef;
+                    }
+                    return undef;  # only the streaming caller tracks empty
+                }
+                my $type = JQ::Lite::Value::type_of($selected);
+                die JQ::Lite::Error::Evaluation->new(
+                    message => 'Cannot index ' . $type . ' with number'
+                );
+            }
+            next;
+        }
+        my $optional_field = ref($field) eq 'ARRAY'
+            && $field->[0] eq 'field' && $field->[2];
+        my $name = $optional_field ? $field->[1] : $field;
+        if (!defined $selected) {
+            $selected = undef;
+        }
+        elsif (ref($selected) eq 'HASH') {
+            $selected = exists($selected->{$name})
+                ? $selected->{$name} : undef;
+        }
+        else {
+            # Optional named-field lookup suppresses its own type error,
+            # but a missing field/null source is still a JSON null result.
+            if ($optional_field) {
+                if ($no_output_ref) {
+                    $$no_output_ref = 1;
+                }
+                return undef;
+            }
+            my $type = JQ::Lite::Value::type_of($selected);
+            die JQ::Lite::Error::Evaluation->new(
+                message => 'Cannot index ' . $type
+                    . ' with string "' . $name . '"'
+            );
+        }
+    }
+    return $selected;
+}
+
+# Visit each literal field, numeric index, computed key, and strict/optional
+# iterator in source order. Computed selectors refer to the original input,
+# while each subsequent index operates on the current intermediate stream.
+# The compatibility-sensitive general _traverse is deliberately unchanged.
+# Bound normalization for confirmed arrays, shared by literal/computed paths.
+sub _v3_array_index_or_null {
+    my ($array, $index) = @_;
+    $index += @$array if $index < 0;
+    return $index >= 0 && $index < @$array ? $array->[$index] : undef;
+}
+
+# Array/object stream expansion, shared by standalone and path-local [].
+# Optional []? only drops scalar targets; strict [] keeps its error class.
+sub _v3_iterate_values {
+    my ($value, $optional) = @_;
+    return @$value if ref $value eq 'ARRAY';
+    return values %$value if ref $value eq 'HASH';
+    return if $optional;
+    my $type = JQ::Lite::Value::type_of($value);
+    die JQ::Lite::Error::Evaluation->new(
+        message => 'Cannot iterate over ' . $type . ' ('
+            . _encode_json($value) . ')'
+    );
+}
+
+sub _traverse_v3_field_iterator {
+    my ($input, $path, $steps) = @_;
+    $steps ||= _parse_v3_literal_iterator_path($path);
+    die JQ::Lite::Error::Parse->new(
+        message => 'Invalid literal iterator/index path'
+    ) unless $steps;
+
+    my @selected_keys;
+    # jq resolves nested computed selectors from the rightmost bracket
+    # inward. An optional numeric selector which emits no results drops
+    # this filter input before evaluating selectors further to its left.
+    # This still resolves selector errors before a preceding [] traversal.
+    for (my $i = $#{$steps}; $i >= 0; --$i) {
+        my $step = $steps->[$i];
+        if ($step->[0] eq 'computed_root'
+            || $step->[0] eq 'computed_context')
+        {
+            my $no_output = 0;
+            $selected_keys[$i] = _resolve_v3_computed_key_selector(
+                $input, $step->[1], \$no_output
+            );
+            return () if $no_output;
+        }
+    }
+
+    my @stream = ($input);
+    my $step_index = 0;
+    for my $step (@{$steps}) {
+        my $selector_value = $selected_keys[$step_index++];
+        my @next;
+
+        for my $value (@stream) {
+            if ($step->[0] eq 'computed_root'
+                || $step->[0] eq 'computed_context')
+            {
+                # Both .[.key] and .obj[.key] evaluate .key against the
+                # original filter input. After .obj, only the *lookup
+                # target* is the intermediate object; the selector is not
+                # rebound to that object or to an iterator's element.
+                my $selected = $selector_value;
+
+                my $input_type = JQ::Lite::Value::type_of($value);
+                my $key_type = JQ::Lite::Value::type_of($selected);
+                if ($key_type eq 'string' && $input_type eq 'object') {
+                    push @next, exists($value->{$selected})
+                        ? $value->{$selected} : undef;
+                }
+                elsif ($key_type eq 'number' && $input_type eq 'array') {
+                    push @next, _v3_array_index_or_null($value, int($selected));
+                }
+                elsif (($key_type eq 'string' || $key_type eq 'number')
+                    && $input_type eq 'null')
+                {
+                    push @next, undef;
+                }
+                else {
+                    # jq's trailing ? suppresses this invalid index only.
+                    # Selector expressions have already been evaluated.
+                    next if $step->[2];
+                    my $diagnostic = 'Cannot index ' . $input_type
+                        . ' with ' . $key_type;
+                    $diagnostic .= ' "' . $selected . '"'
+                        if $key_type eq 'string';
+                    die JQ::Lite::Error::Evaluation->new(
+                        message => $diagnostic
+                    );
+                }
+                next;
+            }
+
+            if ($step->[0] eq 'field') {
+                my $field = $step->[1];
+
+                if (!defined $value) {
+                    # Reading a named field from null also yields null.
+                    push @next, undef;
+                }
+                elsif (ref($value) eq 'HASH') {
+                    push @next, exists($value->{$field})
+                        ? $value->{$field} : undef;
+                }
+                else {
+                    # jq's field? omits only this invalid type lookup.
+                    # A missing object key and a null input still produce
+                    # one null; earlier or later strict steps may error.
+                    next if $step->[2];
+                    my $type = JQ::Lite::Value::type_of($value);
+                    die JQ::Lite::Error::Evaluation->new(
+                        message => 'Cannot index ' . $type
+                            . ' with string "' . $field . '"'
+                    );
+                }
+                next;
+            }
+
+            if ($step->[0] eq 'index') {
+                if (!defined $value) {
+                    # Numeric indexing null emits one JSON null, even
+                    # when this index has a trailing optional marker.
+                    push @next, undef;
+                }
+                elsif (ref($value) eq 'ARRAY') {
+                    push @next, _v3_array_index_or_null($value, $step->[1]);
+                }
+                else {
+                    # [N]? drops precisely this invalid numeric lookup.
+                    # An earlier strict field/index/iterator error remains
+                    # visible, as does a later strict suffix error.
+                    next if $step->[2];
+                    my $type = JQ::Lite::Value::type_of($value);
+                    die JQ::Lite::Error::Evaluation->new(
+                        message => 'Cannot index ' . $type . ' with number'
+                    );
+                }
+                next;
+            }
+
+            # []? suppresses only iteration errors for the current stage.
+            push @next, _v3_iterate_values($value, $step->[1]);
+        }
+
+        @stream = @next;
+        last unless @stream;
+    }
+
+    return @stream;
+}
+
 sub _traverse {
-    my ($data, $query) = @_;
+    my ($data, $query, $options) = @_;
+    my $numeric_object_index_error = $options && $options->{numeric_object_index_error};
+    my $numeric_null_index = $options && $options->{numeric_null_index};
+    # Numeric null/index parity is opt-in for query paths, not helper traversals.
+    # This option is enabled only for direct query-path evaluation in 3.x.
+    # Internal callers (select, aggregates, assignment, etc.) retain their
+    # established no-result semantics until independently audited.
+    my $missing_object_null = $options && $options->{missing_object_null};
     my @steps = split /\./, $query;
     my @stack = ($data);
 
@@ -696,16 +1263,32 @@ sub _traverse {
         my @next_stack;
 
         for my $item (@stack) {
-            next if !defined $item;
+            if (!defined $item) {
+                # A chain of object-field reads through JSON null remains
+                # null in jq, rather than dropping its output stream.
+                push @next_stack, undef
+                    if ($missing_object_null && $step !~ /\[/)
+                    || ($numeric_null_index && (
+                        $step =~ /\[\d+\]$/ || $step =~ /^[A-Za-z_]\w*$/
+                    ));
+                next;
+            }
 
             # array slice access: [start:end]
             if ($step =~ /^\[(.*):(.*)\]$/s) {
-                my @args = _parse_bracket_slice_arguments($1, $2);
+                my ($raw_start, $raw_end) = ($1, $2);
+                # 'empty' is a zero-result bound expression, not a
+                # nonnumeric literal to pass to _apply_bracket_slice.
+                next if $raw_start =~ /^\s*empty\s*$/
+                     || $raw_end =~ /^\s*empty\s*$/;
+                my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
                 push @next_stack, _apply_bracket_slice($item, @args);
             }
             # array slice access: key[start:end]
             elsif ($step =~ /^(.*?)\[(.*):(.*)\]$/s) {
                 my ($key, $raw_start, $raw_end) = ($1, $2, $3);
+                next if $raw_start =~ /^\s*empty\s*$/
+                     || $raw_end =~ /^\s*empty\s*$/;
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
                     push @next_stack, _apply_bracket_slice($item->{$key}, @args);
@@ -714,8 +1297,15 @@ sub _traverse {
             # direct index access: [index]
             elsif ($step =~ /^\[(\d+)\]$/) {
                 my $index = $1;
-                if (ref $item eq 'ARRAY' && defined $item->[$index]) {
-                    push @next_stack, $item->[$index];
+                if ($numeric_object_index_error && ref $item eq 'HASH') {
+                    die JQ::Lite::Error::Evaluation->new(
+                        message => 'Cannot index object with number'
+                    );
+                }
+                if (ref $item eq 'ARRAY') {
+                    # jq emits null both for null-valued and out-of-range slots.
+                    push @next_stack, $item->[$index]
+                        if $numeric_null_index || defined $item->[$index];
                 }
             }
             # array expansion without key: []
@@ -732,8 +1322,22 @@ sub _traverse {
                 my ($key, $index) = ($1, $2);
                 if (ref $item eq 'HASH' && exists $item->{$key}) {
                     my $val = $item->{$key};
-                    push @next_stack, $val->[$index]
-                        if ref $val eq 'ARRAY' && defined $val->[$index];
+                    if ($numeric_object_index_error && ref $val eq 'HASH') {
+                        die JQ::Lite::Error::Evaluation->new(
+                            message => 'Cannot index object with number'
+                        );
+                    }
+                    if (ref $val eq 'ARRAY') {
+                        push @next_stack, $val->[$index]
+                            if $numeric_null_index || defined $val->[$index];
+                    }
+                    elsif ($numeric_null_index && !defined $val) {
+                        push @next_stack, undef;
+                    }
+                }
+                elsif ($numeric_null_index && ref $item eq 'HASH') {
+                    # Missing object key followed by an array index is null.
+                    push @next_stack, undef;
                 }
             }
             # array expansion: key[]
@@ -764,8 +1368,13 @@ sub _traverse {
             }
             # standard access: key
             else {
-                if (ref $item eq 'HASH' && exists $item->{$step}) {
-                    push @next_stack, $item->{$step};
+                if (ref $item eq 'HASH') {
+                    if (exists $item->{$step}) {
+                        push @next_stack, $item->{$step};
+                    }
+                    elsif ($missing_object_null) {
+                        push @next_stack, undef;
+                    }
                 }
                 elsif (ref $item eq 'ARRAY') {
                     for my $sub (@$item) {
@@ -810,16 +1419,27 @@ sub _evaluate_condition {
         return 1;
     }
 
-    # support for numeric expressions like: select(.a + 5 > 10)
+    # A comparison of the current scalar (for example select(. > 1))
+    # has no named field path.  Treat '.' as the value itself, including
+    # JSON null and booleans, instead of looking up a nonexistent field.
+    if ($cond =~ /^\s*\.\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/s) {
+        my ($operator, $literal) = ($1, $2);
+        my ($right, $parsed);
+        {
+            local $@;
+            $parsed = eval { $right = _decode_json($literal); 1 };
+        }
+        return _compare_values($item, $operator, $right) if $parsed;
+    }
+
+    # Keep the v2 predicate spelling, but share v3 arithmetic type/errors.
     if ($cond =~ /^\s*(\.\w+)\s*([\+\-\*\/%])\s*(-?\d+(?:\.\d+)?)\s*(==|!=|>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)\s*$/) {
         my ($path, $op1, $rhs1, $cmp, $rhs2) = ($1, $2, $3, $4, $5);
-        my @values = _traverse($item, substr($path, 1));
-        my $lhs = $values[0];
-    
-        return 0 unless defined $lhs && $lhs =~ /^-?\d+(?:\.\d+)?$/;
-    
-        my $expr = _apply_numeric_operator($lhs, $op1, $rhs1);
-        return _compare_numeric_values($expr, $cmp, $rhs2);
+        my ($values, $ok) = _evaluate_value_expression(
+            undef, $item, "$path $op1 $rhs1"
+        );
+        return $ok && @$values
+            && _compare_values($values->[0], $cmp, 0 + $rhs2);
     }
 
     # support for the contains operator: select(.tags contains "perl")
@@ -890,93 +1510,39 @@ sub _evaluate_condition {
     if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
         my ($path, $op, $value_raw) = ($1, $2, $3);
 
-        my $value;
-        if ($value_raw =~ /^"(.*)"$/) {
-            $value = $1;
-        } elsif ($value_raw eq 'true') {
-            $value = JSON::PP::true;
-        } elsif ($value_raw eq 'false') {
-            $value = JSON::PP::false;
-        } elsif ($value_raw =~ /^-?\d+(?:\.\d+)?$/) {
-            $value = 0 + $value_raw;
-        } else {
-            $value = $value_raw;
+        my $value = _parse_literal_argument($value_raw);
+        # Resolve every supported scoped field/index path before using
+        # legacy missing-object-null fallback. Quoted, optional, numeric,
+        # spaced and computed selectors all share the existing visitor.
+        my $scoped_path = ".$path";
+        my $steps = _parse_v3_literal_iterator_path($scoped_path);
+        my @values = $steps
+            ? _traverse_v3_field_iterator($item, $scoped_path, $steps)
+            : _traverse($item, $path, { missing_object_null => 1 });
+        # Only literal/omitted nonnegative named-slice bounds may reuse
+        # the null fallback. Computed bounds such as `empty` can produce
+        # no values and must never fabricate a null predicate result.
+        if (!@values
+            && $scoped_path =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*\d*\s*:\s*\d*\s*\]\z/)
+        {
+            my ($slice_values, $ok) =
+                _evaluate_value_expression(undef, $item, $scoped_path);
+            @values = @$slice_values if $ok;
         }
-
-        my @values = _traverse($item, $path);
-        return 0 unless @values;
-
         for my $field_val (@values) {
-            next unless defined $field_val;
-
-            my $is_number = (!ref($field_val) && $field_val =~ /^-?\d+(?:\.\d+)?$/)
-                         && (!ref($value)     && $value     =~ /^-?\d+(?:\.\d+)?$/);
-
-            if ($op eq '==') {
-                return 1 if $is_number ? ($field_val == $value) : ($field_val eq $value);
-            } elsif ($op eq '!=') {
-                return 1 if $is_number ? ($field_val != $value) : ($field_val ne $value);
-            } elsif ($is_number) {
-                # perform numeric comparisons only when applicable
-                if ($op eq '>') {
-                    return 1 if $field_val > $value;
-                } elsif ($op eq '>=') {
-                    return 1 if $field_val >= $value;
-                } elsif ($op eq '<') {
-                    return 1 if $field_val < $value;
-                } elsif ($op eq '<=') {
-                    return 1 if $field_val <= $value;
-                }
-            }
+            return 1 if _compare_values($field_val, $op, $value);
         }
     }
-
-    return 0;
-}
-
-sub _apply_numeric_operator {
-    my ($lhs, $operator, $rhs) = @_;
-
-    return $lhs + $rhs if $operator eq '+';
-    return $lhs - $rhs if $operator eq '-';
-    return $lhs * $rhs if $operator eq '*';
-    return undef if ($operator eq '/' || $operator eq '%') && $rhs == 0;
-    return $lhs / $rhs if $operator eq '/';
-    return $lhs % $rhs if $operator eq '%';
-
-    return undef;
-}
-
-sub _compare_numeric_values {
-    my ($lhs, $operator, $rhs) = @_;
-
-    return 0 unless defined $lhs && defined $rhs;
-
-    return $lhs == $rhs if $operator eq '==';
-    return $lhs != $rhs if $operator eq '!=';
-    return $lhs >= $rhs if $operator eq '>=';
-    return $lhs <= $rhs if $operator eq '<=';
-    return $lhs >  $rhs if $operator eq '>';
-    return $lhs <  $rhs if $operator eq '<';
 
     return 0;
 }
 
 sub _compare_values {
     my ($left, $operator, $right) = @_;
+    my $ordering = JQ::Lite::Value::compare($left, $right);
 
-    my $both_numeric = defined($left) && defined($right)
-        && !ref($left) && !ref($right)
-        && looks_like_number($left) && looks_like_number($right);
-
-    if ($operator eq '==') {
-        return $both_numeric ? $left == $right : _values_equal($left, $right);
-    }
-    if ($operator eq '!=') {
-        return $both_numeric ? $left != $right : !_values_equal($left, $right);
-    }
-
-    my $ordering = _jq_order_compare($left, $right);
+    return $ordering == 0 if $operator eq '==';
+    return $ordering != 0 if $operator eq '!=';
     return $ordering >= 0 if $operator eq '>=';
     return $ordering <= 0 if $operator eq '<=';
     return $ordering >  0 if $operator eq '>';
@@ -984,52 +1550,22 @@ sub _compare_values {
     return 0;
 }
 
-sub _jq_order_compare {
-    my ($left, $right) = @_;
+# This comparison has no captured state; reuse one callback across
+# min_by/max_by and group_by instead of allocating it on every call.
+my $SMART_CMP = sub {
+    my ($a, $b) = @_;
 
-    my $left_rank  = _jq_type_rank($left);
-    my $right_rank = _jq_type_rank($right);
-    return $left_rank <=> $right_rank if $left_rank != $right_rank;
+    my $num_a = ($a =~ /^-?\d+(?:\.\d+)?$/);
+    my $num_b = ($b =~ /^-?\d+(?:\.\d+)?$/);
 
-    return 0 if $left_rank == 0;    # null
-    return (!!$left) <=> (!!$right) if $left_rank == 1;    # boolean
-    return $left <=> $right if $left_rank == 2;            # number
-    return "$left" cmp "$right" if $left_rank == 3;        # string
-
-    # Keep ordering deterministic for compound values.  Cross-type ordering,
-    # including null versus numbers, follows jq's documented type order.
-    return _encode_json($left) cmp _encode_json($right);
-}
-
-sub _jq_type_rank {
-    my ($value) = @_;
-
-    return 0 if !defined $value;
-    return 1 if JSON::PP::is_bool($value);
-    if (!ref $value) {
-        return 3 if _is_string_scalar($value);
-        return 2 if looks_like_number($value);
-        return 3;
+    if ($num_a && $num_b) {
+        return $a <=> $b;
+    } else {
+        return "$a" cmp "$b";  # explicitly perform string comparison
     }
-    return 4 if ref $value eq 'ARRAY';
-    return 5 if ref $value eq 'HASH';
-    return 6;
-}
+};
 
-sub _smart_cmp {
-    return sub {
-        my ($a, $b) = @_;
-
-        my $num_a = ($a =~ /^-?\d+(?:\.\d+)?$/);
-        my $num_b = ($b =~ /^-?\d+(?:\.\d+)?$/);
-
-        if ($num_a && $num_b) {
-            return $a <=> $b;
-        } else {
-            return "$a" cmp "$b";  # explicitly perform string comparison
-        }
-    };
-}
+sub _smart_cmp { return $SMART_CMP; }
 
 sub _extreme_by {
     my ($array_ref, $key_path, $use_entire_item, $mode) = @_;
@@ -1041,7 +1577,9 @@ sub _extreme_by {
     my ($best_item, $best_key);
 
     for my $element (@$array_ref) {
-        my $candidate = _extract_extreme_key($element, $key_path, $use_entire_item);
+        my $candidate = _value_to_comparable(
+            _first_projected_key($element, $key_path, $use_entire_item)
+        );
         next unless defined $candidate;
 
         if (!defined $best_item) {
@@ -1057,16 +1595,6 @@ sub _extreme_by {
     }
 
     return defined $best_item ? $best_item : undef;
-}
-
-sub _extract_extreme_key {
-    my ($element, $key_path, $use_entire_item) = @_;
-
-    my @values = $use_entire_item ? ($element) : _traverse($element, $key_path);
-    return undef unless @values;
-
-    my $value = $values[0];
-    return _value_to_comparable($value);
 }
 
 sub _value_to_comparable {
@@ -1110,22 +1638,7 @@ sub _project_numeric_values {
         ? ($element)
         : _traverse($element, $key_path);
 
-    my @numbers;
-    for my $value (@values) {
-        next unless defined $value;
-
-        if (JSON::PP::is_bool($value)) {
-            push @numbers, $value ? 1 : 0;
-            next;
-        }
-
-        next if ref $value;
-        next unless looks_like_number($value);
-
-        push @numbers, 0 + $value;
-    }
-
-    return @numbers;
+    return _extract_numeric_values(\@values);
 }
 
 sub _uniq {
@@ -1145,6 +1658,14 @@ sub _key {
     }
 }
 
+# Share first-result path projection; key signatures remain filter-specific.
+sub _first_projected_key {
+    my ($item, $key_path, $whole_item) = @_;
+    return $item if $whole_item;
+    my @values = _traverse($item, $key_path);
+    return @values ? $values[0] : undef;
+}
+
 sub _group_by {
     my ($array_ref, $path) = @_;
     die 'group_by(): input must be an array' unless ref $array_ref eq 'ARRAY';
@@ -1154,13 +1675,7 @@ sub _group_by {
     my @entries;
     my $index = 0;
     for my $item (@$array_ref) {
-        my $key_value;
-        if ($use_entire_item) {
-            $key_value = $item;
-        } else {
-            my @values = _traverse($item, $key_path);
-            $key_value = @values ? $values[0] : undef;
-        }
+        my $key_value = _first_projected_key($item, $key_path, $use_entire_item);
 
         my $signature = defined $key_value ? _key($key_value) : "\0__JQ_LITE_UNDEF__";
         push @entries, {
@@ -1190,43 +1705,24 @@ sub _group_by {
     return \@groups;
 }
 
+# An undefined depth means unlimited recursion; numeric depths retain
+# the existing zero/negative stopping rule.
 sub _flatten_all {
-    my ($value) = @_;
-
-    return $value unless ref $value eq 'ARRAY';
-
-    my @flattened;
-    for my $item (@$value) {
-        if (ref $item eq 'ARRAY') {
-            my $flattened = _flatten_all($item);
-            if (ref $flattened eq 'ARRAY') {
-                push @flattened, @$flattened;
-            } else {
-                push @flattened, $flattened;
-            }
-        } else {
-            push @flattened, $item;
-        }
-    }
-
-    return \@flattened;
+    return _flatten_depth($_[0], undef);
 }
 
 sub _flatten_depth {
     my ($value, $depth) = @_;
 
     return $value unless ref $value eq 'ARRAY';
-    return $value if $depth <= 0;
+    return $value if defined($depth) && $depth <= 0;
 
     my @flattened;
     for my $item (@$value) {
         if (ref $item eq 'ARRAY') {
-            my $flattened = _flatten_depth($item, $depth - 1);
-            if (ref $flattened eq 'ARRAY') {
-                push @flattened, @$flattened;
-            } else {
-                push @flattened, $flattened;
-            }
+            push @flattened, @{ _flatten_depth(
+                $item, defined($depth) ? $depth - 1 : undef
+            ) };
         } else {
             push @flattened, $item;
         }
@@ -1272,29 +1768,30 @@ sub _string_predicate_result {
     return JSON::PP::false;
 }
 
-sub _apply_test {
-    my ($value, $pattern, $flags) = @_;
+sub _apply_regex_filter {
+    my ($value, $pattern, $flags, $name) = @_;
 
     my ($regex, $error) = _build_regex($pattern, $flags);
     if ($error) {
         $error =~ s/[\r\n]+$//;
-        die "test(): invalid regular expression - $error";
+        die "$name(): invalid regular expression - $error";
     }
 
-    return _test_against_regex($value, $regex);
+    return $name eq 'test'
+        ? _test_against_regex($value, $regex)
+        : _match_against_regex($value, $regex);
 }
+
+
+sub _apply_test {
+    return _apply_regex_filter(@_, 'test');
+}
+
 
 sub _apply_match {
-    my ($value, $pattern, $flags) = @_;
-
-    my ($regex, $error) = _build_regex($pattern, $flags);
-    if ($error) {
-        $error =~ s/[\r\n]+$//;
-        die "match(): invalid regular expression - $error";
-    }
-
-    return _match_against_regex($value, $regex);
+    return _apply_regex_filter(@_, 'match');
 }
+
 
 sub _test_against_regex {
     my ($value, $regex) = @_;
@@ -1365,16 +1862,21 @@ sub _match_against_regex {
     };
 }
 
+# The supported modifier alphabet never changes between calls. Keep the
+# membership table outside _build_regex instead of rebuilding it for each
+# test()/match() invocation.
+my %REGEX_ALLOWED_FLAGS = map { $_ => 1 } qw(i m s x);
+
 sub _build_regex {
     my ($pattern, $flags) = @_;
 
     $pattern = '' unless defined $pattern;
     $flags   = '' unless defined $flags;
 
-    my %allowed = map { $_ => 1 } qw(i m s x);
     my %enabled;
     for my $flag (split //, $flags) {
-        return (undef, "unknown regex flag '$flag'") unless $allowed{$flag};
+        return (undef, "unknown regex flag '$flag'")
+            unless $REGEX_ALLOWED_FLAGS{$flag};
         $enabled{$flag} = 1;
     }
 
@@ -1406,20 +1908,8 @@ sub _build_regex {
 }
 
 sub _parse_string_argument {
-    my ($raw) = @_;
-
-    return '' if !defined $raw;
-
-    my $parsed = eval { _decode_json($raw) };
-    if (!$@) {
-        $parsed = '' if !defined $parsed;
-        return $parsed;
-    }
-
-    $raw =~ s/^\s+|\s+$//g;
-    $raw =~ s/^['"]//;
-    $raw =~ s/['"]$//;
-    return $raw;
+    my $parsed = _parse_literal_argument($_[0]);
+    return defined($parsed) ? $parsed : '';
 }
 
 sub _parse_literal_argument {
@@ -1436,74 +1926,47 @@ sub _parse_literal_argument {
     return $raw;
 }
 
-sub _apply_csv {
-    my ($value) = @_;
+sub _apply_delimited {
+    my ($value, $delimiter, $format) = @_;
 
     if (ref $value eq 'ARRAY') {
-        my @fields = map { _format_csv_field($_) } @$value;
-        return join(',', @fields);
+        return join $delimiter, map { $format->($_) } @$value;
     }
 
-    return _format_csv_field($value);
+    return $format->($value);
+}
+
+sub _apply_csv {
+    return _apply_delimited($_[0], ',', \&_format_csv_field);
 }
 
 sub _apply_tsv {
-    my ($value) = @_;
+    return _apply_delimited($_[0], "\t", \&_format_tsv_field);
+}
 
-    if (ref $value eq 'ARRAY') {
-        my @fields = map { _format_tsv_field($_) } @$value;
-        return join("\t", @fields);
-    }
+sub _encoding_input_text {
+    my ($value, $decoding) = @_;
 
-    return _format_tsv_field($value);
+    return $decoding ? '' : 'null' if !defined $value;
+    return $value ? 'true' : 'false' if JSON::PP::is_bool($value);
+    return "$value" if !ref $value;
+    return _encode_json($value) if ref $value eq 'ARRAY' || ref $value eq 'HASH';
+    return "$value";
 }
 
 sub _apply_base64 {
-    my ($value) = @_;
-
-    my $text;
-
-    if (!defined $value) {
-        $text = 'null';
-    }
-    elsif (JSON::PP::is_bool($value)) {
-        $text = $value ? 'true' : 'false';
-    }
-    elsif (!ref $value) {
-        $text = "$value";
-    }
-    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        $text = _encode_json($value);
-    }
-    else {
-        $text = "$value";
-    }
-
-    return encode_base64($text, '');
+    return encode_base64(_encoding_input_text($_[0], 0), '');
 }
 
 sub _apply_base64d {
     my ($value) = @_;
 
-    my $text;
+    # Keep scalar type validation local, before coercion changes SV flags.
+    die '@base64d(): input must be base64 text'
+        if defined($value) && !JSON::PP::is_bool($value)
+            && !ref($value) && !_is_string_scalar($value);
 
-    if (!defined $value) {
-        $text = '';
-    }
-    elsif (JSON::PP::is_bool($value)) {
-        $text = $value ? 'true' : 'false';
-    }
-    elsif (!ref $value) {
-        die '@base64d(): input must be base64 text'
-            if !_is_string_scalar($value);
-        $text = "$value";
-    }
-    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        $text = _encode_json($value);
-    }
-    else {
-        $text = "$value";
-    }
+    my $text = _encoding_input_text($value, 1);
 
     $text =~ s/\s+//g;
 
@@ -1522,30 +1985,13 @@ sub _apply_base64d {
     die '@base64d(): input must be base64 text'
         if $reencoded ne $text;
 
-    return $decoded;
+    return Encode::decode('UTF-8', $decoded);
 }
 
 sub _apply_uri {
     my ($value) = @_;
 
-    my $text;
-
-    if (!defined $value) {
-        $text = 'null';
-    }
-    elsif (JSON::PP::is_bool($value)) {
-        $text = $value ? 'true' : 'false';
-    }
-    elsif (!ref $value) {
-        $text = "$value";
-    }
-    elsif (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        $text = _encode_json($value);
-    }
-    else {
-        $text = "$value";
-    }
-
+    my $text = _encoding_input_text($value, 0);
     my $encoded = is_utf8($text, 1)
         ? encode('UTF-8', $text)
         : $text;
@@ -1553,8 +1999,8 @@ sub _apply_uri {
     return $encoded;
 }
 
-sub _format_csv_field {
-    my ($value) = @_;
+sub _format_delimited_field {
+    my ($value, $csv) = @_;
 
     return '' if !defined $value;
 
@@ -1562,45 +2008,23 @@ sub _format_csv_field {
         return $value ? 'true' : 'false';
     }
 
-    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        my $encoded = _encode_json($value);
-        return _quote_csv_text($encoded);
-    }
-
-    if (ref $value) {
-        my $stringified = "$value";
-        return _quote_csv_text($stringified);
-    }
-
-    if (_is_unquoted_csv_number($value)) {
+    # Preserve the numeric SV flag before any stringification.
+    if ($csv && !ref($value) && _is_unquoted_csv_number($value)) {
         return "$value";
     }
 
-    my $text = "$value";
-    return _quote_csv_text($text);
+    my $text = (ref $value eq 'ARRAY' || ref $value eq 'HASH')
+        ? _apply_tojson($value) : "$value";
+
+    return $csv ? _quote_csv_text($text) : _escape_tsv_text($text);
+}
+
+sub _format_csv_field {
+    return _format_delimited_field($_[0], 1);
 }
 
 sub _format_tsv_field {
-    my ($value) = @_;
-
-    return '' if !defined $value;
-
-    if (JSON::PP::is_bool($value)) {
-        return $value ? 'true' : 'false';
-    }
-
-    if (ref $value eq 'ARRAY' || ref $value eq 'HASH') {
-        my $encoded = _encode_json($value);
-        return _escape_tsv_text($encoded);
-    }
-
-    if (ref $value) {
-        my $stringified = "$value";
-        return _escape_tsv_text($stringified);
-    }
-
-    my $text = "$value";
-    return _escape_tsv_text($text);
+    return _format_delimited_field($_[0], 0);
 }
 
 sub _quote_csv_text {
@@ -1623,32 +2047,20 @@ sub _escape_tsv_text {
 }
 
 sub _is_unquoted_csv_number {
-    my ($value) = @_;
-
-    return 0 if !defined $value;
-    return 0 if ref $value;
-
-    my $sv = B::svref_2object(\$value);
-    my $flags = $sv->FLAGS;
-
-    return ($flags & (B::SVp_IOK() | B::SVp_NOK())) ? 1 : 0;
+    return (_scalar_flags($_[0]) & (B::SVp_IOK() | B::SVp_NOK())) ? 1 : 0;
 }
 
 sub _apply_split {
-    my ($value, $separator) = @_;
+    my ($value, $separator, $prepared) = @_;
 
     if (ref $value eq 'ARRAY') {
+        # Share the literal separator and compiled pattern across child
+        # arrays. Leave preparation lazy for null/object-only branches.
+        $prepared ||= [];
         my @parts;
 
         for my $element (@$value) {
-            if (JSON::PP::is_bool($element)) {
-                my $stringified = $element ? 'true' : 'false';
-                my $result = _apply_split($stringified, $separator);
-                push @parts, ref($result) eq 'ARRAY' ? @$result : $result;
-                next;
-            }
-
-            my $result = _apply_split($element, $separator);
+            my $result = _apply_split($element, $separator, $prepared);
             push @parts, ref($result) eq 'ARRAY' ? @$result : $result;
         }
 
@@ -1663,15 +2075,18 @@ sub _apply_split {
         return $value;
     }
 
-    $separator = '' unless defined $separator;
-
-    if ($separator eq '') {
-        return [ split(//, $value) ];
+    my $pattern;
+    if ($prepared && @$prepared) {
+        ($separator, $pattern) = @$prepared;
+    }
+    else {
+        $separator = defined $separator ? "$separator" : '';
+        $pattern = $separator eq '' ? undef : qr/\Q$separator\E/;
+        @$prepared = ($separator, $pattern) if $prepared;
     }
 
-    my $pattern = quotemeta $separator;
-    my @parts = split /$pattern/, $value, -1;
-    return [ @parts ];
+    return [ split(//, $value) ] if $separator eq '';
+    return [ split($pattern, $value, -1) ];
 }
 
 sub _apply_explode {
@@ -1689,8 +2104,9 @@ sub _apply_explode {
 
     return $value if ref $value;
 
-    my @chars = split(//u, "$value");
-    return [ map { ord($_) } @chars ];
+    # unpack emits Unicode code points directly, without building a
+    # temporary character list before mapping ord() over it.
+    return [ unpack('U*', "$value") ];
 }
 
 sub _apply_implode {
@@ -1699,10 +2115,10 @@ sub _apply_implode {
     return undef if !defined $value;
 
     if (ref $value eq 'ARRAY') {
-        my $has_nested = grep { ref $_ } @$value;
-
-        if ($has_nested) {
-            return [ map { _apply_implode($_) } @$value ];
+        # Only presence of a reference matters: stop at the first one
+        # instead of counting every referenced array element with grep.
+        for my $item (@$value) {
+            return [ map { _apply_implode($_) } @$value ] if ref $item;
         }
 
         my $string = '';
@@ -1719,9 +2135,20 @@ sub _apply_implode {
 
 sub _apply_substr {
     my ($value, @args) = @_;
+    # Extra user arguments are intentionally ignored, as in v2. Keep the
+    # internal recursion cache separate from the public positional arguments.
+    my ($start, $length) = @args;
+    return _apply_substr_cached($value, $start, $length,
+        ref $value eq 'ARRAY' ? [] : undef);
+}
+
+sub _apply_substr_cached {
+    my ($value, $start, $length, $prepared) = @_;
 
     if (ref $value eq 'ARRAY') {
-        return [ map { _apply_substr($_, @args) } @$value ];
+        # The bounds are constant for all leaves. Prepare them only on the
+        # first scalar leaf, preserving passthrough-only array behavior.
+        return [ map { _apply_substr_cached($_, $start, $length, $prepared) } @$value ];
     }
 
     return undef if !defined $value;
@@ -1732,22 +2159,40 @@ sub _apply_substr {
         return $value;
     }
 
-    my ($start, $length) = @args;
-    if (defined $start && !looks_like_number($start)) {
-        die 'substr(): start index must be numeric';
+    if ($prepared && @$prepared) {
+        ($start, $length) = @$prepared;
     }
-    $start = 0 unless defined $start;
-    $start = int($start);
-
-    if (defined $length) {
-        if (!looks_like_number($length)) {
-            die 'substr(): length must be numeric';
+    else {
+        if (defined $start && !looks_like_number($start)) {
+            die 'substr(): start index must be numeric';
         }
-        $length = int($length);
-        return substr($value, $start, $length);
+        $start = 0 unless defined $start;
+        $start = int($start);
+
+        if (defined $length) {
+            if (!looks_like_number($length)) {
+                die 'substr(): length must be numeric';
+            }
+            $length = int($length);
+        }
+
+        @$prepared = ($start, $length) if $prepared;
     }
 
-    return substr($value, $start);
+    return defined $length
+        ? substr($value, $start, $length)
+        : substr($value, $start);
+}
+
+# Both forms reject text/invalid numeric bounds, but preserve their separate
+# length-vs-end calculations and legacy error labels.
+sub _slice_numeric_bound {
+    my ($raw, $name) = @_;
+
+    return undef unless defined $raw;
+    die "slice(): $name must be numeric"
+        if _is_string_scalar($raw) || !looks_like_number($raw);
+    return int($raw);
 }
 
 sub _apply_slice {
@@ -1760,30 +2205,17 @@ sub _apply_slice {
         my $size  = @$array;
 
         my $raw_start = @args ? $args[0] : 0;
-        my $start     = 0;
-
-        if (defined $raw_start
-            && (_is_string_scalar($raw_start) || !looks_like_number($raw_start))) {
-            die 'slice(): start must be numeric';
-        }
-
-        if (defined $raw_start && looks_like_number($raw_start)) {
-            $start = int($raw_start);
-        }
+        my $start = _slice_numeric_bound($raw_start, 'start');
+        $start = 0 unless defined $start;
 
         $start += $size if $start < 0;
         $start = 0       if $start < 0;
         return []        if $start >= $size;
 
-        my $length;
-        if (@args > 1 && defined $args[1]
-            && (_is_string_scalar($args[1]) || !looks_like_number($args[1]))) {
-            die 'slice(): length must be numeric';
-        }
-
-        if (@args > 1 && defined $args[1] && looks_like_number($args[1])) {
-            $length = int($args[1]);
-        }
+        # The original slice(start, length) validates length only after
+        # returning an empty result for a start beyond the array.
+        my $length = @args > 1
+            ? _slice_numeric_bound($args[1], 'length') : undef;
 
         return [] if $size == 0;
 
@@ -1812,33 +2244,30 @@ sub _apply_bracket_slice {
     return _apply_slice($value, $raw_start, $raw_end)
         if ref $value ne 'ARRAY';
 
-    if (defined $raw_start
-        && (_is_string_scalar($raw_start) || !looks_like_number($raw_start))) {
-        die 'slice(): start must be numeric';
-    }
-    if (defined $raw_end
-        && (_is_string_scalar($raw_end) || !looks_like_number($raw_end))) {
-        die 'slice(): length must be numeric';
-    }
+    # Bracket slices validate the end even when start is out of range,
+    # and retain the v2 error text "length" for an invalid end.
+    my $start = _slice_numeric_bound($raw_start, 'start');
+    my $end   = _slice_numeric_bound($raw_end, 'length');
 
-    my $size  = scalar @$value;
-    my $start = defined $raw_start ? int($raw_start) : 0;
+    my $size = scalar @$value;
+    $start = 0 unless defined $start;
     $start += $size if $start < 0;
     $start = 0       if $start < 0;
 
-    return _apply_slice($value, $start) unless defined $raw_end;
+    return _apply_slice($value, $start) unless defined $end;
 
-    my $end = int($raw_end);
     $end += $size if $end < 0;
-
     return _apply_slice($value, $start, $end - $start);
 }
 
 sub _apply_replace {
-    my ($value, $search, $replacement) = @_;
+    my ($value, $search, $replacement, $prepared) = @_;
 
     if (ref $value eq 'ARRAY') {
-        return [ map { _apply_replace($_, $search, $replacement) } @$value ];
+        # Reuse literal search/replacement preparation across nested arrays.
+        # It stays lazy: passthrough-only arrays need no string conversion.
+        $prepared ||= [];
+        return [ map { _apply_replace($_, $search, $replacement, $prepared) } @$value ];
     }
 
     return $value if !defined $value;
@@ -1846,13 +2275,20 @@ sub _apply_replace {
 
     return $value if looks_like_number($value);
 
-    $search      = defined $search      ? "$search"      : '';
-    $replacement = defined $replacement ? "$replacement" : '';
+    my ($pattern, $replacement_text);
+    if ($prepared && @$prepared) {
+        ($pattern, $replacement_text) = @$prepared;
+    }
+    else {
+        my $search_text = defined $search ? "$search" : '';
+        $replacement_text = defined $replacement ? "$replacement" : '';
+        $pattern = $search_text eq '' ? undef : quotemeta $search_text;
+        @$prepared = ($pattern, $replacement_text) if $prepared;
+    }
 
-    return $value if $search eq '';
+    return $value unless defined $pattern;
 
-    my $pattern = quotemeta $search;
-    (my $copy = "$value") =~ s/$pattern/$replacement/g;
+    (my $copy = "$value") =~ s/$pattern/$replacement_text/g;
     return $copy;
 }
 
@@ -1996,68 +2432,22 @@ sub _split_semicolon_arguments {
     return @segments;
 }
 
+# Reuse the balanced semicolon scanner already used by slice() and regex
+# arguments. Keep range()'s legacy first-value-per-argument and empty-slot
+# handling unchanged for the practical v2 range grammar.
 sub _parse_range_arguments {
     my ($raw) = @_;
 
     return () unless defined $raw;
-
     $raw =~ s/^\s+|\s+$//g;
     return () if $raw eq '';
 
-    my @segments;
-    my $current    = '';
-    my $in_single  = 0;
-    my $in_double  = 0;
-    my $escape     = 0;
-
-    for my $char (split //, $raw) {
-        if ($escape) {
-            $current .= $char;
-            $escape = 0;
-            next;
-        }
-
-        if ($char eq '\\' && $in_double) {
-            $current .= $char;
-            $escape = 1;
-            next;
-        }
-
-        if ($char eq '"' && !$in_single) {
-            $in_double = !$in_double;
-            $current  .= $char;
-            next;
-        }
-
-        if ($char eq "'" && !$in_double) {
-            $in_single = !$in_single;
-            $current  .= $char;
-            next;
-        }
-
-        if ($char eq ';' && !$in_single && !$in_double) {
-            push @segments, $current;
-            $current = '';
-            next;
-        }
-
-        $current .= $char;
-    }
-
-    push @segments, $current;
-
     my @args;
-    for my $segment (@segments) {
+    for my $segment (_split_semicolon_arguments($raw)) {
         next unless defined $segment;
-        my $clean = $segment;
-        $clean =~ s/^\s+|\s+$//g;
-        next if $clean eq '';
-
-        my @values = _parse_arguments($clean);
-        my $value  = @values ? $values[0] : undef;
-        push @args, $value;
+        my @values = _parse_arguments($segment);
+        push @args, @values ? $values[0] : undef;
     }
-
     return @args;
 }
 
@@ -2068,8 +2458,22 @@ sub _apply_range {
     return @$sequence;
 }
 
+# Produce range values through a visitor, allowing update assignment to stop
+# at the first accepted value instead of allocating the entire range.  The
+# regular range() filter uses the same iterator but collects every result.
 sub _build_range_sequence {
     my ($args_ref) = @_;
+
+    my @sequence;
+    _visit_range_sequence($args_ref, sub {
+        push @sequence, $_[0];
+        return 0;
+    });
+    return \@sequence;
+}
+
+sub _visit_range_sequence {
+    my ($args_ref, $accept) = @_;
 
     my @args = @$args_ref;
     die 'range(): bounds must be numeric' unless @args;
@@ -2096,26 +2500,21 @@ sub _build_range_sequence {
 
     die 'range(): bounds must be numeric' unless defined $start && defined $end;
     die 'range(): step must be numeric'    if !defined $step;
-    return []    if $step == 0;
+    return 0 if $step == 0;
 
     if ($step > 0) {
-        return [] if $start >= $end;
-        my @sequence;
+        return 0 if $start >= $end;
         for (my $current = $start; $current < $end; $current += $step) {
-            push @sequence, 0 + $current;
+            return 1 if $accept->(0 + $current);
         }
-        return \@sequence;
+        return 0;
     }
 
-    # negative step
-    return [] if $start <= $end;
-
-    my @sequence;
+    return 0 if $start <= $end;
     for (my $current = $start; $current > $end; $current += $step) {
-        push @sequence, 0 + $current;
+        return 1 if $accept->(0 + $current);
     }
-
-    return \@sequence;
+    return 0;
 }
 
 sub _coerce_range_number {
@@ -2131,7 +2530,14 @@ sub _coerce_range_number {
 sub _apply_contains {
     my ($value, $needle) = @_;
 
-    return _deep_contains($value, $needle, 'legacy') ? JSON::PP::true : JSON::PP::false;
+    my $type = JQ::Lite::Value::type_of($value);
+    my $needle_type = JQ::Lite::Value::type_of($needle);
+    die JQ::Lite::Error::Evaluation->new(
+        message => "Cannot check whether $type contains $needle_type"
+    ) if $type ne $needle_type
+        || ($type eq 'boolean' && !JQ::Lite::Value::equal($value, $needle));
+
+    return _deep_contains($value, $needle, 'jq') ? JSON::PP::true : JSON::PP::false;
 }
 
 sub _apply_contains_subset {
@@ -2143,7 +2549,31 @@ sub _apply_contains_subset {
 sub _apply_inside {
     my ($value, $container) = @_;
 
-    return _apply_contains($container, $value);
+    # Keep inside()'s v2 membership behavior pending its own compatibility audit.
+    return _deep_contains($container, $value, 'legacy') ? JSON::PP::true : JSON::PP::false;
+}
+
+# Share first/last search without allocating all match positions. Array
+# equality and scalar coercion retain their v2 meanings in this scoped fix.
+# jq 1.7 string search offsets count UTF-8 bytes rather than characters.
+sub _apply_index {
+    my ($value, $needle, $last) = @_;
+
+    if (ref $value eq 'ARRAY') {
+        my $step = $last ? -1 : 1;
+        for (my $i = $last ? $#$value : 0; $i >= 0 && $i < @$value; $i += $step) {
+            return $i if _values_equal($value->[$i], $needle);
+        }
+        return undef;
+    }
+
+    return undef if !defined $value || !defined $needle;
+    return undef if ref($value) && ref($value) ne 'JSON::PP::Boolean';
+    my $fragment = encode('UTF-8', "$needle");
+    return undef if $fragment eq '';
+    my $haystack = encode('UTF-8', "$value");
+    my $position = $last ? CORE::rindex($haystack, $fragment) : CORE::index($haystack, $fragment);
+    return $position >= 0 ? $position : undef;
 }
 
 sub _apply_indices {
@@ -2151,39 +2581,34 @@ sub _apply_indices {
 
     if (ref $value eq 'ARRAY') {
         my @matches;
-        for my $i (0 .. $#$value) {
+        for (my $i = 0; $i < @$value; $i++) {
             push @matches, $i if _values_equal($value->[$i], $needle);
         }
         return \@matches;
     }
 
-    return [] if !defined $value;
+    # Retain v2 coercion and invalid-target fallbacks outside string search.
+    return [] if !defined $needle;
+    return JQ::Lite::Value::type_of($needle) eq 'string' ? undef : []
+        if !defined $value;
+    return [] if ref($value) && !JSON::PP::is_bool($value);
 
-    if (!ref $value || JSON::PP::is_bool($value)) {
-        return [] unless defined $needle;
+    my $haystack = encode('UTF-8', "$value");
+    my $fragment = encode('UTF-8', "$needle");
+    return [] if $fragment eq '';
 
-        my $haystack = "$value";
-        my $fragment = "$needle";
-
-        my @positions;
-        if ($fragment eq '') {
-            @positions = (0 .. length($haystack));
-        }
-        else {
-            my $pos = -1;
-            while (1) {
-                $pos = index($haystack, $fragment, $pos + 1);
-                last if $pos == -1;
-                push @positions, $pos;
-            }
-        }
-
-        return \@positions;
+    my @positions;
+    for (my $pos = CORE::index($haystack, $fragment); $pos >= 0;
+        $pos = CORE::index($haystack, $fragment, $pos + 1)) {
+        push @positions, $pos;
     }
-
-    return [];
+    return \@positions;
 }
 
+# v2.59 compatibility: has() returns false for null/non-numeric array
+# keys and stringifies object keys. jq 1.7 raises on some wrong-key
+# types, but the v3 practical-v2 baseline intentionally keeps these
+# existing Library semantics until a separate compatibility decision.
 sub _apply_has {
     my ($value, $needle) = @_;
 
@@ -2250,6 +2675,14 @@ sub _deep_contains {
 
     $mode ||= 'legacy';
 
+    if ($mode eq 'jq') {
+        my $type = JQ::Lite::Value::type_of($value);
+        return 0 if $type ne JQ::Lite::Value::type_of($needle);
+        return _scalar_contains($value, $needle) if $type eq 'string';
+        return JQ::Lite::Value::equal($value, $needle)
+            unless $type eq 'array' || $type eq 'object';
+    }
+
     return 1 if !defined $value && !defined $needle;
     return 0 if !defined $value;
 
@@ -2267,13 +2700,13 @@ sub _deep_contains {
 sub _array_contains {
     my ($haystack, $needle, $mode) = @_;
 
-    if ($mode eq 'subset' && ref $needle eq 'ARRAY') {
+    if (($mode eq 'subset' || $mode eq 'jq') && ref $needle eq 'ARRAY') {
         my @used;
         NEEDLE: for my $expected (@$needle) {
-            for my $i (0 .. $#$haystack) {
-                next if $used[$i];
+            for (my $i = 0; $i < @$haystack; $i++) {
+                next if $mode eq 'subset' && $used[$i];
                 if (_deep_contains($haystack->[$i], $expected, $mode)) {
-                    $used[$i] = 1;
+                    $used[$i] = 1 if $mode eq 'subset';
                     next NEEDLE;
                 }
             }
@@ -2353,14 +2786,7 @@ sub _group_count {
 
     my %counts;
     for my $item (@$array_ref) {
-        my $key_value;
-        if ($use_entire_item) {
-            $key_value = $item;
-        }
-        else {
-            my @values = _traverse($item, $key_path);
-            $key_value = @values ? $values[0] : undef;
-        }
+        my $key_value = _first_projected_key($item, $key_path, $use_entire_item);
 
         my $key = defined $key_value ? _key($key_value) : 'null';
         $counts{$key}++;

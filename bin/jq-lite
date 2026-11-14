@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use JSON::PP;
+use Encode qw(decode encode is_utf8);
 use IO::File;
 use FindBin;
 use Term::ANSIColor;
@@ -30,6 +31,11 @@ my $yaml_loader;
 my %arg_vars;
 my @slurpfiles;
 my $slurpfile_probably_missing_file = 0;
+
+sub _decode_utf8_text {
+    my ($text) = @_;
+    return is_utf8($text, 1) ? $text : decode('UTF-8', $text);
+}
 
 sub _exit_with_error {
     my ($tag, $default_message, $exit_code, $message) = @_;
@@ -241,7 +247,7 @@ my $getopt_ok;
         _usage_error('--arg requires a value') if !@ARGV;
         my $value = shift @ARGV;
         $value = '' unless defined $value;
-        $arg_vars{$var_name} = "$value";
+        $arg_vars{$var_name} = _decode_utf8_text("$value");
     },
     'argjson=s'       => sub {
         my ($opt_name, $var_name) = @_;
@@ -305,7 +311,7 @@ my $getopt_ok;
         close $fh;
         $content = '' unless defined $content;
 
-        $arg_vars{$var_name} = $content;
+        $arg_vars{$var_name} = _decode_utf8_text($content);
     },
     );
 }
@@ -578,7 +584,7 @@ if ($raw_input) {
 
 my @raw_lines;
 if ($raw_input) {
-    my $text    = $json_text // '';
+    my $text    = _decode_utf8_text($json_text // '');
     my $encoder = JSON::PP->new->utf8->allow_nonref;
 
     if ($slurp_input) {
@@ -712,7 +718,7 @@ sub print_results {
             print "null\n";
         }
         elsif ($raw_output && !ref($r)) {
-            print "$r\n";
+            print encode('UTF-8', "$r"), "\n";
         }
         else {
             my $json = $pp->encode($r);

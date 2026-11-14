@@ -7,6 +7,7 @@ use JSON::PP ();
 use Scalar::Util qw(looks_like_number);
 use Encode qw(encode is_utf8);
 use JQ::Lite::Expression ();
+use JQ::Lite::Value ();
 
 our $JSON_DECODER     = _build_json_decoder();
 our $FROMJSON_DECODER = _build_json_decoder();
@@ -37,23 +38,29 @@ sub _decode_json {
     return $JSON_DECODER->decode($text);
 }
 
+# Fixed bracket pairs are shared by independent parser scans. Their quote,
+# nesting, and early-return policies stay local to each parser.
+my %BRACKET_PAIRS = (
+    '(' => ')',
+    '[' => ']',
+    '{' => '}',
+);
+my %BRACKET_CLOSING = reverse %BRACKET_PAIRS;
+
 sub _are_brackets_balanced {
     my ($text) = @_;
 
     return 1 unless defined $text && length $text;
 
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
     my @stack;
     my $string;
     my $escape = 0;
 
-    for my $char (split //, $text) {
+    # A global regex advances by one character without creating a split
+    # list or repeatedly seeking UTF-8 character offsets with substr.
+    pos($text) = 0;
+    while ($text =~ /\G(.)/sg) {
+        my $char = $1;
         if (defined $string) {
             if ($escape) {
                 $escape = 0;
@@ -77,15 +84,15 @@ sub _are_brackets_balanced {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return 0 unless @stack;
             my $open = pop @stack;
-            return 0 unless $pairs{$open} eq $char;
+            return 0 unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
     }
@@ -111,17 +118,10 @@ sub _strip_wrapping_parens {
     return $copy;
 }
 
-sub _split_top_level_semicolons {
-    my ($text) = @_;
+sub _split_top_level_delimiter {
+    my ($text, $delimiter) = @_;
 
     return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
 
     my @stack;
     my $string;
@@ -155,19 +155,19 @@ sub _split_top_level_semicolons {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return unless @stack;
             my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
+            return unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
 
-        next unless $char eq ';';
+        next unless $char eq $delimiter;
 
         if (!@stack) {
             my $chunk = substr($text, $start, $i - $start);
@@ -181,17 +181,15 @@ sub _split_top_level_semicolons {
     return @parts;
 }
 
+# Preserve both existing parsing entry points and their list/empty semantics.
+sub _split_top_level_semicolons {
+    return _split_top_level_delimiter($_[0], ';');
+}
+
 sub _split_top_level_pipes {
     my ($text) = @_;
 
     return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
 
     my @stack;
     my $string;
@@ -227,7 +225,7 @@ sub _split_top_level_pipes {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
@@ -246,14 +244,16 @@ sub _split_top_level_pipes {
             }
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return unless @stack;
             my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
+            return unless $BRACKET_PAIRS{$open} eq $char;
             next;
         }
 
         next unless $char eq '|';
+        # Update assignment is one operator, not a pipeline boundary.
+        next if substr($text, $i, 2) eq '|=';
         next if $in_try;
         if (substr($text, $i, 2) eq '||') {
             $i++;
@@ -273,86 +273,13 @@ sub _split_top_level_pipes {
 }
 
 sub _split_top_level_commas {
-    my ($text) = @_;
-
-    return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
-    my @stack;
-    my $string;
-    my $escape = 0;
-    my @parts;
-    my $start = 0;
-
-    for (my $i = 0; $i < length $text; $i++) {
-        my $char = substr($text, $i, 1);
-
-        if (defined $string) {
-            if ($escape) {
-                $escape = 0;
-                next;
-            }
-
-            if ($char eq '\\') {
-                $escape = 1;
-                next;
-            }
-
-            if ($char eq $string) {
-                undef $string;
-            }
-
-            next;
-        }
-
-        if ($char eq "'" || $char eq '"') {
-            $string = $char;
-            next;
-        }
-
-        if (exists $pairs{$char}) {
-            push @stack, $char;
-            next;
-        }
-
-        if (exists $closing{$char}) {
-            return unless @stack;
-            my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
-            next;
-        }
-
-        next unless $char eq ',';
-
-        if (!@stack) {
-            my $chunk = substr($text, $start, $i - $start);
-            push @parts, $chunk;
-            $start = $i + 1;
-        }
-    }
-
-    push @parts, substr($text, $start) if $start <= length $text;
-
-    return @parts;
+    return _split_top_level_delimiter($_[0], ',');
 }
 
 sub _split_top_level_operator {
     my ($text, $operator) = @_;
 
-    return unless defined $text && defined $operator && length($operator) == 1;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
+    return unless defined $text && defined $operator && length($operator);
 
     my @stack;
     my $string;
@@ -384,19 +311,19 @@ sub _split_top_level_operator {
             next;
         }
 
-        if (exists $pairs{$char}) {
+        if (exists $BRACKET_PAIRS{$char}) {
             push @stack, $char;
             next;
         }
 
-        if (exists $closing{$char}) {
+        if (exists $BRACKET_CLOSING{$char}) {
             return if !@stack;
             my $open = pop @stack;
-            return if $pairs{$open} ne $char;
+            return if $BRACKET_PAIRS{$open} ne $char;
             next;
         }
 
-        next if $char ne $operator;
+        next if substr($text, $i, length($operator)) ne $operator;
 
         if (!@stack) {
             if ($operator eq '+' || $operator eq '-') {
@@ -411,7 +338,7 @@ sub _split_top_level_operator {
             }
 
             my $lhs = substr($text, 0, $i);
-            my $rhs = substr($text, $i + 1);
+            my $rhs = substr($text, $i + length($operator));
             return ($lhs, $rhs);
         }
     }
@@ -421,11 +348,10 @@ sub _split_top_level_operator {
 
 sub _split_top_level_comparison {
     my ($text) = @_;
-    return unless defined $text;
+    return unless defined $text && $text =~ /(?:==|!=|[<>])/;
 
-    my %close = ('(' => ')', '[' => ']', '{' => '}');
-    my %open = reverse %close;
     my (@stack, $quote, $escape, @comparison);
+    my $top_level_control_flow = 0;
 
     for (my $i = 0; $i < length($text); $i++) {
         my $char = substr($text, $i, 1);
@@ -436,12 +362,21 @@ sub _split_top_level_comparison {
             next;
         }
         if ($char eq q{"} || $char eq q{'}) { $quote = $char; next; }
-        if (exists $close{$char}) { push @stack, $char; next; }
-        if (exists $open{$char}) { pop @stack if @stack; next; }
+        if (exists $BRACKET_PAIRS{$char}) { push @stack, $char; next; }
+        if (exists $BRACKET_CLOSING{$char}) { pop @stack if @stack; next; }
         next if @stack;
 
         my $tail = substr($text, $i);
         my $previous = $i > 0 ? substr($text, $i - 1, 1) : '';
+        # Control flow inside a slice bound is nested syntax, not a
+        # top-level conditional. Keep the old guard for actual top-level
+        # if/try expressions without rejecting valid computed bounds.
+        if (!@comparison
+            && ($i == 0 || $previous !~ /[\w.]/)
+            && $tail =~ /^(?:if|then|elif|else|end|try|catch)\b/)
+        {
+            $top_level_control_flow = 1;
+        }
         if (($i == 0 || $previous =~ /\s/)
             && $tail =~ /^(?:and|or)(?=\s|$)/)
         {
@@ -455,6 +390,10 @@ sub _split_top_level_comparison {
             @comparison = (substr($text, 0, $i), $operator, substr($text, $i + length($operator)));
         }
     }
+    # Only complete operands can use the comparison evaluator. Exclude
+    # actual top-level control flow, not keywords nested in slice bounds.
+    return if @comparison && ($comparison[0] !~ /\S/ || $comparison[2] !~ /\S/
+        || $top_level_control_flow);
     return @comparison;
 }
 
@@ -462,8 +401,6 @@ sub _split_top_level_keyword {
     my ($text, $keyword) = @_;
     return ($text) unless defined $text && defined $keyword && length $keyword;
 
-    my %close = ('(' => ')', '[' => ']', '{' => '}');
-    my %open = reverse %close;
     my (@stack, $quote, $escape, @parts);
     my $start = 0;
 
@@ -476,8 +413,8 @@ sub _split_top_level_keyword {
             next;
         }
         if ($char eq q{"} || $char eq q{'}) { $quote = $char; next; }
-        if (exists $close{$char}) { push @stack, $char; next; }
-        if (exists $open{$char}) { pop @stack if @stack; next; }
+        if (exists $BRACKET_PAIRS{$char}) { push @stack, $char; next; }
+        if (exists $BRACKET_CLOSING{$char}) { pop @stack if @stack; next; }
         next if @stack;
 
         my $before = $i > 0 ? substr($text, $i - 1, 1) : '';
@@ -496,70 +433,10 @@ sub _split_top_level_keyword {
     return @parts;
 }
 
+# Colon splitting is the same first top-level operator scan. Reuse its
+# quote, bracket, and mismatch handling without changing the public helper.
 sub _split_top_level_colon {
-    my ($text) = @_;
-
-    return unless defined $text;
-
-    my %pairs = (
-        '(' => ')',
-        '[' => ']',
-        '{' => '}',
-    );
-    my %closing = reverse %pairs;
-
-    my @stack;
-    my $string;
-    my $escape = 0;
-
-    for (my $i = 0; $i < length $text; $i++) {
-        my $char = substr($text, $i, 1);
-
-        if (defined $string) {
-            if ($escape) {
-                $escape = 0;
-                next;
-            }
-
-            if ($char eq '\\') {
-                $escape = 1;
-                next;
-            }
-
-            if ($char eq $string) {
-                undef $string;
-            }
-
-            next;
-        }
-
-        if ($char eq "'" || $char eq '"') {
-            $string = $char;
-            next;
-        }
-
-        if (exists $pairs{$char}) {
-            push @stack, $char;
-            next;
-        }
-
-        if (exists $closing{$char}) {
-            return unless @stack;
-            my $open = pop @stack;
-            return unless $pairs{$open} eq $char;
-            next;
-        }
-
-        next if $char ne ':';
-
-        if (!@stack) {
-            my $lhs = substr($text, 0, $i);
-            my $rhs = substr($text, $i + 1);
-            return ($lhs, $rhs);
-        }
-    }
-
-    return;
+    return _split_top_level_operator($_[0], ':');
 }
 
 sub _interpret_object_key {
@@ -883,9 +760,20 @@ sub _evaluate_variable_reference {
 
     my $expr = $suffix;
     $expr =~ s/^\s+//;
+    # Variable bracket suffixes are paths, not compound JSON literals.
+    $expr = ".$expr" if $expr =~ /\A\[/;
 
     my ($values, $ok) = _evaluate_value_expression($self, $value, $expr);
     return $ok ? @$values : ();
+}
+
+# Shared by the value evaluator and filter dispatchers: a complete root or
+# named-field slice with no nested bracket selectors. Restricting this shape
+# avoids changing the v2 computed-path and iterator extensions.
+sub _is_complete_simple_bracket_slice {
+    my ($expr) = @_;
+    return defined($expr) && $expr =~
+        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\z/;
 }
 
 sub _evaluate_value_expression {
@@ -897,7 +785,161 @@ sub _evaluate_value_expression {
     $copy =~ s/^\s+|\s+$//g;
     return ([], 0) if $copy eq '';
 
-    if (_looks_like_expression($copy)) {
+    # Only a *complete* select(...) call belongs to the filter dispatcher.
+    # A larger expression such as select(true) + select(true) must continue
+    # through value-expression arithmetic instead of turning into null.
+    my ($select_body) = $copy =~ /^select\((.*)\)$/s;
+    return ([], 0) if defined($select_body)
+        && _are_brackets_balanced($select_body);
+
+    # Scoped optional/quoted paths and bracket-to-field chains keep null
+    # results in constructors. Do not route standalone legacy iterators
+    # such as .[] through this visitor: reduce's existing empty-accumulator
+    # behavior relies on their v2 value-expression fallback.
+    if ($copy =~ /^\./
+        && (index($copy, '?') >= 0 || index($copy, '"') >= 0
+            || $copy =~ /\]\s*\./ || $copy =~ /\[\s*\./)
+        && defined($self) && $self->can('run_query')
+        && _parse_v3_literal_iterator_path($copy))
+    {
+        my @values = $self->run_query(_encode_json($context), $copy);
+        return (\@values, 1);
+    }
+
+    # Decode compound JSON literals before inspecting expression operators
+    # or treating brackets as paths. Nonliteral constructors retain fallback.
+    if ($copy =~ /\A[\[\{]/) {
+        my $decoded = eval { _decode_json($copy) };
+        return ([ $decoded ], 1) unless $@;
+    }
+
+    # Optional complete slices preserve null-valued constructor members,
+    # but only suppress errors from applying a slice to an emitted bound
+    # pair. Evaluating the bound filters themselves remains outside eval:
+    # arithmetic failures still propagate, and a later invalid slice does
+    # not erase successfully emitted earlier values.
+    if ($copy =~ /\A(.+)\?\z/s
+        && _is_complete_simple_bracket_slice($1))
+    {
+        my $bare_slice = $1;
+        my ($source_path, $raw_start, $raw_end) =
+            $bare_slice =~
+                /\A\.((?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?)\[([^\[\]]*):([^\[\]]*)\]\z/;
+
+        my @values;
+        my @sources;
+        my $sources_loaded = 0;
+        my $source_failed = 0;
+        my $emit_pair = sub {
+            my ($start, $end) = @_;
+
+            # Do not traverse the source when a bound emits no values.
+            if (!$sources_loaded) {
+                $sources_loaded = 1;
+                my $ok = eval {
+                    @sources = length($source_path)
+                        ? _traverse($context, $source_path,
+                            { missing_object_null => 1 })
+                        : ($context);
+                    1;
+                };
+                $source_failed = 1 unless $ok;
+            }
+            return if $source_failed;
+
+            for my $source (@sources) {
+                my $type = JQ::Lite::Value::type_of($source);
+                # Legacy slicing silently passes invalid scalar sources
+                # through; jq's '?' drops these slice applications.
+                next unless $type eq 'null'
+                    || $type eq 'array' || $type eq 'string';
+                my $value;
+                my $ok = eval {
+                    # The legacy array slice numeric guards accept JSON
+                    # booleans via Perl overloading. jq rejects them as
+                    # nonnumeric bounds; '?' skips only this application.
+                    # jq preserves a null source even for invalid slice
+                    # index types. Still evaluate bound filters normally, but
+                    # validate their types only for arrays and strings.
+                    if ($type ne 'null') {
+                        for my $bound ($start, $end) {
+                            next unless defined $bound;
+                            die 'slice(): bound must be numeric'
+                                unless JQ::Lite::Value::type_of($bound)
+                                    eq 'number';
+                        }
+                    }
+                    $value = _apply_value_bracket_slice($source, $start, $end);
+                    1;
+                };
+                push @values, $value if $ok;
+            }
+        };
+
+        my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+        my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+        my $emit_start = sub {
+            my ($start) = @_;
+            if ($raw_end =~ $literal) {
+                $emit_pair->($start, _parse_slice_argument($raw_end));
+            }
+            else {
+                _emit_slice_bound_stream(
+                    $self, $context, $raw_end, sub {
+                        $emit_pair->($start, $_[0]);
+                    }
+                );
+            }
+        };
+        if ($raw_start =~ $literal) {
+            $emit_start->(_parse_slice_argument($raw_start));
+        }
+        else {
+            _emit_slice_bound_stream(
+                $self, $context, $raw_start, $emit_start
+            );
+        }
+        return (\@values, 1);
+    }
+
+    # jq's fallback (//) binds more loosely than comparison. The generic
+    # comparison dispatcher sees the first == too early and would evaluate
+    # ".a == null // false" as ".a == (null // false)". For comparison-
+    # bearing fallback expressions, use the existing ordered bound-stream
+    # evaluator, which already applies // after comparison and honors
+    # null/false-only fallback without treating an empty stream as null.
+    my ($default_lhs, $default_rhs) =
+        _split_top_level_operator($copy, '//');
+    if (defined($default_lhs) && defined($default_rhs)
+        && $default_lhs =~ /\S/ && $default_rhs =~ /\S/
+        && defined($self) && $self->can('run_query'))
+    {
+        my (undef, $lhs_comparison) =
+            _split_top_level_comparison($default_lhs);
+        my (undef, $rhs_comparison) =
+            _split_top_level_comparison($default_rhs);
+        if (defined($lhs_comparison) || defined($rhs_comparison)) {
+            my @values;
+            _emit_slice_bound_stream($self, $context, $copy, sub {
+                push @values, $_[0];
+            });
+            return (\@values, 1);
+        }
+    }
+
+    # Comparison values must preserve their filter streams in constructors
+    # and other value contexts instead of using the scalar expression path.
+    my (undef, $comparison_operator) = _split_top_level_comparison($copy);
+    if (defined($comparison_operator) && defined($self) && $self->can('run_query')) {
+        my @values = $self->run_query(_encode_json($context), $copy);
+        return (\@values, 1);
+    }
+
+    # A complete simple bracket-slice is a path filter, even when a bound
+    # contains '-' or '+' (scientific notation, negative literals, or a
+    # parenthesized expression). Do not misclassify it as scalar arithmetic.
+    my $simple_bracket_slice = _is_complete_simple_bracket_slice($copy);
+    if (_looks_like_expression($copy) && !$simple_bracket_slice) {
         my %builtins = (
             floor => sub {
                 my ($value) = @_;
@@ -926,7 +968,14 @@ sub _evaluate_value_expression {
             resolve_path  => sub {
                 my ($ctx, $path) = @_;
                 return $ctx if !defined $path || $path eq '';
-                my @values = _traverse($ctx, $path);
+                my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
+                my @values = _traverse(
+                    $ctx, $path,
+                    {
+                        numeric_object_index_error => $numeric_path,
+                        numeric_null_index => $numeric_path,
+                    }
+                );
                 return @values ? $values[0] : undef;
             },
             coerce_number => \&_coerce_number_strict,
@@ -966,11 +1015,127 @@ sub _evaluate_value_expression {
         $path =~ s/^\s+|\s+$//g;
 
         my $is_bracket_slice = $path =~ /\[[^\]]*:[^\]]*\]/;
-        if (($path !~ /\s/ || $is_bracket_slice) && $path !~ /[+\-*\/]/) {
-            return ([], 1) unless defined $context;
-            return ([], 1) if $path eq '';
+        # Accept all JSON number spellings: -1, 0.5, 0e0, 2E+0.
+        # Only literals emit an unconditional value; empty-bound filters
+        # may emit no values and must not get this null fallback.
+        my $json_number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+        my $literal_slice_tail =
+            qr/\[\s*(?:$json_number|null)?\s*:\s*(?:$json_number|null)?\s*\]\z/;
+        my ($slice_prefix) = $is_bracket_slice
+            ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)$literal_slice_tail/)
+            : ();
+        my $root_literal_slice = $is_bracket_slice
+            && $path =~ /\A$literal_slice_tail/;
 
-            my @values = _traverse($context, $path);
+        # Evaluate computed bounds as filters on the original input rather
+        # than classifying a legacy missing-field lookup as no output.
+        # Parenthesized (null)/(0) emit one value; (empty) emits none.
+        # Restrict this to complete simple root/named slices, leaving all
+        # other path expressions on their existing dispatch.
+        my ($computed_prefix, $bound_start, $bound_end) =
+            $path =~ /\A((?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?)\[([^\[\]]*):([^\[\]]*)\]\z/;
+        my $literal_bound = qr/\A\s*(?:$json_number|null)?\s*\z/;
+        if (defined($bound_start)
+            && ($bound_start !~ $literal_bound || $bound_end !~ $literal_bound)
+            && defined($self) && $self->can('run_query'))
+        {
+            # Emit-and-apply each bound pair immediately: jq reports the
+            # first invalid slice before evaluating later bound alternatives.
+            # Keep sources lazy so empty bound streams skip traversal too.
+            my @values;
+            my @sources;
+            my $sources_loaded = 0;
+            my $emit_pair = sub {
+                my ($start, $end) = @_;
+                if (!$sources_loaded) {
+                    @sources = length($computed_prefix)
+                        ? _traverse($context, $computed_prefix,
+                            { missing_object_null => 1 })
+                        : ($context);
+                    $sources_loaded = 1;
+                }
+                push @values, map {
+                    _apply_value_bracket_slice($_, $start, $end)
+                } @sources;
+            };
+            my $emit_start = sub {
+                my ($start) = @_;
+                my $emit_end = sub {
+                    $emit_pair->($start, $_[0]);
+                };
+                if ($bound_end =~ $literal_bound) {
+                    $emit_end->(_parse_slice_argument($bound_end));
+                }
+                else {
+                    _emit_slice_bound_stream(
+                        $self, $context, $bound_end, $emit_end
+                    );
+                }
+            };
+            if ($bound_start =~ $literal_bound) {
+                $emit_start->(_parse_slice_argument($bound_start));
+            }
+            else {
+                _emit_slice_bound_stream(
+                    $self, $context, $bound_start, $emit_start
+                );
+            }
+            return (\@values, 1);
+        }
+
+        # Numeric literals may contain arithmetic-shaped +/- signs.
+        if (($path !~ /\s/ || $is_bracket_slice)
+            && ($path !~ /[+\-*\/]/ || defined($slice_prefix) || $root_literal_slice)) {
+            return ([], 1) if $path eq '';
+            my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
+            # A missing named object field is one JSON null, not an empty
+            # stream. Keep iterator/projection paths' existing empty behavior.
+            my $named_path = $path =~ /\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\z/ ? 1 : 0;
+
+
+            return (($numeric_path || $named_path || defined($slice_prefix)
+                     || $root_literal_slice)
+                ? [undef] : [], 1) unless defined $context;
+
+            # Legacy traversal splits on every '.', including decimal points
+            # inside slice bounds. Fractional JSON numbers also need jq's
+            # floor(start)/ceil(end) convention, not slice()'s int/int.
+            # Keep this correction restricted to single literal-bound slices
+            # so the legacy slice() API and other traversal stay unchanged.
+            if ($root_literal_slice || defined($slice_prefix)) {
+                my ($raw_start, $raw_end) =
+                    $path =~ /\[([^\[\]]*):([^\[\]]*)\]\z/;
+                my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
+                my $has_decimal_dot =
+                    $path =~ /\[[^\[\]]*\d\.\d+[^\[\]]*\]\z/;
+                my $has_fraction = grep {
+                    defined($_) && $_ != int($_)
+                } @args;
+                if ($has_decimal_dot || $has_fraction) {
+                    my @sources = defined($slice_prefix)
+                        ? _traverse($context, $slice_prefix,
+                            { missing_object_null => 1 })
+                        : ($context);
+                    my @values = map {
+                        _apply_value_bracket_slice($_, @args)
+                    } @sources;
+                    return (\@values, 1);
+                }
+            }
+
+            my @values = _traverse(
+                $context, $path,
+                {
+                    numeric_object_index_error => $numeric_path,
+                    numeric_null_index => $numeric_path,
+                    missing_object_null => $named_path,
+                }
+            );
+            if (!@values && defined $slice_prefix) {
+                my @targets = _traverse($context, $slice_prefix,
+                    { missing_object_null => 1 });
+                return ([undef], 1) if @targets == 1 && !defined $targets[0];
+            }
             return (\@values, 1);
         }
     }
@@ -1030,73 +1195,390 @@ sub _evaluate_value_expression {
     return ([], 0);
 }
 
+# Bracket-bound expressions are filters, not scalar values. Evaluate each
+# emitted alternative and distribute addition rather than using the scalar
+# expression helper's first-value/empty-as-null fallback. Keep this small
+# stream evaluator scoped to bracket bounds; ordinary expression dispatch and
+# the legacy slice() builtin retain their existing behavior.
+sub _evaluate_slice_bound_stream {
+    my ($self, $context, $expr) = @_;
+    my @values;
+
+    # The caller still receives a list, but the dedicated bound evaluator
+    # emits each value immediately. This avoids evaluating a later upstream
+    # input before an earlier value has traversed every downstream pipe.
+    _emit_slice_bound_stream($self, $context, $expr, sub {
+        push @values, $_[0];
+    });
+    return @values;
+}
+
+sub _emit_slice_bound_pipeline {
+    my ($self, $context, $stages, $index, $emit) = @_;
+
+    if ($index >= @$stages) {
+        $emit->($context);
+        return;
+    }
+
+    _emit_slice_bound_stream($self, $context, $stages->[$index], sub {
+        _emit_slice_bound_pipeline(
+            $self, $_[0], $stages, $index + 1, $emit
+        );
+    });
+}
+
+# An 'if' bound has to emit the chosen branch one value at a time.
+# The ordinary run_query fallback collects the whole branch first, letting
+# a later expression error preempt an earlier invalid slice index.
+# This helper stays scoped to computed bracket bounds.
+sub _emit_slice_bound_if {
+    my ($self, $context, $if_expr, $index, $emit) = @_;
+
+    my $branches = $if_expr->{branches};
+    if ($index >= @$branches) {
+        _emit_slice_bound_stream($self, $context, $if_expr->{else}, $emit)
+            if defined $if_expr->{else};
+        return;
+    }
+
+    my $branch = $branches->[$index];
+    _emit_slice_bound_stream($self, $context, $branch->{condition}, sub {
+        if (_is_truthy($_[0])) {
+            _emit_slice_bound_stream(
+                $self, $context, $branch->{then}, $emit
+            );
+        }
+        else {
+            _emit_slice_bound_if(
+                $self, $context, $if_expr, $index + 1, $emit
+            );
+        }
+    });
+}
+
+# Some fallback operands contain a full unparenthesized conditional followed
+# by a comparison: "if ... then ... else ... end == null". A regular
+# comparison scan sees operators inside the if body and rejects top-level
+# control flow, while the complete-if parser correctly rejects the trailing
+# comparison. Find the first complete conditional prefix, then compare its
+# output stream rather than silently dropping the expression.
+sub _split_conditional_comparison_for_bound {
+    my ($copy) = @_;
+    return unless defined $copy && $copy =~ /(?:==|!=|[<>])/;
+
+    if ($copy =~ /\Aif\b/) {
+        while ($copy =~ /\bend\b/g) {
+            my $offset = pos($copy);
+            my $left = substr($copy, 0, $offset);
+            next unless _parse_if_expression($left);
+            my $right_tail = substr($copy, $offset);
+            if ($right_tail =~ /^\s*(==|!=|>=|<=|>|<)\s*(.+)\z/s) {
+                my ($operator, $rhs) = ($1, $2);
+                # Let outer commas, pipes, and boolean chains be dispatched
+                # by their own precedence handlers instead of absorbing
+                # them as part of the comparison's right operand.
+                next if _split_top_level_commas($rhs) > 1
+                    || _split_top_level_pipes($rhs) > 1
+                    || _split_top_level_keyword($rhs, 'or') > 1
+                    || _split_top_level_keyword($rhs, 'and') > 1;
+                return ($left, $operator, $rhs);
+            }
+        }
+    }
+
+    my ($lhs, $operator, $rhs) = _split_top_level_comparison($copy);
+    if (defined($operator)
+        && $rhs =~ /^\s*if\b/
+        && _parse_if_expression($rhs))
+    {
+        return ($lhs, $operator, $rhs);
+    }
+    return;
+}
+
+# A conditional comparison's right operand may itself be a complete if
+# expression containing // operators. The generic operator splitter tracks
+# brackets but not if/end nesting; never split a complete conditional body.
+# If a full conditional is followed by an outer "// ...", split only there.
+sub _split_conditional_rhs_fallback {
+    my ($rhs) = @_;
+    return unless defined $rhs;
+    return if _parse_if_expression($rhs);
+
+    if ($rhs =~ /^\s*if\b/) {
+        while ($rhs =~ /\bend\b/g) {
+            my $offset = pos($rhs);
+            my $prefix = substr($rhs, 0, $offset);
+            next unless _parse_if_expression($prefix);
+            my $suffix = substr($rhs, $offset);
+            if ($suffix =~ /^\s*\/\/\s*(\S.*)\z/s) {
+                return ($prefix, $1);
+            }
+        }
+        # An incomplete conditional or one followed by a different
+        # operator is not safe for a bracket-only // splitter.
+        return;
+    }
+
+    return _split_top_level_operator($rhs, '//');
+}
+
+# Boolean operators bind outside comparisons and arithmetic.
+# Keep their short-circuit behavior and emitted booleans in this scoped
+# stream evaluator rather than routing compound predicates to the scalar
+# addition fallback in the legacy query dispatcher.
+sub _emit_slice_bound_boolean_chain {
+    my ($self, $context, $parts, $index, $is_or, $emit) = @_;
+
+    _emit_slice_bound_stream($self, $context, $parts->[$index], sub {
+        my $truthy = _is_truthy($_[0]) ? 1 : 0;
+        if ($index == $#$parts || ($is_or ? $truthy : !$truthy)) {
+            $emit->($truthy ? JSON::PP::true : JSON::PP::false);
+            return;
+        }
+        _emit_slice_bound_boolean_chain(
+            $self, $context, $parts, $index + 1, $is_or, $emit
+        );
+    });
+}
+
+sub _emit_slice_bound_stream {
+    my ($self, $context, $expr, $emit) = @_;
+    my $copy = _strip_wrapping_parens($expr);
+    $copy =~ s/^\s+|\s+$//g;
+
+    my $literal = eval { _decode_json($copy) };
+    if (!$@) {
+        $emit->($literal);
+        return;
+    }
+    return if $copy eq 'empty';
+
+    # A complete conditional can contain comma-producing branch filters.
+    # Dispatch its chosen branches incrementally before generic fallback.
+    my $if_expr = _parse_if_expression($copy);
+    if ($if_expr) {
+        _emit_slice_bound_if($self, $context, $if_expr, 0, $emit);
+        return;
+    }
+
+    # A complete conditional operand may contain a body-local // or
+    # grouped comma/pipe expression. Handle "if ... end" before generic
+    # operator splitters mistake those nested operators for a surrounding
+    # fallback or comparison.
+    my ($if_lhs, $if_operator, $if_rhs) =
+        _split_conditional_comparison_for_bound($copy);
+    if (defined $if_operator) {
+        # After a complete leading conditional, a top-level // in the
+        # comparison's right tail belongs OUTSIDE the comparison. Its
+        # precedence is weaker than ==, unlike a parenthesized RHS
+        # fallback. Do not split the // inside a conditional RHS.
+        my ($compare_rhs, $outer_fallback);
+        if (_parse_if_expression($if_lhs)) {
+            ($compare_rhs, $outer_fallback) =
+                _split_conditional_rhs_fallback($if_rhs);
+        }
+        my $rhs_expr = defined($outer_fallback) ? $compare_rhs : $if_rhs;
+        my $have_comparison_value = 0;
+        _emit_slice_bound_stream($self, $context, $rhs_expr, sub {
+            my $right = $_[0];
+            _emit_slice_bound_stream($self, $context, $if_lhs, sub {
+                my $left = $_[0];
+                my $value = _compare_values($left, $if_operator, $right)
+                    ? JSON::PP::true : JSON::PP::false;
+                # jq's // keeps truthy comparison results; a false/null
+                # comparison must fall back rather than be emitted.
+                if (defined($outer_fallback)) {
+                    return unless _is_truthy($value);
+                    $have_comparison_value = 1;
+                }
+                $emit->($value);
+            });
+        });
+        if (defined($outer_fallback) && !$have_comparison_value) {
+            _emit_slice_bound_stream(
+                $self, $context, $outer_fallback, $emit
+            );
+        }
+        return;
+    }
+
+    # A pipeline consumes the whole comma stream to its left. Depth-first
+    # emission also preserves jq's error precedence across pipe stages.
+    my @pipeline = _split_top_level_pipes($copy);
+    if (@pipeline > 1) {
+        my $first = shift @pipeline;
+        _emit_slice_bound_stream($self, $context, $first, sub {
+            _emit_slice_bound_pipeline(
+                $self, $_[0], \@pipeline, 0, $emit
+            );
+        });
+        return;
+    }
+
+    my @alternatives = _split_top_level_commas($copy);
+    if (@alternatives > 1) {
+        for my $alternative (@alternatives) {
+            _emit_slice_bound_stream(
+                $self, $context, $alternative, $emit
+            );
+        }
+        return;
+    }
+
+    # jq '//' binds more loosely than boolean or/and. Evaluate its left
+    # stream completely; keep every non-null/non-false value (including 0,
+    # empty strings and empty containers), or evaluate the right once when
+    # none was emitted. Emit immediately so slice errors win over later errors.
+    my ($fallback_lhs, $fallback_rhs) =
+        _split_top_level_operator($copy, '//');
+    if (defined($fallback_lhs) && defined($fallback_rhs)
+        && $fallback_lhs =~ /\S/ && $fallback_rhs =~ /\S/) {
+        my $have_value = 0;
+        _emit_slice_bound_stream($self, $context, $fallback_lhs, sub {
+            my $value = $_[0];
+            return unless defined($value)
+                && !(JSON::PP::is_bool($value) && !$value);
+            $have_value = 1;
+            $emit->($value);
+        });
+        _emit_slice_bound_stream($self, $context, $fallback_rhs, $emit)
+            unless $have_value;
+        return;
+    }
+
+    # jq precedence is // < or < and < comparison < arithmetic.
+    # Handle and/or as lazy boolean streams before distributing addition;
+    # otherwise the legacy scalar fallback may add two boolean results.
+    my @ors = _split_top_level_keyword($copy, 'or');
+    if (@ors > 1) {
+        _emit_slice_bound_boolean_chain(
+            $self, $context, \@ors, 0, 1, $emit
+        );
+        return;
+    }
+    my @ands = _split_top_level_keyword($copy, 'and');
+    if (@ands > 1) {
+        _emit_slice_bound_boolean_chain(
+            $self, $context, \@ands, 0, 0, $emit
+        );
+        return;
+    }
+
+    # Comparison consumes complete arithmetic operands. Do not split '+'
+    # inside (1+1 == 2) and attempt 1 + (1 == 2).
+    my (undef, $comparison) = _split_top_level_comparison($copy);
+    if (defined $comparison) {
+        my ($values, $ok) = _evaluate_value_expression($self, $context, $copy);
+        if ($ok) {
+            $emit->($_) for @$values;
+        }
+        else {
+            $emit->($_) for $self->run_query(_encode_json($context), $copy);
+        }
+        return;
+    }
+
+    my ($lhs, $rhs) = _split_top_level_operator($copy, '+');
+    if (defined($lhs) && defined($rhs) && $lhs =~ /\S/ && $rhs =~ /\S/) {
+        # jq evaluates the right operand first, and produces its
+        # right-major product. Emit results before visiting the next
+        # right-hand value so downstream errors retain jq precedence.
+        _emit_slice_bound_stream($self, $context, $rhs, sub {
+            my $right = $_[0];
+            _emit_slice_bound_stream($self, $context, $lhs, sub {
+                $emit->(_apply_addition($_[0], $right));
+            });
+        });
+        return;
+    }
+
+    my ($values, $ok) = _evaluate_value_expression($self, $context, $copy);
+    if ($ok) {
+        $emit->($_) for @$values;
+        return;
+    }
+    $emit->($_) for $self->run_query(_encode_json($context), $copy);
+}
+
+# Value-context bracket slices use jq's floor(start)/ceil(end) rounding
+# for fractional array bounds. The legacy slice() builtin deliberately keeps
+# its existing int/int contract; only this scoped helper uses jq rounding.
+sub _apply_value_bracket_slice {
+    my ($value, $raw_start, $raw_end) = @_;
+
+    # Complete jq bracket slices accept strings as well as arrays. The
+    # legacy slice(start,length) compatibility function does not slice
+    # strings; keep it unchanged and handle only the scoped value path.
+    if (JQ::Lite::Value::type_of($value) eq 'string') {
+        for my $arg ($raw_start, $raw_end) {
+            next unless defined $arg;
+            die 'slice(): bound must be numeric'
+                unless JQ::Lite::Value::type_of($arg) eq 'number';
+        }
+        my $length = length($value);
+        my $start = defined($raw_start) ? 0 + $raw_start : 0;
+        my $end = defined($raw_end) ? 0 + $raw_end : $length;
+        $start += $length if $start < 0;
+        $end += $length if $end < 0;
+
+        # jq floors fractional starts and ceils fractional ends.
+        my $from = int($start);
+        $from-- if $start < $from;
+        my $to = int($end);
+        $to++ if $end > $to;
+        $from = 0 if $from < 0;
+        $to = 0 if $to < 0;
+        $from = $length if $from > $length;
+        $to = $length if $to > $length;
+
+        return substr($value, $from, $to > $from ? $to - $from : 0);
+    }
+
+    my $fractional = (defined($raw_start) && looks_like_number($raw_start)
+            && $raw_start != int($raw_start))
+        || (defined($raw_end) && looks_like_number($raw_end)
+            && $raw_end != int($raw_end));
+    return _apply_bracket_slice($value, $raw_start, $raw_end)
+        unless $fractional && ref $value eq 'ARRAY';
+
+    # Fractional rounding must not bypass the existing v2-compatible
+    # numeric/type guards. In particular, JSON strings such as "0.5"
+    # are invalid slice indices even if looks_like_number accepts them.
+    # _slice_numeric_bound validates and discards its truncated result;
+    # rounding below still uses the original fractional values.
+    _slice_numeric_bound($raw_start, 'start') if defined $raw_start;
+    _slice_numeric_bound($raw_end, 'length') if defined $raw_end;
+
+    my $size = scalar @$value;
+    my $start = defined $raw_start ? $raw_start : 0;
+    my $end = defined $raw_end ? $raw_end : $size;
+    $start += $size if $start < 0;
+    $end += $size if $end < 0;
+
+    my $from = int($start);
+    $from-- if $start < $from;
+    my $to = int($end);
+    $to++ if $end > $to;
+    $from = 0 if $from < 0;
+    $to = 0 if $to < 0;
+    $from = $size if $from > $size;
+    $to = $size if $to > $size;
+
+    return $from < $to ? [ @$value[$from .. $to - 1] ] : [];
+}
+
 sub _apply_addition {
-    my ($left, $right) = @_;
-
-    return $right if !defined $left;
-    return $left  if !defined $right;
-
-    if (ref($left) eq 'JSON::PP::Boolean') {
-        $left = $left ? 1 : 0;
-    }
-
-    if (ref($right) eq 'JSON::PP::Boolean') {
-        $right = $right ? 1 : 0;
-    }
-
-    if (!ref $left && !ref $right) {
-        my $left_is_string  = _is_string_scalar($left);
-        my $right_is_string = _is_string_scalar($right);
-
-        if ($left_is_string || $right_is_string) {
-            die 'addition operands must both be strings' if !$left_is_string || !$right_is_string;
-            $left  = '' unless defined $left;
-            $right = '' unless defined $right;
-            return "$left$right";
-        }
-
-        if (looks_like_number($left) && looks_like_number($right)) {
-            return 0 + $left + $right;
-        }
-
-        die 'addition operands must both be numbers or both be strings';
-    }
-
-    if (ref $left eq 'ARRAY' && ref $right eq 'ARRAY') {
-        return [ @$left, @$right ];
-    }
-
-    if (ref $left eq 'ARRAY') {
-        return [ @$left, $right ];
-    }
-
-    if (ref $right eq 'ARRAY') {
-        return [ $left, @$right ];
-    }
-
-    if (ref $left eq 'HASH' && ref $right eq 'HASH') {
-        return { %$left, %$right };
-    }
-
-    return $right if !ref $left && ref $right eq 'HASH';
-    return $left  if ref $left eq 'HASH' && !ref $right;
-
-    return undef;
+    return JQ::Lite::Expression::_apply_addition(@_);
 }
 
 sub _coerce_number_strict {
     my ($value, $label) = @_;
 
     $label ||= 'value';
-
-    die "$label must be a number" unless defined $value;
-
-    if (ref($value) eq 'JSON::PP::Boolean') {
-        return $value ? 1 : 0;
-    }
-
-    die "$label must be a number" if ref $value;
-    die "$label must be a number" unless looks_like_number($value);
+    my $type = JQ::Lite::Value::type_of($value);
+    die "$label must be a number, got $type" unless $type eq 'number';
 
     return 0 + $value;
 }
@@ -1131,6 +1613,7 @@ sub _looks_like_expression {
     return 0 if $expr =~ /^\s*[\{\[]/;
     return 0 if $expr =~ /^[A-Za-z_]\w*\s*\(/;
     return 1 if $expr =~ /[\-*\/%]/;
+    return 1 if $expr =~ /\+/ && $expr !~ /\|/;
     return 1 if $expr =~ /(?:==|!=|>=|<=|>|<|\band\b|\bor\b)/i;
 
     return 0;
@@ -1142,7 +1625,8 @@ sub _looks_like_assignment {
     return 0 unless defined $expr;
     return 0 if $expr =~ /[()]/;
     return 0 if $expr =~ /(?:==|!=|>=|<=|=>|=<)/;
-    return ($expr =~ /=/);
+    my ($lhs) = _split_top_level_operator($expr, '=');
+    return defined $lhs;
 }
 
 sub _parse_assignment_expression {
@@ -1150,7 +1634,7 @@ sub _parse_assignment_expression {
 
     $expr //= '';
 
-    my ($lhs, $op, $rhs) = ($expr =~ /^(.*?)\s*([+\-*\/]?=)\s*(.*)$/);
+    my ($lhs, $op, $rhs) = ($expr =~ /^(.*?)\s*(\|=|[+\-*\/]?=)\s*(.*)$/s);
 
     $lhs //= '';
     $rhs //= '';
@@ -1163,7 +1647,7 @@ sub _parse_assignment_expression {
 
     my $value_spec = _parse_assignment_value($rhs);
 
-    return ($lhs, $value_spec, $op);
+    return ($lhs, $value_spec, $op, $rhs);
 }
 
 sub _parse_assignment_value {

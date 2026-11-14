@@ -3,9 +3,9 @@ package JQ::Lite::Filters;
 use strict;
 use warnings;
 
-use List::Util qw(sum min);
-use Scalar::Util qw(looks_like_number);
+use List::Util qw(sum);
 use JQ::Lite::Util ();
+use JQ::Lite::Value ();
 use JQ::Lite::Builtin ();
 
 sub apply {
@@ -16,7 +16,55 @@ sub apply {
 
     my $normalized = JQ::Lite::Util::_strip_wrapping_parens($part);
 
-        my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($normalized);
+    # Yield complete audited paths to the ordered v3 visitor before
+    # legacy expression shortcuts. Check the existing syntax triggers
+    # together so an expression is parsed at most once here. Bare array
+    # constructors, slices and arbitrary computed expressions still need
+    # to pass the full path parser before they can bypass those shortcuts.
+    if (($normalized =~ /\s+\.(?:[A-Za-z_]|"|\[)/
+            || $normalized =~ /\[\s+\]|\s+\[\s*\]/
+            || $normalized =~ /\s+\[\s*-?\d+\s*\]/
+            || $normalized =~ /\[(?:\s+-?\d+\s*|-?\d+\s+)\]/
+            || $normalized =~ /\[\d+\]/
+            || $normalized =~ /\[-[1-9]\d*\]/
+            || index($normalized, '?') >= 0
+            || $normalized =~ /\[\s*\./
+            || index($normalized, '"') >= 0)
+        && JQ::Lite::Util::_parse_v3_literal_iterator_path($normalized))
+    {
+        return 0;
+    }
+
+    # Comma alternatives are separate filters on the original input.
+    # Split them before checking for update assignment, so .a |= 1, .b
+    # does not treat the .b branch as part of the update RHS.
+    my @sequence_parts = JQ::Lite::Util::_split_top_level_commas($normalized);
+
+    # v3 update assignment runs before expression/arithmetic shortcuts, but
+    # only for a single comma branch. Its RHS filters the old target value.
+    my ($update_lhs, $update_rhs) = @sequence_parts == 1
+        ? JQ::Lite::Util::_split_top_level_operator($normalized, '|=')
+        : ();
+    if (defined $update_lhs) {
+        my ($path, $rhs) = ($update_lhs, $update_rhs);
+        $path =~ s/^\s+|\s+$//g;
+        $rhs =~ s/^\s+|\s+$//g;
+        if ($path !~ s/^\.//
+            || !defined($rhs) || $rhs !~ /\S/)
+        {
+            die JQ::Lite::Error::Parse->new(
+                message => 'Invalid update-assignment syntax'
+            );
+        }
+
+        @next_results = map {
+            JQ::Lite::Util::_apply_update_assignment($self, $_, $path, $rhs)
+        } @results;
+
+        @$out_ref = @next_results;
+        return 1;
+    }
+
         if (@sequence_parts > 1) {
             @next_results = ();
 
@@ -30,7 +78,15 @@ sub apply {
                     $filter = JQ::Lite::Util::_strip_wrapping_parens($filter);
                     next if $filter eq '';
 
-                    if ($filter !~ /^\s*[\[{(]/) {
+                    # An audited ordered iterator/computed path must
+                    # run through the scoped path visitor, not the
+                    # legacy expression shortcut. In comma alternatives
+                    # that shortcut can return an incorrect null for
+                    # e.g. .items[][0]? before the visitor sees it.
+                    if ($filter !~ /^\s*[\[{(]/
+                        && index($filter, '|=') < 0
+                        && !JQ::Lite::Util::_parse_v3_literal_iterator_path($filter))
+                    {
                         my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $filter);
                         if ($ok) {
                             if (@$values) {
@@ -179,9 +235,459 @@ sub apply {
                 my @outputs;
                 my $error;
 
-                {
-                    local $@;
-                    eval { @outputs = $self->run_query($json, $try_expr); 1 } or $error = $@;
+                # jq retains the outputs of completed comma branches
+                # before a later branch fails inside try. The evaluator
+                # returns eagerly, so evaluate each top-level alternative
+                # independently and retain its completed output stream.
+                # This does not preserve partial output from a failure
+                # within one branch (general streaming is a separate audit).
+                for my $branch (JQ::Lite::Util::_split_top_level_commas($try_expr)) {
+                    my @branch_outputs;
+                    {
+                        local $@;
+                        eval {
+                            # A leading root/named-field iterator (or
+                            # multiple nested iterators) can supply several
+                            # pipeline inputs or be a bare nested try
+                            # expression. Visit each member in depth-first
+                            # source order; retain earlier completed
+                            # results if a subsequent member fails.
+                            # Simple range(...) and default/optional
+                            # recurse generators reuse existing on-demand
+                            # visitors; strict recurse(.[]) has a scoped
+                            # yield-then-expand visitor, and custom recurse
+                            # child filters use the update-RHS visitor.
+                            # Other paths and failing leaf filters stay eager.
+                            my $unwrapped =
+                                JQ::Lite::Util::_strip_wrapping_parens($branch);
+                            my @stages =
+                                JQ::Lite::Util::_split_top_level_pipes($unwrapped);
+
+                            # Fully parenthesized comma stages, including
+                            # consecutive stages, retain each completed
+                            # alternative's downstream output before trying
+                            # the next one. Prefixes and individual filter
+                            # leaves retain their existing eager evaluator.
+                            my @pipeline_comma_parts;
+                            if (@stages > 1) {
+                                for (my $i = 1; $i < @stages; $i++) {
+                                    next unless $stages[$i] =~ /\A\s*\(/s;
+                                    my $inner =
+                                        JQ::Lite::Util::_strip_wrapping_parens(
+                                            $stages[$i]
+                                        );
+                                    my @alternatives =
+                                        JQ::Lite::Util::_split_top_level_commas(
+                                            $inner
+                                        );
+                                    if (@alternatives > 1) {
+                                        @pipeline_comma_parts = @alternatives;
+                                        last;
+                                    }
+                                }
+                            }
+                            my $emit_tail = sub {
+                                my ($tail_json, $tail) = @_;
+                                my @parts =
+                                    JQ::Lite::Util::_split_top_level_pipes($tail);
+                                my ($comma_index, @alternatives);
+                                for (my $i = 0; $i < @parts; $i++) {
+                                    next unless $parts[$i] =~ /\A\s*\(/s;
+                                    my $inner =
+                                        JQ::Lite::Util::_strip_wrapping_parens(
+                                            $parts[$i]
+                                        );
+                                    my @candidates =
+                                        JQ::Lite::Util::_split_top_level_commas(
+                                            $inner
+                                        );
+                                    if (@candidates > 1) {
+                                        $comma_index = $i;
+                                        @alternatives = @candidates;
+                                        last;
+                                    }
+                                }
+                                # Iterative continuation stack keeps
+                                # outputs in jq's depth-first stream order
+                                # across multiple comma stages, including
+                                # fully parenthesized nested alternatives.
+                                # Each stage completes its suffix before
+                                # the next alternative. No closure cycle.
+                                my @pending = (
+                                    ['pipeline', $tail_json, $tail]
+                                );
+                                while (@pending) {
+                                    my $task = pop @pending;
+                                    if ($task->[0] eq 'alternative') {
+                                        my ($kind, $stage_json, $alternative,
+                                            $suffix) = @$task;
+                                        # A single comma alternative may
+                                        # itself contain a fully wrapped
+                                        # comma expression: ((0, 1/0), 9).
+                                        # Expand the nested expression into
+                                        # continuation tasks, not one eager
+                                        # run_query, or its completed first
+                                        # output would be lost on error.
+                                        if ($alternative =~ /\A\s*\(/s) {
+                                            my $inner =
+                                                JQ::Lite::Util::_strip_wrapping_parens(
+                                                    $alternative
+                                                );
+                                            my $trimmed = $alternative;
+                                            $trimmed =~ s/^\s+|\s+$//g;
+                                            if ($inner ne $trimmed) {
+                                                my @nested =
+                                                    JQ::Lite::Util::_split_top_level_commas(
+                                                        $inner
+                                                    );
+                                                if (@nested > 1) {
+                                                    push @pending, map {
+                                                        ['alternative',
+                                                            $stage_json,
+                                                            $_, $suffix]
+                                                    } reverse @nested;
+                                                    next;
+                                                }
+                                            }
+                                        }
+                                        my @values = $self->run_query(
+                                            $stage_json, $alternative
+                                        );
+                                        if (length $suffix) {
+                                            push @pending, map {
+                                                ['pipeline',
+                                                    JQ::Lite::Util::_encode_json($_),
+                                                    $suffix]
+                                            } reverse @values;
+                                        }
+                                        else {
+                                            push @branch_outputs, @values;
+                                        }
+                                        next;
+                                    }
+
+                                    my ($kind, $input_json, $remaining) = @$task;
+                                    my @parts =
+                                        JQ::Lite::Util::_split_top_level_pipes(
+                                            $remaining
+                                        );
+                                    my ($comma_index, @alternatives);
+                                    for (my $i = 0; $i < @parts; $i++) {
+                                        next unless $parts[$i] =~ /\A\s*\(/s;
+                                        my $inner =
+                                            JQ::Lite::Util::_strip_wrapping_parens(
+                                                $parts[$i]
+                                            );
+                                        my @candidates =
+                                            JQ::Lite::Util::_split_top_level_commas(
+                                                $inner
+                                            );
+                                        if (@candidates > 1) {
+                                            $comma_index = $i;
+                                            @alternatives = @candidates;
+                                            last;
+                                        }
+                                    }
+                                    if (!defined $comma_index) {
+                                        push @branch_outputs,
+                                            $self->run_query(
+                                                $input_json, $remaining
+                                            );
+                                        next;
+                                    }
+
+                                    my @prefix = $comma_index > 0
+                                        ? @parts[0 .. $comma_index - 1] : ();
+                                    my @suffix = $comma_index < $#parts
+                                        ? @parts[$comma_index + 1 .. $#parts]
+                                        : ();
+                                    my @prefix_values = @prefix
+                                        ? $self->run_query(
+                                            $input_json, join(' | ', @prefix)
+                                        )
+                                        : ();
+                                    my @input_jsons = @prefix
+                                        ? map {
+                                            JQ::Lite::Util::_encode_json($_)
+                                        } @prefix_values
+                                        : ($input_json);
+                                    my $suffix = join(' | ', @suffix);
+                                    # LIFO: push inputs and alternatives
+                                    # in reverse, but evaluate them in
+                                    # original left-to-right order.
+                                    for my $stage_json (reverse @input_jsons) {
+                                        push @pending, map {
+                                            ['alternative',
+                                                $stage_json, $_, $suffix]
+                                        } reverse @alternatives;
+                                    }
+                                }
+                            };
+
+                            # A parenthesized comma expression can
+                            # generate multiple inputs for one pipeline,
+                            # for example (0, 1/0) | . + 1. Run its
+                            # alternatives in source order so a later
+                            # failing alternative cannot erase outputs
+                            # from earlier completed alternatives.
+                            my @comma_head_parts;
+                            if (@stages > 1) {
+                                my $head = $stages[0];
+                                my $inner =
+                                    JQ::Lite::Util::_strip_wrapping_parens($head);
+                                if ($inner ne $head) {
+                                    @comma_head_parts =
+                                        JQ::Lite::Util::_split_top_level_commas(
+                                            $inner
+                                        );
+                                }
+                            }
+                            my @iterator_heads;
+                            if (@stages) {
+                                my $head = $stages[0];
+                                if (@stages > 1 && $head =~
+                                    /\A\s*\.(?:\[\s*\]|[A-Za-z_]\w*\[\s*\])\??\s*\z/s)
+                                {
+                                    @iterator_heads = ($head);
+                                }
+                                elsif ($head =~
+                                    /\A\s*(\.(?:\[\s*\]|[A-Za-z_]\w*\[\s*\])\??)((?:\[\s*\]\??)+)\s*\z/s)
+                                {
+                                    # A simple iterator head can contain
+                                    # two or more nested stages, e.g.
+                                    # .[][][], .items[][], or .[][][]?.
+                                    # Split only complete literal suffixes:
+                                    # evaluate every level independently,
+                                    # so a later inner error cannot erase
+                                    # already completed member outputs.
+                                    my ($first, $suffixes) = ($1, $2);
+                                    @iterator_heads = ($first);
+                                    while ($suffixes =~ /(\[\s*\]\??)/g) {
+                                        push @iterator_heads, '.' . $1;
+                                    }
+                                }
+                            }
+                            if (@stages > 1
+                                && ($unwrapped =~
+                                    /\(\s*(?:range\([^()]*\)|recurse(?:\(\s*\.\[\s*\]\??\s*\))?)\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\.\[\s*\]\?\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\.[A-Za-z_]\w*\[\s*\]\??\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\.\[\s*"(?:\\.|[^"\\])*"\s*\]\[\s*\]\??\s*\|/s
+                                    || $unwrapped =~
+                                    /\(\s*recurse\(\s*\."(?:\\.|[^"\\])*"\s*\[\s*\]\??\s*\|/s
+                                    || JQ::Lite::Util::_is_nested_scoped_computed_recurse($unwrapped)))
+                            {
+                                # Nested default, optional, strict, and
+                                # literal range generators can complete
+                                # outputs before a later tail error.
+                                # Reuse the shared audited computed-child
+                                # matcher for nested custom recurse pipelines.
+                                # This keeps routing and the null-node error
+                                # guard in sync for one to three simple
+                                # computed selectors, literal quoted fields,
+                                # and bounded signed numeric indices.
+                                # Other expressions remain on the original
+                                # evaluation path.
+                                JQ::Lite::Util::_visit_update_rhs_results(
+                                    $self, $value, $unwrapped, sub {
+                                        push @branch_outputs, $_[0];
+                                        return 0;
+                                    }
+                                );
+                            }
+                            elsif (@comma_head_parts > 1) {
+                                shift @stages;
+                                my $tail = join(' | ', @stages);
+                                for my $alternative (@comma_head_parts) {
+                                    # A completed alternative is a stream.
+                                    # Feed each emitted value through the
+                                    # tail immediately, before attempting
+                                    # the next alternative. Exceptions
+                                    # propagate to the surrounding try.
+                                    my @head_values = $self->run_query(
+                                        $json, $alternative
+                                    );
+                                    for my $head_value (@head_values) {
+                                        $emit_tail->(
+                                            JQ::Lite::Util::_encode_json(
+                                                $head_value
+                                            ),
+                                            $tail
+                                        );
+                                    }
+                                }
+                            }
+                            elsif (@stages > 1 && $stages[0] =~
+                                /\A\s*range\(([^()]*)\)\s*\z/s)
+                            {
+                                # Reuse the update-RHS range visitor to
+                                # generate each number on demand. A later
+                                # tail error terminates this visitor before
+                                # generating unused numbers, while retaining
+                                # outputs from already completed numbers.
+                                # Scope this to simple range(...) heads;
+                                # more complex argument filters need their
+                                # own semantic audit.
+                                my @args =
+                                    JQ::Lite::Util::_parse_range_arguments($1);
+                                shift @stages;
+                                my $tail = join(' | ', @stages);
+                                JQ::Lite::Util::_visit_range_sequence(
+                                    \@args, sub {
+                                        my ($number) = @_;
+                                        $emit_tail->(
+                                            JQ::Lite::Util::_encode_json($number),
+                                            $tail
+                                        );
+                                        return 0;
+                                    }
+                                );
+                            }
+                            elsif (@stages > 1 && $stages[0] =~
+                                /\A\s*recurse(?:\(\s*(\.\[\s*\]\?)\s*\))?\s*\z/s)
+                            {
+                                # Reuse the update RHS depth-first recurse
+                                # visitor for the default generator and its
+                                # optional child iterator, recurse(.[]?).
+                                # Pass each emitted value directly to the
+                                # remaining try pipeline before expanding
+                                # any unneeded descendants. A later tail
+                                # error leaves earlier completed outputs
+                                # intact and stops traversal immediately.
+                                my $child_filter = defined($1) ? $1 : undef;
+                                shift @stages;
+                                my $tail = join(' | ', @stages);
+                                JQ::Lite::Util::_visit_update_rhs_recurse(
+                                    $self, $value, $child_filter, sub {
+                                        my ($recur_value) = @_;
+                                        $emit_tail->(
+                                            JQ::Lite::Util::_encode_json($recur_value),
+                                            $tail
+                                        );
+                                        return 0;
+                                    }
+                                );
+                            }
+                            elsif (@stages && $stages[0] =~
+                                /\A\s*recurse\(\s*\.\[\s*\]\s*\)\s*\z/s)
+                            {
+                                # Strict recurse(.[]) yields the current
+                                # node before attempting its child iterator.
+                                # A scalar/null leaf therefore remains a
+                                # completed output, then triggers an error
+                                # when its strict .[] expansion is required.
+                                # An explicit iterative enter/expand stack
+                                # preserves that jq order and avoids adding
+                                # call-stack depth for nested arrays.
+                                shift @stages;
+                                my $tail = @stages
+                                    ? join(' | ', @stages) : '.';
+                                my @pending = ([$value, 0]);
+                                while (@pending) {
+                                    my ($node, $expand) = @{ pop @pending };
+                                    my $node_json =
+                                        JQ::Lite::Util::_encode_json($node);
+                                    if (!$expand) {
+                                        $emit_tail->($node_json, $tail);
+                                        push @pending, [$node, 1];
+                                        next;
+                                    }
+                                    my @children = $self->run_query(
+                                        $node_json, '.[]'
+                                    );
+                                    push @pending, map {
+                                        [$_, 0]
+                                    } reverse @children;
+                                }
+                            }
+                            elsif (@stages && $stages[0] =~
+                                /\A\s*recurse\((.+)\)\s*\z/s)
+                            {
+                                # Custom recurse child filters have the
+                                # same yield-then-expand ordering as jq.
+                                # Reuse the existing update-RHS visitor:
+                                # it evaluates each child filter output,
+                                # recursively emits the child's subtree,
+                                # and only then requests the next sibling.
+                                # An error in the custom filter or tail
+                                # keeps all previously completed results.
+                                my $child_filter = $1;
+                                $child_filter =~ s/^\s+|\s+$//g;
+                                shift @stages;
+                                my $tail = @stages
+                                    ? join(' | ', @stages) : '.';
+                                JQ::Lite::Util::_visit_update_rhs_recurse(
+                                    $self, $value, $child_filter, sub {
+                                        my ($node) = @_;
+                                        $emit_tail->(
+                                            JQ::Lite::Util::_encode_json($node),
+                                            $tail
+                                        );
+                                        return 0;
+                                    }
+                                );
+                            }
+                            elsif (@iterator_heads) {
+                                shift @stages;
+                                # With no downstream pipeline, each nested
+                                # iterator value is itself the final result.
+                                # Evaluating a complete nested head eagerly
+                                # used to yield synthetic null instead.
+                                my $tail = @stages
+                                    ? join(' | ', @stages) : '.';
+                                # Explicit DFS stack retains stream order
+                                # without a self-referential callback and
+                                # stops before visiting later members when
+                                # an inner iterator or tail raises an error.
+                                my @pending = ([$value, 0]);
+                                while (@pending) {
+                                    my ($current, $depth) =
+                                        @{ pop @pending };
+                                    my $current_json =
+                                        JQ::Lite::Util::_encode_json($current);
+                                    if ($depth == @iterator_heads) {
+                                        $emit_tail->($current_json, $tail);
+                                        next;
+                                    }
+                                    my @members = $self->run_query(
+                                        $current_json,
+                                        $iterator_heads[$depth]
+                                    );
+                                    push @pending, map {
+                                        [$_, $depth + 1]
+                                    } reverse @members;
+                                }
+                            }
+                            elsif (@pipeline_comma_parts > 1) {
+                                # For a general non-generator head, feed
+                                # its values to the streaming comma stage
+                                # and its remaining downstream stages.
+                                my $head = shift @stages;
+                                my @head_values = $self->run_query(
+                                    $json, $head
+                                );
+                                my $tail = join(' | ', @stages);
+                                for my $head_value (@head_values) {
+                                    $emit_tail->(
+                                        JQ::Lite::Util::_encode_json($head_value),
+                                        $tail
+                                    );
+                                }
+                            }
+                            else {
+                                @branch_outputs = $self->run_query($json, $branch);
+                            }
+                            1;
+                        } or $error = $@;
+                    }
+                    # A failed member leaves its preceding, already
+                    # completed member results intact; do not discard
+                    # those just because the branch later threw.
+                    push @outputs, @branch_outputs;
+                    last if $error;
                 }
 
                 if (!$error) {
@@ -189,38 +695,41 @@ sub apply {
                     next VALUE;
                 }
 
-                my $message = $error;
+                # Successful branches remain visible before a later
+                # failure is dropped or replaced by a catch handler.
+                push @next_results, @outputs;
+
+                # Structured evaluation errors are blessed references.
+                # Explicitly stringify before passing their diagnostics
+                # as jq catch input or storing the legacy $error variable.
+                my $message = "$error";
                 $message =~ s/\s+$// if defined $message;
 
                 if (defined $catch_expr && length $catch_expr) {
                     my %existing = %{ $self->{_vars} || {} };
                     local $self->{_vars} = { %existing, error => $message };
 
-                    my ($catch_values, $catch_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $catch_expr);
-                    if ($catch_ok) {
-                        push @next_results, @$catch_values ? @$catch_values : (undef);
-                    }
-                    else {
-                        my @catch_outputs;
-                        my $catch_error;
-
-                        {
-                            local $@;
-                            eval { @catch_outputs = $self->run_query($json, $catch_expr); 1 } or $catch_error = $@;
-                        }
-
-                        if ($catch_error) {
-                            push @next_results, undef;
-                        }
-                        else {
-                            push @next_results, @catch_outputs;
-                        }
-                    }
+                    # A catch handler is a filter, so its result is a stream.
+                    # Evaluating it through the scalar expression shortcut
+                    # turned a legitimate empty result into JSON null.
+                    # Running the filter directly preserves empty/null/false
+                    # outputs and lets errors propagate to an enclosing try.
+                    # jq evaluates a catch handler on the error message,
+                    # not on the input which caused the failure. Preserve
+                    # the historical $error variable as a compatibility
+                    # alias, but use the message as the filter input.
+                    my $error_json = JQ::Lite::Util::_encode_json($message);
+                    my @catch_outputs = $self->run_query($error_json, $catch_expr);
+                    push @next_results, @catch_outputs;
 
                     next VALUE;
                 }
 
-                push @next_results, undef;
+                # jq 1.7 defines 'try f' as 'try f catch empty'.
+                # Without an explicit catch, an error drops only this
+                # input's results; do not turn it into JSON null.
+                # Explicit 'catch null' still emits a real null value.
+                next VALUE;
             }
 
             @$out_ref = @next_results;
@@ -233,9 +742,7 @@ sub apply {
         # field named "length" on the original document.
         my ($comparison_lhs, $comparison_operator, $comparison_rhs)
             = JQ::Lite::Util::_split_top_level_comparison($normalized);
-        if (defined($comparison_operator)
-            && $comparison_lhs !~ /\b(?:if|then|elif|else|end|try|catch)\b/)
-        {
+        if (defined($comparison_operator)) {
             my ($lhs_expr, $operator, $rhs_expr)
                 = ($comparison_lhs, $comparison_operator, $comparison_rhs);
             $lhs_expr =~ s/^\s+|\s+$//g;
@@ -244,27 +751,14 @@ sub apply {
             if (length($lhs_expr) && length($rhs_expr)) {
                 @next_results = ();
                 for my $item (@results) {
-                    my $json = JQ::Lite::Util::_encode_json($item);
-                    my ($lhs_values, $lhs_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $lhs_expr);
-                    my ($rhs_values, $rhs_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $rhs_expr);
-                    if (!$lhs_ok) {
-                        my @values = $self->run_query($json, $lhs_expr);
-                        $lhs_values = \@values;
-                    }
-                    if (!$rhs_ok) {
-                        my @values = $self->run_query($json, $rhs_expr);
-                        $rhs_values = \@values;
-                    }
+                    # jq evaluates the right operand first. An empty stream
+                    # yields no comparison, unlike one explicit JSON null.
+                    my @rhs_values = _evaluate_comparison_operand($self, $item, $rhs_expr);
+                    next unless @rhs_values;
+                    my @lhs_values = _evaluate_comparison_operand($self, $item, $lhs_expr);
 
-                    # A missing path participates in a comparison as null;
-                    # it must not turn the comparison into an empty stream.
-                    # This also preserves the expected result for `!=` and
-                    # comparisons against an explicit null literal.
-                    $lhs_values = [undef] unless @$lhs_values;
-                    $rhs_values = [undef] unless @$rhs_values;
-
-                    for my $lhs (@$lhs_values) {
-                        for my $rhs (@$rhs_values) {
+                    for my $rhs (@rhs_values) {
+                        for my $lhs (@lhs_values) {
                             push @next_results,
                                 JQ::Lite::Util::_compare_values($lhs, $operator, $rhs)
                                 ? JSON::PP::true
@@ -273,6 +767,29 @@ sub apply {
                     }
                 }
                 @$out_ref = @next_results;
+                return 1;
+            }
+        }
+
+        # Complete simple slices need the value helper regardless of
+        # whether their bounds look arithmetic. In particular, (empty)
+        # must stay zero outputs, not a synthesized JSON null.
+        if (JQ::Lite::Util::_is_complete_simple_bracket_slice($normalized)) {
+            my @slice_values;
+            my $all_slice_ok = 1;
+            for my $item (@results) {
+                my ($values, $ok) =
+                    JQ::Lite::Util::_evaluate_value_expression(
+                        $self, $item, $normalized
+                    );
+                if (!$ok) {
+                    $all_slice_ok = 0;
+                    last;
+                }
+                push @slice_values, @$values;
+            }
+            if ($all_slice_ok) {
+                @$out_ref = @slice_values;
                 return 1;
             }
         }
@@ -344,21 +861,14 @@ sub apply {
 
                     my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $element);
                     if ($ok) {
-                        if (@$values) {
-                            push @built, @$values;
-                        } else {
-                            push @built, undef;
-                        }
+                        # An empty filter stream contributes no array element.
+                        push @built, @$values;
                         next;
                     }
 
                     my $json = JQ::Lite::Util::_encode_json($item);
                     my @outputs = $self->run_query($json, $element);
-                    if (@outputs) {
-                        push @built, @outputs;
-                    } else {
-                        push @built, undef;
-                    }
+                    push @built, @outputs;
                 }
 
                 push @next_results, \@built;
@@ -382,7 +892,7 @@ sub apply {
             }
 
             for my $item (@results) {
-                my %built;
+                my @built = ({});
 
                 for my $pair (@pairs) {
                     next if !defined $pair;
@@ -397,22 +907,31 @@ sub apply {
                     $value_expr =~ s/^\s+|\s+$//g;
                     next if $value_expr eq '';
 
-                    my $value;
+                    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression(
+                        $self, $item, $value_expr
+                    );
+                    my @values = $ok ? @$values
+                        : $self->run_query(
+                            JQ::Lite::Util::_encode_json($item), $value_expr
+                        );
 
-                    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $value_expr);
-                    if ($ok) {
-                        $value = @$values ? $values->[0] : undef;
+                    # jq emits an object for each combination of emitted
+                    # field values. A zero-value field suppresses the entire
+                    # object stream; a single JSON null is still one value.
+                    if (!@values) {
+                        @built = ();
+                        last;
                     }
-                    else {
-                        my $json = JQ::Lite::Util::_encode_json($item);
-                        my @outputs = $self->run_query($json, $value_expr);
-                        $value = @outputs ? $outputs[0] : undef;
+                    my @next_built;
+                    for my $partial (@built) {
+                        for my $value (@values) {
+                            push @next_built, { %$partial, $key => $value };
+                        }
                     }
-
-                    $built{$key} = $value;
+                    @built = @next_built;
                 }
 
-                push @next_results, \%built;
+                push @next_results, @built;
             }
 
             if (!@pairs) {
@@ -430,42 +949,16 @@ sub apply {
                 my $json = JQ::Lite::Util::_encode_json($value);
                 my @items = $self->run_query($json, $foreach->{generator});
 
-                my ($init_values, $init_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $foreach->{init_expr});
-                my $acc;
-                if ($init_ok) {
-                    $acc = @$init_values ? $init_values->[0] : undef;
-                }
-                else {
-                    my @init_outputs = $self->run_query(JQ::Lite::Util::_encode_json($value), $foreach->{init_expr});
-                    $acc = @init_outputs ? $init_outputs[0] : undef;
-                }
+                my $acc = _evaluate_scalar_expression($self, $value, $foreach->{init_expr});
 
                 for my $element (@items) {
                     my %existing = %{ $self->{_vars} || {} };
                     local $self->{_vars} = { %existing, $foreach->{var_name} => $element };
 
-                    my ($updated_values, $updated_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $foreach->{update_expr});
-                    my $next;
-                    if ($updated_ok) {
-                        $next = @$updated_values ? $updated_values->[0] : undef;
-                    }
-                    else {
-                        my @outputs = $self->run_query(JQ::Lite::Util::_encode_json($acc), $foreach->{update_expr});
-                        $next = @outputs ? $outputs[0] : undef;
-                    }
-
-                    $acc = $next;
+                    $acc = _evaluate_scalar_expression($self, $acc, $foreach->{update_expr});
 
                     if (defined $foreach->{extract_expr} && length $foreach->{extract_expr}) {
-                        my ($extract_values, $extract_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $foreach->{extract_expr});
-                        my $output;
-                        if ($extract_ok) {
-                            $output = @$extract_values ? $extract_values->[0] : undef;
-                        }
-                        else {
-                            my @extracted = $self->run_query(JQ::Lite::Util::_encode_json($acc), $foreach->{extract_expr});
-                            $output = @extracted ? $extracted[0] : undef;
-                        }
+                        my $output = _evaluate_scalar_expression($self, $acc, $foreach->{extract_expr});
 
                         push @next_results, $output;
                     }
@@ -543,31 +1036,13 @@ sub apply {
                 my $json = JQ::Lite::Util::_encode_json($value);
                 my @items = $self->run_query($json, $reduce->{generator});
 
-                my ($init_values, $init_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $value, $reduce->{init_expr});
-                my $acc;
-                if ($init_ok) {
-                    $acc = @$init_values ? $init_values->[0] : undef;
-                }
-                else {
-                    my @init_outputs = $self->run_query(JQ::Lite::Util::_encode_json($value), $reduce->{init_expr});
-                    $acc = @init_outputs ? $init_outputs[0] : undef;
-                }
+                my $acc = _evaluate_scalar_expression($self, $value, $reduce->{init_expr});
 
                 for my $element (@items) {
                     my %existing = %{ $self->{_vars} || {} };
                     local $self->{_vars} = { %existing, $reduce->{var_name} => $element };
 
-                    my ($updated_values, $updated_ok) = JQ::Lite::Util::_evaluate_value_expression($self, $acc, $reduce->{update_expr});
-                    my $next;
-                    if ($updated_ok) {
-                        $next = @$updated_values ? $updated_values->[0] : undef;
-                    }
-                    else {
-                        my @outputs = $self->run_query(JQ::Lite::Util::_encode_json($acc), $reduce->{update_expr});
-                        $next = @outputs ? $outputs[0] : undef;
-                    }
-
-                    $acc = $next;
+                    $acc = _evaluate_scalar_expression($self, $acc, $reduce->{update_expr});
                 }
 
                 push @next_results, $acc;
@@ -577,14 +1052,14 @@ sub apply {
             return 1;
         }
 
-        # support for .[] iteration
-        if ($part eq '.[]') {
-            @next_results = map {
-                ref $_ eq 'ARRAY' ? @$_
-              : ref $_ eq 'HASH'  ? values %$_
-              : JQ::Lite::Util::_is_string_scalar($_) ? split(//, "$_")
-              : ()
-            } @results;
+        # Standalone and path-local iterators share type and optional rules.
+        if ($part eq '.[]' || $part eq '.[]?') {
+            my $optional = $part eq '.[]?';
+            @next_results = ();
+            for my $item (@results) {
+                push @next_results,
+                    JQ::Lite::Util::_v3_iterate_values($item, $optional);
+            }
             @$out_ref = @next_results;
             return 1;
         }
@@ -599,7 +1074,22 @@ sub apply {
             my $use_streaming_eval = $has_wildcard_array || !$has_comparison;
 
             # allow built-in filters like match() and test() to run so their errors surface
-            $use_streaming_eval ||= ($cond =~ /^\s*(match|test)\s*\(/);
+            $use_streaming_eval ||= ($cond =~ /^\s*(match|test|contains)\s*\(/);
+
+            # A scoped slice comparison is a filter expression. The legacy
+            # scalar condition helper can misclassify computed bounds on a
+            # missing/null field, so use the established comparison stream.
+            my ($select_lhs, $select_op, $select_rhs) =
+                JQ::Lite::Util::_split_top_level_comparison($cond);
+            my $has_simple_slice_comparison = 0;
+            if (defined $select_op) {
+                $select_lhs =~ s/^\s+|\s+$//g;
+                $select_rhs =~ s/^\s+|\s+$//g;
+                $has_simple_slice_comparison =
+                    JQ::Lite::Util::_is_complete_simple_bracket_slice($select_lhs)
+                    || JQ::Lite::Util::_is_complete_simple_bracket_slice($select_rhs);
+            }
+            $use_streaming_eval ||= $has_simple_slice_comparison;
 
             VALUE: for my $value (@results) {
                 my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
@@ -632,6 +1122,9 @@ sub apply {
 
                         next VALUE;
                     }
+                    # An empty comparison stream cannot select the input.
+                    # Never resurrect a value via legacy scalar fallback.
+                    next VALUE if $has_simple_slice_comparison;
                 }
 
                 if ($simple) {
@@ -666,25 +1159,15 @@ sub apply {
             return 1;
         }
 
-        # support for sort
-        if ($part eq 'sort') {
-            @next_results = map {
-                ref $_ eq 'ARRAY' ? [ sort { JQ::Lite::Util::_smart_cmp()->($a, $b) } @$_ ] : $_
-            } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for sort_desc
-        if ($part eq 'sort_desc') {
+        # Share the array dispatch; only comparison direction differs.
+        if ($part eq 'sort' || $part eq 'sort_desc') {
+            my $desc = $part eq 'sort_desc';
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $cmp = JQ::Lite::Util::_smart_cmp();
-                    [ sort { $cmp->($b, $a) } @$_ ];
+                    [ sort { $desc ? $cmp->($b, $a) : $cmp->($a, $b) } @$_ ]
                 }
-                else {
-                    $_;
-                }
+                else { $_ }
             } @results;
             @$out_ref = @next_results;
             return 1;
@@ -701,14 +1184,8 @@ sub apply {
 
         # support for unique_by(path)
         if ($part =~ /^unique_by\((.+?)\)$/) {
-            my $raw_path = $1;
-            $raw_path =~ s/^\s+|\s+$//g;
-
-            my $key_path = $raw_path;
-            $key_path =~ s/^['"](.*)['"]$/$1/;
-
-            my $use_entire_item = ($key_path eq '' || $key_path eq '.');
-            $key_path =~ s/^\.// unless $use_entire_item;
+            my ($key_path, $use_entire_item)
+                = JQ::Lite::Util::_normalize_path_argument($1);
 
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
@@ -716,14 +1193,9 @@ sub apply {
                     my @deduped;
 
                     for my $element (@$_) {
-                        my $key_value;
-
-                        if ($use_entire_item) {
-                            $key_value = $element;
-                        } else {
-                            my @values = JQ::Lite::Util::_traverse($element, $key_path);
-                            $key_value = @values ? $values[0] : undef;
-                        }
+                        my $key_value = JQ::Lite::Util::_first_projected_key(
+                            $element, $key_path, $use_entire_item
+                        );
 
                         my $signature;
                         if (defined $key_value) {
@@ -748,14 +1220,7 @@ sub apply {
 
         # support for limit(n)
         if ($part =~ /^limit\((.+)\)$/) {
-            my $limit_str = $1;
-            $limit_str =~ s/^\s+|\s+$//g;
-
-            if ($limit_str !~ /^\d+$/) {
-                die "limit(): count must be a non-negative integer";
-            }
-
-            my $limit = $limit_str + 0;
+            my $limit = _parse_nonnegative_count($1, 'limit', 'count');
 
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
@@ -771,73 +1236,27 @@ sub apply {
             return 1;
         }
 
-        # support for drop(n)
-        if ($part =~ /^drop\((.+)\)$/) {
-            my $count_str = $1;
-            $count_str =~ s/^\s+|\s+$//g;
+        # drop/tail differ only in the start of the retained suffix.
+        if ($part =~ /^(drop|tail)\((.+)\)$/) {
+            my ($name, $raw_count) = ($1, $2);
+            my $count = _parse_nonnegative_count($raw_count, $name, 'count');
 
-            if ($count_str !~ /^\d+$/) {
-                die "drop(): count must be a non-negative integer";
-            }
-
-            my $count = $count_str + 0;
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
-                    if ($count >= @$arr) {
-                        [];
-                    } else {
-                        [ @$arr[$count .. $#$arr] ];
-                    }
-                } else {
-                    $_;
+                    my $start = $name eq 'tail' ? @$arr - $count : $count;
+                    $start = 0 if $start < 0;
+                    $start > $#$arr ? [] : [ @$arr[$start .. $#$arr] ];
                 }
+                else { $_ }
             } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for tail(n)
-        if ($part =~ /^tail\((.+)\)$/) {
-            my $count_str = $1;
-            $count_str =~ s/^\s+|\s+$//g;
-
-            if ($count_str !~ /^\d+$/) {
-                die "tail(): count must be a non-negative integer";
-            }
-
-            my $count = $count_str + 0;
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $arr = $_;
-
-                    if ($count == 0 || !@$arr) {
-                        [];
-                    } else {
-                        my $start = @$arr - $count;
-                        $start = 0 if $start < 0;
-
-                        [ @$arr[$start .. $#$arr] ];
-                    }
-                } else {
-                    $_;
-                }
-            } @results;
-
             @$out_ref = @next_results;
             return 1;
         }
 
         # support for chunks(n)
         if ($part =~ /^chunks\((.+)\)$/) {
-            my $size_str = $1;
-            $size_str =~ s/^\s+|\s+$//g;
-
-            if ($size_str !~ /^\d+$/) {
-                die "chunks(): size must be a non-negative integer";
-            }
-
-            my $size = $size_str + 0;
+            my $size = _parse_nonnegative_count($1, 'chunks', 'size');
             $size = 1 if $size < 1;
 
             @next_results = map {
@@ -931,7 +1350,7 @@ sub apply {
                 if (ref $_ eq 'ARRAY') {
                     my $arr = $_;
                     my @pairs;
-                    for my $idx (0 .. $#$arr) {
+                    for (my $idx = 0; $idx < @$arr; $idx++) {
                         push @pairs, { index => $idx, value => $arr->[$idx] };
                     }
                     \@pairs;
@@ -965,14 +1384,17 @@ sub apply {
                         $_;
                     }
                     else {
-                        my @lengths = map { scalar(@$_) } @$outer;
-                        my $limit   = @lengths ? min(@lengths) : 0;
+                        my $limit = scalar(@{ $outer->[0] });
+                        for (my $row = 1; $row < @$outer; $row++) {
+                            my $length = scalar(@{ $outer->[$row] });
+                            $limit = $length if $length < $limit;
+                        }
 
                         if ($limit <= 0) {
                             [];
                         } else {
                             my @transposed;
-                            for my $idx (0 .. $limit - 1) {
+                            for (my $idx = 0; $idx < $limit; $idx++) {
                                 push @transposed, [ map { $_->[$idx] } @$outer ];
                             }
                             \@transposed;
@@ -1022,56 +1444,29 @@ sub apply {
 
         # support for pick(key1, key2, ...)
         if ($part =~ /^pick\((.*)\)$/) {
-            my @keys = map { defined $_ ? "$_" : undef } JQ::Lite::Util::_parse_arguments($1);
-            @keys = grep { defined $_ } @keys;
+            # Filter nulls while stringifying once, without materializing
+            # an intermediate list of converted arguments.
+            my @keys;
+            for my $arg (JQ::Lite::Util::_parse_arguments($1)) {
+                push @keys, "$arg" if defined $arg;
+            }
 
             @next_results = map { JQ::Lite::Util::_apply_pick($_, \@keys) } @results;
             @$out_ref = @next_results;
             return 1;
         }
 
-        # support for sum_by(path)
-        if ($part =~ /^sum_by\((.+)\)$/) {
-            my $raw_path = $1;
-            $raw_path =~ s/^\s+|\s+$//g;
-            $raw_path =~ s/^['"](.*)['"]$/$1/;
-
-            my $use_entire_item = ($raw_path eq '' || $raw_path eq '.');
-            my $key_path        = $raw_path;
-            $key_path =~ s/^\.// unless $use_entire_item;
-
+        # sum_by/avg_by share path normalization, array dispatch and numeric
+        # projection; the final division is the only difference.
+        if ($part =~ /^(sum|avg)_by\((.+)\)$/) {
+            my ($average, $raw_path) = ($1 eq 'avg', $2);
+            my ($key_path, $use_entire_item)
+                = JQ::Lite::Util::_normalize_path_argument($raw_path);
             @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $sum        = 0;
-                    my $has_number = 0;
-
-                    for my $element (@$_) {
-                        my @values = $use_entire_item
-                            ? ($element)
-                            : JQ::Lite::Util::_traverse($element, $key_path);
-
-                        for my $value (@values) {
-                            next unless defined $value;
-
-                            my $num = $value;
-                            if (ref($num) eq 'JSON::PP::Boolean') {
-                                $num = $num ? 1 : 0;
-                            }
-
-                            next if ref $num;
-                            next unless looks_like_number($num);
-                            $sum += $num;
-                            $has_number = 1;
-                        }
-                    }
-
-                    $has_number ? $sum : 0;
-                }
-                else {
-                    $_;
-                }
+                ref($_) eq 'ARRAY'
+                    ? _sum_or_avg_by($_, $key_path, $use_entire_item, $average)
+                    : $_
             } @results;
-
             @$out_ref = @next_results;
             return 1;
         }
@@ -1087,18 +1482,7 @@ sub apply {
                         push @numbers, JQ::Lite::Util::_project_numeric_values($element, $key_path, $use_entire_item);
                     }
 
-                    if (@numbers) {
-                        @numbers = sort { $a <=> $b } @numbers;
-                        my $count  = @numbers;
-                        my $middle = int($count / 2);
-                        if ($count % 2) {
-                            $numbers[$middle];
-                        } else {
-                            ($numbers[$middle - 1] + $numbers[$middle]) / 2;
-                        }
-                    } else {
-                        undef;
-                    }
+                    JQ::Lite::Util::_median_value(@numbers);
                 }
                 else {
                     $_;
@@ -1109,72 +1493,17 @@ sub apply {
             return 1;
         }
 
-        # support for avg_by(path)
-        if ($part =~ /^avg_by\((.+)\)$/) {
-            my ($key_path, $use_entire_item) = JQ::Lite::Util::_normalize_path_argument($1);
+        # max_by/min_by share path validation and array dispatch; only the
+        # comparison direction differs in the existing extreme-value helper.
+        if ($part =~ /^(max|min)_by\((.+)\)$/) {
+            my ($mode, $raw_path) = ($1, $2);
+            my ($key_path, $use_entire_item)
+                = JQ::Lite::Util::_normalize_path_argument($raw_path);
 
             @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $sum   = 0;
-                    my $count = 0;
-
-                    for my $element (@$_) {
-                        my @values = $use_entire_item
-                            ? ($element)
-                            : JQ::Lite::Util::_traverse($element, $key_path);
-
-                        for my $value (@values) {
-                            next unless defined $value;
-
-                            my $num = $value;
-                            if (ref($num) eq 'JSON::PP::Boolean') {
-                                $num = $num ? 1 : 0;
-                            }
-
-                            next if ref $num;
-                            next unless looks_like_number($num);
-                            $sum   += $num;
-                            $count += 1;
-                        }
-                    }
-
-                    $count ? $sum / $count : 0;
-                }
-                else {
-                    $_;
-                }
-            } @results;
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for max_by(path)
-        if ($part =~ /^max_by\((.+)\)$/) {
-            my ($key_path, $use_entire_item) = JQ::Lite::Util::_normalize_path_argument($1);
-
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    JQ::Lite::Util::_extreme_by($_, $key_path, $use_entire_item, 'max');
-                } else {
-                    $_;
-                }
-            } @results;
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for min_by(path)
-        if ($part =~ /^min_by\((.+)\)$/) {
-            my ($key_path, $use_entire_item) = JQ::Lite::Util::_normalize_path_argument($1);
-
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    JQ::Lite::Util::_extreme_by($_, $key_path, $use_entire_item, 'min');
-                } else {
-                    $_;
-                }
+                ref($_) eq 'ARRAY'
+                    ? JQ::Lite::Util::_extreme_by($_, $key_path, $use_entire_item, $mode)
+                    : $_
             } @results;
 
             @$out_ref = @next_results;
@@ -1263,89 +1592,48 @@ sub apply {
             return 1;
         }
 
-        # support for variance
-        if ($part eq 'variance') {
+        # Both array statistics share population variance calculation.
+        # Standard deviation alone takes the square root.
+        if ($part eq 'variance' || $part eq 'stddev') {
+            my $stddev = $part eq 'stddev';
             @next_results = map {
                 if (ref $_ eq 'ARRAY') {
                     my @numbers = JQ::Lite::Util::_extract_numeric_values($_);
-
-                    if (@numbers) {
-                        my $mean = sum(@numbers) / @numbers;
-                        sum(map { ($_ - $mean) ** 2 } @numbers) / @numbers;
-                    }
-                    else {
-                        undef;
-                    }
-                }
-                else {
-                    $_;
-                }
-            } @results;
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for stddev
-        if ($part eq 'stddev') {
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my @numbers = JQ::Lite::Util::_extract_numeric_values($_);
-
                     if (@numbers) {
                         my $mean = sum(@numbers) / @numbers;
                         my $variance = sum(map { ($_ - $mean) ** 2 } @numbers) / @numbers;
-                        sqrt($variance);
+                        $stddev ? sqrt($variance) : $variance;
                     }
-                    else {
-                        undef;
-                    }
+                    else { undef }
                 }
-                else {
-                    $_;
-                }
+                else { $_ }
             } @results;
 
             @$out_ref = @next_results;
             return 1;
         }
 
-        # support for group_count(key)
-        if ($part =~ /^group_count\((.+)\)$/) {
-            my $key_path = $1;
-            @next_results = map {
-                JQ::Lite::Util::_group_count($_, $key_path)
-            } @results;
+        # Legacy groupers share path dispatch, not their output semantics.
+        if ($part =~ /^(group_count|group_by)\((.+)\)$/) {
+            my ($name, $key_path) = ($1, $2);
+            my $apply = $name eq 'group_by'
+                ? \&JQ::Lite::Util::_group_by
+                : \&JQ::Lite::Util::_group_count;
+            @next_results = map { $apply->($_, $key_path) } @results;
             @$out_ref = @next_results;
             return 1;
         }
 
-        # support for group_by(key)
-        if ($part =~ /^group_by\((.+)\)$/) {
-            my $key_path = $1;
-            @next_results = map {
-                JQ::Lite::Util::_group_by($_, $key_path)
-            } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for all() / all(expr)
-        if ($part =~ /^all(?:\((.*)\))?$/) {
-            my $expr = defined $1 ? $1 : undef;
+        # all()/any() share the supported spelling and stream dispatcher.
+        # Their private implementations preserve opposite quantifier semantics.
+        if ($part =~ /^(all|any)(?:\((.*)\))?$/) {
+            my ($name, $expr) = ($1, $2);
             $expr = undef if defined($expr) && $expr eq '';
+            my $apply = $name eq 'all'
+                ? \&JQ::Lite::Util::_apply_all
+                : \&JQ::Lite::Util::_apply_any;
 
-            @next_results = map { JQ::Lite::Util::_apply_all($self, $_, $expr) } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for any() / any(expr)
-        if ($part =~ /^any(?:\((.*)\))?$/) {
-            my $expr = defined $1 ? $1 : undef;
-            $expr = undef if defined($expr) && $expr eq '';
-
-            @next_results = map { JQ::Lite::Util::_apply_any($self, $_, $expr) } @results;
+            @next_results = map { $apply->($self, $_, $expr) } @results;
             @$out_ref = @next_results;
             return 1;
         }
@@ -1437,131 +1725,50 @@ sub apply {
             return 1;
         }
 
-        # support for test("pattern"[, "flags"])
-        if ($part =~ /^test\((.+)\)$/) {
-            my ($pattern_expr, $flags_expr) = JQ::Lite::Util::_split_semicolon_arguments($1, 2);
+        # Literal regex functions share argument decoding, not matching
+        # semantics: each existing implementation owns its result and errors.
+        if ($part =~ /^(test|match)\((.+)\)$/) {
+            my ($function, $args) = ($1, $2);
+            my ($pattern_expr, $flags_expr) = JQ::Lite::Util::_split_semicolon_arguments($args, 2);
             my $pattern = defined $pattern_expr ? JQ::Lite::Util::_parse_string_argument($pattern_expr) : '';
             my $flags   = defined $flags_expr   ? JQ::Lite::Util::_parse_string_argument($flags_expr)   : '';
+            my $apply = $function eq 'test'
+                ? \&JQ::Lite::Util::_apply_test
+                : \&JQ::Lite::Util::_apply_match;
 
-            @next_results = map { JQ::Lite::Util::_apply_test($_, $pattern, $flags) } @results;
+            @next_results = map { $apply->($_, $pattern, $flags) } @results;
             @$out_ref = @next_results;
             return 1;
         }
 
-        # support for match("pattern"[, "flags"])
-        if ($part =~ /^match\((.+)\)$/) {
-            my ($pattern_expr, $flags_expr) = JQ::Lite::Util::_split_semicolon_arguments($1, 2);
-            my $pattern = defined $pattern_expr ? JQ::Lite::Util::_parse_string_argument($pattern_expr) : '';
-            my $flags   = defined $flags_expr   ? JQ::Lite::Util::_parse_string_argument($flags_expr)   : '';
-
-            @next_results = map { JQ::Lite::Util::_apply_match($_, $pattern, $flags) } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for indices(value)
-        if ($part =~ /^indices\((.*)\)$/) {
-            my @args   = JQ::Lite::Util::_parse_arguments($1);
+        # Share search argument decoding and stream dispatch. Each builtin
+        # retains its existing first/last/all-match implementation.
+        if ($part =~ /^(indices|r?index)\((.*)\)$/) {
+            my ($name, $argument) = ($1, $2);
+            my @args = JQ::Lite::Util::_parse_arguments($argument);
             my $needle = @args ? $args[0] : undef;
-
-            @next_results = map { JQ::Lite::Util::_apply_indices($_, $needle) } @results;
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for index(value)
-        if ($part =~ /^index\((.*)\)$/) {
-            my @args   = JQ::Lite::Util::_parse_arguments($1);
-            my $needle = @args ? $args[0] : undef;
+            my $last = $name eq 'rindex';
 
             @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $array = $_;
-                    my $found;
-                    for my $i (0 .. $#$array) {
-                        if (JQ::Lite::Util::_values_equal($array->[$i], $needle)) {
-                            $found = $i;
-                            last;
-                        }
-                    }
-                    defined $found ? $found : undef;
-                }
-                elsif (!ref $_ || ref($_) eq 'JSON::PP::Boolean') {
-                    if (!defined $_ || !defined $needle) {
-                        undef;
-                    }
-                    else {
-                        my $haystack = "$_";
-                        my $fragment = "$needle";
-                        my $pos      = index($haystack, $fragment);
-                        $pos >= 0 ? $pos : undef;
-                    }
-                }
-                else {
-                    undef;
-                }
+                $name eq 'indices'
+                    ? JQ::Lite::Util::_apply_indices($_, $needle)
+                    : JQ::Lite::Util::_apply_index($_, $needle, $last)
             } @results;
-
             @$out_ref = @next_results;
             return 1;
         }
 
-        # support for rindex(value)
-        if ($part =~ /^rindex\((.*)\)$/) {
-            my @args   = JQ::Lite::Util::_parse_arguments($1);
-            my $needle = @args ? $args[0] : undef;
-
-            @next_results = map {
-                if (ref $_ eq 'ARRAY') {
-                    my $array = $_;
-                    my $found;
-                    for (my $i = $#$array; $i >= 0; $i--) {
-                        if (JQ::Lite::Util::_values_equal($array->[$i], $needle)) {
-                            $found = $i;
-                            last;
-                        }
-                    }
-                    defined $found ? $found : undef;
-                }
-                elsif (!ref $_ || ref($_) eq 'JSON::PP::Boolean') {
-                    if (!defined $_ || !defined $needle) {
-                        undef;
-                    }
-                    else {
-                        my $haystack = "$_";
-                        my $fragment = "$needle";
-                        my $pos      = rindex($haystack, $fragment);
-                        $pos >= 0 ? $pos : undef;
-                    }
-                }
-                else {
-                    undef;
-                }
-            } @results;
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for paths()
-        if ($part eq 'paths()' || $part eq 'paths') {
+        # These v2 path enumerators share their output-stream handling.
+        # Keep each existing accepted spelling and collector unchanged.
+        if ($part eq 'paths()' || $part eq 'paths'
+            || $part =~ /^paths\(\s*scalars\s*\)$/)
+        {
+            my $collect = $part eq 'paths()' || $part eq 'paths'
+                ? \&JQ::Lite::Util::_apply_paths
+                : \&JQ::Lite::Util::_apply_scalar_paths;
             @next_results = ();
-
             for my $value (@results) {
-                my $paths = JQ::Lite::Util::_apply_paths($value);
-                push @next_results, @$paths;
-            }
-
-            @$out_ref = @next_results;
-            return 1;
-        }
-
-        # support for paths(scalars)
-        if ($part =~ /^paths\(\s*scalars\s*\)$/) {
-            @next_results = ();
-
-            for my $value (@results) {
-                my $paths = JQ::Lite::Util::_apply_scalar_paths($value);
+                my $paths = $collect->($value);
                 push @next_results, @$paths;
             }
 
@@ -1696,6 +1903,84 @@ sub apply {
         }
 
     return 0;
+}
+
+# Common legacy array-count argument validation. Keep each original
+# function name and error label, and do not broaden accepted syntax.
+sub _parse_nonnegative_count {
+    my ($raw, $name, $label) = @_;
+    $raw =~ s/^\s+|\s+$//g;
+    die "$name(): $label must be a non-negative integer"
+        unless $raw =~ /^\d+$/;
+    return $raw + 0;
+}
+
+# Share the existing numeric projection with median_by. Preserve v2's
+# per-value addition order; avg_by still divides by numeric output count.
+sub _sum_or_avg_by {
+    my ($array, $key_path, $use_entire_item, $average) = @_;
+    my ($sum, $count) = (0, 0);
+
+    for my $element (@$array) {
+        for my $num (JQ::Lite::Util::_project_numeric_values(
+            $element, $key_path, $use_entire_item
+        )) {
+            $sum += $num;
+            ++$count;
+        }
+    }
+
+    return $average && $count ? $sum / $count : $sum;
+}
+
+# Plain named fields and value expressions share the established shortcut.
+# Optional, quoted, indexed and iterator paths need the query evaluator to
+# preserve null/no-output distinctions and their existing path error policy.
+sub _evaluate_comparison_operand {
+    my ($self, $context, $expr) = @_;
+    my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
+    $copy =~ s/^\s+|\s+$//g;
+
+    # Nonliteral bracket arrays are filter constructors, not index paths.
+    # The value helper parses their leading '[' as a legacy bracket lookup
+    # and can report a successful empty stream for a valid array filter.
+    # JSON literal arrays remain on the existing value shortcut.
+    if ($copy =~ /\A\[/) {
+        my $is_json_literal = eval {
+            JQ::Lite::Util::_decode_json($copy);
+            1;
+        };
+        return $self->run_query(JQ::Lite::Util::_encode_json($context), $expr)
+            unless $is_json_literal;
+    }
+
+    # Simple root/named-field slices share the null-aware value evaluator,
+    # including fractional and computed bounds. It preserves actual null
+    # results without fabricating outputs for `empty` bound streams.
+    my $simple_slice =
+        JQ::Lite::Util::_is_complete_simple_bracket_slice($copy);
+
+    if ($copy !~ /\A\./
+        || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/
+        || $simple_slice)
+    {
+        my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $copy);
+        return @$values if $ok;
+    }
+
+    return $self->run_query(JQ::Lite::Util::_encode_json($context), $expr);
+}
+
+# Preserve reduce/foreach's existing scalar evaluation: use the first
+# value, or undef for no output. Fallback filters are fully evaluated so
+# errors in later outputs still propagate; this is not a lazy visitor.
+sub _evaluate_scalar_expression {
+    my ($self, $context, $expr) = @_;
+    my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $expr);
+    return @$values ? $values->[0] : undef if $ok;
+
+    my @outputs = $self->run_query(JQ::Lite::Util::_encode_json($context), $expr);
+    return @outputs ? $outputs[0] : undef;
 }
 
 1;
