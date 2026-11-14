@@ -813,67 +813,79 @@ sub _evaluate_value_expression {
         return ([ $decoded ], 1) unless $@;
     }
 
-    # An optional-suffixed complete slice is still a slice value inside
-    # constructors. Evaluate the bare slice through the null-aware helper,
-    # retaining its empty stream; '?' suppresses errors, not JSON nulls.
+    # Optional complete slices preserve null-valued constructor members,
+    # but only suppress errors from applying a slice to an emitted bound
+    # pair. Evaluating the bound filters themselves remains outside eval:
+    # arithmetic failures still propagate, and a later invalid slice does
+    # not erase successfully emitted earlier values.
     if ($copy =~ /\A(.+)\?\z/s
         && _is_complete_simple_bracket_slice($1))
     {
         my $bare_slice = $1;
-        # The legacy path walker can echo scalar source values for a
-        # slice on a number/boolean/object. jq's optional suffix suppresses
-        # those invalid slices, but still permits arrays, strings and null.
-        # Check the source separately so a valid null is not lost.
-        my ($source_path) = $bare_slice =~
-            /\A\.((?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?)\[[^\[\]]*:[^\[\]]*\]\z/;
-        my @sources;
-        my $source_ok = eval {
-            @sources = length($source_path)
-                ? _traverse($context, $source_path,
-                    { missing_object_null => 1 })
-                : ($context);
-            1;
-        };
-        return ([], 1) unless $source_ok && @sources;
-        for my $source (@sources) {
-            my $type = JQ::Lite::Value::type_of($source);
-            return ([], 1) unless $type eq 'null'
-                || $type eq 'array' || $type eq 'string';
-        }
+        my ($source_path, $raw_start, $raw_end) =
+            $bare_slice =~
+                /\A\.((?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?)\[([^\[\]]*):([^\[\]]*)\]\z/;
 
-        # The legacy literal-slice walker passes strings through unchanged.
-        # Only for an optional complete string slice with literal bounds,
-        # use the internal jq string slice helper. Computed-bound slices
-        # already use that helper for each emitted bound pair below.
-        if (@sources == 1
-            && JQ::Lite::Value::type_of($sources[0]) eq 'string')
-        {
-            my ($raw_start, $raw_end) =
-                $bare_slice =~ /\[([^\[\]]*):([^\[\]]*)\]\z/;
-            my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
-            my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
-            if ($raw_start =~ $literal && $raw_end =~ $literal) {
-                my @args = _parse_bracket_slice_arguments(
-                    $raw_start, $raw_end
-                );
-                my $result;
-                my $success = eval {
-                    $result = _apply_value_bracket_slice($sources[0], @args);
+        my @values;
+        my @sources;
+        my $sources_loaded = 0;
+        my $source_failed = 0;
+        my $emit_pair = sub {
+            my ($start, $end) = @_;
+
+            # Do not traverse the source when a bound emits no values.
+            if (!$sources_loaded) {
+                $sources_loaded = 1;
+                my $ok = eval {
+                    @sources = length($source_path)
+                        ? _traverse($context, $source_path,
+                            { missing_object_null => 1 })
+                        : ($context);
                     1;
                 };
-                return ($success ? [$result] : [], 1);
+                $source_failed = 1 unless $ok;
             }
-        }
+            return if $source_failed;
 
-        my ($values, $ok);
-        my $success = eval {
-            ($values, $ok) = _evaluate_value_expression(
-                $self, $context, $bare_slice
-            );
-            1;
+            for my $source (@sources) {
+                my $type = JQ::Lite::Value::type_of($source);
+                # Legacy slicing silently passes invalid scalar sources
+                # through; jq's '?' drops these slice applications.
+                next unless $type eq 'null'
+                    || $type eq 'array' || $type eq 'string';
+                my $value;
+                my $ok = eval {
+                    $value = _apply_value_bracket_slice($source, $start, $end);
+                    1;
+                };
+                push @values, $value if $ok;
+            }
         };
-        return ([], 1) unless $success;
-        return ($values, 1) if $ok;
+
+        my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+        my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+        my $emit_start = sub {
+            my ($start) = @_;
+            if ($raw_end =~ $literal) {
+                $emit_pair->($start, _parse_slice_argument($raw_end));
+            }
+            else {
+                _emit_slice_bound_stream(
+                    $self, $context, $raw_end, sub {
+                        $emit_pair->($start, $_[0]);
+                    }
+                );
+            }
+        };
+        if ($raw_start =~ $literal) {
+            $emit_start->(_parse_slice_argument($raw_start));
+        }
+        else {
+            _emit_slice_bound_stream(
+                $self, $context, $raw_start, $emit_start
+            );
+        }
+        return (\@values, 1);
     }
 
     # jq's fallback (//) binds more loosely than comparison. The generic
