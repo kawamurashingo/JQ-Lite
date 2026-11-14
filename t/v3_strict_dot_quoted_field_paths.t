@@ -903,4 +903,23 @@ subtest 'null optional slices and conditional body precedence' => sub {
     }
 };
 
+
+# Full conditional comparisons bind before a subsequent outer fallback.
+subtest 'conditional comparison outer fallback precedence' => sub {
+    my @cases = (
+        [\'outer-true\', \'[.a[(if (if true then 1 else null end == null // true) then 0 else 1 end):2]]\', \'[[[0,1]]]\'],
+        [\'outer-unused\', \'[.a[(if (if true then null else 1 end == null // false) then 0 else 1 end):2]]\', \'[[[0,1]]]\'],
+        [\'inner-body\', \'[.a[(if (if true then false // 1 else null end == null // true) then 0 else 1 end):2]]\', \'[[[0,1]]]\'],
+        [\'parenthesized-rhs\', \'[.a[(if (if true then 1 else null end == (null // true)) then 0 else 1 end):2]]\', \'[[[1]]]\'],
+        [\'outer-multivalue\', \'[.a[(if true then 1 else null end == null // (0,1)):2]]\', \'[[[0,1],[1]]]\'],
+        [\'outer-false\', \'[.a[(if (if true then 1 else null end == null // false) then 0 else 1 end):2]]\', \'[[[1]]]\'],
+    );
+    for my $case (@cases) {
+        my ($name, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query(\'{\"a\":[0,1,2]}\', $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;
