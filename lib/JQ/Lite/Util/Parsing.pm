@@ -768,12 +768,22 @@ sub _evaluate_variable_reference {
 }
 
 # Shared by the value evaluator and filter dispatchers: a complete root or
-# named-field slice with no nested bracket selectors. Restricting this shape
-# avoids changing the v2 computed-path and iterator extensions.
+# named-field slice with no nested bracket selectors. The optional evaluator
+# understands computed bounds only for root/unquoted field sources. Quoted
+# sources may use literal bounds here; otherwise preserve the legacy dispatch
+# rather than entering an evaluator whose source parser cannot extract them.
 sub _is_complete_simple_bracket_slice {
     my ($expr) = @_;
-    return defined($expr) && $expr =~
-        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\z/;
+    return 0 unless defined $expr;
+    return 1 if $expr =~
+        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\??\z/;
+
+    my ($start, $end) = $expr =~
+        /\A\."(?:\\.|[^"\\])*"\[([^\[\]]*):([^\[\]]*)\]\??\z/;
+    return 0 unless defined $start && defined $end;
+    my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+    my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+    return $start =~ $literal && $end =~ $literal ? 1 : 0;
 }
 
 sub _evaluate_value_expression {
@@ -811,6 +821,42 @@ sub _evaluate_value_expression {
     if ($copy =~ /\A[\[\{]/) {
         my $decoded = eval { _decode_json($copy) };
         return ([ $decoded ], 1) unless $@;
+    }
+
+    # A quoted field followed by literal slice bounds is the same
+    # supported value path as a root slice over that field's value.
+    # Apply the existing value-context slice helper to the selected value.
+    # This keeps null, optional errors and string slicing separate from
+    # the legacy public slice() API without another path parser.
+    if ($copy =~ /\A(\."(?:\\.|[^"\\])*")(\[([^\[\]]*):([^\[\]]*)\]\??)\z/s
+        && defined($self) && $self->can('run_query'))
+    {
+        my ($selector, $tail, $start, $end) = ($1, $2, $3, $4);
+        my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+        my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+        if ($start =~ $literal && $end =~ $literal) {
+            my @values;
+            my @bounds = _parse_bracket_slice_arguments($start, $end);
+            for my $source ($self->run_query(_encode_json($context), $selector)) {
+                if ($tail =~ /\?\z/) {
+                    my $type = JQ::Lite::Value::type_of($source);
+                    next unless $type eq 'null'
+                        || $type eq 'array' || $type eq 'string';
+                    my $value;
+                    my $ok = eval {
+                        $value = _apply_value_bracket_slice($source, @bounds);
+                        1;
+                    };
+                    push @values, $value if $ok;
+                }
+                else {
+                    push @values, _apply_value_bracket_slice(
+                        $source, @bounds
+                    );
+                }
+            }
+            return (\@values, 1);
+        }
     }
 
     # Optional complete slices preserve null-valued constructor members,

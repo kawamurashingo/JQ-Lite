@@ -164,6 +164,12 @@ sub parse_query {
             elsif ($rest =~ /^\s*\[/) {
                 $_;
             }
+            # A complete slice remains a rooted filter, including quoted
+            # fields and optional suffixes. Do not discard its leading dot
+            # before the value/stream-aware slice dispatch.
+            elsif (JQ::Lite::Util::_is_complete_simple_bracket_slice($_)) {
+                $_;
+            }
             # Keep the leading dot for supported literal, optional and
             # whitespace-separated path stages. Each shape uses the same
             # full-path validator, so call it once after the cheap checks.
