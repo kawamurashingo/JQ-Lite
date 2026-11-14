@@ -4420,3 +4420,9 @@
 {"name":"v3-promotion-nested-control-slice-review-03","input":{"a":null},"filter":"[.a[(if true then 0 else 1 end):(empty)] == null]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-nested-control-slice-review-04","input":{"a":null},"filter":"select(.a[(if true then 0 else 1 end):null] == null)","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-nested-control-slice-review-05","input":{"a":null},"filter":"select(.a[(if true then 0 else 1 end):(0,empty)] == null)","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-string","input":{"a":"abcdef"},"filter":"[.a[1:3]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-numeric-string","input":{"a":"123"},"filter":"[.a[0:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-boolean","input":{"a":false},"filter":"[.a[0:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-object","input":{"a":{}},"filter":"[.a[0:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-root-number","input":0,"filter":"[.[0:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-root-string","input":"hello","filter":"[.[1:3]?]","status":"compatible","expected":"ok"}
