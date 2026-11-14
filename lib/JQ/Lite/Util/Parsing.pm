@@ -855,6 +855,15 @@ sub _evaluate_value_expression {
                     || $type eq 'array' || $type eq 'string';
                 my $value;
                 my $ok = eval {
+                    # The legacy array slice numeric guards accept JSON
+                    # booleans via Perl overloading. jq rejects them as
+                    # nonnumeric bounds; '?' skips only this application.
+                    for my $bound ($start, $end) {
+                        next unless defined $bound;
+                        die 'slice(): bound must be numeric'
+                            unless JQ::Lite::Value::type_of($bound)
+                                eq 'number';
+                    }
                     $value = _apply_value_bracket_slice($source, $start, $end);
                     1;
                 };
@@ -1243,6 +1252,38 @@ sub _emit_slice_bound_if {
     });
 }
 
+# Some fallback operands contain a full unparenthesized conditional followed
+# by a comparison: "if ... then ... else ... end == null". A regular
+# comparison scan sees operators inside the if body and rejects top-level
+# control flow, while the complete-if parser correctly rejects the trailing
+# comparison. Find the first complete conditional prefix, then compare its
+# output stream rather than silently dropping the expression.
+sub _split_conditional_comparison_for_bound {
+    my ($copy) = @_;
+    return unless defined $copy && $copy =~ /(?:==|!=|[<>])/;
+
+    if ($copy =~ /\Aif\b/) {
+        while ($copy =~ /\bend\b/g) {
+            my $offset = pos($copy);
+            my $left = substr($copy, 0, $offset);
+            next unless _parse_if_expression($left);
+            my $right_tail = substr($copy, $offset);
+            if ($right_tail =~ /^\s*(==|!=|>=|<=|>|<)\s*(.+)\z/s) {
+                return ($left, $1, $2);
+            }
+        }
+    }
+
+    my ($lhs, $operator, $rhs) = _split_top_level_comparison($copy);
+    if (defined($operator)
+        && $rhs =~ /^\s*if\b/
+        && _parse_if_expression($rhs))
+    {
+        return ($lhs, $operator, $rhs);
+    }
+    return;
+}
+
 # Boolean operators bind outside comparisons and arithmetic.
 # Keep their short-circuit behavior and emitted booleans in this scoped
 # stream evaluator rather than routing compound predicates to the scalar
@@ -1341,6 +1382,23 @@ sub _emit_slice_bound_stream {
         _emit_slice_bound_boolean_chain(
             $self, $context, \@ands, 0, 0, $emit
         );
+        return;
+    }
+
+    # Preserve a full conditional comparison operand in a fallback branch.
+    # Evaluate the right stream first, then compare each left value without
+    # passing "if ... end == ..." to the legacy scalar expression shortcut.
+    my ($if_lhs, $if_operator, $if_rhs) =
+        _split_conditional_comparison_for_bound($copy);
+    if (defined $if_operator) {
+        _emit_slice_bound_stream($self, $context, $if_rhs, sub {
+            my $right = $_[0];
+            _emit_slice_bound_stream($self, $context, $if_lhs, sub {
+                my $left = $_[0];
+                $emit->(_compare_values($left, $if_operator, $right)
+                    ? JSON::PP::true : JSON::PP::false);
+            });
+        });
         return;
     }
 
