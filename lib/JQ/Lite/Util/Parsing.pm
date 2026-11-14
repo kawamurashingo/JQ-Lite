@@ -768,12 +768,22 @@ sub _evaluate_variable_reference {
 }
 
 # Shared by the value evaluator and filter dispatchers: a complete root or
-# named-field slice with no nested bracket selectors. Restricting this shape
-# avoids changing the v2 computed-path and iterator extensions.
+# named-field slice with no nested bracket selectors. The optional evaluator
+# understands computed bounds only for root/unquoted field sources. Quoted
+# sources may use literal bounds here; otherwise preserve the legacy dispatch
+# rather than entering an evaluator whose source parser cannot extract them.
 sub _is_complete_simple_bracket_slice {
     my ($expr) = @_;
-    return defined($expr) && $expr =~
-        /\A\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*")?\[[^\[\]]*:[^\[\]]*\]\??\z/;
+    return 0 unless defined $expr;
+    return 1 if $expr =~
+        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\??\z/;
+
+    my ($start, $end) = $expr =~
+        /\A\."(?:\\.|[^"\\])*"\[([^\[\]]*):([^\[\]]*)\]\??\z/;
+    return 0 unless defined $start && defined $end;
+    my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+    my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+    return $start =~ $literal && $end =~ $literal ? 1 : 0;
 }
 
 sub _evaluate_value_expression {
