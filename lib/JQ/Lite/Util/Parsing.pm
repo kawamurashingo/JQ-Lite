@@ -858,11 +858,16 @@ sub _evaluate_value_expression {
                     # The legacy array slice numeric guards accept JSON
                     # booleans via Perl overloading. jq rejects them as
                     # nonnumeric bounds; '?' skips only this application.
-                    for my $bound ($start, $end) {
-                        next unless defined $bound;
-                        die 'slice(): bound must be numeric'
-                            unless JQ::Lite::Value::type_of($bound)
-                                eq 'number';
+                    # jq preserves a null source even for invalid slice
+                    # index types. Still evaluate bound filters normally, but
+                    # validate their types only for arrays and strings.
+                    if ($type ne 'null') {
+                        for my $bound ($start, $end) {
+                            next unless defined $bound;
+                            die 'slice(): bound must be numeric'
+                                unless JQ::Lite::Value::type_of($bound)
+                                    eq 'number';
+                        }
                     }
                     $value = _apply_value_bracket_slice($source, $start, $end);
                     1;
@@ -1269,7 +1274,15 @@ sub _split_conditional_comparison_for_bound {
             next unless _parse_if_expression($left);
             my $right_tail = substr($copy, $offset);
             if ($right_tail =~ /^\s*(==|!=|>=|<=|>|<)\s*(.+)\z/s) {
-                return ($left, $1, $2);
+                my ($operator, $rhs) = ($1, $2);
+                # Let outer commas, pipes, and boolean chains be dispatched
+                # by their own precedence handlers instead of absorbing
+                # them as part of the comparison's right operand.
+                next if _split_top_level_commas($rhs) > 1
+                    || _split_top_level_pipes($rhs) > 1
+                    || _split_top_level_keyword($rhs, 'or') > 1
+                    || _split_top_level_keyword($rhs, 'and') > 1;
+                return ($left, $operator, $rhs);
             }
         }
     }
@@ -1320,6 +1333,24 @@ sub _emit_slice_bound_stream {
     my $if_expr = _parse_if_expression($copy);
     if ($if_expr) {
         _emit_slice_bound_if($self, $context, $if_expr, 0, $emit);
+        return;
+    }
+
+    # A complete conditional operand may contain an unparenthesized //,
+    # comma, or pipe inside its body. Handle the complete "if ... end"
+    # before generic operator splitters interpret those nested operators
+    # as belonging to the surrounding comparison or fallback expression.
+    my ($if_lhs, $if_operator, $if_rhs) =
+        _split_conditional_comparison_for_bound($copy);
+    if (defined $if_operator) {
+        _emit_slice_bound_stream($self, $context, $if_rhs, sub {
+            my $right = $_[0];
+            _emit_slice_bound_stream($self, $context, $if_lhs, sub {
+                my $left = $_[0];
+                $emit->(_compare_values($left, $if_operator, $right)
+                    ? JSON::PP::true : JSON::PP::false);
+            });
+        });
         return;
     }
 
@@ -1382,23 +1413,6 @@ sub _emit_slice_bound_stream {
         _emit_slice_bound_boolean_chain(
             $self, $context, \@ands, 0, 0, $emit
         );
-        return;
-    }
-
-    # Preserve a full conditional comparison operand in a fallback branch.
-    # Evaluate the right stream first, then compare each left value without
-    # passing "if ... end == ..." to the legacy scalar expression shortcut.
-    my ($if_lhs, $if_operator, $if_rhs) =
-        _split_conditional_comparison_for_bound($copy);
-    if (defined $if_operator) {
-        _emit_slice_bound_stream($self, $context, $if_rhs, sub {
-            my $right = $_[0];
-            _emit_slice_bound_stream($self, $context, $if_lhs, sub {
-                my $left = $_[0];
-                $emit->(_compare_values($left, $if_operator, $right)
-                    ? JSON::PP::true : JSON::PP::false);
-            });
-        });
         return;
     }
 
