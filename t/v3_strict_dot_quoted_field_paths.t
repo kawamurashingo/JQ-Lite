@@ -892,7 +892,7 @@ subtest 'null optional slices and conditional body precedence' => sub {
         ['null-booleans-both', '{"a":null}', '[.a[true:false]?]', '[[null]]'],
         ['conditional-body-fallback', '{"a":false}', '[.a == null // if true then false // 1 else null end == null]', '[[false]]'],
         ['conditional-nested-fallback', '{"a":false}', '[.a == null // if true then if true then false // 1 else null end else null end == null]', '[[false]]'],
-        ['conditional-body-comma', '{"a":false}', '[.a == null // if true then 1,2 else null end == null]', '[[false,false]]'],
+        ['conditional-body-comma', '{"a":false}', '[.a == null // if true then (1,2) else null end == null]', '[[false,false]]'],
         ['conditional-body-fallback-object', '{"a":false}', '{x:(.a == null // if true then false // 1 else null end == null)}', '[{"x":false}]'],
     );
     for my $case (@cases) {
