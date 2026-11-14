@@ -1343,14 +1343,37 @@ sub _emit_slice_bound_stream {
     my ($if_lhs, $if_operator, $if_rhs) =
         _split_conditional_comparison_for_bound($copy);
     if (defined $if_operator) {
-        _emit_slice_bound_stream($self, $context, $if_rhs, sub {
+        # After a complete leading conditional, a top-level // in the
+        # comparison's right tail belongs OUTSIDE the comparison. Its
+        # precedence is weaker than ==, unlike a parenthesized RHS
+        # fallback. Do not split the // inside a conditional RHS.
+        my ($compare_rhs, $outer_fallback);
+        if (_parse_if_expression($if_lhs)) {
+            ($compare_rhs, $outer_fallback) =
+                _split_top_level_operator($if_rhs, '//');
+        }
+        my $rhs_expr = defined($outer_fallback) ? $compare_rhs : $if_rhs;
+        my $have_comparison_value = 0;
+        _emit_slice_bound_stream($self, $context, $rhs_expr, sub {
             my $right = $_[0];
             _emit_slice_bound_stream($self, $context, $if_lhs, sub {
                 my $left = $_[0];
-                $emit->(_compare_values($left, $if_operator, $right)
-                    ? JSON::PP::true : JSON::PP::false);
+                my $value = _compare_values($left, $if_operator, $right)
+                    ? JSON::PP::true : JSON::PP::false;
+                # jq's // keeps truthy comparison results; a false/null
+                # comparison must fall back rather than be emitted.
+                if (defined($outer_fallback)) {
+                    return unless _is_truthy($value);
+                    $have_comparison_value = 1;
+                }
+                $emit->($value);
             });
         });
+        if (defined($outer_fallback) && !$have_comparison_value) {
+            _emit_slice_bound_stream(
+                $self, $context, $outer_fallback, $emit
+            );
+        }
         return;
     }
 
