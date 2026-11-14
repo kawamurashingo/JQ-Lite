@@ -825,12 +825,24 @@ sub _evaluate_value_expression {
         my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
         if ($start =~ $literal && $end =~ $literal) {
             my @values;
+            my @bounds = _parse_bracket_slice_arguments($start, $end);
             for my $source ($self->run_query(_encode_json($context), $selector)) {
-                my ($part, $ok) = _evaluate_value_expression(
-                    $self, $source, ".$tail"
-                );
-                return ([], 0) unless $ok;
-                push @values, @$part;
+                if ($tail =~ /\?\z/) {
+                    my $type = JQ::Lite::Value::type_of($source);
+                    next unless $type eq 'null'
+                        || $type eq 'array' || $type eq 'string';
+                    my $value;
+                    my $ok = eval {
+                        $value = _apply_value_bracket_slice($source, @bounds);
+                        1;
+                    };
+                    push @values, $value if $ok;
+                }
+                else {
+                    push @values, _apply_value_bracket_slice(
+                        $source, @bounds
+                    );
+                }
             }
             return (\@values, 1);
         }
