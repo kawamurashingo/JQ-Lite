@@ -798,6 +798,36 @@ sub _evaluate_value_expression {
     return ([], 0) if defined($select_body)
         && _are_brackets_balanced($select_body);
 
+    # A slice followed by a field or numeric index retains the slice's
+    # value stream before traversing the suffix. In particular, a missing
+    # slice source is one null, not an empty constructor member. Empty
+    # computed slice-bound streams still produce no chained values.
+    if ($copy =~
+        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])?\[[^\[\]]*:[^\[\]]*\]\??)(\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])\z/s
+        && defined($self) && $self->can('run_query'))
+    {
+        my ($slice, $tail) = ($1, $2);
+        $tail = ".$tail" if $tail =~ /\A\[/;
+        my ($slices, $slice_ok) =
+            _evaluate_value_expression($self, $context, $slice);
+        if ($slice_ok) {
+            my @values;
+            for my $slice_value (@$slices) {
+                my ($members, $member_ok) =
+                    _evaluate_value_expression($self, $slice_value, $tail);
+                if ($member_ok) {
+                    push @values, @$members;
+                }
+                else {
+                    push @values, $self->run_query(
+                        _encode_json($slice_value), $tail
+                    );
+                }
+            }
+            return (\@values, 1);
+        }
+    }
+
     # Scoped optional/quoted paths and bracket-to-field chains keep null
     # results in constructors. Do not route standalone legacy iterators
     # such as .[] through this visitor: reduce's existing empty-accumulator
