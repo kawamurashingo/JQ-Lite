@@ -815,8 +815,9 @@ sub _evaluate_value_expression {
 
     # A quoted field followed by literal slice bounds is the same
     # supported value path as a root slice over that field's value.
-    # Reuse the root evaluator for null, optional errors and string slicing
-    # instead of adding another path parser or changing slice()'s v2 API.
+    # Apply the existing value-context slice helper to the selected value.
+    # This keeps null, optional errors and string slicing separate from
+    # the legacy public slice() API without another path parser.
     if ($copy =~ /\A(\."(?:\\.|[^"\\])*")(\[([^\[\]]*):([^\[\]]*)\]\??)\z/s
         && defined($self) && $self->can('run_query'))
     {
