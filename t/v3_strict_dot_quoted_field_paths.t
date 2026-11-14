@@ -985,13 +985,16 @@ subtest 'quoted computed slice dispatch is warning-free' => sub {
     );
     for my $filter (@filters) {
         my @warnings;
-        my @values;
+        my $ok;
         {
             local $SIG{__WARN__} = sub { push @warnings, @_ };
-            @values = $jq->run_query('{"a":[0,1,2]}', $filter);
+            $ok = eval {
+                $jq->run_query('{"a":[0,1,2]}', $filter);
+                1;
+            };
         }
+        ok($ok, "quoted computed expression does not die: $filter");
         is_deeply(\@warnings, [], "no uninitialized warnings: $filter");
-        ok(ref(\@values) eq 'ARRAY', "computed quoted query returns normally: $filter");
     }
 };
 
