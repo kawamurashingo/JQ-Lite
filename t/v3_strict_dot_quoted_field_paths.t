@@ -757,4 +757,190 @@ subtest 'comparison slices preserve null and zero-output bounds' => sub {
     }
 };
 
+
+# Main-target Codex follow-up: optional slices preserve null-valued
+# constructor members; fallback precedence and nested control-flow bounds
+# retain jq 1.7's empty/null/false stream distinctions.
+subtest 'optional slice (main-target regressions)' => sub {
+    my @cases = (
+        ['{}', '[.a[0:1]?]', '[[null]]'],
+        ['{}', '{x:.a[0:1]?}', '[{"x":null}]'],
+        ['null', '[.a[0:1]?]', '[[null]]'],
+        ['null', '{x:.a[0:1]?}', '[{"x":null}]'],
+        ['{"a":null}', '[.a[0:1]?]', '[[null]]'],
+        ['{"a":2}', '[.a[0:1]?]', '[[]]'],
+        ['{"a":"abcdef"}', '[.a[1:3]?]', '[["bc"]]'],
+        ['{"a":"123"}', '[.a[0:1]?]', '[["1"]]'],
+        ['{"a":false}', '[.a[0:1]?]', '[[]]'],
+        ['{"a":{}}', '[.a[0:1]?]', '[[]]'],
+        ['0', '[.[0:1]?]', '[[]]'],
+        ['"hello"', '[.[1:3]?]', '[["el"]]'],
+        ['{"a":"abcdef"}', '[.a[(0+1):(2+1)]?]', '[["bc"]]'],
+        ['{"a":"abcdef"}', '[.a[(1,2):4]?]', '[["bcd","cd"]]'],
+        ['{"a":"abcdef"}', '[.a[1.2:3.4]?]', '[["bcd"]]'],
+        ['{"a":"abcdef"}', '[.a[-3:-1]?]', '[["de"]]'],
+        ['{"a":"abcdef"}', '[.a[empty:3]?]', '[[]]'],
+        ['{"a":[1,2]}', '[.a[0:1]?]', '[[[1]]]'],
+        ['{}', '[.a[empty:1]?]', '[[]]'],
+        ['{}', '{x:.a[empty:1]?}', '[]'],
+        ['null', '[.[0:1]?]', '[[null]]'],
+        ['{}', '[.a[(0):1]?]', '[[null]]'],
+        ['{}', '[.a[0.5:1]?]', '[[null]]'],
+        ['{}', '[.a[(empty):1]?]', '[[]]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "optional-slice / $filter on $input");
+    }
+};
+
+subtest 'fallback comparison (main-target regressions)' => sub {
+    my @cases = (
+        ['{"a":false}', '[.a == null // false]', '[[false]]'],
+        ['{"a":false}', '{x:(.a == null // false)}', '[{"x":false}]'],
+        ['{"a":null}', '[.a == null // false]', '[[true]]'],
+        ['{"a":false}', '[.a == null // true]', '[[true]]'],
+        ['{"a":false}', '[.a == false // null]', '[[true]]'],
+        ['{"a":false}', '[.a == null // (1,2)]', '[[1,2]]'],
+        ['{"a":null}', '[.a == null // (1,2)]', '[[true]]'],
+        ['{"a":false}', '{x:(.a == null // true)}', '[{"x":true}]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "fallback-comparison / $filter on $input");
+    }
+};
+
+subtest 'nested control slice (main-target regressions)' => sub {
+    my @cases = (
+        ['{"a":null}', 'select(.a[(if true then 0 else 1 end):(empty)] == null)', '[]'],
+        ['{}', 'select(.a[(if true then 0 else 1 end):1] == null)', '[{}]'],
+        ['{"a":null}', '[.a[(if true then 0 else 1 end):(empty)] == null]', '[[]]'],
+        ['{"a":null}', 'select(.a[(if true then 0 else 1 end):null] == null)', '[{"a":null}]'],
+        ['{"a":null}', 'select(.a[(if true then 0 else 1 end):(0,empty)] == null)', '[{"a":null}]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "nested-control-slice / $filter on $input");
+    }
+};
+
+
+# Optional '?' suppresses each invalid slice application, not errors from
+# computing its bounds. Earlier successful outputs survive later bad bounds.
+subtest 'optional bound stream error and order' => sub {
+    my @cases = (
+        ['{"a":[1,2]}', '[.a[(0,"x"):1]?]', '[[[1]]]'],
+        ['{"a":[1,2]}', '[.a[(0,1,"x",2):2]?]', '[[[1,2],[2],[]]]'],
+        ['{"a":[1,2]}', '[.a[0:(1,"x",2)]?]', '[[[1],[1,2]]]'],
+        ['{"a":2}', '[.a[(0,"x"):1]?]', '[[]]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "per-bound optional application: $filter on $input");
+    }
+
+    for my $input ('{"a":[1,2]}', '{"a":2}') {
+        my $threw = !eval {
+            $jq->run_query($input, '[.a[(1+"x"):1]?]');
+            1;
+        };
+        ok($threw, "optional must propagate invalid bound addition: $input");
+    }
+};
+
+
+# Exact-head main-target follow-up: reject boolean array bounds per
+# optional application and preserve conditional comparison fallback streams.
+subtest 'boolean optional bounds and conditional fallback review' => sub {
+    my @cases = (
+        ['boolean-start-dropped', '{"a":[1,2]}', '[.a[false:1.2]?]', '[[]]'],
+        ['boolean-true-dropped', '{"a":[1,2]}', '[.a[true:2]?]', '[[]]'],
+        ['boolean-end-dropped', '{"a":[1,2]}', '[.a[0:false]?]', '[[]]'],
+        ['boolean-start-mixed', '{"a":[1,2]}', '[.a[(false,0):1.2]?]', '[[[1,2]]]'],
+        ['boolean-end-mixed', '{"a":[1,2]}', '[.a[0:(false,1)]?]', '[[[1]]]'],
+        ['conditional-right-null', '{"a":false}', '[.a == null // if true then .a else null end == null]', '[[false]]'],
+        ['conditional-fallback-skipped', '{"a":null}', '[.a == null // if true then .a else null end == null]', '[[true]]'],
+        ['conditional-right-object', '{"a":false}', '{x:(.a == null // if true then .a else null end == null)}', '[{"x":false}]'],
+        ['conditional-right-comparison', '{"a":false}', '[.a == null // null == if true then .a else null end]', '[[false]]'],
+        ['conditional-right-multivalue', '{"a":false}', '[.a == null // if true then 0 else 1 end == (0,1)]', '[[true,false]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter on $input");
+    }
+};
+
+
+# Codex exact-head follow-up: null sources ignore invalid bound types,
+# while full if bodies retain internal fallback/comma operators.
+subtest 'null optional slices and conditional body precedence' => sub {
+    my @cases = (
+        ['null-boolean-start', '{"a":null}', '[.a[false:1]?]', '[[null]]'],
+        ['null-string-start', '{"a":null}', '[.a["x":1]?]', '[[null]]'],
+        ['null-string-end', '{"a":null}', '[.a[0:"x"]?]', '[[null]]'],
+        ['null-booleans-both', '{"a":null}', '[.a[true:false]?]', '[[null]]'],
+        ['conditional-body-fallback', '{"a":false}', '[.a == null // if true then false // 1 else null end == null]', '[[false]]'],
+        ['conditional-nested-fallback', '{"a":false}', '[.a == null // if true then if true then false // 1 else null end else null end == null]', '[[false]]'],
+        ['conditional-body-comma', '{"a":false}', '[.a == null // if true then (1,2) else null end == null]', '[[false,false]]'],
+        ['conditional-body-fallback-object', '{"a":false}', '{x:(.a == null // if true then false // 1 else null end == null)}', '[{"x":false}]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected),
+            "$name: $filter");
+    }
+};
+
+
+# Full conditional comparisons bind before a subsequent outer fallback.
+subtest 'conditional comparison outer fallback precedence' => sub {
+    my @cases = (
+        ['outer-true', '[.a[(if (if true then 1 else null end == null // true) then 0 else 1 end):2]]', '[[[0,1]]]'],
+        ['outer-unused', '[.a[(if (if true then null else 1 end == null // false) then 0 else 1 end):2]]', '[[[0,1]]]'],
+        ['inner-body', '[.a[(if (if true then false // 1 else null end == null // true) then 0 else 1 end):2]]', '[[[0,1]]]'],
+        ['parenthesized-rhs', '[.a[(if (if true then 1 else null end == (null // true)) then 0 else 1 end):2]]', '[[[1]]]'],
+        ['outer-multivalue', '[.a[(if true then 1 else null end == null // (0,1)):2]]', '[[[0,1],[1]]]'],
+        ['outer-false', '[.a[(if (if true then 1 else null end == null // false) then 0 else 1 end):2]]', '[[[1]]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query('{"a":[0,1,2]}', $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
+
+# A RHS complete if keeps its internal //; a trailing // after its end
+# still belongs to the outer comparison fallback.
+subtest 'RHS conditional fallback scope' => sub {
+    my @cases = (
+        ['rhs-conditional-body', '[.a == null // if true then 1 else null end == if true then false // null else null end]', '[false]'],
+        ['rhs-conditional-body-object', '{x:(.a == null // if true then 1 else null end == if true then false // null else null end)}', '{"x":false}'],
+        ['rhs-conditional-body-number', '[.a == null // if true then 1 else null end == if true then false // 42 else null end]', '[false]'],
+        ['rhs-conditional-body-parenthesized', '[.a == null // if true then 1 else null end == if true then (false // null) else null end]', '[false]'],
+        ['rhs-conditional-outer-fallback', '[.a == null // if true then 1 else null end == if true then false // null else null end // true]', '[true]'],
+        ['rhs-conditional-outer-multivalue', '[.a == null // if true then 1 else null end == if true then false // null else null end // (1,2)]', '[1,2]'],
+        ['rhs-conditional-nested', '[.a == null // if true then 1 else null end == if true then if true then false // null else null end else null end]', '[false]'],
+    );
+    for my $case (@cases) {
+        my ($name, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query('{"a":false}', $filter)],
+            [JSON::PP->new->decode($expected_json)],
+            "$name: $filter");
+    }
+};
+
 done_testing;

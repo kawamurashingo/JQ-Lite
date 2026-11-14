@@ -351,6 +351,7 @@ sub _split_top_level_comparison {
     return unless defined $text && $text =~ /(?:==|!=|[<>])/;
 
     my (@stack, $quote, $escape, @comparison);
+    my $top_level_control_flow = 0;
 
     for (my $i = 0; $i < length($text); $i++) {
         my $char = substr($text, $i, 1);
@@ -367,6 +368,15 @@ sub _split_top_level_comparison {
 
         my $tail = substr($text, $i);
         my $previous = $i > 0 ? substr($text, $i - 1, 1) : '';
+        # Control flow inside a slice bound is nested syntax, not a
+        # top-level conditional. Keep the old guard for actual top-level
+        # if/try expressions without rejecting valid computed bounds.
+        if (!@comparison
+            && ($i == 0 || $previous !~ /[\w.]/)
+            && $tail =~ /^(?:if|then|elif|else|end|try|catch)\b/)
+        {
+            $top_level_control_flow = 1;
+        }
         if (($i == 0 || $previous =~ /\s/)
             && $tail =~ /^(?:and|or)(?=\s|$)/)
         {
@@ -380,10 +390,10 @@ sub _split_top_level_comparison {
             @comparison = (substr($text, 0, $i), $operator, substr($text, $i + length($operator)));
         }
     }
-    # Only complete operands can use the comparison evaluator. Control flow
-    # and incomplete variable suffixes retain their existing evaluation path.
+    # Only complete operands can use the comparison evaluator. Exclude
+    # actual top-level control flow, not keywords nested in slice bounds.
     return if @comparison && ($comparison[0] !~ /\S/ || $comparison[2] !~ /\S/
-        || $comparison[0] =~ /\b(?:if|then|elif|else|end|try|catch)\b/);
+        || $top_level_control_flow);
     return @comparison;
 }
 
@@ -803,6 +813,120 @@ sub _evaluate_value_expression {
         return ([ $decoded ], 1) unless $@;
     }
 
+    # Optional complete slices preserve null-valued constructor members,
+    # but only suppress errors from applying a slice to an emitted bound
+    # pair. Evaluating the bound filters themselves remains outside eval:
+    # arithmetic failures still propagate, and a later invalid slice does
+    # not erase successfully emitted earlier values.
+    if ($copy =~ /\A(.+)\?\z/s
+        && _is_complete_simple_bracket_slice($1))
+    {
+        my $bare_slice = $1;
+        my ($source_path, $raw_start, $raw_end) =
+            $bare_slice =~
+                /\A\.((?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?)\[([^\[\]]*):([^\[\]]*)\]\z/;
+
+        my @values;
+        my @sources;
+        my $sources_loaded = 0;
+        my $source_failed = 0;
+        my $emit_pair = sub {
+            my ($start, $end) = @_;
+
+            # Do not traverse the source when a bound emits no values.
+            if (!$sources_loaded) {
+                $sources_loaded = 1;
+                my $ok = eval {
+                    @sources = length($source_path)
+                        ? _traverse($context, $source_path,
+                            { missing_object_null => 1 })
+                        : ($context);
+                    1;
+                };
+                $source_failed = 1 unless $ok;
+            }
+            return if $source_failed;
+
+            for my $source (@sources) {
+                my $type = JQ::Lite::Value::type_of($source);
+                # Legacy slicing silently passes invalid scalar sources
+                # through; jq's '?' drops these slice applications.
+                next unless $type eq 'null'
+                    || $type eq 'array' || $type eq 'string';
+                my $value;
+                my $ok = eval {
+                    # The legacy array slice numeric guards accept JSON
+                    # booleans via Perl overloading. jq rejects them as
+                    # nonnumeric bounds; '?' skips only this application.
+                    # jq preserves a null source even for invalid slice
+                    # index types. Still evaluate bound filters normally, but
+                    # validate their types only for arrays and strings.
+                    if ($type ne 'null') {
+                        for my $bound ($start, $end) {
+                            next unless defined $bound;
+                            die 'slice(): bound must be numeric'
+                                unless JQ::Lite::Value::type_of($bound)
+                                    eq 'number';
+                        }
+                    }
+                    $value = _apply_value_bracket_slice($source, $start, $end);
+                    1;
+                };
+                push @values, $value if $ok;
+            }
+        };
+
+        my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+        my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+        my $emit_start = sub {
+            my ($start) = @_;
+            if ($raw_end =~ $literal) {
+                $emit_pair->($start, _parse_slice_argument($raw_end));
+            }
+            else {
+                _emit_slice_bound_stream(
+                    $self, $context, $raw_end, sub {
+                        $emit_pair->($start, $_[0]);
+                    }
+                );
+            }
+        };
+        if ($raw_start =~ $literal) {
+            $emit_start->(_parse_slice_argument($raw_start));
+        }
+        else {
+            _emit_slice_bound_stream(
+                $self, $context, $raw_start, $emit_start
+            );
+        }
+        return (\@values, 1);
+    }
+
+    # jq's fallback (//) binds more loosely than comparison. The generic
+    # comparison dispatcher sees the first == too early and would evaluate
+    # ".a == null // false" as ".a == (null // false)". For comparison-
+    # bearing fallback expressions, use the existing ordered bound-stream
+    # evaluator, which already applies // after comparison and honors
+    # null/false-only fallback without treating an empty stream as null.
+    my ($default_lhs, $default_rhs) =
+        _split_top_level_operator($copy, '//');
+    if (defined($default_lhs) && defined($default_rhs)
+        && $default_lhs =~ /\S/ && $default_rhs =~ /\S/
+        && defined($self) && $self->can('run_query'))
+    {
+        my (undef, $lhs_comparison) =
+            _split_top_level_comparison($default_lhs);
+        my (undef, $rhs_comparison) =
+            _split_top_level_comparison($default_rhs);
+        if (defined($lhs_comparison) || defined($rhs_comparison)) {
+            my @values;
+            _emit_slice_bound_stream($self, $context, $copy, sub {
+                push @values, $_[0];
+            });
+            return (\@values, 1);
+        }
+    }
+
     # Comparison values must preserve their filter streams in constructors
     # and other value contexts instead of using the scalar expression path.
     my (undef, $comparison_operator) = _split_top_level_comparison($copy);
@@ -1133,6 +1257,73 @@ sub _emit_slice_bound_if {
     });
 }
 
+# Some fallback operands contain a full unparenthesized conditional followed
+# by a comparison: "if ... then ... else ... end == null". A regular
+# comparison scan sees operators inside the if body and rejects top-level
+# control flow, while the complete-if parser correctly rejects the trailing
+# comparison. Find the first complete conditional prefix, then compare its
+# output stream rather than silently dropping the expression.
+sub _split_conditional_comparison_for_bound {
+    my ($copy) = @_;
+    return unless defined $copy && $copy =~ /(?:==|!=|[<>])/;
+
+    if ($copy =~ /\Aif\b/) {
+        while ($copy =~ /\bend\b/g) {
+            my $offset = pos($copy);
+            my $left = substr($copy, 0, $offset);
+            next unless _parse_if_expression($left);
+            my $right_tail = substr($copy, $offset);
+            if ($right_tail =~ /^\s*(==|!=|>=|<=|>|<)\s*(.+)\z/s) {
+                my ($operator, $rhs) = ($1, $2);
+                # Let outer commas, pipes, and boolean chains be dispatched
+                # by their own precedence handlers instead of absorbing
+                # them as part of the comparison's right operand.
+                next if _split_top_level_commas($rhs) > 1
+                    || _split_top_level_pipes($rhs) > 1
+                    || _split_top_level_keyword($rhs, 'or') > 1
+                    || _split_top_level_keyword($rhs, 'and') > 1;
+                return ($left, $operator, $rhs);
+            }
+        }
+    }
+
+    my ($lhs, $operator, $rhs) = _split_top_level_comparison($copy);
+    if (defined($operator)
+        && $rhs =~ /^\s*if\b/
+        && _parse_if_expression($rhs))
+    {
+        return ($lhs, $operator, $rhs);
+    }
+    return;
+}
+
+# A conditional comparison's right operand may itself be a complete if
+# expression containing // operators. The generic operator splitter tracks
+# brackets but not if/end nesting; never split a complete conditional body.
+# If a full conditional is followed by an outer "// ...", split only there.
+sub _split_conditional_rhs_fallback {
+    my ($rhs) = @_;
+    return unless defined $rhs;
+    return if _parse_if_expression($rhs);
+
+    if ($rhs =~ /^\s*if\b/) {
+        while ($rhs =~ /\bend\b/g) {
+            my $offset = pos($rhs);
+            my $prefix = substr($rhs, 0, $offset);
+            next unless _parse_if_expression($prefix);
+            my $suffix = substr($rhs, $offset);
+            if ($suffix =~ /^\s*\/\/\s*(\S.*)\z/s) {
+                return ($prefix, $1);
+            }
+        }
+        # An incomplete conditional or one followed by a different
+        # operator is not safe for a bracket-only // splitter.
+        return;
+    }
+
+    return _split_top_level_operator($rhs, '//');
+}
+
 # Boolean operators bind outside comparisons and arithmetic.
 # Keep their short-circuit behavior and emitted booleans in this scoped
 # stream evaluator rather than routing compound predicates to the scalar
@@ -1169,6 +1360,47 @@ sub _emit_slice_bound_stream {
     my $if_expr = _parse_if_expression($copy);
     if ($if_expr) {
         _emit_slice_bound_if($self, $context, $if_expr, 0, $emit);
+        return;
+    }
+
+    # A complete conditional operand may contain a body-local // or
+    # grouped comma/pipe expression. Handle "if ... end" before generic
+    # operator splitters mistake those nested operators for a surrounding
+    # fallback or comparison.
+    my ($if_lhs, $if_operator, $if_rhs) =
+        _split_conditional_comparison_for_bound($copy);
+    if (defined $if_operator) {
+        # After a complete leading conditional, a top-level // in the
+        # comparison's right tail belongs OUTSIDE the comparison. Its
+        # precedence is weaker than ==, unlike a parenthesized RHS
+        # fallback. Do not split the // inside a conditional RHS.
+        my ($compare_rhs, $outer_fallback);
+        if (_parse_if_expression($if_lhs)) {
+            ($compare_rhs, $outer_fallback) =
+                _split_conditional_rhs_fallback($if_rhs);
+        }
+        my $rhs_expr = defined($outer_fallback) ? $compare_rhs : $if_rhs;
+        my $have_comparison_value = 0;
+        _emit_slice_bound_stream($self, $context, $rhs_expr, sub {
+            my $right = $_[0];
+            _emit_slice_bound_stream($self, $context, $if_lhs, sub {
+                my $left = $_[0];
+                my $value = _compare_values($left, $if_operator, $right)
+                    ? JSON::PP::true : JSON::PP::false;
+                # jq's // keeps truthy comparison results; a false/null
+                # comparison must fall back rather than be emitted.
+                if (defined($outer_fallback)) {
+                    return unless _is_truthy($value);
+                    $have_comparison_value = 1;
+                }
+                $emit->($value);
+            });
+        });
+        if (defined($outer_fallback) && !$have_comparison_value) {
+            _emit_slice_bound_stream(
+                $self, $context, $outer_fallback, $emit
+            );
+        }
         return;
     }
 
@@ -1275,6 +1507,34 @@ sub _emit_slice_bound_stream {
 # its existing int/int contract; only this scoped helper uses jq rounding.
 sub _apply_value_bracket_slice {
     my ($value, $raw_start, $raw_end) = @_;
+
+    # Complete jq bracket slices accept strings as well as arrays. The
+    # legacy slice(start,length) compatibility function does not slice
+    # strings; keep it unchanged and handle only the scoped value path.
+    if (JQ::Lite::Value::type_of($value) eq 'string') {
+        for my $arg ($raw_start, $raw_end) {
+            next unless defined $arg;
+            die 'slice(): bound must be numeric'
+                unless JQ::Lite::Value::type_of($arg) eq 'number';
+        }
+        my $length = length($value);
+        my $start = defined($raw_start) ? 0 + $raw_start : 0;
+        my $end = defined($raw_end) ? 0 + $raw_end : $length;
+        $start += $length if $start < 0;
+        $end += $length if $end < 0;
+
+        # jq floors fractional starts and ceils fractional ends.
+        my $from = int($start);
+        $from-- if $start < $from;
+        my $to = int($end);
+        $to++ if $end > $to;
+        $from = 0 if $from < 0;
+        $to = 0 if $to < 0;
+        $from = $length if $from > $length;
+        $to = $length if $to > $length;
+
+        return substr($value, $from, $to > $from ? $to - $from : 0);
+    }
 
     my $fractional = (defined($raw_start) && looks_like_number($raw_start)
             && $raw_start != int($raw_start))
