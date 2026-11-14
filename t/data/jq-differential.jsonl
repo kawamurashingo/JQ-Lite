@@ -4435,5 +4435,15 @@
 {"name":"v3-promotion-review-optional-bound-interleaved","input":{"a":[1,2]},"filter":"[.a[(0,1,\"x\",2):2]?]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-optional-bound-end-interleaved","input":{"a":[1,2]},"filter":"[.a[0:(1,\"x\",2)]?]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-optional-bound-invalid-scalar","input":{"a":2},"filter":"[.a[(0,\"x\"):1]?]","status":"compatible","expected":"ok"}
-{"name":"v3-promotion-review-optional-bound-addition-error","input":{"a":[1,2]},"filter":"[.a[(1+\"x\"):1]?]","status":"runtime-error","expected":"runtime-error"}
-{"name":"v3-promotion-review-optional-bound-addition-error-scalar","input":{"a":2},"filter":"[.a[(1+\"x\"):1]?]","status":"runtime-error","expected":"runtime-error"}
+{"name":"v3-promotion-review-optional-bound-addition-error","input":{"a":[1,2]},"filter":"[.a[(1+\"x\"):1]?]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-promotion-review-optional-bound-addition-error-scalar","input":{"a":2},"filter":"[.a[(1+\"x\"):1]?]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-promotion-review-boolean-start-dropped","input":{"a":[1,2]},"filter":"[.a[false:1.2]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-boolean-true-dropped","input":{"a":[1,2]},"filter":"[.a[true:2]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-boolean-end-dropped","input":{"a":[1,2]},"filter":"[.a[0:false]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-boolean-start-mixed","input":{"a":[1,2]},"filter":"[.a[(false,0):1.2]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-boolean-end-mixed","input":{"a":[1,2]},"filter":"[.a[0:(false,1)]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-right-null","input":{"a":false},"filter":"[.a == null // if true then .a else null end == null]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-fallback-skipped","input":{"a":null},"filter":"[.a == null // if true then .a else null end == null]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-right-object","input":{"a":false},"filter":"{x:(.a == null // if true then .a else null end == null)}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-right-comparison","input":{"a":false},"filter":"[.a == null // null == if true then .a else null end]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-right-multivalue","input":{"a":false},"filter":"[.a == null // if true then 0 else 1 end == (0,1)]","status":"compatible","expected":"ok"}
