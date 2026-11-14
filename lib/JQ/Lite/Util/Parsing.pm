@@ -841,6 +841,30 @@ sub _evaluate_value_expression {
                 || $type eq 'array' || $type eq 'string';
         }
 
+        # The legacy literal-slice walker passes strings through unchanged.
+        # Only for an optional complete string slice with literal bounds,
+        # use the internal jq string slice helper. Computed-bound slices
+        # already use that helper for each emitted bound pair below.
+        if (@sources == 1
+            && JQ::Lite::Value::type_of($sources[0]) eq 'string')
+        {
+            my ($raw_start, $raw_end) =
+                $bare_slice =~ /\[([^\[\]]*):([^\[\]]*)\]\z/;
+            my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+            my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+            if ($raw_start =~ $literal && $raw_end =~ $literal) {
+                my @args = _parse_bracket_slice_arguments(
+                    $raw_start, $raw_end
+                );
+                my $result;
+                my $success = eval {
+                    $result = _apply_value_bracket_slice($sources[0], @args);
+                    1;
+                };
+                return ($success ? [$result] : [], 1);
+            }
+        }
+
         my ($values, $ok);
         my $success = eval {
             ($values, $ok) = _evaluate_value_expression(
@@ -1349,6 +1373,34 @@ sub _emit_slice_bound_stream {
 # its existing int/int contract; only this scoped helper uses jq rounding.
 sub _apply_value_bracket_slice {
     my ($value, $raw_start, $raw_end) = @_;
+
+    # Complete jq bracket slices accept strings as well as arrays. The
+    # legacy slice(start,length) compatibility function does not slice
+    # strings; keep it unchanged and handle only the scoped value path.
+    if (JQ::Lite::Value::type_of($value) eq 'string') {
+        for my $arg ($raw_start, $raw_end) {
+            next unless defined $arg;
+            die 'slice(): bound must be numeric'
+                unless JQ::Lite::Value::type_of($arg) eq 'number';
+        }
+        my $length = length($value);
+        my $start = defined($raw_start) ? 0 + $raw_start : 0;
+        my $end = defined($raw_end) ? 0 + $raw_end : $length;
+        $start += $length if $start < 0;
+        $end += $length if $end < 0;
+
+        # jq floors fractional starts and ceils fractional ends.
+        my $from = int($start);
+        $from-- if $start < $from;
+        my $to = int($end);
+        $to++ if $end > $to;
+        $from = 0 if $from < 0;
+        $to = 0 if $to < 0;
+        $from = $length if $from > $length;
+        $to = $length if $to > $length;
+
+        return substr($value, $from, $to > $from ? $to - $from : 0);
+    }
 
     my $fractional = (defined($raw_start) && looks_like_number($raw_start)
             && $raw_start != int($raw_start))
