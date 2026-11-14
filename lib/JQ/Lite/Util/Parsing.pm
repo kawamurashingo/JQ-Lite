@@ -757,6 +757,15 @@ sub _evaluate_variable_reference {
     return $ok ? @$values : ();
 }
 
+# Shared by the value evaluator and filter dispatchers: a complete root or
+# named-field slice with no nested bracket selectors. Restricting this shape
+# avoids changing the v2 computed-path and iterator extensions.
+sub _is_complete_simple_bracket_slice {
+    my ($expr) = @_;
+    return defined($expr) && $expr =~
+        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\z/;
+}
+
 sub _evaluate_value_expression {
     my ($self, $context, $expr) = @_;
 
@@ -805,8 +814,7 @@ sub _evaluate_value_expression {
     # A complete simple bracket-slice is a path filter, even when a bound
     # contains '-' or '+' (scientific notation, negative literals, or a
     # parenthesized expression). Do not misclassify it as scalar arithmetic.
-    my $simple_bracket_slice = $copy =~
-        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\z/;
+    my $simple_bracket_slice = _is_complete_simple_bracket_slice($copy);
     if (_looks_like_expression($copy) && !$simple_bracket_slice) {
         my %builtins = (
             floor => sub {

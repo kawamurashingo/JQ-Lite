@@ -771,6 +771,29 @@ sub apply {
             }
         }
 
+        # Complete simple slices need the value helper regardless of
+        # whether their bounds look arithmetic. In particular, (empty)
+        # must stay zero outputs, not a synthesized JSON null.
+        if (JQ::Lite::Util::_is_complete_simple_bracket_slice($normalized)) {
+            my @slice_values;
+            my $all_slice_ok = 1;
+            for my $item (@results) {
+                my ($values, $ok) =
+                    JQ::Lite::Util::_evaluate_value_expression(
+                        $self, $item, $normalized
+                    );
+                if (!$ok) {
+                    $all_slice_ok = 0;
+                    last;
+                }
+                push @slice_values, @$values;
+            }
+            if ($all_slice_ok) {
+                @$out_ref = @slice_values;
+                return 1;
+            }
+        }
+
         if (JQ::Lite::Util::_looks_like_expression($normalized)) {
             my @evaluated;
             my $all_ok = 1;
@@ -1053,6 +1076,21 @@ sub apply {
             # allow built-in filters like match() and test() to run so their errors surface
             $use_streaming_eval ||= ($cond =~ /^\s*(match|test|contains)\s*\(/);
 
+            # A scoped slice comparison is a filter expression. The legacy
+            # scalar condition helper can misclassify computed bounds on a
+            # missing/null field, so use the established comparison stream.
+            my ($select_lhs, $select_op, $select_rhs) =
+                JQ::Lite::Util::_split_top_level_comparison($cond);
+            my $has_simple_slice_comparison = 0;
+            if (defined $select_op) {
+                $select_lhs =~ s/^\s+|\s+$//g;
+                $select_rhs =~ s/^\s+|\s+$//g;
+                $has_simple_slice_comparison =
+                    JQ::Lite::Util::_is_complete_simple_bracket_slice($select_lhs)
+                    || JQ::Lite::Util::_is_complete_simple_bracket_slice($select_rhs);
+            }
+            $use_streaming_eval ||= $has_simple_slice_comparison;
+
             VALUE: for my $value (@results) {
                 my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
 
@@ -1084,6 +1122,9 @@ sub apply {
 
                         next VALUE;
                     }
+                    # An empty comparison stream cannot select the input.
+                    # Never resurrect a value via legacy scalar fallback.
+                    next VALUE if $has_simple_slice_comparison;
                 }
 
                 if ($simple) {
@@ -1913,14 +1954,15 @@ sub _evaluate_comparison_operand {
             unless $is_json_literal;
     }
 
-    # Only literal/omitted nonnegative slice bounds can take this null
-    # fallback: computed bounds such as `empty` must keep zero outputs.
-    # Other scoped paths still use run_query for their stream behavior.
-    my $named_slice = $copy =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*\d*\s*:\s*\d*\s*\]\z/;
+    # Simple root/named-field slices share the null-aware value evaluator,
+    # including fractional and computed bounds. It preserves actual null
+    # results without fabricating outputs for `empty` bound streams.
+    my $simple_slice =
+        JQ::Lite::Util::_is_complete_simple_bracket_slice($copy);
 
     if ($copy !~ /\A\./
         || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/
-        || $named_slice)
+        || $simple_slice)
     {
         my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $copy);
         return @$values if $ok;

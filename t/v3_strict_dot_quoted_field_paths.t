@@ -711,4 +711,50 @@ subtest 'computed slice alternatives respect boolean precedence' => sub {
     }
 };
 
+
+# Main-target review: complete computed slices are filter streams even when
+# arithmetic appears in their bound expressions; preserve empty/multi-output.
+subtest 'computed slice filters keep all emitted values' => sub {
+    my @cases = (
+        ['[0,1,2]', '.[(0+0):(empty)]', '[]'],
+        ['[0,1,2]', '.[(0+0):(1,2)]', '[[0],[0,1]]'],
+        ['{"a":[0,1,2]}', '.a[(0+0):(1,2)]', '[[0],[0,1]]'],
+        ['[0,1,2]', '.[(0+0):(1,2)] | length', '[1,2]'],
+        ['[0,1,2]', '.[(empty):1]', '[]'],
+        ['[0,1,2]', '.[(0+0):1]', '[[0]]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "computed slice stream: $input / $filter");
+    }
+};
+
+# Fractional and parenthesized bounds in comparison operands must use the
+# same null-aware value route as constructor slices, never legacy traversal.
+subtest 'comparison slices preserve null and zero-output bounds' => sub {
+    my @cases = (
+        ['{}', '.a[0.5:1] == null', '[true]'],
+        ['{}', '.a[(0):1] == null', '[true]'],
+        ['null', '.a[0.5:1] == null', '[true]'],
+        ['{"a":null}', '.a[(0):1] == null', '[true]'],
+        ['{"a":[0,1,2]}', '.a[0.5:1] == null', '[false]'],
+        ['{}', '.a[(empty):1] == null', '[]'],
+        ['{}', '.a[0:(empty)] == null', '[]'],
+        ['{}', 'null == .a[(0):1]', '[true]'],
+        ['{}', 'select(.a[(0):1] == null)', '[{}]'],
+        ['{}', 'select(.a[0.5:1] == null)', '[{}]'],
+        ['{}', 'select(.a[(empty):1] == null)', '[]'],
+        ['{}', 'select(.a[0:(empty)] == null)', '[]'],
+        ['{"a":[0,1,2]}', '.a[(0):(1,2)] == [0]', '[true,false]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "null-aware comparison slice: $input / $filter");
+    }
+};
+
 done_testing;
