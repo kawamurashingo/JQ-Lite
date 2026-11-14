@@ -4455,3 +4455,9 @@
 {"name":"v3-promotion-review-conditional-nested-fallback","input":{"a":false},"filter":"[.a == null // if true then if true then false // 1 else null end else null end == null]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-conditional-body-comma","input":{"a":false},"filter":"[.a == null // if true then (1,2) else null end == null]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-conditional-body-fallback-object","input":{"a":false},"filter":"{x:(.a == null // if true then false // 1 else null end == null)}","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-outer-true","input":{"a":[0,1,2]},"filter":"[.a[(if (if true then 1 else null end == null // true) then 0 else 1 end):2]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-outer-unused","input":{"a":[0,1,2]},"filter":"[.a[(if (if true then null else 1 end == null // false) then 0 else 1 end):2]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-inner-body","input":{"a":[0,1,2]},"filter":"[.a[(if (if true then false // 1 else null end == null // true) then 0 else 1 end):2]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-parenthesized-rhs","input":{"a":[0,1,2]},"filter":"[.a[(if (if true then 1 else null end == (null // true)) then 0 else 1 end):2]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-outer-multivalue","input":{"a":[0,1,2]},"filter":"[.a[(if true then 1 else null end == null // (0,1)):2]]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-outer-false","input":{"a":[0,1,2]},"filter":"[.a[(if (if true then 1 else null end == null // false) then 0 else 1 end):2]]","status":"compatible","expected":"ok"}
