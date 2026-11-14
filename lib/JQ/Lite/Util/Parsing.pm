@@ -773,7 +773,7 @@ sub _evaluate_variable_reference {
 sub _is_complete_simple_bracket_slice {
     my ($expr) = @_;
     return defined($expr) && $expr =~
-        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\z/;
+        /\A\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*")?\[[^\[\]]*:[^\[\]]*\]\??\z/;
 }
 
 sub _evaluate_value_expression {
@@ -811,6 +811,42 @@ sub _evaluate_value_expression {
     if ($copy =~ /\A[\[\{]/) {
         my $decoded = eval { _decode_json($copy) };
         return ([ $decoded ], 1) unless $@;
+    }
+
+    # A quoted field followed by literal slice bounds is the same
+    # supported value path as a root slice over that field's value.
+    # Apply the existing value-context slice helper to the selected value.
+    # This keeps null, optional errors and string slicing separate from
+    # the legacy public slice() API without another path parser.
+    if ($copy =~ /\A(\."(?:\\.|[^"\\])*")(\[([^\[\]]*):([^\[\]]*)\]\??)\z/s
+        && defined($self) && $self->can('run_query'))
+    {
+        my ($selector, $tail, $start, $end) = ($1, $2, $3, $4);
+        my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+        my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+        if ($start =~ $literal && $end =~ $literal) {
+            my @values;
+            my @bounds = _parse_bracket_slice_arguments($start, $end);
+            for my $source ($self->run_query(_encode_json($context), $selector)) {
+                if ($tail =~ /\?\z/) {
+                    my $type = JQ::Lite::Value::type_of($source);
+                    next unless $type eq 'null'
+                        || $type eq 'array' || $type eq 'string';
+                    my $value;
+                    my $ok = eval {
+                        $value = _apply_value_bracket_slice($source, @bounds);
+                        1;
+                    };
+                    push @values, $value if $ok;
+                }
+                else {
+                    push @values, _apply_value_bracket_slice(
+                        $source, @bounds
+                    );
+                }
+            }
+            return (\@values, 1);
+        }
     }
 
     # Optional complete slices preserve null-valued constructor members,

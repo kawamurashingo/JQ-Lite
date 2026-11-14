@@ -943,4 +943,35 @@ subtest 'RHS conditional fallback scope' => sub {
     }
 };
 
+# Independent main-target review: optional slice dispatch must not
+# scalarize bound streams; quoted field slices retain null constructor values.
+subtest 'optional slice dispatch and quoted slice regressions' => sub {
+    my @cases = (
+        ['optional-empty-stream', '[0,1,2]', '.[(0+0):(empty)]?', '[]'],
+        ['optional-multi-stream', '[0,1,2]', '.[(0+0):(1,2)]?', '[[0],[0,1]]'],
+        ['optional-comparison-null', '{}', '.a[0:1]? == null', '[true]'],
+        ['optional-select-null', '{}', 'select(.a[0:1]? == null)', '[{}]'],
+        ['optional-root-null', 'null', '.[0:1]? == null', '[true]'],
+        ['quoted-missing-array', '{}', '[."a"[0:1]]', '[[null]]'],
+        ['quoted-missing-object', '{}', '{x:."a"[0:1]}', '[{"x":null}]'],
+        ['quoted-null-root', 'null', '[."a"[0:1]]', '[[null]]'],
+        ['quoted-null-source', '{"a":null}', '[."a"[0:1]]', '[[null]]'],
+        ['quoted-array-source', '{"a":[1,2]}', '[."a"[0:1]]', '[[[1]]]'],
+        ['quoted-string-source', '{"a":"abcd"}', '[."a"[1:3]]', '[["bc"]]'],
+        ['quoted-optional-invalid', '{"a":2}', '[."a"[0:1]?]', '[[]]'],
+        ['quoted-root-filter', '{"a":[1,2]}', '."a"[0:1]', '[[1]]'],
+        ['quoted-hyphen', '{"a-b":[1,2]}', '[."a-b"[0:1]]', '[[[1]]]'],
+        ['quoted-hyphen-null', '{"a-b":null}', '{x:."a-b"[0:1]}', '[{"x":null}]'],
+        ['quoted-optional-array', '{"a":[1,2]}', '[."a"[0:1]?]', '[[[1]]]'],
+        ['quoted-comparison-null', '{}', '."a"[0:1] == null', '[true]'],
+        ['quoted-optional-comparison', '{}', '."a"[0:1]? == null', '[true]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;
