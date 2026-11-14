@@ -771,6 +771,10 @@ sub apply {
             }
         }
 
+        # A complete simple slice is a filter stream, not a scalar
+        # expression. The value helper can emit zero or multiple slices.
+        my $simple_bracket_slice =
+            JQ::Lite::Util::_is_complete_simple_bracket_slice($normalized);
         if (JQ::Lite::Util::_looks_like_expression($normalized)) {
             my @evaluated;
             my $all_ok = 1;
@@ -778,7 +782,10 @@ sub apply {
             for my $item (@results) {
                 my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $item, $normalized);
                 if ($ok) {
-                    if (@$values) {
+                    if ($simple_bracket_slice) {
+                        push @evaluated, @$values;
+                    }
+                    elsif (@$values) {
                         push @evaluated, $values->[0];
                     }
                     else {
@@ -1913,14 +1920,15 @@ sub _evaluate_comparison_operand {
             unless $is_json_literal;
     }
 
-    # Only literal/omitted nonnegative slice bounds can take this null
-    # fallback: computed bounds such as `empty` must keep zero outputs.
-    # Other scoped paths still use run_query for their stream behavior.
-    my $named_slice = $copy =~ /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\[\s*\d*\s*:\s*\d*\s*\]\z/;
+    # Simple root/named-field slices share the null-aware value evaluator,
+    # including fractional and computed bounds. It preserves actual null
+    # results without fabricating outputs for `empty` bound streams.
+    my $simple_slice =
+        JQ::Lite::Util::_is_complete_simple_bracket_slice($copy);
 
     if ($copy !~ /\A\./
         || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/
-        || $named_slice)
+        || $simple_slice)
     {
         my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $copy);
         return @$values if $ok;
