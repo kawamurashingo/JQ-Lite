@@ -4392,3 +4392,5 @@
 {"name":"v3-promotion-slice-comparison-select-paren","input":{},"filter":"select(.a[(0):1] == null)","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-slice-comparison-select-fractional","input":{},"filter":"select(.a[0.5:1] == null)","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-slice-comparison-computed-multivalue","input":{"a":[0,1,2]},"filter":".a[(0):(1,2)] == [0]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-select-slice-empty-start","input":{},"filter":"select(.a[(empty):1] == null)","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-select-slice-empty-end","input":{},"filter":"select(.a[0:(empty)] == null)","status":"compatible","expected":"ok"}
