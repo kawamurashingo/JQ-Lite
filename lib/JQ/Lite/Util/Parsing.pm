@@ -820,6 +820,27 @@ sub _evaluate_value_expression {
         && _is_complete_simple_bracket_slice($1))
     {
         my $bare_slice = $1;
+        # The legacy path walker can echo scalar source values for a
+        # slice on a number/boolean/object. jq's optional suffix suppresses
+        # those invalid slices, but still permits arrays, strings and null.
+        # Check the source separately so a valid null is not lost.
+        my ($source_path) = $bare_slice =~
+            /\A\.((?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?)\[[^\[\]]*:[^\[\]]*\]\z/;
+        my @sources;
+        my $source_ok = eval {
+            @sources = length($source_path)
+                ? _traverse($context, $source_path,
+                    { missing_object_null => 1 })
+                : ($context);
+            1;
+        };
+        return ([], 1) unless $source_ok && @sources;
+        for my $source (@sources) {
+            my $type = JQ::Lite::Value::type_of($source);
+            return ([], 1) unless $type eq 'null'
+                || $type eq 'array' || $type eq 'string';
+        }
+
         my ($values, $ok);
         my $success = eval {
             ($values, $ok) = _evaluate_value_expression(
