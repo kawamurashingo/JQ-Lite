@@ -922,4 +922,25 @@ subtest 'conditional comparison outer fallback precedence' => sub {
     }
 };
 
+
+# A RHS complete if keeps its internal //; a trailing // after its end
+# still belongs to the outer comparison fallback.
+subtest 'RHS conditional fallback scope' => sub {
+    my @cases = (
+        ['rhs-conditional-body', '[.a == null // if true then 1 else null end == if true then false // null else null end]', '[false]'],
+        ['rhs-conditional-body-object', '{x:(.a == null // if true then 1 else null end == if true then false // null else null end)}', '{"x":false}'],
+        ['rhs-conditional-body-number', '[.a == null // if true then 1 else null end == if true then false // 42 else null end]', '[false]'],
+        ['rhs-conditional-body-parenthesized', '[.a == null // if true then 1 else null end == if true then (false // null) else null end]', '[false]'],
+        ['rhs-conditional-outer-fallback', '[.a == null // if true then 1 else null end == if true then false // null else null end // true]', '[true]'],
+        ['rhs-conditional-outer-multivalue', '[.a == null // if true then 1 else null end == if true then false // null else null end // (1,2)]', '[1,2]'],
+        ['rhs-conditional-nested', '[.a == null // if true then 1 else null end == if true then if true then false // null else null end else null end]', '[false]'],
+    );
+    for my $case (@cases) {
+        my ($name, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query('{"a":false}', $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;
