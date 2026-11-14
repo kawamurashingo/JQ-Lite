@@ -857,4 +857,28 @@ subtest 'optional bound stream error and order' => sub {
     }
 };
 
+
+# Exact-head main-target follow-up: reject boolean array bounds per
+# optional application and preserve conditional comparison fallback streams.
+subtest 'boolean optional bounds and conditional fallback review' => sub {
+    my @cases = (
+        ['boolean-start-dropped', '{"a":[1,2]}', '[.a[false:1.2]?]', '[[]]'],
+        ['boolean-true-dropped', '{"a":[1,2]}', '[.a[true:2]?]', '[[]]'],
+        ['boolean-end-dropped', '{"a":[1,2]}', '[.a[0:false]?]', '[[]]'],
+        ['boolean-start-mixed', '{"a":[1,2]}', '[.a[(false,0):1.2]?]', '[[[1,2]]]'],
+        ['boolean-end-mixed', '{"a":[1,2]}', '[.a[0:(false,1)]?]', '[[[1]]]'],
+        ['conditional-right-null', '{"a":false}', '[.a == null // if true then .a else null end == null]', '[[false]]'],
+        ['conditional-fallback-skipped', '{"a":null}', '[.a == null // if true then .a else null end == null]', '[[true]]'],
+        ['conditional-right-object', '{"a":false}', '{x:(.a == null // if true then .a else null end == null)}', '[{"x":false}]'],
+        ['conditional-right-comparison', '{"a":false}', '[.a == null // null == if true then .a else null end]', '[[false]]'],
+        ['conditional-right-multivalue', '{"a":false}', '[.a == null // if true then 0 else 1 end == (0,1)]', '[[true,false]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter on $input");
+    }
+};
+
 done_testing;
