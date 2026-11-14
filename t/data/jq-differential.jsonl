@@ -4453,5 +4453,5 @@
 {"name":"v3-promotion-review-null-booleans-both","input":{"a":null},"filter":"[.a[true:false]?]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-conditional-body-fallback","input":{"a":false},"filter":"[.a == null // if true then false // 1 else null end == null]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-conditional-nested-fallback","input":{"a":false},"filter":"[.a == null // if true then if true then false // 1 else null end else null end == null]","status":"compatible","expected":"ok"}
-{"name":"v3-promotion-review-conditional-body-comma","input":{"a":false},"filter":"[.a == null // if true then 1,2 else null end == null]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-conditional-body-comma","input":{"a":false},"filter":"[.a == null // if true then (1,2) else null end == null]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-conditional-body-fallback-object","input":{"a":false},"filter":"{x:(.a == null // if true then false // 1 else null end == null)}","status":"compatible","expected":"ok"}
