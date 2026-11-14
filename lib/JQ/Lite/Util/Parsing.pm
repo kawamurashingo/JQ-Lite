@@ -802,7 +802,12 @@ sub _evaluate_value_expression {
         return (\@values, 1);
     }
 
-    if (_looks_like_expression($copy)) {
+    # A complete simple bracket-slice is a path filter, even when a bound
+    # contains '-' or '+' (scientific notation, negative literals, or a
+    # parenthesized expression). Do not misclassify it as scalar arithmetic.
+    my $simple_bracket_slice = $copy =~
+        /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\z/;
+    if (_looks_like_expression($copy) && !$simple_bracket_slice) {
         my %builtins = (
             floor => sub {
                 my ($value) = @_;
@@ -878,21 +883,113 @@ sub _evaluate_value_expression {
         $path =~ s/^\s+|\s+$//g;
 
         my $is_bracket_slice = $path =~ /\[[^\]]*:[^\]]*\]/;
-        if (($path !~ /\s/ || $is_bracket_slice) && $path !~ /[+\-*\/]/) {
+        # Accept all JSON number spellings: -1, 0.5, 0e0, 2E+0.
+        # Only literals emit an unconditional value; empty-bound filters
+        # may emit no values and must not get this null fallback.
+        my $json_number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+        my $literal_slice_tail =
+            qr/\[\s*(?:$json_number|null)?\s*:\s*(?:$json_number|null)?\s*\]\z/;
+        my ($slice_prefix) = $is_bracket_slice
+            ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)$literal_slice_tail/)
+            : ();
+        my $root_literal_slice = $is_bracket_slice
+            && $path =~ /\A$literal_slice_tail/;
+
+        # Evaluate computed bounds as filters on the original input rather
+        # than classifying a legacy missing-field lookup as no output.
+        # Parenthesized (null)/(0) emit one value; (empty) emits none.
+        # Restrict this to complete simple root/named slices, leaving all
+        # other path expressions on their existing dispatch.
+        my ($computed_prefix, $bound_start, $bound_end) =
+            $path =~ /\A((?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?)\[([^\[\]]*):([^\[\]]*)\]\z/;
+        my $literal_bound = qr/\A\s*(?:$json_number|null)?\s*\z/;
+        if (defined($bound_start)
+            && ($bound_start !~ $literal_bound || $bound_end !~ $literal_bound)
+            && defined($self) && $self->can('run_query'))
+        {
+            # Emit-and-apply each bound pair immediately: jq reports the
+            # first invalid slice before evaluating later bound alternatives.
+            # Keep sources lazy so empty bound streams skip traversal too.
+            my @values;
+            my @sources;
+            my $sources_loaded = 0;
+            my $emit_pair = sub {
+                my ($start, $end) = @_;
+                if (!$sources_loaded) {
+                    @sources = length($computed_prefix)
+                        ? _traverse($context, $computed_prefix,
+                            { missing_object_null => 1 })
+                        : ($context);
+                    $sources_loaded = 1;
+                }
+                push @values, map {
+                    _apply_value_bracket_slice($_, $start, $end)
+                } @sources;
+            };
+            my $emit_start = sub {
+                my ($start) = @_;
+                my $emit_end = sub {
+                    $emit_pair->($start, $_[0]);
+                };
+                if ($bound_end =~ $literal_bound) {
+                    $emit_end->(_parse_slice_argument($bound_end));
+                }
+                else {
+                    _emit_slice_bound_stream(
+                        $self, $context, $bound_end, $emit_end
+                    );
+                }
+            };
+            if ($bound_start =~ $literal_bound) {
+                $emit_start->(_parse_slice_argument($bound_start));
+            }
+            else {
+                _emit_slice_bound_stream(
+                    $self, $context, $bound_start, $emit_start
+                );
+            }
+            return (\@values, 1);
+        }
+
+        # Numeric literals may contain arithmetic-shaped +/- signs.
+        if (($path !~ /\s/ || $is_bracket_slice)
+            && ($path !~ /[+\-*\/]/ || defined($slice_prefix) || $root_literal_slice)) {
             return ([], 1) if $path eq '';
             my $numeric_path = $path =~ /\[\d+\]/ ? 1 : 0;
             # A missing named object field is one JSON null, not an empty
             # stream. Keep iterator/projection paths' existing empty behavior.
             my $named_path = $path =~ /\A[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\z/ ? 1 : 0;
-            # A named slice through a missing or null field is also one
-            # null, not a zero-value stream. Keep this fallback restricted
-            # to ordinary named path prefixes; genuine empty iterators and
-            # unrelated computed/slice forms retain their existing behavior.
-            my ($slice_prefix) = $is_bracket_slice
-                ? ($path =~ /\A([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\[[^\[\]]*:[^\[\]]*\]\z/)
-                : ();
-            return (($numeric_path || $named_path || defined($slice_prefix))
+
+
+            return (($numeric_path || $named_path || defined($slice_prefix)
+                     || $root_literal_slice)
                 ? [undef] : [], 1) unless defined $context;
+
+            # Legacy traversal splits on every '.', including decimal points
+            # inside slice bounds. Fractional JSON numbers also need jq's
+            # floor(start)/ceil(end) convention, not slice()'s int/int.
+            # Keep this correction restricted to single literal-bound slices
+            # so the legacy slice() API and other traversal stay unchanged.
+            if ($root_literal_slice || defined($slice_prefix)) {
+                my ($raw_start, $raw_end) =
+                    $path =~ /\[([^\[\]]*):([^\[\]]*)\]\z/;
+                my @args = _parse_bracket_slice_arguments($raw_start, $raw_end);
+                my $has_decimal_dot =
+                    $path =~ /\[[^\[\]]*\d\.\d+[^\[\]]*\]\z/;
+                my $has_fraction = grep {
+                    defined($_) && $_ != int($_)
+                } @args;
+                if ($has_decimal_dot || $has_fraction) {
+                    my @sources = defined($slice_prefix)
+                        ? _traverse($context, $slice_prefix,
+                            { missing_object_null => 1 })
+                        : ($context);
+                    my @values = map {
+                        _apply_value_bracket_slice($_, @args)
+                    } @sources;
+                    return (\@values, 1);
+                }
+            }
 
             my @values = _traverse(
                 $context, $path,
@@ -964,6 +1061,244 @@ sub _evaluate_value_expression {
     }
 
     return ([], 0);
+}
+
+# Bracket-bound expressions are filters, not scalar values. Evaluate each
+# emitted alternative and distribute addition rather than using the scalar
+# expression helper's first-value/empty-as-null fallback. Keep this small
+# stream evaluator scoped to bracket bounds; ordinary expression dispatch and
+# the legacy slice() builtin retain their existing behavior.
+sub _evaluate_slice_bound_stream {
+    my ($self, $context, $expr) = @_;
+    my @values;
+
+    # The caller still receives a list, but the dedicated bound evaluator
+    # emits each value immediately. This avoids evaluating a later upstream
+    # input before an earlier value has traversed every downstream pipe.
+    _emit_slice_bound_stream($self, $context, $expr, sub {
+        push @values, $_[0];
+    });
+    return @values;
+}
+
+sub _emit_slice_bound_pipeline {
+    my ($self, $context, $stages, $index, $emit) = @_;
+
+    if ($index >= @$stages) {
+        $emit->($context);
+        return;
+    }
+
+    _emit_slice_bound_stream($self, $context, $stages->[$index], sub {
+        _emit_slice_bound_pipeline(
+            $self, $_[0], $stages, $index + 1, $emit
+        );
+    });
+}
+
+# An 'if' bound has to emit the chosen branch one value at a time.
+# The ordinary run_query fallback collects the whole branch first, letting
+# a later expression error preempt an earlier invalid slice index.
+# This helper stays scoped to computed bracket bounds.
+sub _emit_slice_bound_if {
+    my ($self, $context, $if_expr, $index, $emit) = @_;
+
+    my $branches = $if_expr->{branches};
+    if ($index >= @$branches) {
+        _emit_slice_bound_stream($self, $context, $if_expr->{else}, $emit)
+            if defined $if_expr->{else};
+        return;
+    }
+
+    my $branch = $branches->[$index];
+    _emit_slice_bound_stream($self, $context, $branch->{condition}, sub {
+        if (_is_truthy($_[0])) {
+            _emit_slice_bound_stream(
+                $self, $context, $branch->{then}, $emit
+            );
+        }
+        else {
+            _emit_slice_bound_if(
+                $self, $context, $if_expr, $index + 1, $emit
+            );
+        }
+    });
+}
+
+# Boolean operators bind outside comparisons and arithmetic.
+# Keep their short-circuit behavior and emitted booleans in this scoped
+# stream evaluator rather than routing compound predicates to the scalar
+# addition fallback in the legacy query dispatcher.
+sub _emit_slice_bound_boolean_chain {
+    my ($self, $context, $parts, $index, $is_or, $emit) = @_;
+
+    _emit_slice_bound_stream($self, $context, $parts->[$index], sub {
+        my $truthy = _is_truthy($_[0]) ? 1 : 0;
+        if ($index == $#$parts || ($is_or ? $truthy : !$truthy)) {
+            $emit->($truthy ? JSON::PP::true : JSON::PP::false);
+            return;
+        }
+        _emit_slice_bound_boolean_chain(
+            $self, $context, $parts, $index + 1, $is_or, $emit
+        );
+    });
+}
+
+sub _emit_slice_bound_stream {
+    my ($self, $context, $expr, $emit) = @_;
+    my $copy = _strip_wrapping_parens($expr);
+    $copy =~ s/^\s+|\s+$//g;
+
+    my $literal = eval { _decode_json($copy) };
+    if (!$@) {
+        $emit->($literal);
+        return;
+    }
+    return if $copy eq 'empty';
+
+    # A complete conditional can contain comma-producing branch filters.
+    # Dispatch its chosen branches incrementally before generic fallback.
+    my $if_expr = _parse_if_expression($copy);
+    if ($if_expr) {
+        _emit_slice_bound_if($self, $context, $if_expr, 0, $emit);
+        return;
+    }
+
+    # A pipeline consumes the whole comma stream to its left. Depth-first
+    # emission also preserves jq's error precedence across pipe stages.
+    my @pipeline = _split_top_level_pipes($copy);
+    if (@pipeline > 1) {
+        my $first = shift @pipeline;
+        _emit_slice_bound_stream($self, $context, $first, sub {
+            _emit_slice_bound_pipeline(
+                $self, $_[0], \@pipeline, 0, $emit
+            );
+        });
+        return;
+    }
+
+    my @alternatives = _split_top_level_commas($copy);
+    if (@alternatives > 1) {
+        for my $alternative (@alternatives) {
+            _emit_slice_bound_stream(
+                $self, $context, $alternative, $emit
+            );
+        }
+        return;
+    }
+
+    # jq '//' binds more loosely than boolean or/and. Evaluate its left
+    # stream completely; keep every non-null/non-false value (including 0,
+    # empty strings and empty containers), or evaluate the right once when
+    # none was emitted. Emit immediately so slice errors win over later errors.
+    my ($fallback_lhs, $fallback_rhs) =
+        _split_top_level_operator($copy, '//');
+    if (defined($fallback_lhs) && defined($fallback_rhs)
+        && $fallback_lhs =~ /\S/ && $fallback_rhs =~ /\S/) {
+        my $have_value = 0;
+        _emit_slice_bound_stream($self, $context, $fallback_lhs, sub {
+            my $value = $_[0];
+            return unless defined($value)
+                && !(JSON::PP::is_bool($value) && !$value);
+            $have_value = 1;
+            $emit->($value);
+        });
+        _emit_slice_bound_stream($self, $context, $fallback_rhs, $emit)
+            unless $have_value;
+        return;
+    }
+
+    # jq precedence is // < or < and < comparison < arithmetic.
+    # Handle and/or as lazy boolean streams before distributing addition;
+    # otherwise the legacy scalar fallback may add two boolean results.
+    my @ors = _split_top_level_keyword($copy, 'or');
+    if (@ors > 1) {
+        _emit_slice_bound_boolean_chain(
+            $self, $context, \@ors, 0, 1, $emit
+        );
+        return;
+    }
+    my @ands = _split_top_level_keyword($copy, 'and');
+    if (@ands > 1) {
+        _emit_slice_bound_boolean_chain(
+            $self, $context, \@ands, 0, 0, $emit
+        );
+        return;
+    }
+
+    # Comparison consumes complete arithmetic operands. Do not split '+'
+    # inside (1+1 == 2) and attempt 1 + (1 == 2).
+    my (undef, $comparison) = _split_top_level_comparison($copy);
+    if (defined $comparison) {
+        my ($values, $ok) = _evaluate_value_expression($self, $context, $copy);
+        if ($ok) {
+            $emit->($_) for @$values;
+        }
+        else {
+            $emit->($_) for $self->run_query(_encode_json($context), $copy);
+        }
+        return;
+    }
+
+    my ($lhs, $rhs) = _split_top_level_operator($copy, '+');
+    if (defined($lhs) && defined($rhs) && $lhs =~ /\S/ && $rhs =~ /\S/) {
+        # jq evaluates the right operand first, and produces its
+        # right-major product. Emit results before visiting the next
+        # right-hand value so downstream errors retain jq precedence.
+        _emit_slice_bound_stream($self, $context, $rhs, sub {
+            my $right = $_[0];
+            _emit_slice_bound_stream($self, $context, $lhs, sub {
+                $emit->(_apply_addition($_[0], $right));
+            });
+        });
+        return;
+    }
+
+    my ($values, $ok) = _evaluate_value_expression($self, $context, $copy);
+    if ($ok) {
+        $emit->($_) for @$values;
+        return;
+    }
+    $emit->($_) for $self->run_query(_encode_json($context), $copy);
+}
+
+# Value-context bracket slices use jq's floor(start)/ceil(end) rounding
+# for fractional array bounds. The legacy slice() builtin deliberately keeps
+# its existing int/int contract; only this scoped helper uses jq rounding.
+sub _apply_value_bracket_slice {
+    my ($value, $raw_start, $raw_end) = @_;
+
+    my $fractional = (defined($raw_start) && looks_like_number($raw_start)
+            && $raw_start != int($raw_start))
+        || (defined($raw_end) && looks_like_number($raw_end)
+            && $raw_end != int($raw_end));
+    return _apply_bracket_slice($value, $raw_start, $raw_end)
+        unless $fractional && ref $value eq 'ARRAY';
+
+    # Fractional rounding must not bypass the existing v2-compatible
+    # numeric/type guards. In particular, JSON strings such as "0.5"
+    # are invalid slice indices even if looks_like_number accepts them.
+    # _slice_numeric_bound validates and discards its truncated result;
+    # rounding below still uses the original fractional values.
+    _slice_numeric_bound($raw_start, 'start') if defined $raw_start;
+    _slice_numeric_bound($raw_end, 'length') if defined $raw_end;
+
+    my $size = scalar @$value;
+    my $start = defined $raw_start ? $raw_start : 0;
+    my $end = defined $raw_end ? $raw_end : $size;
+    $start += $size if $start < 0;
+    $end += $size if $end < 0;
+
+    my $from = int($start);
+    $from-- if $start < $from;
+    my $to = int($end);
+    $to++ if $end > $to;
+    $from = 0 if $from < 0;
+    $to = 0 if $to < 0;
+    $from = $size if $from > $size;
+    $to = $size if $to > $size;
+
+    return $from < $to ? [ @$value[$from .. $to - 1] ] : [];
 }
 
 sub _apply_addition {
