@@ -736,6 +736,33 @@ sub apply {
             return 1;
         }
 
+        # jq's // is weaker than comparison. For comparison-bearing
+        # fallbacks, let the existing stream evaluator resolve the outer //
+        # before comparison; empty left streams must select the fallback
+        # instead of being swallowed as an operand of the right comparison.
+        my ($fallback_lhs, $fallback_rhs) =
+            JQ::Lite::Util::_split_top_level_operator($normalized, '//');
+        if (defined($fallback_lhs) && defined($fallback_rhs)
+            && $fallback_lhs =~ /\S/ && $fallback_rhs =~ /\S/)
+        {
+            my (undef, $left_compare) =
+                JQ::Lite::Util::_split_top_level_comparison($fallback_lhs);
+            my (undef, $right_compare) =
+                JQ::Lite::Util::_split_top_level_comparison($fallback_rhs);
+            if (defined($left_compare) || defined($right_compare)) {
+                @next_results = ();
+                for my $item (@results) {
+                    JQ::Lite::Util::_emit_slice_bound_stream(
+                        $self, $item, $normalized, sub {
+                            push @next_results, $_[0];
+                        }
+                    );
+                }
+                @$out_ref = @next_results;
+                return 1;
+            }
+        }
+
         # Comparisons treat each operand as a filter evaluated against the
         # current input.  This is important after a pipe, where `length > 0`
         # must compare the length of the piped array rather than look for a
