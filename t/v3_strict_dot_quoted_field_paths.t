@@ -974,4 +974,25 @@ subtest 'optional slice dispatch and quoted slice regressions' => sub {
     }
 };
 
+# Quoted fields with computed bounds are outside the literal-only
+# correction. Do not enter the unquoted optional-slice parser: it cannot
+# extract that source and previously emitted uninitialized warnings.
+subtest 'quoted computed slice dispatch is warning-free' => sub {
+    my @filters = (
+        '[."a"[0:(empty)]?]',
+        '[."a"[(0,1):2]?]',
+        '."a"[0:(empty)]?',
+    );
+    for my $filter (@filters) {
+        my @warnings;
+        my @values;
+        {
+            local $SIG{__WARN__} = sub { push @warnings, @_ };
+            @values = $jq->run_query('{"a":[0,1,2]}', $filter);
+        }
+        is_deeply(\@warnings, [], "no uninitialized warnings: $filter");
+        ok(ref(\@values) eq 'ARRAY', "computed quoted query returns normally: $filter");
+    }
+};
+
 done_testing;
