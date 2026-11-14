@@ -1336,10 +1336,10 @@ sub _emit_slice_bound_stream {
         return;
     }
 
-    # A complete conditional operand may contain an unparenthesized //,
-    # comma, or pipe inside its body. Handle the complete "if ... end"
-    # before generic operator splitters interpret those nested operators
-    # as belonging to the surrounding comparison or fallback expression.
+    # A complete conditional operand may contain a body-local // or
+    # grouped comma/pipe expression. Handle "if ... end" before generic
+    # operator splitters mistake those nested operators for a surrounding
+    # fallback or comparison.
     my ($if_lhs, $if_operator, $if_rhs) =
         _split_conditional_comparison_for_bound($copy);
     if (defined $if_operator) {
