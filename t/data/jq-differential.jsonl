@@ -4431,3 +4431,9 @@
 {"name":"v3-promotion-review-string-fractional","input":{"a":"abcdef"},"filter":"[.a[1.2:3.4]?]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-string-negative","input":{"a":"abcdef"},"filter":"[.a[-3:-1]?]","status":"compatible","expected":"ok"}
 {"name":"v3-promotion-review-string-empty","input":{"a":"abcdef"},"filter":"[.a[empty:3]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-bound-invalid-after-valid","input":{"a":[1,2]},"filter":"[.a[(0,\"x\"):1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-bound-interleaved","input":{"a":[1,2]},"filter":"[.a[(0,1,\"x\",2):2]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-bound-end-interleaved","input":{"a":[1,2]},"filter":"[.a[0:(1,\"x\",2)]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-bound-invalid-scalar","input":{"a":2},"filter":"[.a[(0,\"x\"):1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-promotion-review-optional-bound-addition-error","input":{"a":[1,2]},"filter":"[.a[(1+\"x\"):1]?]","status":"runtime-error","expected":"runtime-error"}
+{"name":"v3-promotion-review-optional-bound-addition-error-scalar","input":{"a":2},"filter":"[.a[(1+\"x\"):1]?]","status":"runtime-error","expected":"runtime-error"}
