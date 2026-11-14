@@ -757,4 +757,67 @@ subtest 'comparison slices preserve null and zero-output bounds' => sub {
     }
 };
 
+
+# Main-target Codex follow-up: optional slices preserve null-valued
+# constructor members; fallback precedence and nested control-flow bounds
+# retain jq 1.7's empty/null/false stream distinctions.
+subtest 'optional slice (main-target regressions)' => sub {
+    my @cases = (
+        ['{}', '[.a[0:1]?]', '[[null]]'],
+        ['{}', '{x:.a[0:1]?}', '[{"x":null}]'],
+        ['null', '[.a[0:1]?]', '[[null]]'],
+        ['null', '{x:.a[0:1]?}', '[{"x":null}]'],
+        ['{"a":null}', '[.a[0:1]?]', '[[null]]'],
+        ['{"a":2}', '[.a[0:1]?]', '[[]]'],
+        ['{"a":[1,2]}', '[.a[0:1]?]', '[[[1]]]'],
+        ['{}', '[.a[empty:1]?]', '[[]]'],
+        ['{}', '{x:.a[empty:1]?}', '[]'],
+        ['null', '[.[0:1]?]', '[[null]]'],
+        ['{}', '[.a[(0):1]?]', '[[null]]'],
+        ['{}', '[.a[0.5:1]?]', '[[null]]'],
+        ['{}', '[.a[(empty):1]?]', '[[]]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "optional-slice / $filter on $input");
+    }
+};
+
+subtest 'fallback comparison (main-target regressions)' => sub {
+    my @cases = (
+        ['{"a":false}', '[.a == null // false]', '[[false]]'],
+        ['{"a":false}', '{x:(.a == null // false)}', '[{"x":false}]'],
+        ['{"a":null}', '[.a == null // false]', '[[true]]'],
+        ['{"a":false}', '[.a == null // true]', '[[true]]'],
+        ['{"a":false}', '[.a == false // null]', '[[true]]'],
+        ['{"a":false}', '[.a == null // (1,2)]', '[[1,2]]'],
+        ['{"a":null}', '[.a == null // (1,2)]', '[[true]]'],
+        ['{"a":false}', '{x:(.a == null // true)}', '[{"x":true}]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "fallback-comparison / $filter on $input");
+    }
+};
+
+subtest 'nested control slice (main-target regressions)' => sub {
+    my @cases = (
+        ['{"a":null}', 'select(.a[(if true then 0 else 1 end):(empty)] == null)', '[]'],
+        ['{}', 'select(.a[(if true then 0 else 1 end):1] == null)', '[{}]'],
+        ['{"a":null}', '[.a[(if true then 0 else 1 end):(empty)] == null]', '[[]]'],
+        ['{"a":null}', 'select(.a[(if true then 0 else 1 end):null] == null)', '[{"a":null}]'],
+        ['{"a":null}', 'select(.a[(if true then 0 else 1 end):(0,empty)] == null)', '[{"a":null}]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "nested-control-slice / $filter on $input");
+    }
+};
+
 done_testing;
