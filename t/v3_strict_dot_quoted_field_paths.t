@@ -938,7 +938,7 @@ subtest 'RHS conditional fallback scope' => sub {
     for my $case (@cases) {
         my ($name, $filter, $expected_json) = @$case;
         is_deeply([$jq->run_query('{"a":false}', $filter)],
-            JSON::PP->new->decode($expected_json),
+            [JSON::PP->new->decode($expected_json)],
             "$name: $filter");
     }
 };
