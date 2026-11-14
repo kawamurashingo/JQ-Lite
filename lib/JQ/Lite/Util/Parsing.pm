@@ -1297,6 +1297,33 @@ sub _split_conditional_comparison_for_bound {
     return;
 }
 
+# A conditional comparison's right operand may itself be a complete if
+# expression containing // operators. The generic operator splitter tracks
+# brackets but not if/end nesting; never split a complete conditional body.
+# If a full conditional is followed by an outer "// ...", split only there.
+sub _split_conditional_rhs_fallback {
+    my ($rhs) = @_;
+    return unless defined $rhs;
+    return if _parse_if_expression($rhs);
+
+    if ($rhs =~ /^\s*if\b/) {
+        while ($rhs =~ /\bend\b/g) {
+            my $offset = pos($rhs);
+            my $prefix = substr($rhs, 0, $offset);
+            next unless _parse_if_expression($prefix);
+            my $suffix = substr($rhs, $offset);
+            if ($suffix =~ /^\s*\/\/\s*(\S.*)\z/s) {
+                return ($prefix, $1);
+            }
+        }
+        # An incomplete conditional or one followed by a different
+        # operator is not safe for a bracket-only // splitter.
+        return;
+    }
+
+    return _split_top_level_operator($rhs, '//');
+}
+
 # Boolean operators bind outside comparisons and arithmetic.
 # Keep their short-circuit behavior and emitted booleans in this scoped
 # stream evaluator rather than routing compound predicates to the scalar
@@ -1350,7 +1377,7 @@ sub _emit_slice_bound_stream {
         my ($compare_rhs, $outer_fallback);
         if (_parse_if_expression($if_lhs)) {
             ($compare_rhs, $outer_fallback) =
-                _split_top_level_operator($if_rhs, '//');
+                _split_conditional_rhs_fallback($if_rhs);
         }
         my $rhs_expr = defined($outer_fallback) ? $compare_rhs : $if_rhs;
         my $have_comparison_value = 0;
