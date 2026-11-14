@@ -351,6 +351,7 @@ sub _split_top_level_comparison {
     return unless defined $text && $text =~ /(?:==|!=|[<>])/;
 
     my (@stack, $quote, $escape, @comparison);
+    my $top_level_control_flow = 0;
 
     for (my $i = 0; $i < length($text); $i++) {
         my $char = substr($text, $i, 1);
@@ -367,6 +368,15 @@ sub _split_top_level_comparison {
 
         my $tail = substr($text, $i);
         my $previous = $i > 0 ? substr($text, $i - 1, 1) : '';
+        # Control flow inside a slice bound is nested syntax, not a
+        # top-level conditional. Keep the old guard for actual top-level
+        # if/try expressions without rejecting valid computed bounds.
+        if (!@comparison
+            && ($i == 0 || $previous !~ /[\w.]/)
+            && $tail =~ /^(?:if|then|elif|else|end|try|catch)\b/)
+        {
+            $top_level_control_flow = 1;
+        }
         if (($i == 0 || $previous =~ /\s/)
             && $tail =~ /^(?:and|or)(?=\s|$)/)
         {
@@ -380,10 +390,10 @@ sub _split_top_level_comparison {
             @comparison = (substr($text, 0, $i), $operator, substr($text, $i + length($operator)));
         }
     }
-    # Only complete operands can use the comparison evaluator. Control flow
-    # and incomplete variable suffixes retain their existing evaluation path.
+    # Only complete operands can use the comparison evaluator. Exclude
+    # actual top-level control flow, not keywords nested in slice bounds.
     return if @comparison && ($comparison[0] !~ /\S/ || $comparison[2] !~ /\S/
-        || $comparison[0] =~ /\b(?:if|then|elif|else|end|try|catch)\b/);
+        || $top_level_control_flow);
     return @comparison;
 }
 
@@ -801,6 +811,49 @@ sub _evaluate_value_expression {
     if ($copy =~ /\A[\[\{]/) {
         my $decoded = eval { _decode_json($copy) };
         return ([ $decoded ], 1) unless $@;
+    }
+
+    # An optional-suffixed complete slice is still a slice value inside
+    # constructors. Evaluate the bare slice through the null-aware helper,
+    # retaining its empty stream; '?' suppresses errors, not JSON nulls.
+    if ($copy =~ /\A(.+)\?\z/s
+        && _is_complete_simple_bracket_slice($1))
+    {
+        my $bare_slice = $1;
+        my ($values, $ok);
+        my $success = eval {
+            ($values, $ok) = _evaluate_value_expression(
+                $self, $context, $bare_slice
+            );
+            1;
+        };
+        return ([], 1) unless $success;
+        return ($values, 1) if $ok;
+    }
+
+    # jq's fallback (//) binds more loosely than comparison. The generic
+    # comparison dispatcher sees the first == too early and would evaluate
+    # ".a == null // false" as ".a == (null // false)". For comparison-
+    # bearing fallback expressions, use the existing ordered bound-stream
+    # evaluator, which already applies // after comparison and honors
+    # null/false-only fallback without treating an empty stream as null.
+    my ($default_lhs, $default_rhs) =
+        _split_top_level_operator($copy, '//');
+    if (defined($default_lhs) && defined($default_rhs)
+        && $default_lhs =~ /\S/ && $default_rhs =~ /\S/
+        && defined($self) && $self->can('run_query'))
+    {
+        my (undef, $lhs_comparison) =
+            _split_top_level_comparison($default_lhs);
+        my (undef, $rhs_comparison) =
+            _split_top_level_comparison($default_rhs);
+        if (defined($lhs_comparison) || defined($rhs_comparison)) {
+            my @values;
+            _emit_slice_bound_stream($self, $context, $copy, sub {
+                push @values, $_[0];
+            });
+            return (\@values, 1);
+        }
     }
 
     # Comparison values must preserve their filter streams in constructors
