@@ -881,4 +881,26 @@ subtest 'boolean optional bounds and conditional fallback review' => sub {
     }
 };
 
+
+# Codex exact-head follow-up: null sources ignore invalid bound types,
+# while full if bodies retain internal fallback/comma operators.
+subtest 'null optional slices and conditional body precedence' => sub {
+    my @cases = (
+        ['null-boolean-start', '{"a":null}', '[.a[false:1]?]', '[[null]]'],
+        ['null-string-start', '{"a":null}', '[.a["x":1]?]', '[[null]]'],
+        ['null-string-end', '{"a":null}', '[.a[0:"x"]?]', '[[null]]'],
+        ['null-booleans-both', '{"a":null}', '[.a[true:false]?]', '[[null]]'],
+        ['conditional-body-fallback', '{"a":false}', '[.a == null // if true then false // 1 else null end == null]', '[[false]]'],
+        ['conditional-nested-fallback', '{"a":false}', '[.a == null // if true then if true then false // 1 else null end else null end == null]', '[[false]]'],
+        ['conditional-body-comma', '{"a":false}', '[.a == null // if true then 1,2 else null end == null]', '[[false,false]]'],
+        ['conditional-body-fallback-object', '{"a":false}', '{x:(.a == null // if true then false // 1 else null end == null)}', '[{"x":false}]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected),
+            "$name: $filter");
+    }
+};
+
 done_testing;
