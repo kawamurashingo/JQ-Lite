@@ -831,4 +831,30 @@ subtest 'nested control slice (main-target regressions)' => sub {
     }
 };
 
+
+# Optional '?' suppresses each invalid slice application, not errors from
+# computing its bounds. Earlier successful outputs survive later bad bounds.
+subtest 'optional bound stream error and order' => sub {
+    my @cases = (
+        ['{"a":[1,2]}', '[.a[(0,"x"):1]?]', '[[[1]]]'],
+        ['{"a":[1,2]}', '[.a[(0,1,"x",2):2]?]', '[[[1,2],[2],[]]]'],
+        ['{"a":[1,2]}', '[.a[0:(1,"x",2)]?]', '[[[1],[1,2]]]'],
+        ['{"a":2}', '[.a[(0,"x"):1]?]', '[[]]'],
+    );
+    for my $case (@cases) {
+        my ($input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "per-bound optional application: $filter on $input");
+    }
+
+    for my $input ('{"a":[1,2]}', '{"a":2}') {
+        my $threw = !eval {
+            $jq->run_query($input, '[.a[(1+"x"):1]?]');
+            1;
+        };
+        ok($threw, "optional must propagate invalid bound addition: $input");
+    }
+};
+
 done_testing;
