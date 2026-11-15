@@ -1035,4 +1035,28 @@ subtest 'main-target slice comparison followups' => sub {
     }
 };
 
+# Quoted optional slices must reject boolean bounds for array/string
+# sources, while null sources keep their null result. Validate both jq
+# quoted selector spellings and mixed boolean/numeric bound streams.
+subtest 'quoted optional slice bound types' => sub {
+    my @cases = (
+        ['dot-bool-upper', '{"a":[0,1,2]}', '[."a"[0:true]?]', '[[]]'],
+        ['bracket-bool-upper', '{"a":[0,1,2]}', '[.["a"][0:true]?]', '[[]]'],
+        ['dot-bool-lower', '{"a":[0,1,2]}', '[."a"[true:1]?]', '[[]]'],
+        ['bracket-bool-lower', '{"a":[0,1,2]}', '[.["a"][true:1]?]', '[[]]'],
+        ['dot-mixed-end', '{"a":[0,1,2]}', '[."a"[0:(true,1)]?]', '[[[0]]]'],
+        ['dot-mixed-start', '{"a":[0,1,2]}', '[."a"[(true,0):1]?]', '[[[0]]]'],
+        ['dot-null-invalid-bound', '{"a":null}', '[."a"[0:true]?]', '[[null]]'],
+        ['bracket-null-invalid-bound', '{"a":null}', '[.["a"][0:true]?]', '[[null]]'],
+        ['dot-string-invalid-bound', '{"a":"abcd"}', '[."a"[0:true]?]', '[[]]'],
+        ['dot-mixed-direct', '{"a":[0,1,2]}', '."a"[0:(true,1)]?', '[[0]]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;
