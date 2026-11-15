@@ -820,21 +820,18 @@ sub _evaluate_value_expression {
     {
         my ($slice, $tail) = ($chain_slice, $chain_tail);
         $tail = ".$tail" if $tail =~ /\A\[/;
+        my $steps = _parse_v3_literal_iterator_path($tail);
         my ($slices, $slice_ok) =
             _evaluate_value_expression($self, $context, $slice);
-        if ($slice_ok) {
+        if ($slice_ok && $steps) {
             my @values;
             for my $slice_value (@$slices) {
-                my ($members, $member_ok) =
-                    _evaluate_value_expression($self, $slice_value, $tail);
-                if ($member_ok) {
-                    push @values, @$members;
-                }
-                else {
-                    push @values, $self->run_query(
-                        _encode_json($slice_value), $tail
-                    );
-                }
+                # Every supported suffix is a literal strict path: use
+                # its audited iterator/index visitor rather than the
+                # legacy value shortcut, which silently drops an invalid
+                # second numeric index on a scalar.
+                push @values,
+                    _traverse_v3_field_iterator($slice_value, $tail, $steps);
             }
             return (\@values, 1);
         }
@@ -863,19 +860,29 @@ sub _evaluate_value_expression {
                 my $emit_pair = sub {
                     my ($start, $end) = @_;
                     if (!$sources_loaded) {
-                        (my $source_path = $source) =~ s/^\.//;
-                        @sources = _traverse(
-                            $context, $source_path,
-                            { missing_object_null => 1,
-                              numeric_null_index => 1 }
-                        );
+                        # Reuse the whitespace-aware strict selector
+                        # visitor for .a[0] and .a[ 0 ]. It preserves a
+                        # missing/null indexed source as one JSON null and
+                        # retains errors for invalid intermediate types.
+                        my $steps = _parse_v3_literal_iterator_path($source);
+                        @sources = $steps
+                            ? _traverse_v3_field_iterator(
+                                $context, $source, $steps
+                            )
+                            : ();
                         $sources_loaded = 1;
                     }
                     for my $item (@sources) {
                         my $type = JQ::Lite::Value::type_of($item);
-                        if ($optional) {
-                            next unless $type eq 'null'
-                                || $type eq 'array' || $type eq 'string';
+                        unless ($type eq 'null'
+                            || $type eq 'array' || $type eq 'string')
+                        {
+                            # Strict slices reject unsupported source
+                            # values; '?' suppresses only the application.
+                            next if $optional;
+                            die JQ::Lite::Error::Evaluation->new(
+                                message => 'Cannot slice ' . $type
+                            );
                         }
                         my $value;
                         my $ok = eval {
