@@ -37,6 +37,9 @@ sub _has_streaming_slice_comparison {
         return 1 if JQ::Lite::Util::_is_complete_simple_bracket_slice(
             $operand
         );
+        my ($chain_slice) =
+            JQ::Lite::Util::_split_simple_bracket_slice_chain($operand);
+        return 1 if defined $chain_slice;
     }
     return 0;
 }
@@ -2066,10 +2069,12 @@ sub _evaluate_comparison_operand {
     # results without fabricating outputs for `empty` bound streams.
     my $simple_slice =
         JQ::Lite::Util::_is_complete_simple_bracket_slice($copy);
+    my ($slice_chain) =
+        JQ::Lite::Util::_split_simple_bracket_slice_chain($copy);
 
     if ($copy !~ /\A\./
         || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/
-        || $simple_slice)
+        || $simple_slice || defined($slice_chain))
     {
         my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $copy);
         return @$values if $ok;
