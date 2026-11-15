@@ -274,7 +274,12 @@ sub apply {
                 # independently and retain its completed output stream.
                 # This does not preserve partial output from a failure
                 # within one branch (general streaming is a separate audit).
-                for my $branch (JQ::Lite::Util::_split_top_level_commas($try_expr)) {
+                my @try_stages =
+                    JQ::Lite::Util::_split_top_level_pipes($try_expr);
+                my @try_branches = @try_stages > 1
+                    ? ($try_expr)
+                    : JQ::Lite::Util::_split_top_level_commas($try_expr);
+                for my $branch (@try_branches) {
                     my @branch_outputs;
                     {
                         local $@;
@@ -468,12 +473,15 @@ sub apply {
                                 my $head = $stages[0];
                                 my $inner =
                                     JQ::Lite::Util::_strip_wrapping_parens($head);
-                                if ($inner ne $head) {
-                                    @comma_head_parts =
-                                        JQ::Lite::Util::_split_top_level_commas(
-                                            $inner
-                                        );
-                                }
+                                # A comma-producing head need not have
+                                # explicit parentheses after the enclosing
+                                # try(...) wrapper has been stripped.
+                                # Route each head alternative through every
+                                # downstream pipeline stage in source order.
+                                @comma_head_parts =
+                                    JQ::Lite::Util::_split_top_level_commas(
+                                        $inner
+                                    );
                             }
                             my @iterator_heads;
                             if (@stages) {
