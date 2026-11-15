@@ -4548,3 +4548,19 @@
 {"name":"v3-20261115-review-next-chain-comp-long","input":{},"filter":".a[0:1].b.c == null","status":"compatible","expected":"ok"}
 {"name":"v3-20261115-review-next-chain-comp-empty","input":{},"filter":".a[(empty):1].b == null","status":"compatible","expected":"ok"}
 {"name":"v3-20261115-review-next-chain-select","input":{},"filter":"select(.a[0:1].b == null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-try-tail-completed","input":null,"filter":"try (1,empty | .,1/0) catch \"ERR\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-try-tail-many","input":null,"filter":"try (1,2 | .,1/0) catch \"ERR\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-try-tail-nonerror","input":null,"filter":"try (1,empty | .,2,3) catch \"ERR\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-try-tail-chain","input":null,"filter":"try (1,empty | .,1/0 | .+10) catch \"ERR\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-whitespace-null","input":null,"filter":"[.a[ 0 ][0:.s[0]]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-whitespace-missing","input":{},"filter":"[.a[ 0 ][0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-whitespace-array","input":{"a":[[1,2]]},"filter":"[.a[ 0 ][0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-source-optional-object","input":{"a":[{}]},"filter":"[.a[0][0:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-source-optional-number","input":{"a":[2]},"filter":"[.a[0][0:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-suffix-strict-valid","input":{"a":[[{"b":4}]]},"filter":"[.a[0:1][0][0].b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-suffix-strict-null","input":{},"filter":"[.a[0:1][0][0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-source-object","input":{"a":[{}]},"filter":"[.a[0][0:1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-source-number","input":{"a":[2]},"filter":"[.a[0][0:1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-source-whitespace-invalid","input":{"a":[{}]},"filter":"[.a[ 0 ][0:1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-suffix-index-invalid","input":{"a":[0,1]},"filter":"[.a[0:1][0][0]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-suffix-field-invalid","input":{"a":[0,1]},"filter":"[.a[0:1][0].b]","status":"compatible","expected":"runtime-error"}
