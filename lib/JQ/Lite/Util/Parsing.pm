@@ -793,6 +793,19 @@ sub _split_simple_bracket_slice_chain {
         /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])?\[[^\[\]]*:[^\[\]]*\]\??)((?:\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])+)\z/s;
 }
 
+# The audited v3 iterator parser returns undef for a bare named-field
+# path because that syntax has no strict iterator/index feature to route.
+# A slice's source or suffix still needs those field steps to preserve
+# null and to raise errors on incompatible intermediate types.
+sub _strict_v3_literal_path_steps {
+    my ($path) = @_;
+    my $steps = _parse_v3_literal_iterator_path($path);
+    return $steps if $steps;
+    return undef unless defined($path)
+        && $path =~ /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/;
+    return [ map { ['field', $_] } split /\./, $1 ];
+}
+
 sub _evaluate_value_expression {
     my ($self, $context, $expr) = @_;
 
@@ -820,16 +833,7 @@ sub _evaluate_value_expression {
     {
         my ($slice, $tail) = ($chain_slice, $chain_tail);
         $tail = ".$tail" if $tail =~ /\A\[/;
-        my $steps = _parse_v3_literal_iterator_path($tail);
-        if (!$steps
-            && $tail =~ /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/)
-        {
-            # The audited parser intentionally returns undef for an all-
-            # plain-field path (no index/optional/iterator), even though
-            # these field steps must be strictly traversed after a slice.
-            # Build only this already-validated literal-field suffix.
-            $steps = [ map { ['field', $_] } split /\./, $1 ];
-        }
+        my $steps = _strict_v3_literal_path_steps($tail);
         my ($slices, $slice_ok) =
             _evaluate_value_expression($self, $context, $slice);
         if ($slice_ok && $steps) {
@@ -873,7 +877,7 @@ sub _evaluate_value_expression {
                         # visitor for .a[0] and .a[ 0 ]. It preserves a
                         # missing/null indexed source as one JSON null and
                         # retains errors for invalid intermediate types.
-                        my $steps = _parse_v3_literal_iterator_path($source);
+                        my $steps = _strict_v3_literal_path_steps($source);
                         @sources = $steps
                             ? _traverse_v3_field_iterator(
                                 $context, $source, $steps
