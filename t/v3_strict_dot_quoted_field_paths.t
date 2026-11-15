@@ -1059,4 +1059,47 @@ subtest 'quoted optional slice bound types' => sub {
     }
 };
 
+# Full main-target review on 51ba219b: pipeline precedence, filter RHS
+# predicates and null-aware nested/suffix slice streams. Expected outputs
+# are independently compared with jq 1.7 (including zero results).
+subtest 'main-target pipeline and nested slice followups' => sub {
+    my @cases = (
+        ['try-comma-pipe', 'null', 'try (1,2 | . + 10)', '[11,12]'],
+        ['try-comma-empty', 'null', 'try (1,2 | empty)', '[]'],
+        ['try-parenthesized-head', 'null', 'try ((1,2) | . + 10)', '[11,12]'],
+        ['try-outer-alt', 'null', 'try (1,2 | . + 10), 3', '[11,12,3]'],
+        ['update-select', '{"a":0}', '.a |= (1,2 | select(. == 2))', '[{"a":2}]'],
+        ['update-plus', '{"a":0}', '.a |= (1,2 | . + 10)', '[{"a":11}]'],
+        ['update-empty', '{"a":0}', '.a |= (1,2 | empty)', '[{}]'],
+        ['update-direct', '{"a":0}', '.a |= (1,2)', '[{"a":1}]'],
+        ['select-missing-ne', '{}', 'select(.a != .b)', '[]'],
+        ['select-null-ne', '{"a":null,"b":null}', 'select(.a != .b)', '[]'],
+        ['select-empty-ne', '{}', 'select(.a != empty)', '[]'],
+        ['select-null-eq', '{"a":null,"b":null}', 'select(.a == .b)', '[{"a":null,"b":null}]'],
+        ['select-empty-eq', '{}', 'select(.a == empty)', '[]'],
+        ['nested-source-array', '{}', '[.a[0][0:1]]', '[[null]]'],
+        ['nested-source-object', '{}', '{x:.a[0][0:1]}', '[{"x":null}]'],
+        ['nested-bound-array', '{}', '[.a[.s[0]:1]]', '[[null]]'],
+        ['nested-bound-object', '{}', '{x:.a[.s[0]:1]}', '[{"x":null}]'],
+        ['nested-source-existing', '{"a":[[1,2],[3]]}', '[.a[0][0:1]]', '[[[1]]]'],
+        ['nested-bound-existing', '{"a":[0,1,2],"s":[1]}', '[.a[.s[0]:1]]', '[[[]]]'],
+        ['nested-bound-empty', '{"a":[0,1,2]}', '[.a[.s[0]:empty]]', '[[]]'],
+        ['chain-long-field', '{}', '[.a[0:1].b.c]', '[[null]]'],
+        ['chain-long-index', '{}', '[.a[0:1][0].b]', '[[null]]'],
+        ['chain-obj-field', '{}', '{x:.a[0:1].b.c}', '[{"x":null}]'],
+        ['chain-obj-index', '{}', '{x:.a[0:1][0].b}', '[{"x":null}]'],
+        ['chain-comp-field', '{}', '.a[0:1].b == null', '[true]'],
+        ['chain-comp-index', '{}', '.a[0:1][0] == null', '[true]'],
+        ['chain-comp-long', '{}', '.a[0:1].b.c == null', '[true]'],
+        ['chain-comp-empty', '{}', '.a[(empty):1].b == null', '[]'],
+        ['chain-select', '{}', 'select(.a[0:1].b == null)', '[{}]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;
