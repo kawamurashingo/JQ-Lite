@@ -1140,4 +1140,45 @@ subtest 'main-target strict slice and try tail review followups' => sub {
     }
 };
 
+# Full Codex review on 208339a: jq considers only false and null falsy,
+# and rejects nonnumeric computed slice bounds before strict suffix reads.
+# Expected values/errors were checked against local jq 1.7.
+subtest 'streamed select truthiness and strict slice-chain bounds' => sub {
+    my @ok_cases = (
+        ['select-zero-fallback', '{}', 'select(.a != .b // 0)', '[{}]'],
+        ['select-empty-string-fallback', '{}', 'select(.a != .b // "")', '[{}]'],
+        ['select-empty-array-fallback', '{}', 'select(.a != .b // [])', '[{}]'],
+        ['select-false-fallback', '{}', 'select(.a != .b // false)', '[]'],
+        ['select-null-fallback', '{}', 'select(.a != .b // null)', '[]'],
+        ['select-empty-rhs-zero-fallback', '{}', 'select(.a != empty // 0)', '[{}]'],
+        ['select-bare-zero', '{}', 'select(0)', '[{}]'],
+        ['select-bare-empty-string', '{}', 'select("")', '[{}]'],
+        ['select-bare-empty-array', '{}', 'select([])', '[{}]'],
+        ['select-bare-false', '{}', 'select(false)', '[]'],
+        ['select-null-fields-zero-fallback', '{"a":null,"b":null}', 'select(.a != .b // 0)', '[{"a":null,"b":null}]'],
+        ['chain-boolean-bound-null', '{"a":null}', '[.a[0:true][0][0]]', '[[null]]'],
+        ['chain-boolean-bound-missing', '{}', '[.a[0:true][0][0]]', '[[null]]'],
+        ['chain-boolean-optional-skip', '{"a":[[0,1,2]]}', '[.a[0:true]?[0][0]]', '[[]]']
+    );
+    for my $case (@ok_cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my @error_cases = (
+        ['chain-boolean-upper', '{"a":[[0,1,2]]}', '[.a[0:true][0][0]]'],
+        ['chain-boolean-lower', '{"a":[[0,1,2]]}', '[.a[true:1][0][0]]'],
+        ['chain-multivalue-first-boolean', '{"a":[[0,1,2]]}', '[.a[0:(true,1)][0][0]]'],
+        ['chain-comparison-boolean', '{"a":[[0,1,2]]}', '.a[0:true][0] == null'],
+        ['chain-constructor-boolean', '{"a":[[0,1,2]]}', '{x:.a[0:true][0]}'],
+        ['chain-string-bound', '{"a":[[0,1,2]]}', '.a[0:"1"][0]']
+    );
+    for my $case (@error_cases) {
+        my ($name, $input, $filter) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "$name: invalid slice bound raises an error");
+    }
+};
+
 done_testing;
