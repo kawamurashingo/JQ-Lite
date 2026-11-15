@@ -821,6 +821,15 @@ sub _evaluate_value_expression {
         my ($slice, $tail) = ($chain_slice, $chain_tail);
         $tail = ".$tail" if $tail =~ /\A\[/;
         my $steps = _parse_v3_literal_iterator_path($tail);
+        if (!$steps
+            && $tail =~ /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/)
+        {
+            # The audited parser intentionally returns undef for an all-
+            # plain-field path (no index/optional/iterator), even though
+            # these field steps must be strictly traversed after a slice.
+            # Build only this already-validated literal-field suffix.
+            $steps = [ map { ['field', $_] } split /\./, $1 ];
+        }
         my ($slices, $slice_ok) =
             _evaluate_value_expression($self, $context, $slice);
         if ($slice_ok && $steps) {
