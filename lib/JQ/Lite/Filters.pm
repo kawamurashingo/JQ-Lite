@@ -312,7 +312,10 @@ sub apply {
                             my @pipeline_comma_parts;
                             if (@stages > 1) {
                                 for (my $i = 1; $i < @stages; $i++) {
-                                    next unless $stages[$i] =~ /\A\s*\(/s;
+                                    # A tail comma stage need not have
+                                    # explicit parentheses after try(...)
+                                    # has been unwrapped; preserve the
+                                    # outputs of completed alternatives.
                                     my $inner =
                                         JQ::Lite::Util::_strip_wrapping_parens(
                                             $stages[$i]
@@ -333,7 +336,9 @@ sub apply {
                                     JQ::Lite::Util::_split_top_level_pipes($tail);
                                 my ($comma_index, @alternatives);
                                 for (my $i = 0; $i < @parts; $i++) {
-                                    next unless $parts[$i] =~ /\A\s*\(/s;
+                                    # Unwrapped tail alternatives are
+                                    # filters too: visit each before an
+                                    # eventual failing later alternative.
                                     my $inner =
                                         JQ::Lite::Util::_strip_wrapping_parens(
                                             $parts[$i]
@@ -414,7 +419,9 @@ sub apply {
                                         );
                                     my ($comma_index, @alternatives);
                                     for (my $i = 0; $i < @parts; $i++) {
-                                        next unless $parts[$i] =~ /\A\s*\(/s;
+                                        # Unwrapped tail alternatives are
+                                    # filters too: visit each before an
+                                    # eventual failing later alternative.
                                         my $inner =
                                             JQ::Lite::Util::_strip_wrapping_parens(
                                                 $parts[$i]
