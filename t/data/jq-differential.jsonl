@@ -4519,3 +4519,32 @@
 {"name":"v3-20261115-quoted-optional-type-bracket-null-invalid-bound","input":{"a":null},"filter":"[.[\"a\"][0:true]?]","status":"compatible","expected":"ok"}
 {"name":"v3-20261115-quoted-optional-type-dot-string-invalid-bound","input":{"a":"abcd"},"filter":"[.\"a\"[0:true]?]","status":"compatible","expected":"ok"}
 {"name":"v3-20261115-quoted-optional-type-dot-mixed-direct","input":{"a":[0,1,2]},"filter":".\"a\"[0:(true,1)]?","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-try-comma-pipe","input":null,"filter":"try (1,2 | . + 10)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-try-comma-empty","input":null,"filter":"try (1,2 | empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-try-parenthesized-head","input":null,"filter":"try ((1,2) | . + 10)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-try-outer-alt","input":null,"filter":"try (1,2 | . + 10), 3","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-update-select","input":{"a":0},"filter":".a |= (1,2 | select(. == 2))","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-update-plus","input":{"a":0},"filter":".a |= (1,2 | . + 10)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-update-empty","input":{"a":0},"filter":".a |= (1,2 | empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-update-direct","input":{"a":0},"filter":".a |= (1,2)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-missing-ne","input":{},"filter":"select(.a != .b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-null-ne","input":{"a":null,"b":null},"filter":"select(.a != .b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-empty-ne","input":{},"filter":"select(.a != empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-null-eq","input":{"a":null,"b":null},"filter":"select(.a == .b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-empty-eq","input":{},"filter":"select(.a == empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-source-array","input":{},"filter":"[.a[0][0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-source-object","input":{},"filter":"{x:.a[0][0:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-bound-array","input":{},"filter":"[.a[.s[0]:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-bound-object","input":{},"filter":"{x:.a[.s[0]:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-source-existing","input":{"a":[[1,2],[3]]},"filter":"[.a[0][0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-bound-existing","input":{"a":[0,1,2],"s":[1]},"filter":"[.a[.s[0]:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-bound-empty","input":{"a":[0,1,2]},"filter":"[.a[.s[0]:empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-long-field","input":{},"filter":"[.a[0:1].b.c]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-long-index","input":{},"filter":"[.a[0:1][0].b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-obj-field","input":{},"filter":"{x:.a[0:1].b.c}","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-obj-index","input":{},"filter":"{x:.a[0:1][0].b}","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-comp-field","input":{},"filter":".a[0:1].b == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-comp-index","input":{},"filter":".a[0:1][0] == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-comp-long","input":{},"filter":".a[0:1].b.c == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-comp-empty","input":{},"filter":".a[(empty):1].b == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-select","input":{},"filter":"select(.a[0:1].b == null)","status":"compatible","expected":"ok"}
