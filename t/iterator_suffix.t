@@ -62,6 +62,27 @@ is_deeply(
     'a non-path iterator suffix applies only to its comma branch'
 );
 
+my @comma_function_suffix = $jq->run_query('"red,green"', '0, split(",")[]');
+is_deeply(
+    \@comma_function_suffix,
+    [0, 'red', 'green'],
+    'comma branch keeps a function iterator local to its result'
+);
+
+my @comma_spaced_keys = $jq->run_query($json, '0, keys []');
+is_deeply(
+    \@comma_spaced_keys,
+    [0, 'a', 'b'],
+    'spaced suffix in a comma branch preserves sorted key order'
+);
+
+my @comma_empty_fallback = $jq->run_query('null', '0, null // []');
+is_deeply(
+    \@comma_empty_fallback,
+    [0, []],
+    'empty-array alternative remains an operand, not an iterator'
+);
+
 my $users = '{"users":[{"name":"Alice"},{"name":"Bob"}]}';
 my @path_results = $jq->run_query($users, '.users[] | .name');
 is_deeply(\@path_results, ['Alice', 'Bob'], 'existing path iteration remains unchanged');
@@ -72,5 +93,24 @@ is_deeply(\@dotted_keys, ['x', 'y'], '.keys[] remains dotted field traversal');
 
 my @dotted_to_entries = $jq->run_query($builtin_named_fields, '.to_entries[]');
 is_deeply(\@dotted_to_entries, [1, 2], '.to_entries[] remains dotted field traversal');
+
+# An optional iterator on the RHS of // belongs to that operand; it
+# must not be hoisted to run after a successful left fallback value.
+my @fallback_kept = $jq->run_query('null', 'true // .[]?');
+is_deeply(\@fallback_kept, [JSON::PP::true],
+    'right optional iterator cannot consume a successful left fallback');
+# Keep the pre-existing v2 eager-fallback cardinality: the coalesce
+# helper takes the first right-operand value, not the entire jq stream.
+# This PR only corrects incorrectly applying that RHS iterator to a
+# successful left operand, and does not expand the v3 release feature set.
+my @fallback_rhs = $jq->run_query('[4,5]', 'false // .[]?');
+is_deeply(\@fallback_rhs, [4],
+    'legacy fallback retains its first right-operand value');
+my @fallback_empty_rhs = $jq->run_query('null', 'false // .[]?');
+is_deeply(\@fallback_empty_rhs, [undef],
+    'legacy empty right-operand fallback retains its null result');
+my @slash_literal_suffix = $jq->run_query('"a//b//c"', 'split("//")[]');
+is_deeply(\@slash_literal_suffix, ['a','b','c'],
+    'slashes inside a quoted separator do not suppress iterator suffix');
 
 done_testing();

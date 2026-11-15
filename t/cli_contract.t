@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use JSON::PP ();
 use IPC::Open3;
 use Symbol qw(gensym);
 
@@ -114,6 +115,103 @@ sub assert_err_contract {
         rc     => 3,
         prefix => '[RUNTIME]',
         name   => 'runtime error',
+    );
+}
+
+# Practical-v3 arithmetic errors retain the stable CLI runtime contract.
+# These intentionally exercise distinct JSON type and divisor failures.
+for my $case (
+    ['numeric-looking string multiplication', '{"n":"2"}', '.n * 2'],
+    ['modulo by zero', '{"n":7}', '.n % 0'],
+    ['null subtraction', '{"n":null}', '.n - 1'],
+) {
+    my ($name, $json, $filter) = @$case;
+    my $res = run_cmd(
+        cmd   => [$BIN, $filter],
+        stdin => "$json\n",
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 3,
+        prefix => '[RUNTIME]',
+        name   => "v3 arithmetic: $name",
+    );
+}
+
+# 3.0 practical assignment: malformed plain/compound targets must not
+# silently write a truncated prefix, and invalid |= targets must fail.
+for my $case (
+    ['plain slice target', '{"a":[1,2,3]}', '.a[0:1] = [9]'],
+    ['compound iterator target', '{"a":[1,2]}', '.a[] += 1'],
+    ['invalid update target type', '{"a":2}', '.a[0] |= . + 1'],
+) {
+    my ($name, $json, $filter) = @$case;
+    my $res = run_cmd(
+        cmd   => [$BIN, $filter],
+        stdin => "$json\n",
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 3,
+        prefix => '[RUNTIME]',
+        name   => "v3 assignment: $name",
+    );
+}
+
+# Compound setters intentionally keep v2 numeric-string coercion; they
+# are not synonyms for the strict v3 binary expression operators.
+{
+    my $res = run_cmd(
+        cmd   => [$BIN, '-c', '.n += 2'],
+        stdin => "{\"n\":\"2\"}\n",
+    );
+    is($res->{rc}, 0, 'v3 compound assignment: successful exit');
+    is($res->{err}, '', 'v3 compound assignment: empty stderr');
+    my $value = eval { JSON::PP->new->decode($res->{out}) };
+    my $decode_error = $@;
+    ok(!$decode_error, 'v3 compound assignment: emits valid JSON')
+        or diag($decode_error);
+    is_deeply($value, { n => 4 },
+        'v3 compound assignment: retains v2 numeric-string coercion')
+        unless $decode_error;
+}
+
+# Practical #625 path/iterator contract: exact stdout distinguishes a
+# missing field's JSON null from genuinely empty filter/iterator streams.
+# Keep the documented v2 projection/string-slice differences explicit.
+for my $case (
+    ['missing field emits null', '{}', '.missing', "null\n"],
+    ['empty array iterator emits nothing', '[]', '.[]', ''],
+    ['optional null iterator emits nothing', 'null', '.[]?', ''],
+    ['scalar ordinary field emits nothing (v2 extension)', '7', '.name', ''],
+    ['array field projection keeps v2 order', '[{"name":"a"},{"name":"b"}]',
+        '.name', "\"a\"\n\"b\"\n"],
+    ['string bracket slice retains v2 passthrough', '"abcd"',
+        '.[1:3]', "\"abcd\"\n"],
+    ['empty array constructor emits an array', 'null', '[empty]', "[]\n"],
+    ['empty object constructor emits nothing', 'null', '{x: empty}', ''],
+    ['comma skips empty branch in order', 'null', '1, empty, 2', "1\n2\n"],
+) {
+    my ($name, $json, $filter, $out) = @$case;
+    my $res = run_cmd(
+        cmd   => [$BIN, '-c', $filter],
+        stdin => "$json\n",
+    );
+    is($res->{rc}, 0, "v3 path: $name exit success");
+    is($res->{out}, $out, "v3 path: $name exact output stream");
+    is($res->{err}, '', "v3 path: $name empty stderr");
+}
+
+{
+    my $res = run_cmd(
+        cmd   => [$BIN, '.[]'],
+        stdin => "null\n",
+    );
+    assert_err_contract(
+        res    => $res,
+        rc     => 3,
+        prefix => '[RUNTIME]',
+        name   => 'v3 path: strict iterator on null',
     );
 }
 

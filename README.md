@@ -128,22 +128,39 @@ cpanm JQ::Lite
 
 ---
 
-## From Source (Latest, Simple)
+## From Source (Latest Stable CPAN Release)
 
-This method installs the **latest released version** directly from CPAN
-without requiring jq.
+This downloads a **stable CPAN release**, not an internal
+`3.00_0x` developer artifact. Prefer `cpanm JQ::Lite` above when
+available. This download requires network access, Bash and curl; Perl
+5.14+ includes `JSON::PP` in core. Offline installation is possible
+**after** separately obtaining and verifying a CPAN tarball.
 
-### Download (latest)
+### Download (HTTPS only, stable version checked)
+
+Run in Bash. The `pipefail` option stops after a failed API fetch.
+The release version is checked before constructing a URL. HTTPS
+protects the transfer, not a complete PAUSE/history or archive audit.
 
 ```bash
-curl -sSfL https://cpan.metacpan.org/authors/id/I/IS/ISHIGAKI/JSON-PP-4.xx.tar.gz -o JSON-PP.tar.gz
-tar xzf JSON-PP.tar.gz
+set -euo pipefail
 
-JSONPP_LIB=$(echo JSON-PP-*/lib)
-
-ver=$(curl -s http://fastapi.metacpan.org/v1/release/JQ-Lite \
-  | perl -I"$JSONPP_LIB" -MJSON::PP -0777 -ne 'print decode_json($_)->{version}')
-curl -sSfL http://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz -o JQ-Lite-$ver.tar.gz
+ver=$(
+  curl -fsSL --proto '=https' --proto-redir '=https' \
+    'https://fastapi.metacpan.org/v1/release/JQ-Lite' |
+  perl -MJSON::PP -0777 -ne '
+    my $release = decode_json($_);
+    die "Unexpected release metadata\n" unless ref($release) eq "HASH";
+    my $version = $release->{version};
+    die "Expected a stable numeric CPAN version\n"
+      unless defined($version) && !ref($version)
+        && $version =~ /\A[0-9]+\.[0-9]+(?:\.[0-9]+)*\z/;
+    print $version;
+  '
+)
+curl -fsSL --proto '=https' --proto-redir '=https' \
+  "https://cpan.metacpan.org/authors/id/S/SH/SHINGO/JQ-Lite-$ver.tar.gz" \
+  -o "JQ-Lite-$ver.tar.gz"
 ```
 
 ### Install (user-local, no root, offline-friendly)
@@ -232,8 +249,17 @@ for compatibility guarantees.
 * [`docs/library-contract.md`](docs/library-contract.md) — **stable Library API compatibility contract**
 * [`docs/library-integration.md`](docs/library-integration.md) — examples for downstream Perl/CPAN users
 * [`docs/FUNCTIONS.md`](docs/FUNCTIONS.md) — supported jq functions
+* [`docs/jq-differential-testing.md`](docs/jq-differential-testing.md) — jq 1.7 differential test harness for 3.0 development
+* [`docs/jq-compatibility.md`](docs/jq-compatibility.md) — practical v3/jq 1.7 compatibility matrix, verified scope and documented differences
+* [`docs/v3-migration.md`](docs/v3-migration.md) — v2-to-v3 filter migration checklist and behavior changes
 * [`docs/jq-semantics-differences.md`](docs/jq-semantics-differences.md) — jq 1.7 semantic differences in the current 2.x series
+* [`docs/v3-3.01-release-notes.md`](docs/v3-3.01-release-notes.md) — proposed 3.01 candidate, not released; final history/version/publication approval pending
 * [`docs/v3-roadmap.md`](docs/v3-roadmap.md) — compatibility policy, migration plan, and release criteria for JQ::Lite 3.0
+* [`docs/v3-release-readiness.md`](docs/v3-release-readiness.md) — release candidate gates, unresolved decisions, and sign-off record
+* [`docs/v3-beta1-release-notes.md`](docs/v3-beta1-release-notes.md) — **draft, unpublished** 3.00_02 beta1 candidate notes and RC promotion gates
+* [`docs/v3-rc1-release-notes.md`](docs/v3-rc1-release-notes.md) — **draft, unpublished** 3.00_03 internal RC1 validation notes and release blockers
+* [`docs/v3-arithmetic.md`](docs/v3-arithmetic.md) — practical v3 arithmetic types, predicates, retained jq differences and v2 migration
+* [`docs/v3-assignment.md`](docs/v3-assignment.md) — ordinary, update and compound assignment scope, unsupported targets and retained differences
 * [`docs/DESIGN.md`](docs/DESIGN.md) — design principles and scope
 * [CPAN documentation](https://metacpan.org/pod/JQ::Lite)
 
