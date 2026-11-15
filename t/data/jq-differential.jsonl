@@ -4509,3 +4509,13 @@
 {"name":"v3-20261115-main-review-chain-existing-index","input":{"a":[1,2]},"filter":"[.a[0:1][0]]","status":"compatible","expected":"ok"}
 {"name":"v3-20261115-main-review-chain-empty-bound","input":{"a":[1,2]},"filter":"[.a[(empty):1][0]]","status":"compatible","expected":"ok"}
 {"name":"v3-20261115-main-review-chain-root-null","input":null,"filter":"[.[0:1].b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-dot-bool-upper","input":{"a":[0,1,2]},"filter":"[.\"a\"[0:true]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-bracket-bool-upper","input":{"a":[0,1,2]},"filter":"[.[\"a\"][0:true]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-dot-bool-lower","input":{"a":[0,1,2]},"filter":"[.\"a\"[true:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-bracket-bool-lower","input":{"a":[0,1,2]},"filter":"[.[\"a\"][true:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-dot-mixed-end","input":{"a":[0,1,2]},"filter":"[.\"a\"[0:(true,1)]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-dot-mixed-start","input":{"a":[0,1,2]},"filter":"[.\"a\"[(true,0):1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-dot-null-invalid-bound","input":{"a":null},"filter":"[.\"a\"[0:true]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-bracket-null-invalid-bound","input":{"a":null},"filter":"[.[\"a\"][0:true]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-dot-string-invalid-bound","input":{"a":"abcd"},"filter":"[.\"a\"[0:true]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-quoted-optional-type-dot-mixed-direct","input":{"a":[0,1,2]},"filter":".\"a\"[0:(true,1)]?","status":"compatible","expected":"ok"}
