@@ -1294,9 +1294,25 @@ sub _evaluate_value_expression {
                         : ($context);
                     $sources_loaded = 1;
                 }
-                push @values, map {
-                    _apply_value_bracket_slice($_, $start, $end)
-                } @sources;
+                # Bounds are filter results, not Perl numeric scalars.
+                # JSON::PP booleans overload numeric conversion; jq
+                # rejects them on arrays/strings even when a strict
+                # index/field suffix follows this slice. Null sources
+                # still yield null after both bound filters emit.
+                for my $source (@sources) {
+                    my $type = JQ::Lite::Value::type_of($source);
+                    if ($type eq 'array' || $type eq 'string') {
+                        for my $bound ($start, $end) {
+                            next unless defined $bound;
+                            die JQ::Lite::Error::Evaluation->new(
+                                message => 'Array/string slice indices must be integers'
+                            ) unless JQ::Lite::Value::type_of($bound)
+                                eq 'number';
+                        }
+                    }
+                    push @values,
+                        _apply_value_bracket_slice($source, $start, $end);
+                }
             };
             my $emit_start = sub {
                 my ($start) = @_;
