@@ -4519,3 +4519,72 @@
 {"name":"v3-20261115-quoted-optional-type-bracket-null-invalid-bound","input":{"a":null},"filter":"[.[\"a\"][0:true]?]","status":"compatible","expected":"ok"}
 {"name":"v3-20261115-quoted-optional-type-dot-string-invalid-bound","input":{"a":"abcd"},"filter":"[.\"a\"[0:true]?]","status":"compatible","expected":"ok"}
 {"name":"v3-20261115-quoted-optional-type-dot-mixed-direct","input":{"a":[0,1,2]},"filter":".\"a\"[0:(true,1)]?","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-try-comma-pipe","input":null,"filter":"try (1,2 | . + 10)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-try-comma-empty","input":null,"filter":"try (1,2 | empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-try-parenthesized-head","input":null,"filter":"try ((1,2) | . + 10)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-try-outer-alt","input":null,"filter":"try (1,2 | . + 10), 3","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-update-select","input":{"a":0},"filter":".a |= (1,2 | select(. == 2))","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-update-plus","input":{"a":0},"filter":".a |= (1,2 | . + 10)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-update-empty","input":{"a":0},"filter":".a |= (1,2 | empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-update-direct","input":{"a":0},"filter":".a |= (1,2)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-missing-ne","input":{},"filter":"select(.a != .b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-null-ne","input":{"a":null,"b":null},"filter":"select(.a != .b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-empty-ne","input":{},"filter":"select(.a != empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-null-eq","input":{"a":null,"b":null},"filter":"select(.a == .b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-select-empty-eq","input":{},"filter":"select(.a == empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-source-array","input":{},"filter":"[.a[0][0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-source-object","input":{},"filter":"{x:.a[0][0:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-bound-array","input":{},"filter":"[.a[.s[0]:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-bound-object","input":{},"filter":"{x:.a[.s[0]:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-source-existing","input":{"a":[[1,2],[3]]},"filter":"[.a[0][0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-bound-existing","input":{"a":[0,1,2],"s":[1]},"filter":"[.a[.s[0]:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-nested-bound-empty","input":{"a":[0,1,2]},"filter":"[.a[.s[0]:empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-long-field","input":{},"filter":"[.a[0:1].b.c]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-long-index","input":{},"filter":"[.a[0:1][0].b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-obj-field","input":{},"filter":"{x:.a[0:1].b.c}","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-obj-index","input":{},"filter":"{x:.a[0:1][0].b}","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-comp-field","input":{},"filter":".a[0:1].b == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-comp-index","input":{},"filter":".a[0:1][0] == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-comp-long","input":{},"filter":".a[0:1].b.c == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-comp-empty","input":{},"filter":".a[(empty):1].b == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review-next-chain-select","input":{},"filter":"select(.a[0:1].b == null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-try-tail-completed","input":null,"filter":"try (1,empty | .,1/0) catch \"ERR\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-try-tail-many","input":null,"filter":"try (1,2 | .,1/0) catch \"ERR\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-try-tail-nonerror","input":null,"filter":"try (1,empty | .,2,3) catch \"ERR\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-try-tail-chain","input":null,"filter":"try (1,empty | .,1/0 | .+10) catch \"ERR\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-whitespace-null","input":null,"filter":"[.a[ 0 ][0:.s[0]]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-whitespace-missing","input":{},"filter":"[.a[ 0 ][0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-whitespace-array","input":{"a":[[1,2]]},"filter":"[.a[ 0 ][0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-source-optional-object","input":{"a":[{}]},"filter":"[.a[0][0:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-source-optional-number","input":{"a":[2]},"filter":"[.a[0][0:1]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-suffix-strict-valid","input":{"a":[[{"b":4}]]},"filter":"[.a[0:1][0][0].b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-suffix-strict-null","input":{},"filter":"[.a[0:1][0][0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-indexed-source-object","input":{"a":[{}]},"filter":"[.a[0][0:1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-source-number","input":{"a":[2]},"filter":"[.a[0][0:1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-source-whitespace-invalid","input":{"a":[{}]},"filter":"[.a[ 0 ][0:1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-suffix-index-invalid","input":{"a":[0,1]},"filter":"[.a[0:1][0][0]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-suffix-field-invalid","input":{"a":[0,1]},"filter":"[.a[0:1][0].b]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-select-zero-fallback","input":{},"filter":"select(.a != .b // 0)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-empty-string-fallback","input":{},"filter":"select(.a != .b // \"\")","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-empty-array-fallback","input":{},"filter":"select(.a != .b // [])","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-false-fallback","input":{},"filter":"select(.a != .b // false)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-null-fallback","input":{},"filter":"select(.a != .b // null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-empty-rhs-zero-fallback","input":{},"filter":"select(.a != empty // 0)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-bare-zero","input":{},"filter":"select(0)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-bare-empty-string","input":{},"filter":"select(\"\")","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-bare-empty-array","input":{},"filter":"select([])","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-bare-false","input":{},"filter":"select(false)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-null-fields-zero-fallback","input":{"a":null,"b":null},"filter":"select(.a != .b // 0)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-bound-null","input":{"a":null},"filter":"[.a[0:true][0][0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-bound-missing","input":{},"filter":"[.a[0:true][0][0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-optional-skip","input":{"a":[[0,1,2]]},"filter":"[.a[0:true]?[0][0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-upper","input":{"a":[[0,1,2]]},"filter":"[.a[0:true][0][0]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-lower","input":{"a":[[0,1,2]]},"filter":"[.a[true:1][0][0]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-multivalue-first-boolean","input":{"a":[[0,1,2]]},"filter":"[.a[0:(true,1)][0][0]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-comparison-boolean","input":{"a":[[0,1,2]]},"filter":".a[0:true][0] == null","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-constructor-boolean","input":{"a":[[0,1,2]]},"filter":"{x:.a[0:true][0]}","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-string-bound","input":{"a":[[0,1,2]]},"filter":".a[0:\"1\"][0]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-bound-start-string","input":{"a":[[1,2]]},"filter":"[.a[0][\"1\":1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-bound-end-string","input":{"a":[[1,2]]},"filter":"[.a[0][0:\"1\"]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-bound-start-boolean","input":{"a":[[1,2]]},"filter":"[.a[0][true:1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-bound-end-boolean","input":{"a":[[1,2]]},"filter":"[.a[0][0:true]]","status":"compatible","expected":"runtime-error"}

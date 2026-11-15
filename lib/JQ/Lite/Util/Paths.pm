@@ -131,7 +131,22 @@ sub _visit_update_rhs_results {
 
     my $expr = _strip_wrapping_parens($raw);
 
-    # jq's comma operator has lower precedence than a pipeline.
+    # jq's pipeline consumes each value of the complete comma stream to
+    # its left. Split the outer pipeline BEFORE visiting comma alternatives:
+    # (1,2 | f) sends both 1 and 2 through f, rather than accepting 1
+    # immediately as an |= replacement. The callback still stops after
+    # the first fully processed RHS output.
+    my @stages = _split_top_level_pipes($expr);
+    if (@stages > 1) {
+        my $head = shift @stages;
+        my $tail = join(' | ', @stages);
+
+        return _visit_update_rhs_results($self, $input, $head, sub {
+            my ($value) = @_;
+            return _visit_update_rhs_results($self, $value, $tail, $accept);
+        });
+    }
+
     my @alternatives = _split_top_level_commas($expr);
     if (@alternatives > 1) {
         for my $alternative (@alternatives) {
@@ -140,20 +155,6 @@ sub _visit_update_rhs_results {
             );
         }
         return 0;
-    }
-
-    my @stages = _split_top_level_pipes($expr);
-    if (@stages > 1) {
-        my $head = shift @stages;
-        my $tail = join(' | ', @stages);
-
-        # For each produced input, recursively evaluate the rest of the
-        # pipeline.  An empty downstream stage tries the next upstream
-        # value; the first downstream output halts the whole pipeline.
-        return _visit_update_rhs_results($self, $input, $head, sub {
-            my ($value) = @_;
-            return _visit_update_rhs_results($self, $value, $tail, $accept);
-        });
     }
 
     # The recurse generator emits its current value before exploring the

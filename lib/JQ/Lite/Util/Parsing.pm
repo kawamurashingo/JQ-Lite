@@ -782,6 +782,30 @@ sub _is_complete_simple_bracket_slice {
         ? 1 : 0;
 }
 
+# A complete simple slice may be followed by more than one field/index
+# selector. Keep its slice stream distinct from its suffix path; in
+# particular, null -> .b.c and null -> .[0].b each remain one null.
+# Iterator/computed suffixes are deliberately outside this narrow grammar.
+sub _split_simple_bracket_slice_chain {
+    my ($expr) = @_;
+    return unless defined $expr;
+    return $expr =~
+        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])?\[[^\[\]]*:[^\[\]]*\]\??)((?:\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])+)\z/s;
+}
+
+# The audited v3 iterator parser returns undef for a bare named-field
+# path because that syntax has no strict iterator/index feature to route.
+# A slice's source or suffix still needs those field steps to preserve
+# null and to raise errors on incompatible intermediate types.
+sub _strict_v3_literal_path_steps {
+    my ($path) = @_;
+    my $steps = _parse_v3_literal_iterator_path($path);
+    return $steps if $steps;
+    return undef unless defined($path)
+        && $path =~ /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/;
+    return [ map { ['field', $_] } split /\./, $1 ];
+}
+
 sub _evaluate_value_expression {
     my ($self, $context, $expr) = @_;
 
@@ -802,29 +826,134 @@ sub _evaluate_value_expression {
     # value stream before traversing the suffix. In particular, a missing
     # slice source is one null, not an empty constructor member. Empty
     # computed slice-bound streams still produce no chained values.
-    if ($copy =~
-        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])?\[[^\[\]]*:[^\[\]]*\]\??)(\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])\z/s
+    my ($chain_slice, $chain_tail) =
+        _split_simple_bracket_slice_chain($copy);
+    if (defined($chain_slice)
         && defined($self) && $self->can('run_query'))
     {
-        my ($slice, $tail) = ($1, $2);
+        my ($slice, $tail) = ($chain_slice, $chain_tail);
         $tail = ".$tail" if $tail =~ /\A\[/;
+        my $steps = _strict_v3_literal_path_steps($tail);
         my ($slices, $slice_ok) =
             _evaluate_value_expression($self, $context, $slice);
-        if ($slice_ok) {
+        if ($slice_ok && $steps) {
             my @values;
             for my $slice_value (@$slices) {
-                my ($members, $member_ok) =
-                    _evaluate_value_expression($self, $slice_value, $tail);
-                if ($member_ok) {
-                    push @values, @$members;
-                }
-                else {
-                    push @values, $self->run_query(
-                        _encode_json($slice_value), $tail
-                    );
-                }
+                # Every supported suffix is a literal strict path: use
+                # its audited iterator/index visitor rather than the
+                # legacy value shortcut, which silently drops an invalid
+                # second numeric index on a scalar.
+                push @values,
+                    _traverse_v3_field_iterator($slice_value, $tail, $steps);
             }
             return (\@values, 1);
+        }
+    }
+
+    # Preserve null-valued terminal slices when their source has one numeric
+    # index or a bound contains one nested bracket lookup. The simple-slice
+    # handler excludes both shapes to avoid treating nested selectors as
+    # literal text; the legacy dotted traversal drops missing/null sources.
+    # Keep this narrow: the source is a named field with at most one numeric
+    # index, and the bound body has at most one nesting level.
+    if ($copy =~
+        /\A(\.[A-Za-z_]\w*(?:\[\s*\d+\s*\])?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\](\?)?\z/s
+        && defined($self) && $self->can('run_query'))
+    {
+        my ($source, $body, $optional) = ($1, $2, $3);
+        if ($source =~ /\[/ || $body =~ /\[/) {
+            my ($start_expr, $end_expr) =
+                _split_top_level_colon($body);
+            if (defined $end_expr) {
+                my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+                my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+                my @values;
+                my @sources;
+                my $sources_loaded = 0;
+                my $emit_pair = sub {
+                    my ($start, $end) = @_;
+                    if (!$sources_loaded) {
+                        # Reuse the whitespace-aware strict selector
+                        # visitor for .a[0] and .a[ 0 ]. It preserves a
+                        # missing/null indexed source as one JSON null and
+                        # retains errors for invalid intermediate types.
+                        my $steps = _strict_v3_literal_path_steps($source);
+                        @sources = $steps
+                            ? _traverse_v3_field_iterator(
+                                $context, $source, $steps
+                            )
+                            : ();
+                        $sources_loaded = 1;
+                    }
+                    for my $item (@sources) {
+                        my $type = JQ::Lite::Value::type_of($item);
+                        unless ($type eq 'null'
+                            || $type eq 'array' || $type eq 'string')
+                        {
+                            # Strict slices reject unsupported source
+                            # values; '?' suppresses only the application.
+                            next if $optional;
+                            die JQ::Lite::Error::Evaluation->new(
+                                message => 'Cannot slice ' . $type
+                            );
+                        }
+                        my $value;
+                        my $ok = eval {
+                            if ($type ne 'null') {
+                                # Match the established start/end error
+                                # categories for indexed slice sources.
+                                my @bounds = ($start, $end);
+                                for my $index (0 .. $#bounds) {
+                                    my $bound = $bounds[$index];
+                                    next unless defined $bound;
+                                    unless (JQ::Lite::Value::type_of($bound)
+                                        eq 'number')
+                                    {
+                                        die JQ::Lite::Error::Evaluation->new(
+                                            message => $index
+                                                ? 'slice(): length must be numeric'
+                                                : 'slice(): start must be numeric'
+                                        );
+                                    }
+                                }
+                            }
+                            $value = _apply_value_bracket_slice(
+                                $item, $start, $end
+                            );
+                            1;
+                        };
+                        if ($optional) {
+                            push @values, $value if $ok;
+                        }
+                        else {
+                            die $@ unless $ok;
+                            push @values, $value;
+                        }
+                    }
+                };
+                my $emit_start = sub {
+                    my ($start) = @_;
+                    if ($end_expr =~ $literal) {
+                        $emit_pair->($start, _parse_slice_argument($end_expr));
+                    }
+                    else {
+                        _emit_slice_bound_stream(
+                            $self, $context, $end_expr, sub {
+                                $emit_pair->($start, $_[0]);
+                            }
+                        );
+                    }
+                };
+                if ($start_expr =~ $literal) {
+                    $emit_start->(_parse_slice_argument($start_expr));
+                }
+                else {
+                    _emit_slice_bound_stream(
+                        $self, $context, $start_expr, $emit_start
+                    );
+                }
+                return (\@values, 1);
+            }
         }
     }
 
@@ -1175,9 +1304,36 @@ sub _evaluate_value_expression {
                         : ($context);
                     $sources_loaded = 1;
                 }
-                push @values, map {
-                    _apply_value_bracket_slice($_, $start, $end)
-                } @sources;
+                # Bounds are filter results, not Perl numeric scalars.
+                # JSON::PP booleans overload numeric conversion; jq
+                # rejects them on arrays/strings even when a strict
+                # index/field suffix follows this slice. Null sources
+                # still yield null after both bound filters emit.
+                for my $source (@sources) {
+                    my $type = JQ::Lite::Value::type_of($source);
+                    if ($type eq 'array' || $type eq 'string') {
+                        # Keep the legacy slice() start/end error
+                        # categories for existing v2 callers while
+                        # rejecting JSON booleans and numeric-looking
+                        # strings before their Perl overload can coerce.
+                        my @bounds = ($start, $end);
+                        for my $index (0 .. $#bounds) {
+                            my $bound = $bounds[$index];
+                            next unless defined $bound;
+                            unless (JQ::Lite::Value::type_of($bound)
+                                eq 'number')
+                            {
+                                die JQ::Lite::Error::Evaluation->new(
+                                    message => $index
+                                        ? 'slice(): length must be numeric'
+                                        : 'slice(): start must be numeric'
+                                );
+                            }
+                        }
+                    }
+                    push @values,
+                        _apply_value_bracket_slice($source, $start, $end);
+                }
             };
             my $emit_start = sub {
                 my ($start) = @_;

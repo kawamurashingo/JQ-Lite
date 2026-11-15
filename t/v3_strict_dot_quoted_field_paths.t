@@ -1059,4 +1059,151 @@ subtest 'quoted optional slice bound types' => sub {
     }
 };
 
+# Full main-target review on 51ba219b: pipeline precedence, filter RHS
+# predicates and null-aware nested/suffix slice streams. Expected outputs
+# are independently compared with jq 1.7 (including zero results).
+subtest 'main-target pipeline and nested slice followups' => sub {
+    my @cases = (
+        ['try-comma-pipe', 'null', 'try (1,2 | . + 10)', '[11,12]'],
+        ['try-comma-empty', 'null', 'try (1,2 | empty)', '[]'],
+        ['try-parenthesized-head', 'null', 'try ((1,2) | . + 10)', '[11,12]'],
+        ['try-outer-alt', 'null', 'try (1,2 | . + 10), 3', '[11,12,3]'],
+        ['update-select', '{"a":0}', '.a |= (1,2 | select(. == 2))', '[{"a":2}]'],
+        ['update-plus', '{"a":0}', '.a |= (1,2 | . + 10)', '[{"a":11}]'],
+        ['update-empty', '{"a":0}', '.a |= (1,2 | empty)', '[{}]'],
+        ['update-direct', '{"a":0}', '.a |= (1,2)', '[{"a":1}]'],
+        ['select-missing-ne', '{}', 'select(.a != .b)', '[]'],
+        ['select-null-ne', '{"a":null,"b":null}', 'select(.a != .b)', '[]'],
+        ['select-empty-ne', '{}', 'select(.a != empty)', '[]'],
+        ['select-null-eq', '{"a":null,"b":null}', 'select(.a == .b)', '[{"a":null,"b":null}]'],
+        ['select-empty-eq', '{}', 'select(.a == empty)', '[]'],
+        ['nested-source-array', '{}', '[.a[0][0:1]]', '[[null]]'],
+        ['nested-source-object', '{}', '{x:.a[0][0:1]}', '[{"x":null}]'],
+        ['nested-bound-array', '{}', '[.a[.s[0]:1]]', '[[null]]'],
+        ['nested-bound-object', '{}', '{x:.a[.s[0]:1]}', '[{"x":null}]'],
+        ['nested-source-existing', '{"a":[[1,2],[3]]}', '[.a[0][0:1]]', '[[[1]]]'],
+        ['nested-bound-existing', '{"a":[0,1,2],"s":[1]}', '[.a[.s[0]:1]]', '[[[]]]'],
+        ['nested-bound-empty', '{"a":[0,1,2]}', '[.a[.s[0]:empty]]', '[[]]'],
+        ['chain-long-field', '{}', '[.a[0:1].b.c]', '[[null]]'],
+        ['chain-long-index', '{}', '[.a[0:1][0].b]', '[[null]]'],
+        ['chain-obj-field', '{}', '{x:.a[0:1].b.c}', '[{"x":null}]'],
+        ['chain-obj-index', '{}', '{x:.a[0:1][0].b}', '[{"x":null}]'],
+        ['chain-comp-field', '{}', '.a[0:1].b == null', '[true]'],
+        ['chain-comp-index', '{}', '.a[0:1][0] == null', '[true]'],
+        ['chain-comp-long', '{}', '.a[0:1].b.c == null', '[true]'],
+        ['chain-comp-empty', '{}', '.a[(empty):1].b == null', '[]'],
+        ['chain-select', '{}', 'select(.a[0:1].b == null)', '[{}]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
+
+# PR #942 Codex full review P2 followups at 6f42712: try tail output
+# before errors, strict nested source/suffix type errors and whitespace-aware
+# numeric source indexing. These examples are checked with jq 1.7.
+subtest 'main-target strict slice and try tail review followups' => sub {
+    my @ok_cases = (
+        ['try-tail-completed', 'null', 'try (1,empty | .,1/0) catch "ERR"', '[1,"ERR"]'],
+        ['try-tail-many', 'null', 'try (1,2 | .,1/0) catch "ERR"', '[1,"ERR"]'],
+        ['try-tail-nonerror', 'null', 'try (1,empty | .,2,3) catch "ERR"', '[1,2,3]'],
+        ['try-tail-chain', 'null', 'try (1,empty | .,1/0 | .+10) catch "ERR"', '[11,"ERR"]'],
+        ['indexed-whitespace-null', 'null', '[.a[ 0 ][0:.s[0]]]', '[[null]]'],
+        ['indexed-whitespace-missing', '{}', '[.a[ 0 ][0:1]]', '[[null]]'],
+        ['indexed-whitespace-array', '{"a":[[1,2]]}', '[.a[ 0 ][0:1]]', '[[[1]]]'],
+        ['indexed-source-optional-object', '{"a":[{}]}', '[.a[0][0:1]?]', '[[]]'],
+        ['indexed-source-optional-number', '{"a":[2]}', '[.a[0][0:1]?]', '[[]]'],
+        ['suffix-strict-valid', '{"a":[[{"b":4}]]}', '[.a[0:1][0][0].b]', '[[4]]'],
+        ['suffix-strict-null', '{}', '[.a[0:1][0][0]]', '[[null]]']
+    );
+    for my $case (@ok_cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my @error_cases = (
+        ['indexed-source-object', '{"a":[{}]}', '[.a[0][0:1]]'],
+        ['indexed-source-number', '{"a":[2]}', '[.a[0][0:1]]'],
+        ['indexed-source-whitespace-invalid', '{"a":[{}]}', '[.a[ 0 ][0:1]]'],
+        ['suffix-index-invalid', '{"a":[0,1]}', '[.a[0:1][0][0]]'],
+        ['suffix-field-invalid', '{"a":[0,1]}', '[.a[0:1][0].b]']
+    );
+    for my $case (@error_cases) {
+        my ($name, $input, $filter) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "$name: strict slice/index rejects invalid type");
+    }
+};
+
+# Full Codex review on 208339a: jq considers only false and null falsy,
+# and rejects nonnumeric computed slice bounds before strict suffix reads.
+# Expected values/errors were checked against local jq 1.7.
+subtest 'streamed select truthiness and strict slice-chain bounds' => sub {
+    my @ok_cases = (
+        ['select-zero-fallback', '{}', 'select(.a != .b // 0)', '[{}]'],
+        ['select-empty-string-fallback', '{}', 'select(.a != .b // "")', '[{}]'],
+        ['select-empty-array-fallback', '{}', 'select(.a != .b // [])', '[{}]'],
+        ['select-false-fallback', '{}', 'select(.a != .b // false)', '[]'],
+        ['select-null-fallback', '{}', 'select(.a != .b // null)', '[]'],
+        ['select-empty-rhs-zero-fallback', '{}', 'select(.a != empty // 0)', '[{}]'],
+        ['select-bare-zero', '{}', 'select(0)', '[{}]'],
+        ['select-bare-empty-string', '{}', 'select("")', '[{}]'],
+        ['select-bare-empty-array', '{}', 'select([])', '[{}]'],
+        ['select-bare-false', '{}', 'select(false)', '[]'],
+        ['select-null-fields-zero-fallback', '{"a":null,"b":null}', 'select(.a != .b // 0)', '[{"a":null,"b":null}]'],
+        ['chain-boolean-bound-null', '{"a":null}', '[.a[0:true][0][0]]', '[[null]]'],
+        ['chain-boolean-bound-missing', '{}', '[.a[0:true][0][0]]', '[[null]]'],
+        ['chain-boolean-optional-skip', '{"a":[[0,1,2]]}', '[.a[0:true]?[0][0]]', '[[]]']
+    );
+    for my $case (@ok_cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my @error_cases = (
+        ['chain-boolean-upper', '{"a":[[0,1,2]]}', '[.a[0:true][0][0]]'],
+        ['chain-boolean-lower', '{"a":[[0,1,2]]}', '[.a[true:1][0][0]]'],
+        ['chain-multivalue-first-boolean', '{"a":[[0,1,2]]}', '[.a[0:(true,1)][0][0]]'],
+        ['chain-comparison-boolean', '{"a":[[0,1,2]]}', '.a[0:true][0] == null'],
+        ['chain-constructor-boolean', '{"a":[[0,1,2]]}', '{x:.a[0:true][0]}'],
+        ['chain-string-bound', '{"a":[[0,1,2]]}', '.a[0:"1"][0]']
+    );
+    for my $case (@error_cases) {
+        my ($name, $input, $filter) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "$name: invalid slice bound raises an error");
+    }
+};
+
+
+# PR #942 exact-head review followup: indexed slice sources must retain
+# the established start/length error categories, not a generic bound error.
+subtest 'indexed-source slice bound error categories' => sub {
+    my $input = '{"a":[[1,2]]}';
+    my @cases = (
+        ['start-string', '[.a[0]["1":1]]', 'slice(): start must be numeric'],
+        ['end-string', '[.a[0][0:"1"]]', 'slice(): length must be numeric'],
+        ['start-boolean', '[.a[0][true:1]]', 'slice(): start must be numeric'],
+        ['end-boolean', '[.a[0][0:true]]', 'slice(): length must be numeric']
+    );
+    for my $case (@cases) {
+        my ($name, $filter, $expected) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        my $error = $@;
+        ok(!$ok, "$name: invalid indexed-source slice bound fails");
+        if (!$ok) {
+            isa_ok($error, 'JQ::Lite::Error::Evaluation',
+                "$name: typed evaluation error");
+            like("$error", qr/\Q$expected\E/,
+                "$name: preserves legacy bound error category");
+        }
+    }
+};
+
 done_testing;

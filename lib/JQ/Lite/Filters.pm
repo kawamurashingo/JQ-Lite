@@ -37,6 +37,9 @@ sub _has_streaming_slice_comparison {
         return 1 if JQ::Lite::Util::_is_complete_simple_bracket_slice(
             $operand
         );
+        my ($chain_slice) =
+            JQ::Lite::Util::_split_simple_bracket_slice_chain($operand);
+        return 1 if defined $chain_slice;
     }
     return 0;
 }
@@ -274,7 +277,12 @@ sub apply {
                 # independently and retain its completed output stream.
                 # This does not preserve partial output from a failure
                 # within one branch (general streaming is a separate audit).
-                for my $branch (JQ::Lite::Util::_split_top_level_commas($try_expr)) {
+                my @try_stages =
+                    JQ::Lite::Util::_split_top_level_pipes($try_expr);
+                my @try_branches = @try_stages > 1
+                    ? ($try_expr)
+                    : JQ::Lite::Util::_split_top_level_commas($try_expr);
+                for my $branch (@try_branches) {
                     my @branch_outputs;
                     {
                         local $@;
@@ -304,7 +312,10 @@ sub apply {
                             my @pipeline_comma_parts;
                             if (@stages > 1) {
                                 for (my $i = 1; $i < @stages; $i++) {
-                                    next unless $stages[$i] =~ /\A\s*\(/s;
+                                    # A tail comma stage need not have
+                                    # explicit parentheses after try(...)
+                                    # has been unwrapped; preserve the
+                                    # outputs of completed alternatives.
                                     my $inner =
                                         JQ::Lite::Util::_strip_wrapping_parens(
                                             $stages[$i]
@@ -325,7 +336,9 @@ sub apply {
                                     JQ::Lite::Util::_split_top_level_pipes($tail);
                                 my ($comma_index, @alternatives);
                                 for (my $i = 0; $i < @parts; $i++) {
-                                    next unless $parts[$i] =~ /\A\s*\(/s;
+                                    # Unwrapped tail alternatives are
+                                    # filters too: visit each before an
+                                    # eventual failing later alternative.
                                     my $inner =
                                         JQ::Lite::Util::_strip_wrapping_parens(
                                             $parts[$i]
@@ -406,7 +419,9 @@ sub apply {
                                         );
                                     my ($comma_index, @alternatives);
                                     for (my $i = 0; $i < @parts; $i++) {
-                                        next unless $parts[$i] =~ /\A\s*\(/s;
+                                        # Unwrapped tail alternatives are
+                                    # filters too: visit each before an
+                                    # eventual failing later alternative.
                                         my $inner =
                                             JQ::Lite::Util::_strip_wrapping_parens(
                                                 $parts[$i]
@@ -468,12 +483,15 @@ sub apply {
                                 my $head = $stages[0];
                                 my $inner =
                                     JQ::Lite::Util::_strip_wrapping_parens($head);
-                                if ($inner ne $head) {
-                                    @comma_head_parts =
-                                        JQ::Lite::Util::_split_top_level_commas(
-                                            $inner
-                                        );
-                                }
+                                # A comma-producing head need not have
+                                # explicit parentheses after the enclosing
+                                # try(...) wrapper has been stripped.
+                                # Route each head alternative through every
+                                # downstream pipeline stage in source order.
+                                @comma_head_parts =
+                                    JQ::Lite::Util::_split_top_level_commas(
+                                        $inner
+                                    );
                             }
                             my @iterator_heads;
                             if (@stages) {
@@ -1177,7 +1195,17 @@ sub apply {
             # missing-field null instead of the slice's actual stream.
             $has_simple_slice_comparison ||=
                 _has_streaming_slice_comparison($cond);
-            $use_streaming_eval ||= $has_simple_slice_comparison;
+
+            # A nonliteral comparison RHS is a filter, not a string literal.
+            # The scalar legacy predicate interprets .b and empty as the
+            # string ".b" and "empty", so select(.a != .b) and
+            # select(.a != empty) can incorrectly select null-valued inputs.
+            # Evaluate those through the full comparison filter and do not
+            # resurrect a value when its RHS stream is empty.
+            my $has_filter_rhs_comparison = defined($select_op)
+                && $select_rhs =~ /\A(?:\.|empty\b)/;
+            $use_streaming_eval ||= $has_simple_slice_comparison
+                || $has_filter_rhs_comparison;
 
             VALUE: for my $value (@results) {
                 my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
@@ -1199,9 +1227,13 @@ sub apply {
                         my $truthy = 0;
 
                         for my $cond_value (@cond_results) {
-                            if (JQ::Lite::Util::_is_truthy($cond_value)) {
-                                $truthy++;
-                            }
+                            # jq considers ONLY false and null falsy.
+                            # Perl's scalar truth check also rejects 0
+                            # and "", which are valid truthy filters.
+                            next unless defined $cond_value;
+                            my $type = JQ::Lite::Value::type_of($cond_value);
+                            next if $type eq 'boolean' && !$cond_value;
+                            $truthy++;
                         }
 
                         if ($truthy) {
@@ -1212,7 +1244,8 @@ sub apply {
                     }
                     # An empty comparison stream cannot select the input.
                     # Never resurrect a value via legacy scalar fallback.
-                    next VALUE if $has_simple_slice_comparison;
+                    next VALUE if $has_simple_slice_comparison
+                        || $has_filter_rhs_comparison;
                 }
 
                 if ($simple) {
@@ -2047,10 +2080,12 @@ sub _evaluate_comparison_operand {
     # results without fabricating outputs for `empty` bound streams.
     my $simple_slice =
         JQ::Lite::Util::_is_complete_simple_bracket_slice($copy);
+    my ($slice_chain) =
+        JQ::Lite::Util::_split_simple_bracket_slice_chain($copy);
 
     if ($copy !~ /\A\./
         || $copy =~ /\A\.(?:[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*)?\z/
-        || $simple_slice)
+        || $simple_slice || defined($slice_chain))
     {
         my ($values, $ok) = JQ::Lite::Util::_evaluate_value_expression($self, $context, $copy);
         return @$values if $ok;
