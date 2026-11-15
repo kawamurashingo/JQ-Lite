@@ -840,6 +840,93 @@ sub _evaluate_value_expression {
         }
     }
 
+    # Preserve null-valued terminal slices when their source has one numeric
+    # index or a bound contains one nested bracket lookup. The simple-slice
+    # handler excludes both shapes to avoid treating nested selectors as
+    # literal text; the legacy dotted traversal drops missing/null sources.
+    # Keep this narrow: the source is a named field with at most one numeric
+    # index, and the bound body has at most one nesting level.
+    if ($copy =~
+        /\A(\.[A-Za-z_]\w*(?:\[\s*\d+\s*\])?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\](\?)?\z/s
+        && defined($self) && $self->can('run_query'))
+    {
+        my ($source, $body, $optional) = ($1, $2, $3);
+        if ($source =~ /\[/ || $body =~ /\[/) {
+            my ($start_expr, $end_expr) =
+                _split_top_level_colon($body);
+            if (defined $end_expr) {
+                my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+                my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
+                my @values;
+                my @sources;
+                my $sources_loaded = 0;
+                my $emit_pair = sub {
+                    my ($start, $end) = @_;
+                    if (!$sources_loaded) {
+                        (my $source_path = $source) =~ s/^\.//;
+                        @sources = _traverse(
+                            $context, $source_path,
+                            { missing_object_null => 1,
+                              numeric_null_index => 1 }
+                        );
+                        $sources_loaded = 1;
+                    }
+                    for my $item (@sources) {
+                        my $type = JQ::Lite::Value::type_of($item);
+                        if ($optional) {
+                            next unless $type eq 'null'
+                                || $type eq 'array' || $type eq 'string';
+                        }
+                        my $value;
+                        my $ok = eval {
+                            if ($type ne 'null') {
+                                for my $bound ($start, $end) {
+                                    next unless defined $bound;
+                                    die 'slice(): bound must be numeric'
+                                        unless JQ::Lite::Value::type_of($bound)
+                                            eq 'number';
+                                }
+                            }
+                            $value = _apply_value_bracket_slice(
+                                $item, $start, $end
+                            );
+                            1;
+                        };
+                        if ($optional) {
+                            push @values, $value if $ok;
+                        }
+                        else {
+                            die $@ unless $ok;
+                            push @values, $value;
+                        }
+                    }
+                };
+                my $emit_start = sub {
+                    my ($start) = @_;
+                    if ($end_expr =~ $literal) {
+                        $emit_pair->($start, _parse_slice_argument($end_expr));
+                    }
+                    else {
+                        _emit_slice_bound_stream(
+                            $self, $context, $end_expr, sub {
+                                $emit_pair->($start, $_[0]);
+                            }
+                        );
+                    }
+                };
+                if ($start_expr =~ $literal) {
+                    $emit_start->(_parse_slice_argument($start_expr));
+                }
+                else {
+                    _emit_slice_bound_stream(
+                        $self, $context, $start_expr, $emit_start
+                    );
+                }
+                return (\@values, 1);
+            }
+        }
+    }
+
     # Scoped optional/quoted paths and bracket-to-field chains keep null
     # results in constructors. Do not route standalone legacy iterators
     # such as .[] through this visitor: reduce's existing empty-accumulator
