@@ -900,11 +900,21 @@ sub _evaluate_value_expression {
                         my $value;
                         my $ok = eval {
                             if ($type ne 'null') {
-                                for my $bound ($start, $end) {
+                                # Match the established start/end error
+                                # categories for indexed slice sources.
+                                my @bounds = ($start, $end);
+                                for my $index (0 .. $#bounds) {
+                                    my $bound = $bounds[$index];
                                     next unless defined $bound;
-                                    die 'slice(): bound must be numeric'
-                                        unless JQ::Lite::Value::type_of($bound)
-                                            eq 'number';
+                                    unless (JQ::Lite::Value::type_of($bound)
+                                        eq 'number')
+                                    {
+                                        die JQ::Lite::Error::Evaluation->new(
+                                            message => $index
+                                                ? 'slice(): length must be numeric'
+                                                : 'slice(): start must be numeric'
+                                        );
+                                    }
                                 }
                             }
                             $value = _apply_value_bracket_slice(
