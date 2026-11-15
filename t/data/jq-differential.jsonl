@@ -4564,3 +4564,23 @@
 {"name":"v3-20261115-review942-indexed-source-whitespace-invalid","input":{"a":[{}]},"filter":"[.a[ 0 ][0:1]]","status":"compatible","expected":"runtime-error"}
 {"name":"v3-20261115-review942-suffix-index-invalid","input":{"a":[0,1]},"filter":"[.a[0:1][0][0]]","status":"compatible","expected":"runtime-error"}
 {"name":"v3-20261115-review942-suffix-field-invalid","input":{"a":[0,1]},"filter":"[.a[0:1][0].b]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-select-zero-fallback","input":{},"filter":"select(.a != .b // 0)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-empty-string-fallback","input":{},"filter":"select(.a != .b // \"\")","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-empty-array-fallback","input":{},"filter":"select(.a != .b // [])","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-false-fallback","input":{},"filter":"select(.a != .b // false)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-null-fallback","input":{},"filter":"select(.a != .b // null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-empty-rhs-zero-fallback","input":{},"filter":"select(.a != empty // 0)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-bare-zero","input":{},"filter":"select(0)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-bare-empty-string","input":{},"filter":"select(\"\")","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-bare-empty-array","input":{},"filter":"select([])","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-bare-false","input":{},"filter":"select(false)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-select-null-fields-zero-fallback","input":{"a":null,"b":null},"filter":"select(.a != .b // 0)","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-bound-null","input":{"a":null},"filter":"[.a[0:true][0][0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-bound-missing","input":{},"filter":"[.a[0:true][0][0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-optional-skip","input":{"a":[[0,1,2]]},"filter":"[.a[0:true]?[0][0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-upper","input":{"a":[[0,1,2]]},"filter":"[.a[0:true][0][0]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-boolean-lower","input":{"a":[[0,1,2]]},"filter":"[.a[true:1][0][0]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-multivalue-first-boolean","input":{"a":[[0,1,2]]},"filter":"[.a[0:(true,1)][0][0]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-comparison-boolean","input":{"a":[[0,1,2]]},"filter":".a[0:true][0] == null","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-constructor-boolean","input":{"a":[[0,1,2]]},"filter":"{x:.a[0:true][0]}","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-truthiness-chain-string-bound","input":{"a":[[0,1,2]]},"filter":".a[0:\"1\"][0]","status":"compatible","expected":"runtime-error"}
