@@ -782,6 +782,17 @@ sub _is_complete_simple_bracket_slice {
         ? 1 : 0;
 }
 
+# A complete simple slice may be followed by more than one field/index
+# selector. Keep its slice stream distinct from its suffix path; in
+# particular, null -> .b.c and null -> .[0].b each remain one null.
+# Iterator/computed suffixes are deliberately outside this narrow grammar.
+sub _split_simple_bracket_slice_chain {
+    my ($expr) = @_;
+    return unless defined $expr;
+    return $expr =~
+        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])?\[[^\[\]]*:[^\[\]]*\]\??)((?:\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])+)\z/s;
+}
+
 sub _evaluate_value_expression {
     my ($self, $context, $expr) = @_;
 
@@ -802,11 +813,12 @@ sub _evaluate_value_expression {
     # value stream before traversing the suffix. In particular, a missing
     # slice source is one null, not an empty constructor member. Empty
     # computed slice-bound streams still produce no chained values.
-    if ($copy =~
-        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])?\[[^\[\]]*:[^\[\]]*\]\??)(\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])\z/s
+    my ($chain_slice, $chain_tail) =
+        _split_simple_bracket_slice_chain($copy);
+    if (defined($chain_slice)
         && defined($self) && $self->can('run_query'))
     {
-        my ($slice, $tail) = ($1, $2);
+        my ($slice, $tail) = ($chain_slice, $chain_tail);
         $tail = ".$tail" if $tail =~ /\A\[/;
         my ($slices, $slice_ok) =
             _evaluate_value_expression($self, $context, $slice);
