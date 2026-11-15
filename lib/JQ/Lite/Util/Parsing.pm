@@ -767,23 +767,19 @@ sub _evaluate_variable_reference {
     return $ok ? @$values : ();
 }
 
-# Shared by the value evaluator and filter dispatchers: a complete root or
-# named-field slice with no nested bracket selectors. The optional evaluator
-# understands computed bounds only for root/unquoted field sources. Quoted
-# sources may use literal bounds here; otherwise preserve the legacy dispatch
-# rather than entering an evaluator whose source parser cannot extract them.
+# Shared by the value evaluator and filter dispatchers: a complete root,
+# named-field, or quoted-field slice with no nested bracket-bound selectors.
+# Computed bounds are evaluated as streams by the value evaluator, rather
+# than being mistaken for arithmetic or dropped by legacy dot splitting.
 sub _is_complete_simple_bracket_slice {
     my ($expr) = @_;
     return 0 unless defined $expr;
     return 1 if $expr =~
         /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\[[^\[\]]*:[^\[\]]*\]\??\z/;
 
-    my ($start, $end) = $expr =~
-        /\A\."(?:\\.|[^"\\])*"\[([^\[\]]*):([^\[\]]*)\]\??\z/;
-    return 0 unless defined $start && defined $end;
-    my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
-    my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
-    return $start =~ $literal && $end =~ $literal ? 1 : 0;
+    return $expr =~
+        /\A\.(?:"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])\[[^\[\]]*:[^\[\]]*\]\??\z/
+        ? 1 : 0;
 }
 
 sub _evaluate_value_expression {
@@ -801,6 +797,36 @@ sub _evaluate_value_expression {
     my ($select_body) = $copy =~ /^select\((.*)\)$/s;
     return ([], 0) if defined($select_body)
         && _are_brackets_balanced($select_body);
+
+    # A slice followed by a field or numeric index retains the slice's
+    # value stream before traversing the suffix. In particular, a missing
+    # slice source is one null, not an empty constructor member. Empty
+    # computed slice-bound streams still produce no chained values.
+    if ($copy =~
+        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])?\[[^\[\]]*:[^\[\]]*\]\??)(\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])\z/s
+        && defined($self) && $self->can('run_query'))
+    {
+        my ($slice, $tail) = ($1, $2);
+        $tail = ".$tail" if $tail =~ /\A\[/;
+        my ($slices, $slice_ok) =
+            _evaluate_value_expression($self, $context, $slice);
+        if ($slice_ok) {
+            my @values;
+            for my $slice_value (@$slices) {
+                my ($members, $member_ok) =
+                    _evaluate_value_expression($self, $slice_value, $tail);
+                if ($member_ok) {
+                    push @values, @$members;
+                }
+                else {
+                    push @values, $self->run_query(
+                        _encode_json($slice_value), $tail
+                    );
+                }
+            }
+            return (\@values, 1);
+        }
+    }
 
     # Scoped optional/quoted paths and bracket-to-field chains keep null
     # results in constructors. Do not route standalone legacy iterators
@@ -823,40 +849,89 @@ sub _evaluate_value_expression {
         return ([ $decoded ], 1) unless $@;
     }
 
-    # A quoted field followed by literal slice bounds is the same
-    # supported value path as a root slice over that field's value.
-    # Apply the existing value-context slice helper to the selected value.
-    # This keeps null, optional errors and string slicing separate from
-    # the legacy public slice() API without another path parser.
-    if ($copy =~ /\A(\."(?:\\.|[^"\\])*")(\[([^\[\]]*):([^\[\]]*)\]\??)\z/s
+    # Both jq spellings of a quoted key share the same slice evaluator.
+    # Resolve the selector lazily: an empty computed bound emits no values,
+    # and must not visit (or fail to visit) the source. Evaluate each bound
+    # pair as a filter stream on the original input before applying the
+    # value-context slice helper. This preserves nulls, strings, and '?'.
+    if ($copy =~
+        /\A(\.(?:"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\]))(\[([^\[\]]*):([^\[\]]*)\]\??)\z/s
         && defined($self) && $self->can('run_query'))
     {
-        my ($selector, $tail, $start, $end) = ($1, $2, $3, $4);
+        my ($selector, $tail, $raw_start, $raw_end) = ($1, $2, $3, $4);
+        my $optional = $tail =~ /\?\z/ ? 1 : 0;
         my $number = qr/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
         my $literal = qr/\A\s*(?:$number|null)?\s*\z/;
-        if ($start =~ $literal && $end =~ $literal) {
-            my @values;
-            my @bounds = _parse_bracket_slice_arguments($start, $end);
-            for my $source ($self->run_query(_encode_json($context), $selector)) {
-                if ($tail =~ /\?\z/) {
+        my @values;
+        my @sources;
+        my $sources_loaded = 0;
+
+        my $emit_pair = sub {
+            my ($start, $end) = @_;
+            if (!$sources_loaded) {
+                @sources = $self->run_query(
+                    _encode_json($context), $selector
+                );
+                $sources_loaded = 1;
+            }
+            for my $source (@sources) {
+                if ($optional) {
                     my $type = JQ::Lite::Value::type_of($source);
                     next unless $type eq 'null'
                         || $type eq 'array' || $type eq 'string';
                     my $value;
                     my $ok = eval {
-                        $value = _apply_value_bracket_slice($source, @bounds);
+                        # Like unquoted optional slices, reject boolean or
+                        # other nonnumeric bounds for arrays/strings. JSON::PP
+                        # booleans overload numeric conversion in legacy
+                        # slicing, but jq's '?' skips that slice application.
+                        # A null source remains one null even for invalid
+                        # bound types, after evaluating the bound filters.
+                        if ($type ne 'null') {
+                            for my $bound ($start, $end) {
+                                next unless defined $bound;
+                                die 'slice(): bound must be numeric'
+                                    unless JQ::Lite::Value::type_of($bound)
+                                        eq 'number';
+                            }
+                        }
+                        $value = _apply_value_bracket_slice(
+                            $source, $start, $end
+                        );
                         1;
                     };
                     push @values, $value if $ok;
                 }
                 else {
                     push @values, _apply_value_bracket_slice(
-                        $source, @bounds
+                        $source, $start, $end
                     );
                 }
             }
-            return (\@values, 1);
+        };
+
+        my $emit_start = sub {
+            my ($start) = @_;
+            if ($raw_end =~ $literal) {
+                $emit_pair->($start, _parse_slice_argument($raw_end));
+            }
+            else {
+                _emit_slice_bound_stream(
+                    $self, $context, $raw_end, sub {
+                        $emit_pair->($start, $_[0]);
+                    }
+                );
+            }
+        };
+        if ($raw_start =~ $literal) {
+            $emit_start->(_parse_slice_argument($raw_start));
         }
+        else {
+            _emit_slice_bound_stream(
+                $self, $context, $raw_start, $emit_start
+            );
+        }
+        return (\@values, 1);
     }
 
     # Optional complete slices preserve null-valued constructor members,

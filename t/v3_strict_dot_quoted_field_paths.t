@@ -998,4 +998,65 @@ subtest 'quoted computed slice dispatch is warning-free' => sub {
     }
 };
 
+
+# Full main-target review at f60620b: keep outer // precedence and
+# distinguish null from empty bound streams on quoted/compound slices.
+subtest 'main-target slice comparison followups' => sub {
+    my @cases = (
+        ['boolean-computed-present', '{"a":[1,2]}', 'false or .a[.s:.e] == null', '[false]'],
+        ['boolean-computed-select', '{"a":[1,2]}', 'select(false or .a[.s:.e] == null)', '[]'],
+        ['boolean-computed-missing', '{}', 'false or .a[.s:.e] == null', '[true]'],
+        ['direct-fallback-empty', '{}', '.a[0:empty] == null // false', '[false]'],
+        ['direct-fallback-null', '{}', '.a[0:1] == null // false', '[true]'],
+        ['constructor-fallback-empty', '{}', '[.a[0:empty] == null // false]', '[[false]]'],
+        ['computed-quoted-null', '{}', '[."a"[(0):1]]', '[[null]]'],
+        ['computed-quoted-comparison', '{}', '."a"[(0):1] == null', '[true]'],
+        ['computed-quoted-empty', '{}', '."a"[(0+0):(empty)]', '[]'],
+        ['computed-quoted-optional-empty', '{}', '."a"[(0+0):(empty)]?', '[]'],
+        ['computed-quoted-multi', '{"a":[0,1,2]}', '."a"[(0+0):(1,2)]', '[[0],[0,1]]'],
+        ['computed-quoted-constructor-multi', '{"a":[0,1,2]}', '[."a"[(0+0):(1,2)]]', '[[[0],[0,1]]]'],
+        ['bracket-quoted-null-array', 'null', '[.["a"][0:1]]', '[[null]]'],
+        ['bracket-quoted-null-object', 'null', '{x:.["a"][0:1]}', '[{"x":null}]'],
+        ['bracket-quoted-computed', '{}', '.["a"][(0):1] == null', '[true]'],
+        ['bracket-quoted-string', '{"a":"abcd"}', '[.["a"][1:3]]', '[["bc"]]'],
+        ['chain-missing-field', '{}', '[.a[0:1].b]', '[[null]]'],
+        ['chain-object-field', '{}', '{x:.a[0:1].b}', '[{"x":null}]'],
+        ['chain-missing-index', '{}', '[.a[0:1][0]]', '[[null]]'],
+        ['chain-object-index', '{}', '{x:.a[0:1][0]}', '[{"x":null}]'],
+        ['chain-existing-index', '{"a":[1,2]}', '[.a[0:1][0]]', '[[1]]'],
+        ['chain-empty-bound', '{"a":[1,2]}', '[.a[(empty):1][0]]', '[[]]'],
+        ['chain-root-null', 'null', '[.[0:1].b]', '[[null]]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
+# Quoted optional slices must reject boolean bounds for array/string
+# sources, while null sources keep their null result. Validate both jq
+# quoted selector spellings and mixed boolean/numeric bound streams.
+subtest 'quoted optional slice bound types' => sub {
+    my @cases = (
+        ['dot-bool-upper', '{"a":[0,1,2]}', '[."a"[0:true]?]', '[[]]'],
+        ['bracket-bool-upper', '{"a":[0,1,2]}', '[.["a"][0:true]?]', '[[]]'],
+        ['dot-bool-lower', '{"a":[0,1,2]}', '[."a"[true:1]?]', '[[]]'],
+        ['bracket-bool-lower', '{"a":[0,1,2]}', '[.["a"][true:1]?]', '[[]]'],
+        ['dot-mixed-end', '{"a":[0,1,2]}', '[."a"[0:(true,1)]?]', '[[[0]]]'],
+        ['dot-mixed-start', '{"a":[0,1,2]}', '[."a"[(true,0):1]?]', '[[[0]]]'],
+        ['dot-null-invalid-bound', '{"a":null}', '[."a"[0:true]?]', '[[null]]'],
+        ['bracket-null-invalid-bound', '{"a":null}', '[.["a"][0:true]?]', '[[null]]'],
+        ['dot-string-invalid-bound', '{"a":"abcd"}', '[."a"[0:true]?]', '[[]]'],
+        ['dot-mixed-direct', '{"a":[0,1,2]}', '."a"[0:(true,1)]?', '[[0]]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;

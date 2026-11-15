@@ -8,6 +8,39 @@ use JQ::Lite::Util ();
 use JQ::Lite::Value ();
 use JQ::Lite::Builtin ();
 
+# Only logical chains with a complete slice comparison need the existing
+# stream-aware boolean evaluator. Ordinary v2 predicates retain their
+# established scalar path.
+sub _has_streaming_slice_comparison {
+    my ($expr) = @_;
+    return 0 unless defined $expr;
+    my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
+    $copy =~ s/^\s+|\s+$//g;
+
+    for my $operator ('or', 'and') {
+        my @parts = JQ::Lite::Util::_split_top_level_keyword(
+            $copy, $operator
+        );
+        if (@parts > 1) {
+            for my $part (@parts) {
+                return 1 if _has_streaming_slice_comparison($part);
+            }
+            return 0;
+        }
+    }
+
+    my ($lhs, $op, $rhs) =
+        JQ::Lite::Util::_split_top_level_comparison($copy);
+    return 0 unless defined $op;
+    for my $operand ($lhs, $rhs) {
+        $operand =~ s/^\s+|\s+$//g;
+        return 1 if JQ::Lite::Util::_is_complete_simple_bracket_slice(
+            $operand
+        );
+    }
+    return 0;
+}
+
 sub apply {
     my ($self, $part, $results_ref, $out_ref) = @_;
 
@@ -736,6 +769,56 @@ sub apply {
             return 1;
         }
 
+        # jq's // is weaker than comparison. For comparison-bearing
+        # fallbacks, let the existing stream evaluator resolve the outer //
+        # before comparison; empty left streams must select the fallback
+        # instead of being swallowed as an operand of the right comparison.
+        my ($fallback_lhs, $fallback_rhs) =
+            JQ::Lite::Util::_split_top_level_operator($normalized, '//');
+        if (defined($fallback_lhs) && defined($fallback_rhs)
+            && $fallback_lhs =~ /\S/ && $fallback_rhs =~ /\S/)
+        {
+            my (undef, $left_compare) =
+                JQ::Lite::Util::_split_top_level_comparison($fallback_lhs);
+            my (undef, $right_compare) =
+                JQ::Lite::Util::_split_top_level_comparison($fallback_rhs);
+            if (defined($left_compare) || defined($right_compare)) {
+                @next_results = ();
+                for my $item (@results) {
+                    JQ::Lite::Util::_emit_slice_bound_stream(
+                        $self, $item, $normalized, sub {
+                            push @next_results, $_[0];
+                        }
+                    );
+                }
+                @$out_ref = @next_results;
+                return 1;
+            }
+        }
+
+        # A nested slice comparison inside "or"/"and" needs stream
+        # semantics at each leaf. Legacy scalar condition traversal treats
+        # unresolved computed indices as a missing key (JSON null), which
+        # can invert boolean results and select predicates.
+        my @or_parts =
+            JQ::Lite::Util::_split_top_level_keyword($normalized, 'or');
+        my @and_parts =
+            JQ::Lite::Util::_split_top_level_keyword($normalized, 'and');
+        if ((@or_parts > 1 || @and_parts > 1)
+            && _has_streaming_slice_comparison($normalized))
+        {
+            @next_results = ();
+            for my $item (@results) {
+                JQ::Lite::Util::_emit_slice_bound_stream(
+                    $self, $item, $normalized, sub {
+                        push @next_results, $_[0];
+                    }
+                );
+            }
+            @$out_ref = @next_results;
+            return 1;
+        }
+
         # Comparisons treat each operand as a filter evaluated against the
         # current input.  This is important after a pipe, where `length > 0`
         # must compare the length of the piped array rather than look for a
@@ -1089,6 +1172,11 @@ sub apply {
                     JQ::Lite::Util::_is_complete_simple_bracket_slice($select_lhs)
                     || JQ::Lite::Util::_is_complete_simple_bracket_slice($select_rhs);
             }
+            # A complete slice can also be nested below an outer or/and.
+            # In that case the scalar predicate fallback would see a fake
+            # missing-field null instead of the slice's actual stream.
+            $has_simple_slice_comparison ||=
+                _has_streaming_slice_comparison($cond);
             $use_streaming_eval ||= $has_simple_slice_comparison;
 
             VALUE: for my $value (@results) {
