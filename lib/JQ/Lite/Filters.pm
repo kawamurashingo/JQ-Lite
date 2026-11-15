@@ -1185,7 +1185,17 @@ sub apply {
             # missing-field null instead of the slice's actual stream.
             $has_simple_slice_comparison ||=
                 _has_streaming_slice_comparison($cond);
-            $use_streaming_eval ||= $has_simple_slice_comparison;
+
+            # A nonliteral comparison RHS is a filter, not a string literal.
+            # The scalar legacy predicate interprets .b and empty as the
+            # string ".b" and "empty", so select(.a != .b) and
+            # select(.a != empty) can incorrectly select null-valued inputs.
+            # Evaluate those through the full comparison filter and do not
+            # resurrect a value when its RHS stream is empty.
+            my $has_filter_rhs_comparison = defined($select_op)
+                && $select_rhs =~ /\A(?:\.|empty\b)/;
+            $use_streaming_eval ||= $has_simple_slice_comparison
+                || $has_filter_rhs_comparison;
 
             VALUE: for my $value (@results) {
                 my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
@@ -1220,7 +1230,8 @@ sub apply {
                     }
                     # An empty comparison stream cannot select the input.
                     # Never resurrect a value via legacy scalar fallback.
-                    next VALUE if $has_simple_slice_comparison;
+                    next VALUE if $has_simple_slice_comparison
+                        || $has_filter_rhs_comparison;
                 }
 
                 if ($simple) {
