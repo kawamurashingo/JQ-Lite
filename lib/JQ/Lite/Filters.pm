@@ -1227,9 +1227,13 @@ sub apply {
                         my $truthy = 0;
 
                         for my $cond_value (@cond_results) {
-                            if (JQ::Lite::Util::_is_truthy($cond_value)) {
-                                $truthy++;
-                            }
+                            # jq considers ONLY false and null falsy.
+                            # Perl's scalar truth check also rejects 0
+                            # and "", which are valid truthy filters.
+                            next unless defined $cond_value;
+                            my $type = JQ::Lite::Value::type_of($cond_value);
+                            next if $type eq 'boolean' && !$cond_value;
+                            $truthy++;
                         }
 
                         if ($truthy) {
