@@ -1302,12 +1302,23 @@ sub _evaluate_value_expression {
                 for my $source (@sources) {
                     my $type = JQ::Lite::Value::type_of($source);
                     if ($type eq 'array' || $type eq 'string') {
-                        for my $bound ($start, $end) {
+                        # Keep the legacy slice() start/end error
+                        # categories for existing v2 callers while
+                        # rejecting JSON booleans and numeric-looking
+                        # strings before their Perl overload can coerce.
+                        my @bounds = ($start, $end);
+                        for my $index (0 .. $#bounds) {
+                            my $bound = $bounds[$index];
                             next unless defined $bound;
-                            die JQ::Lite::Error::Evaluation->new(
-                                message => 'Array/string slice indices must be integers'
-                            ) unless JQ::Lite::Value::type_of($bound)
-                                eq 'number';
+                            unless (JQ::Lite::Value::type_of($bound)
+                                eq 'number')
+                            {
+                                die JQ::Lite::Error::Evaluation->new(
+                                    message => $index
+                                        ? 'slice(): length must be numeric'
+                                        : 'slice(): start must be numeric'
+                                );
+                            }
                         }
                     }
                     push @values,
