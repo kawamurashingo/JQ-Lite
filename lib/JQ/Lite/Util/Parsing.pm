@@ -881,6 +881,20 @@ sub _evaluate_value_expression {
                         || $type eq 'array' || $type eq 'string';
                     my $value;
                     my $ok = eval {
+                        # Like unquoted optional slices, reject boolean or
+                        # other nonnumeric bounds for arrays/strings. JSON::PP
+                        # booleans overload numeric conversion in legacy
+                        # slicing, but jq's '?' skips that slice application.
+                        # A null source remains one null even for invalid
+                        # bound types, after evaluating the bound filters.
+                        if ($type ne 'null') {
+                            for my $bound ($start, $end) {
+                                next unless defined $bound;
+                                die 'slice(): bound must be numeric'
+                                    unless JQ::Lite::Value::type_of($bound)
+                                        eq 'number';
+                            }
+                        }
                         $value = _apply_value_bracket_slice(
                             $source, $start, $end
                         );
