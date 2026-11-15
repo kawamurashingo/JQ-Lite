@@ -1102,4 +1102,42 @@ subtest 'main-target pipeline and nested slice followups' => sub {
     }
 };
 
+
+# PR #942 Codex full review P2 followups at 6f42712: try tail output
+# before errors, strict nested source/suffix type errors and whitespace-aware
+# numeric source indexing. These examples are checked with jq 1.7.
+subtest 'main-target strict slice and try tail review followups' => sub {
+    my @ok_cases = (
+        ['try-tail-completed', 'null', 'try (1,empty | .,1/0) catch "ERR"', '[1,"ERR"]'],
+        ['try-tail-many', 'null', 'try (1,2 | .,1/0) catch "ERR"', '[1,"ERR"]'],
+        ['try-tail-nonerror', 'null', 'try (1,empty | .,2,3) catch "ERR"', '[1,2,3]'],
+        ['try-tail-chain', 'null', 'try (1,empty | .,1/0 | .+10) catch "ERR"', '[11,"ERR"]'],
+        ['indexed-whitespace-null', 'null', '[.a[ 0 ][0:.s[0]]]', '[[null]]'],
+        ['indexed-whitespace-missing', '{}', '[.a[ 0 ][0:1]]', '[[null]]'],
+        ['indexed-whitespace-array', '{"a":[[1,2]]}', '[.a[ 0 ][0:1]]', '[[[1]]]'],
+        ['indexed-source-optional-object', '{"a":[{}]}', '[.a[0][0:1]?]', '[[]]'],
+        ['indexed-source-optional-number', '{"a":[2]}', '[.a[0][0:1]?]', '[[]]'],
+        ['suffix-strict-valid', '{"a":[[{"b":4}]]}', '[.a[0:1][0][0].b]', '[[4]]'],
+        ['suffix-strict-null', '{}', '[.a[0:1][0][0]]', '[[null]]']
+    );
+    for my $case (@ok_cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my @error_cases = (
+        ['indexed-source-object', '{"a":[{}]}', '[.a[0][0:1]]'],
+        ['indexed-source-number', '{"a":[2]}', '[.a[0][0:1]]'],
+        ['indexed-source-whitespace-invalid', '{"a":[{}]}', '[.a[ 0 ][0:1]]'],
+        ['suffix-index-invalid', '{"a":[0,1]}', '[.a[0:1][0][0]]'],
+        ['suffix-field-invalid', '{"a":[0,1]}', '[.a[0:1][0].b]']
+    );
+    for my $case (@error_cases) {
+        my ($name, $input, $filter) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "$name: strict slice/index rejects invalid type");
+    }
+};
+
 done_testing;
