@@ -4584,3 +4584,7 @@
 {"name":"v3-20261115-review942-truthiness-chain-comparison-boolean","input":{"a":[[0,1,2]]},"filter":".a[0:true][0] == null","status":"compatible","expected":"runtime-error"}
 {"name":"v3-20261115-review942-truthiness-chain-constructor-boolean","input":{"a":[[0,1,2]]},"filter":"{x:.a[0:true][0]}","status":"compatible","expected":"runtime-error"}
 {"name":"v3-20261115-review942-truthiness-chain-string-bound","input":{"a":[[0,1,2]]},"filter":".a[0:\"1\"][0]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-bound-start-string","input":{"a":[[1,2]]},"filter":"[.a[0][\"1\":1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-bound-end-string","input":{"a":[[1,2]]},"filter":"[.a[0][0:\"1\"]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-bound-start-boolean","input":{"a":[[1,2]]},"filter":"[.a[0][true:1]]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261115-review942-indexed-bound-end-boolean","input":{"a":[[1,2]]},"filter":"[.a[0][0:true]]","status":"compatible","expected":"runtime-error"}
