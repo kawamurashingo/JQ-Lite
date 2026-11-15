@@ -1181,4 +1181,29 @@ subtest 'streamed select truthiness and strict slice-chain bounds' => sub {
     }
 };
 
+
+# PR #942 exact-head review followup: indexed slice sources must retain
+# the established start/length error categories, not a generic bound error.
+subtest 'indexed-source slice bound error categories' => sub {
+    my $input = '{"a":[[1,2]]}';
+    my @cases = (
+        ['start-string', '[.a[0]["1":1]]', 'slice(): start must be numeric'],
+        ['end-string', '[.a[0][0:"1"]]', 'slice(): length must be numeric'],
+        ['start-boolean', '[.a[0][true:1]]', 'slice(): start must be numeric'],
+        ['end-boolean', '[.a[0][0:true]]', 'slice(): length must be numeric']
+    );
+    for my $case (@cases) {
+        my ($name, $filter, $expected) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        my $error = $@;
+        ok(!$ok, "$name: invalid indexed-source slice bound fails");
+        if (!$ok) {
+            isa_ok($error, 'JQ::Lite::Error::Evaluation',
+                "$name: typed evaluation error");
+            like("$error", qr/\Q$expected\E/,
+                "$name: preserves legacy bound error category");
+        }
+    }
+};
+
 done_testing;
