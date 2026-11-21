@@ -4596,3 +4596,18 @@
 {"name":"v3-20261121-review932-indexed-present-comp","input":{"a":[[10,20,30]]},"filter":".a[0][0:1] == null","status":"compatible","expected":"ok"}
 {"name":"v3-20261121-review932-indexed-present-computed-empty","input":{"a":[[10,20,30]]},"filter":".a[0][(0+0):empty]","status":"compatible","expected":"ok"}
 {"name":"v3-20261121-review932-indexed-present-computed-multi","input":{"a":[[10,20,30]]},"filter":".a[0][(0+0):(1,2)]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-quoted-null","input":{},"filter":"[.a[0:1].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-optional-null","input":{},"filter":"{x:.a[0:1].b?}","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-optional-quoted-null","input":{},"filter":"[.a[0:1].\"b\"?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-bracket-quoted-null","input":{},"filter":"[.a[0:1][\"b\"]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-optional-bracket-quoted-null","input":{},"filter":"{x:.a[0:1][\"b\"]?}","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-present-quoted","input":{"a":[{"b":5}]},"filter":"[.a[0:1][0].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-present-optional","input":{"a":[{"b":5}]},"filter":"[.a[0:1][0].b?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-nonobject-optional","input":{"a":[7]},"filter":"[.a[0:1][0].b?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-empty-bound","input":{"a":[]},"filter":"[.a[(0+0):empty].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-multivalue-bound","input":{"a":[{"b":3},{"b":4}]},"filter":"[.a[0:(1,2)][0].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-direct-quoted-null","input":{},"filter":".a[0:1].\"b\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-direct-optional-null","input":{},"filter":".a[0:1].b?","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-direct-quoted-optional-null","input":{},"filter":".a[0:1].\"b\"?","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-direct-bracket-optional-null","input":{},"filter":".a[0:1][\"b\"]?","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-slice-quoted-opt-nonobject-strict","input":{"a":[7]},"filter":"[.a[0:1][0].\"b\"]","status":"compatible","expected":"runtime-error"}

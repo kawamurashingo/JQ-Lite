@@ -1228,4 +1228,43 @@ subtest 'indexed-source slices preserve null and computed streams' => sub {
     }
 };
 
+
+# PR #932 latest full main-target P2: quoted/optional literal suffixes must
+# traverse each slice value, including the one null emitted by a missing
+# source. A genuinely empty computed bound must still emit no members.
+# Expected values/error behavior independently checked with jq 1.7.
+subtest 'quoted and optional suffix paths after slices' => sub {
+    my @cases = (
+        ['quoted-null', '{}', '[.a[0:1]."b"]', '[[null]]'],
+        ['optional-null', '{}', '{x:.a[0:1].b?}', '[{"x":null}]'],
+        ['optional-quoted-null', '{}', '[.a[0:1]."b"?]', '[[null]]'],
+        ['bracket-quoted-null', '{}', '[.a[0:1]["b"]]', '[[null]]'],
+        ['optional-bracket-quoted-null', '{}', '{x:.a[0:1]["b"]?}', '[{"x":null}]'],
+        ['present-quoted', '{"a":[{"b":5}]}', '[.a[0:1][0]."b"]', '[[5]]'],
+        ['present-optional', '{"a":[{"b":5}]}', '[.a[0:1][0].b?]', '[[5]]'],
+        ['nonobject-optional', '{"a":[7]}', '[.a[0:1][0].b?]', '[[]]'],
+        ['empty-bound', '{"a":[]}', '[.a[(0+0):empty]."b"]', '[[]]'],
+        ['multivalue-bound', '{"a":[{"b":3},{"b":4}]}', '[.a[0:(1,2)][0]."b"]', '[[3,3]]'],
+        ['direct-quoted-null', '{}', '.a[0:1]."b"', '[null]'],
+        ['direct-optional-null', '{}', '.a[0:1].b?', '[null]'],
+        ['direct-quoted-optional-null', '{}', '.a[0:1]."b"?', '[null]'],
+        ['direct-bracket-optional-null', '{}', '.a[0:1]["b"]?', '[null]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my @error_cases = (
+        ['nonobject-strict', '{"a":[7]}', '[.a[0:1][0]."b"]']
+    );
+    for my $case (@error_cases) {
+        my ($name, $input, $filter) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "$name: invalid strict quoted field access errors");
+        like("$@", qr/Cannot index/i, "$name: strict field error retained");
+    }
+};
+
 done_testing;
