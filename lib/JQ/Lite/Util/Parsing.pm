@@ -782,6 +782,20 @@ sub _is_complete_simple_bracket_slice {
         ? 1 : 0;
 }
 
+# An indexed named-field source followed by one terminal slice is already
+# evaluated as a complete stream by _evaluate_value_expression. Do not send
+# it to scalar expression shortcuts or legacy comparison traversal.
+# Keep this syntax aligned with that evaluator (one numeric source index,
+# at most one bracket nesting level inside the bound expressions).
+sub _is_complete_indexed_source_bracket_slice {
+    my ($expr) = @_;
+    return 0 unless defined $expr;
+    return 0 unless $expr =~
+        /\A\.[A-Za-z_]\w*\[\s*\d+\s*\]\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\??\z/s;
+    my ($start, $end) = _split_top_level_colon($1);
+    return defined $end ? 1 : 0;
+}
+
 # A complete simple slice may be followed by more than one field/index
 # selector. Keep its slice stream distinct from its suffix path; in
 # particular, null -> .b.c and null -> .[0].b each remain one null.
