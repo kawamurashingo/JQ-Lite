@@ -1213,7 +1213,10 @@ sub apply {
                 # Other legacy predicates still validate errors eagerly (e.g.
                 # malformed =~ regexes), preserving the established API.
                 my $simple;
-                unless ($has_simple_slice_comparison || $has_filter_rhs_comparison) {
+                # Only a *top-level* comparison with a filter RHS needs
+                # this deferral. Nested boolean predicates may contain legacy
+                # regex leaves whose errors the scalar evaluator must surface.
+                unless ($has_filter_rhs_comparison) {
                     $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
                 }
                 if ($use_streaming_eval) {
