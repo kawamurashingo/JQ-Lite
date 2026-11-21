@@ -1510,7 +1510,18 @@ sub _evaluate_condition {
     if ($cond =~ /^\s*\.(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+?)\s*$/) {
         my ($path, $op, $value_raw) = ($1, $2, $3);
 
-        my $value = _parse_literal_argument($value_raw);
+        # A simple right-hand field path is a filter operand, not a
+        # literal string. The scalar condition evaluator also runs inside
+        # and/or chains and select(...), where direct comparison dispatch
+        # cannot see these leaves. Recognize only ordinary named fields;
+        # keep more complex RHS forms on their separately audited path.
+        my $right_expr = _strip_wrapping_parens($value_raw);
+        my ($right_path) = $right_expr =~
+            /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/;
+        my @right_values = defined($right_path)
+            ? _traverse($item, $right_path, { missing_object_null => 1 })
+            : ($right_expr eq '.' ? ($item)
+                : (_parse_literal_argument($value_raw)));
         # Resolve every supported scoped field/index path before using
         # legacy missing-object-null fallback. Quoted, optional, numeric,
         # spaced and computed selectors all share the existing visitor.
@@ -1529,8 +1540,10 @@ sub _evaluate_condition {
                 _evaluate_value_expression(undef, $item, $scoped_path);
             @values = @$slice_values if $ok;
         }
-        for my $field_val (@values) {
-            return 1 if _compare_values($field_val, $op, $value);
+        for my $right (@right_values) {
+            for my $field_val (@values) {
+                return 1 if _compare_values($field_val, $op, $right);
+            }
         }
     }
 
