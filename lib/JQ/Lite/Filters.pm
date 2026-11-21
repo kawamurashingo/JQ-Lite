@@ -872,10 +872,10 @@ sub apply {
             }
         }
 
-        # Complete simple slices need the value helper regardless of
-        # whether their bounds look arithmetic. In particular, (empty)
-        # must stay zero outputs, not a synthesized JSON null.
-        if (JQ::Lite::Util::_is_complete_simple_bracket_slice($normalized)) {
+        # Complete simple and indexed-source slices need the value helper,
+        # preserving full bound streams (including genuinely empty streams).
+        if (JQ::Lite::Util::_is_complete_simple_bracket_slice($normalized)
+            || JQ::Lite::Util::_is_complete_indexed_source_bracket_slice($normalized)) {
             my @slice_values;
             my $all_slice_ok = 1;
             for my $item (@results) {
@@ -2079,7 +2079,8 @@ sub _evaluate_comparison_operand {
     # including fractional and computed bounds. It preserves actual null
     # results without fabricating outputs for `empty` bound streams.
     my $simple_slice =
-        JQ::Lite::Util::_is_complete_simple_bracket_slice($copy);
+        JQ::Lite::Util::_is_complete_simple_bracket_slice($copy)
+        || JQ::Lite::Util::_is_complete_indexed_source_bracket_slice($copy);
     my ($slice_chain) =
         JQ::Lite::Util::_split_simple_bracket_slice_chain($copy);
 

@@ -1206,4 +1206,26 @@ subtest 'indexed-source slice bound error categories' => sub {
     }
 };
 
+# PR #932 full main-target review: an indexed named-field slice must
+# preserve its complete bound stream in comparisons and top-level filters.
+# The value helper already handles these forms inside constructors.
+subtest 'indexed-source slices preserve null and computed streams' => sub {
+    my @cases = (
+        ['missing-comp', '{}', '.a[0][0:1] == null', '[true]'],
+        ['missing-reverse-comp', '{}', 'null == .a[0][0:1]', '[true]'],
+        ['missing-optional-comp', '{}', '.a[0][0:1]? == null', '[true]'],
+        ['missing-computed-empty', '{}', '.a[0][(0+0):empty]', '[]'],
+        ['missing-computed-multi', '{}', '.a[0][(0+0):(1,2)]', '[null,null]'],
+        ['present-comp', '{"a":[[10,20,30]]}', '.a[0][0:1] == null', '[false]'],
+        ['present-computed-empty', '{"a":[[10,20,30]]}', '.a[0][(0+0):empty]', '[]'],
+        ['present-computed-multi', '{"a":[[10,20,30]]}', '.a[0][(0+0):(1,2)]', '[[10],[10,20]]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;
