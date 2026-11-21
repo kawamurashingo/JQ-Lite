@@ -164,10 +164,12 @@ sub parse_query {
             elsif ($rest =~ /^\s*\[/) {
                 $_;
             }
-            # A complete slice remains a rooted filter, including quoted
-            # fields and optional suffixes. Do not discard its leading dot
-            # before the value/stream-aware slice dispatch.
-            elsif (JQ::Lite::Util::_is_complete_simple_bracket_slice($_)) {
+            # A complete slice or a supported literal suffix chain is a
+            # rooted stream filter. Retain its leading dot so both direct
+            # filters and constructor members reach the null-aware visitor.
+            elsif (JQ::Lite::Util::_is_complete_simple_bracket_slice($_)
+                || JQ::Lite::Util::_split_simple_bracket_slice_chain($_))
+            {
                 $_;
             }
             # Keep the leading dot for supported literal, optional and
