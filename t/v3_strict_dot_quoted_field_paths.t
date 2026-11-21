@@ -1267,4 +1267,15 @@ subtest 'quoted and optional suffix paths after slices' => sub {
     }
 };
 
+
+# The v2 Library API has a deliberate array-field projection extension that
+# jq 1.7 rejects. New quoted/optional slice dispatch must not change it.
+subtest 'unquoted slice suffix keeps legacy array projection' => sub {
+    is_deeply(
+        [$jq->run_query('{"a":[{"b":5}]}', '.a[0:1].b')],
+        [5],
+        'legacy unquoted direct slice suffix still projects array elements'
+    );
+};
+
 done_testing;
