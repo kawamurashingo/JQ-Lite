@@ -872,10 +872,15 @@ sub apply {
             }
         }
 
-        # Complete simple and indexed-source slices need the value helper,
-        # preserving full bound streams (including genuinely empty streams).
+        # Complete slices and supported literal suffix paths must retain
+        # every value from their stream, including one null on a missing
+        # source or no values from an empty computed bound. Otherwise the
+        # scalar arithmetic fallback below collapses the slice result.
+        my ($literal_slice_chain) =
+            JQ::Lite::Util::_split_simple_bracket_slice_chain($normalized);
         if (JQ::Lite::Util::_is_complete_simple_bracket_slice($normalized)
-            || JQ::Lite::Util::_is_complete_indexed_source_bracket_slice($normalized)) {
+            || JQ::Lite::Util::_is_complete_indexed_source_bracket_slice($normalized)
+            || defined($literal_slice_chain)) {
             my @slice_values;
             my $all_slice_ok = 1;
             for my $item (@results) {
