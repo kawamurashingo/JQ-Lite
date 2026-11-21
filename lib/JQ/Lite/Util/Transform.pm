@@ -1400,6 +1400,11 @@ sub _evaluate_condition {
     $cond = _strip_wrapping_parens($cond);
     $cond =~ s/^\s+|\s+$//g;
 
+    # Plain JSON boolean/null leaves occur inside nested logical predicates;
+    # do not interpret a true leaf as false by falling through field checks.
+    return 1 if $cond eq 'true';
+    return 0 if $cond eq 'false' || $cond eq 'null';
+
     # Split only top-level logical operators.  Evaluating `or` first gives
     # `and` the tighter binding used by jq, while recursive calls remove
     # parentheses around individual operands.

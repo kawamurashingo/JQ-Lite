@@ -1245,7 +1245,12 @@ subtest 'nested and parenthesized named-field comparison operands' => sub {
         ['null-fields', '{"a":null,"b":null}', 'select(.a != (.b))', '[]'],
         ['same-value', '{"a":1,"b":1}', 'false or .a != (.b)', '[false]'],
         ['present-and', '{"a":1,"b":2}', 'true and .a != (.b)', '[true]'],
-        ['missing-paren', '{}', 'false or .a != (.b)', '[false]']
+        ['missing-paren', '{}', 'false or .a != (.b)', '[false]'],
+        ['literal-or-true', '{}', 'false or true', '[true]'],
+        ['literal-and-true', '{}', 'true and true', '[true]'],
+        ['literal-and-false', '{}', 'true and false', '[false]'],
+        ['literal-null-fallback', '{}', 'null or .a == .b', '[true]'],
+        ['missing-and-eq', '{}', 'true and .a == .b', '[true]']
     );
     for my $case (@cases) {
         my ($name, $input, $filter, $expected_json) = @$case;
