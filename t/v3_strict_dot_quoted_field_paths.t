@@ -1228,4 +1228,22 @@ subtest 'select comparison respects empty RHS evaluation order' => sub {
     }
 };
 
+# Exact-head PR #943 Codex P2: streaming slice comparisons inside an
+# and/or chain must not suppress the established v2 =~ regex error.
+# =~ is a retained extension, not a jq 1.7 differential test target.
+subtest 'slice-bearing boolean select retains legacy regex errors' => sub {
+    my $input = '{"a":[1],"name":"abc"}';
+    for my $filter (
+        'select(.name =~ "[" and .a[0:1] == [1])',
+        'select(.a[0:1] == [1] and .name =~ "[")',
+        'select(.name =~ "[" or .a[0:1] == [1])'
+    ) {
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        my $error = $@;
+        ok(!$ok, "invalid regex still fails: $filter");
+        like("$error", qr/invalid regular expression/i,
+            "invalid regex remains detectable: $filter");
+    }
+};
+
 done_testing;
