@@ -4596,3 +4596,20 @@
 {"name":"v3-20261121-review932-indexed-present-comp","input":{"a":[[10,20,30]]},"filter":".a[0][0:1] == null","status":"compatible","expected":"ok"}
 {"name":"v3-20261121-review932-indexed-present-computed-empty","input":{"a":[[10,20,30]]},"filter":".a[0][(0+0):empty]","status":"compatible","expected":"ok"}
 {"name":"v3-20261121-review932-indexed-present-computed-multi","input":{"a":[[10,20,30]]},"filter":".a[0][(0+0):(1,2)]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-missing-ne","input":{},"filter":"false or .a != .b","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-missing-eq","input":{},"filter":"false or .a == .b","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-missing-select-ne","input":{},"filter":"select(false or .a != .b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-missing-select-paren","input":{},"filter":"select(.a != (.b))","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-missing-select-eq","input":{},"filter":"select(false or .a == .b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-missing-and-ne","input":{},"filter":"true and .a != .b","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-present-ne","input":{"a":1,"b":2},"filter":"false or .a != .b","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-present-select-paren","input":{"a":1,"b":2},"filter":"select(.a != (.b))","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-null-fields","input":{"a":null,"b":null},"filter":"select(.a != (.b))","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-same-value","input":{"a":1,"b":1},"filter":"false or .a != (.b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-present-and","input":{"a":1,"b":2},"filter":"true and .a != (.b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-missing-paren","input":{},"filter":"false or .a != (.b)","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-literal-or-true","input":{},"filter":"false or true","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-literal-and-true","input":{},"filter":"true and true","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-literal-and-false","input":{},"filter":"true and false","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-literal-null-fallback","input":{},"filter":"null or .a == .b","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-nested-filter-rhs-missing-and-eq","input":{},"filter":"true and .a == .b","status":"compatible","expected":"ok"}
