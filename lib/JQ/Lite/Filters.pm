@@ -1208,8 +1208,9 @@ sub apply {
                 || $has_filter_rhs_comparison;
 
             VALUE: for my $value (@results) {
-                my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
-
+                # A streaming comparison must finish before considering the
+                # legacy scalar fallback.  An empty RHS prevents evaluating
+                # an invalid LHS, as it does for the ordinary comparison filter.
                 if ($use_streaming_eval) {
                     my $json = JQ::Lite::Util::_encode_json($value);
                     my $error;
@@ -1248,6 +1249,7 @@ sub apply {
                         || $has_filter_rhs_comparison;
                 }
 
+                my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
                 if ($simple) {
                     push @next_results, $value;
                 }

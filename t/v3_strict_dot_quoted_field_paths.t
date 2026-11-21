@@ -1206,4 +1206,26 @@ subtest 'indexed-source slice bound error categories' => sub {
     }
 };
 
+# PR #932 exact-head review: select must not evaluate a scalar
+# predicate before a stream-aware comparison has had the opportunity to
+# short-circuit on an empty RHS.  These outcomes match jq 1.7.
+subtest 'select comparison respects empty RHS evaluation order' => sub {
+    my $input = '{"a":2,"b":[]}';
+    for my $filter (
+        'select(.a[0] == empty)',
+        'select(.a[0] != empty)',
+        'select(.a[0] == .b[])'
+    ) {
+        is_deeply([$jq->run_query($input, $filter)], [],
+            "empty RHS suppresses invalid LHS: $filter");
+    }
+    for my $filter (
+        'select(.a[0] == .b)',
+        'select(.a[0] == 1)'
+    ) {
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "nonempty RHS still evaluates and rejects invalid LHS: $filter");
+    }
+};
+
 done_testing;
