@@ -4596,6 +4596,11 @@
 {"name":"v3-20261121-review932-indexed-present-comp","input":{"a":[[10,20,30]]},"filter":".a[0][0:1] == null","status":"compatible","expected":"ok"}
 {"name":"v3-20261121-review932-indexed-present-computed-empty","input":{"a":[[10,20,30]]},"filter":".a[0][(0+0):empty]","status":"compatible","expected":"ok"}
 {"name":"v3-20261121-review932-indexed-present-computed-multi","input":{"a":[[10,20,30]]},"filter":".a[0][(0+0):(1,2)]","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-select-empty-rhs-eq","input":{"a":2,"b":[]},"filter":"select(.a[0] == empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-select-empty-rhs-ne","input":{"a":2,"b":[]},"filter":"select(.a[0] != empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-select-empty-rhs-iterator","input":{"a":2,"b":[]},"filter":"select(.a[0] == .b[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261121-review932-select-nonempty-rhs-path","input":{"a":2,"b":[]},"filter":"select(.a[0] == .b)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261121-review932-select-nonempty-rhs-literal","input":{"a":2,"b":[]},"filter":"select(.a[0] == 1)","status":"compatible","expected":"runtime-error"}
 {"name":"v3-20261121-review932-slice-quoted-opt-quoted-null","input":{},"filter":"[.a[0:1].\"b\"]","status":"compatible","expected":"ok"}
 {"name":"v3-20261121-review932-slice-quoted-opt-optional-null","input":{},"filter":"{x:.a[0:1].b?}","status":"compatible","expected":"ok"}
 {"name":"v3-20261121-review932-slice-quoted-opt-optional-quoted-null","input":{},"filter":"[.a[0:1].\"b\"?]","status":"compatible","expected":"ok"}
