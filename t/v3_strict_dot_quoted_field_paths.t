@@ -1228,4 +1228,43 @@ subtest 'indexed-source slices preserve null and computed streams' => sub {
     }
 };
 
+# PR #932 exact-head review: select must not evaluate a scalar
+# predicate before a stream-aware comparison has had the opportunity to
+# short-circuit on an empty RHS.  These outcomes match jq 1.7.
+subtest 'select comparison respects empty RHS evaluation order' => sub {
+    my $input = '{"a":2,"b":[]}';
+    for my $filter (
+        'select(.a[0] == empty)',
+        'select(.a[0] != empty)',
+        'select(.a[0] == .b[])'
+    ) {
+        is_deeply([$jq->run_query($input, $filter)], [],
+            "empty RHS suppresses invalid LHS: $filter");
+    }
+    for my $filter (
+        'select(.a[0] == .b)',
+        'select(.a[0] == 1)'
+    ) {
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "nonempty RHS still evaluates and rejects invalid LHS: $filter");
+    }
+};
+
+# Exact-head PR #943 Codex P2: streaming slice comparisons inside an
+# and/or chain must not suppress the established v2 =~ regex error.
+# =~ is a retained extension, not a jq 1.7 differential test target.
+subtest 'slice-bearing boolean select retains legacy regex errors' => sub {
+    my $input = '{"a":[1],"name":"abc"}';
+    for my $filter (
+        'select(.name =~ "[" and .a[0:1] == [1])',
+        'select(.a[0:1] == [1] and .name =~ "[")',
+        'select(.name =~ "[" or .a[0:1] == [1])'
+    ) {
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        my $error = $@;
+        ok(!$ok, "invalid regex still fails: $filter");
+        like("$error", qr/invalid regular expression/i,
+            "invalid regex remains detectable: $filter");
+    }
+};
 done_testing;

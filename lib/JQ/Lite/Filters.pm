@@ -1208,8 +1208,17 @@ sub apply {
                 || $has_filter_rhs_comparison;
 
             VALUE: for my $value (@results) {
-                my $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
-
+                # Defer the scalar fallback only for stream-aware comparisons:
+                # an empty RHS must prevent evaluating an invalid LHS.
+                # Other legacy predicates still validate errors eagerly (e.g.
+                # malformed =~ regexes), preserving the established API.
+                my $simple;
+                # Only a *top-level* comparison with a filter RHS needs
+                # this deferral. Nested boolean predicates may contain legacy
+                # regex leaves whose errors the scalar evaluator must surface.
+                unless ($has_filter_rhs_comparison) {
+                    $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
+                }
                 if ($use_streaming_eval) {
                     my $json = JQ::Lite::Util::_encode_json($value);
                     my $error;
@@ -1248,6 +1257,8 @@ sub apply {
                         || $has_filter_rhs_comparison;
                 }
 
+                $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0
+                    unless defined $simple;
                 if ($simple) {
                     push @next_results, $value;
                 }
