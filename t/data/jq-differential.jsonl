@@ -4759,3 +4759,69 @@
 {"name":"v3-20261128-review950-array-short","input":{"a":2,"b":1},"filter":"select(true or .a == (empty // [.b]))","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review950-array-pipe","input":{"a":[1],"b":1},"filter":".a == (empty // (.b | [.]))","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review950-array-nested-select","input":{"a":[1],"b":1},"filter":"select(true and .a == (empty // [.b]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-or","input":{},"filter":"false or .a != (.b | .)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-select","input":{},"filter":"select(false or .a != (.b | .))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-and","input":{},"filter":"true and .a == (.b | .)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-left","input":{},"filter":"false or (.a | .) != .b","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-empty","input":{"a":2},"filter":"select(false or .a[0] == (.b | empty))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-short","input":{"a":2},"filter":"select(true or .a[0] == (.b | empty))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-multi","input":{"a":1,"b":[1,2]},"filter":"false or .a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-quoted","input":{"a":"a|b","b":"a|b"},"filter":"false or .a != (.b | \"a|b\")","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-pipe-grouped","input":{},"filter":"select(true and .a == ((.b | .)))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-field","input":{},"filter":"[.a[0:1] .b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-index","input":{},"filter":"[.a[0:1] [0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-compare","input":{},"filter":".a[0:1] .b == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-object","input":{},"filter":"{x:.a[0:1] [0]}","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-multi","input":{},"filter":"[.a[0:1] [0] .b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-quoted","input":{"a":[{"b c":5}]},"filter":"[.a[0:1] [0] .\"b c\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-computed","input":{"i":0},"filter":"[.a[0:1] [.i]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-empty","input":{"a":[1]},"filter":"[.a[0:empty] [0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-space-double","input":{},"filter":"[.a[0:1] [0:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-quoted-bound-array","input":{},"filter":"[.a[.s[\"a]b\"]:1]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-quoted-bound-object","input":{},"filter":"{x:.a[.s[\"a]b\"]:1]}","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-quoted-bound-compare","input":{},"filter":".a[.s[\"a]b\"]:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-quoted-bound-value","input":{"a":[1,2,3],"s":{"a]b":1}},"filter":".a[.s[\"a]b\"]:3]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-quoted-open","input":{"a":[1,2,3],"s":{"a[b":1}},"filter":".a[.s[\"a[b\"]:3]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-quoted-colon","input":{"a":[1,2,3],"s":{"a]:b":1}},"filter":".a[.s[\"a]:b\"]:3]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-quoted-bound-empty","input":{"a":2},"filter":"[.a[.s[\"a]b\"]:empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-pipe-space-quote-quoted-bound-suffix","input":{},"filter":"[.a[.s[\"a]b\"]:1] [0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-null","input":{"a":null,"b":null},"filter":".a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-number","input":{"a":2,"b":2},"filter":".a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-string","input":{"a":"x","b":"x"},"filter":".a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-boolean","input":{"a":true,"b":true},"filter":".a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-left","input":{"a":null,"b":null},"filter":"(.b | .[]) == .a","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-nested","input":{"a":null,"b":null},"filter":"false or .a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-select","input":{"a":null,"b":null},"filter":"select(.a == (.b | .[]))","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-optional-null","input":{"a":null,"b":null},"filter":".a == (.b | .[]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-optional-number","input":{"a":2,"b":2},"filter":".a == (.b | .[]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-empty-rhs","input":{"a":null,"b":null},"filter":"(.b | .[]) == empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-short-or","input":{"a":null,"b":null},"filter":"true or .a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-short-and","input":{"a":null,"b":null},"filter":"false and .a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-array","input":{"a":1,"b":[1,2]},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-object","input":{"a":1,"b":{"x":1}},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-empty-array","input":{"a":1,"b":[]},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-numeric-number","input":{"a":null,"b":2},"filter":".a == (.b | .[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-numeric-string","input":{"a":null,"b":"x"},"filter":".a == (.b | .[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-numeric-bool","input":{"a":null,"b":true},"filter":".a == (.b | .[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-numeric-object","input":{"a":null,"b":{}},"filter":".a == (.b | .[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-negative-number","input":{"a":null,"b":2},"filter":".a == (.b | .[-1])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-spaced-number","input":{"a":null,"b":2},"filter":".a == (.b | . [ 0 ])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-named-index","input":{"a":null,"b":{"items":2}},"filter":".a == (.b | .items[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-computed-index","input":{"a":null,"b":{"items":2,"i":0}},"filter":".a == (.b | .items[.i])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-path-iterator","input":{"a":null,"b":{"items":null}},"filter":".a == (.b | .items[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-quoted-field","input":{"a":null,"b":2},"filter":".a == (.b | .[\"x\"])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-dot-quoted-field","input":{"a":null,"b":2},"filter":".a == (.b | .\"x\")","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-catch","input":{"a":null,"b":2},"filter":"try (.a == (.b | .[0])) catch \"caught\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-optional-number","input":{"a":null,"b":2},"filter":".a == (.b | .[0]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-optional-null","input":{"a":null,"b":null},"filter":".a == (.b | .[0]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-strict-null","input":{"a":null,"b":null},"filter":".a == (.b | .[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-missing","input":{"a":null,"b":[1]},"filter":".a == (.b | .[3])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-negative","input":{"a":2,"b":[1,2]},"filter":".a == (.b | .[-1])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-optional-chain","input":{"a":null,"b":{"items":2}},"filter":".a == (.b | .items[0]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-optional-earlier","input":{"a":null,"b":2},"filter":".a == (.b | .items?[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-strict-earlier","input":{"a":null,"b":{"items":2}},"filter":".a == (.b | .items[0].x?)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-empty-rhs","input":{"a":null,"b":2},"filter":"(.b | .[0]) == empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-short-or","input":{"a":null,"b":2},"filter":"true or .a == (.b | .[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-short-and","input":{"a":null,"b":2},"filter":"false and .a == (.b | .[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-select-error","input":{"a":null,"b":2},"filter":"select(false or .a == (.b | .[0]))","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-constructor","input":{"a":[0],"b":2},"filter":".a == (.b | [0])","status":"compatible","expected":"ok"}

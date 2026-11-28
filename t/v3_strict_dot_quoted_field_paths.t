@@ -1647,4 +1647,127 @@ subtest 'grouped fallback array constructors and reached legacy infix predicates
         [JSON::PP->new->decode($input)], 'short circuit skips invalid regex leaf');
 };
 
+subtest 'grouped piped comparisons and spaced or quoted slice paths' => sub {
+    my @cases = (
+        ['pipe-or', '{}', 'false or .a != (.b | .)', '[false]'],
+        ['pipe-select', '{}', 'select(false or .a != (.b | .))', '[]'],
+        ['pipe-and', '{}', 'true and .a == (.b | .)', '[true]'],
+        ['pipe-left', '{}', 'false or (.a | .) != .b', '[false]'],
+        ['pipe-empty', '{"a":2}', 'select(false or .a[0] == (.b | empty))', '[]'],
+        ['pipe-short', '{"a":2}', 'select(true or .a[0] == (.b | empty))', '[{"a":2}]'],
+        ['pipe-multi', '{"a":1,"b":[1,2]}', 'false or .a == (.b | .[])', '[true,false]'],
+        ['pipe-quoted', '{"a":"a|b","b":"a|b"}', 'false or .a != (.b | "a|b")', '[false]'],
+        ['pipe-grouped', '{}', 'select(true and .a == ((.b | .)))', '[{}]'],
+        ['space-field', '{}', '[.a[0:1] .b]', '[[null]]'],
+        ['space-index', '{}', '[.a[0:1] [0]]', '[[null]]'],
+        ['space-compare', '{}', '.a[0:1] .b == null', '[true]'],
+        ['space-object', '{}', '{x:.a[0:1] [0]}', '[{"x":null}]'],
+        ['space-multi', '{}', '[.a[0:1] [0] .b]', '[[null]]'],
+        ['space-quoted', '{"a":[{"b c":5}]}', '[.a[0:1] [0] ."b c"]', '[[5]]'],
+        ['space-computed', '{"i":0}', '[.a[0:1] [.i]]', '[[null]]'],
+        ['space-empty', '{"a":[1]}', '[.a[0:empty] [0]]', '[[]]'],
+        ['space-double', '{}', '[.a[0:1] [0:1]]', '[[null]]'],
+        ['quoted-bound-array', '{}', '[.a[.s["a]b"]:1]]', '[[null]]'],
+        ['quoted-bound-object', '{}', '{x:.a[.s["a]b"]:1]}', '[{"x":null}]'],
+        ['quoted-bound-compare', '{}', '.a[.s["a]b"]:1] == null', '[true]'],
+        ['quoted-bound-value', '{"a":[1,2,3],"s":{"a]b":1}}', '.a[.s["a]b"]:3]', '[[2,3]]'],
+        ['quoted-open', '{"a":[1,2,3],"s":{"a[b":1}}', '.a[.s["a[b"]:3]', '[[2,3]]'],
+        ['quoted-colon', '{"a":[1,2,3],"s":{"a]:b":1}}', '.a[.s["a]:b"]:3]', '[[2,3]]'],
+        ['quoted-bound-empty', '{"a":2}', '[.a[.s["a]b"]:empty]]', '[[]]'],
+        ['quoted-bound-suffix', '{}', '[.a[.s["a]b"]:1] [0]]', '[[null]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
+subtest 'grouped pipeline operands retain strict iterator errors' => sub {
+    runtime_error('{"a":null,"b":null}', '.a == (.b | .[])',
+        'Cannot iterate over null', 'null');
+    runtime_error('{"a":2,"b":2}', '.a == (.b | .[])',
+        'Cannot iterate over number', 'number');
+    runtime_error('{"a":"x","b":"x"}', '.a == (.b | .[])',
+        'Cannot iterate over string', 'string');
+    runtime_error('{"a":true,"b":true}', '.a == (.b | .[])',
+        'Cannot iterate over boolean', 'boolean');
+    runtime_error('{"a":null,"b":null}', '(.b | .[]) == .a',
+        'Cannot iterate over null', 'left');
+    runtime_error('{"a":null,"b":null}', 'false or .a == (.b | .[])',
+        'Cannot iterate over null', 'nested');
+    runtime_error('{"a":null,"b":null}', 'select(.a == (.b | .[]))',
+        'Cannot iterate over null', 'select');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', '.a == (.b | .[]?)')],
+        JSON::PP->new->decode('[]'), 'optional-null');
+    is_deeply([$jq->run_query('{"a":2,"b":2}', '.a == (.b | .[]?)')],
+        JSON::PP->new->decode('[]'), 'optional-number');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', '(.b | .[]) == empty')],
+        JSON::PP->new->decode('[]'), 'empty-rhs');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', 'true or .a == (.b | .[])')],
+        JSON::PP->new->decode('[true]'), 'short-or');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', 'false and .a == (.b | .[])')],
+        JSON::PP->new->decode('[false]'), 'short-and');
+    is_deeply([$jq->run_query('{"a":1,"b":[1,2]}', '.a == (.b | .[])')],
+        JSON::PP->new->decode('[true,false]'), 'array');
+    is_deeply([$jq->run_query('{"a":1,"b":{"x":1}}', '.a == (.b | .[])')],
+        JSON::PP->new->decode('[true]'), 'object');
+    is_deeply([$jq->run_query('{"a":1,"b":[]}', '.a == (.b | .[])')],
+        JSON::PP->new->decode('[]'), 'empty-array');
+};
+
+subtest 'grouped streams preserve audited strict path errors' => sub {
+    runtime_error('{"a":null,"b":2}', '.a == (.b | .[0])',
+        'Cannot index number with number', 'numeric-number');
+    runtime_error('{"a":null,"b":"x"}', '.a == (.b | .[0])',
+        'Cannot index string with number', 'numeric-string');
+    runtime_error('{"a":null,"b":true}', '.a == (.b | .[0])',
+        'Cannot index boolean with number', 'numeric-bool');
+    runtime_error('{"a":null,"b":{}}', '.a == (.b | .[0])',
+        'Cannot index object with number', 'numeric-object');
+    runtime_error('{"a":null,"b":2}', '.a == (.b | .[-1])',
+        'Cannot index number with number', 'negative-number');
+    runtime_error('{"a":null,"b":2}', '.a == (.b | . [ 0 ])',
+        'Cannot index number with number', 'spaced-number');
+    runtime_error('{"a":null,"b":{"items":2}}', '.a == (.b | .items[0])',
+        'Cannot index number with number', 'named-index');
+    runtime_error('{"a":null,"b":{"items":2,"i":0}}', '.a == (.b | .items[.i])',
+        'Cannot index number with number', 'computed-index');
+    runtime_error('{"a":null,"b":{"items":null}}', '.a == (.b | .items[])',
+        'Cannot iterate over null', 'path-iterator');
+    runtime_error('{"a":null,"b":2}', '.a == (.b | .["x"])',
+        'Cannot index number with string "x"', 'quoted-field');
+    runtime_error('{"a":null,"b":2}', '.a == (.b | ."x")',
+        'Cannot index number with string "x"', 'dot-quoted-field');
+    is_deeply([$jq->run_query('{"a":null,"b":2}', 'try (.a == (.b | .[0])) catch "caught"')],
+        JSON::PP->new->decode('["caught"]'), 'catch');
+    is_deeply([$jq->run_query('{"a":null,"b":2}', '.a == (.b | .[0]?)')],
+        JSON::PP->new->decode('[]'), 'optional-number');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', '.a == (.b | .[0]?)')],
+        JSON::PP->new->decode('[true]'), 'optional-null');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', '.a == (.b | .[0])')],
+        JSON::PP->new->decode('[true]'), 'strict-null');
+    is_deeply([$jq->run_query('{"a":null,"b":[1]}', '.a == (.b | .[3])')],
+        JSON::PP->new->decode('[true]'), 'missing');
+    is_deeply([$jq->run_query('{"a":2,"b":[1,2]}', '.a == (.b | .[-1])')],
+        JSON::PP->new->decode('[true]'), 'negative');
+    is_deeply([$jq->run_query('{"a":null,"b":{"items":2}}', '.a == (.b | .items[0]?)')],
+        JSON::PP->new->decode('[]'), 'optional-chain');
+    is_deeply([$jq->run_query('{"a":null,"b":2}', '.a == (.b | .items?[0])')],
+        JSON::PP->new->decode('[]'), 'optional-earlier');
+    runtime_error('{"a":null,"b":{"items":2}}', '.a == (.b | .items[0].x?)',
+        'Cannot index number with number', 'strict-earlier');
+    is_deeply([$jq->run_query('{"a":null,"b":2}', '(.b | .[0]) == empty')],
+        JSON::PP->new->decode('[]'), 'empty-rhs');
+    is_deeply([$jq->run_query('{"a":null,"b":2}', 'true or .a == (.b | .[0])')],
+        JSON::PP->new->decode('[true]'), 'short-or');
+    is_deeply([$jq->run_query('{"a":null,"b":2}', 'false and .a == (.b | .[0])')],
+        JSON::PP->new->decode('[false]'), 'short-and');
+    runtime_error('{"a":null,"b":2}', 'select(false or .a == (.b | .[0]))',
+        'Cannot index number with number', 'select-error');
+    is_deeply([$jq->run_query('{"a":[0],"b":2}', '.a == (.b | [0])')],
+        JSON::PP->new->decode('[true]'), 'constructor');
+};
+
 done_testing;

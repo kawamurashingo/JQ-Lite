@@ -11,15 +11,17 @@ use JQ::Lite::Builtin ();
 # Logical chains with slice, empty or grouped fallback comparison
 # operands need the existing stream-aware boolean evaluator. Ordinary
 # v2 predicates retain their established scalar path.
-sub _is_grouped_fallback_operand {
+sub _is_grouped_stream_operand {
     my ($raw) = @_;
     $raw =~ s/^\s+|\s+$//g;
     my $copy = JQ::Lite::Util::_strip_wrapping_parens($raw);
     return 0 if $copy eq $raw;
     my ($lhs, $rhs) =
         JQ::Lite::Util::_split_top_level_operator($copy, '//');
-    return defined($lhs) && defined($rhs)
+    return 1 if defined($lhs) && defined($rhs)
         && $lhs =~ /\S/ && $rhs =~ /\S/;
+    my @stages = JQ::Lite::Util::_split_top_level_pipes($copy);
+    return @stages > 1 && !grep { !/\S/ } @stages;
 }
 
 sub _has_streaming_comparison {
@@ -47,7 +49,7 @@ sub _has_streaming_comparison {
         my $operand = JQ::Lite::Util::_strip_wrapping_parens($raw_operand);
         $operand =~ s/^\s+|\s+$//g;
         return 1 if $operand eq 'empty';
-        return 1 if _is_grouped_fallback_operand($raw_operand);
+        return 1 if _is_grouped_stream_operand($raw_operand);
         return 1 if JQ::Lite::Util::_is_complete_simple_bracket_slice(
             $operand
         );
@@ -2097,10 +2099,10 @@ sub _evaluate_comparison_operand {
     my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
 
-    # Grouped alternatives are comparison operands, not outer defaults.
-    # Use the existing stream visitor to preserve empty and false/null-only
-    # fallback behavior before visiting the left operand of the comparison.
-    if (_is_grouped_fallback_operand($expr)) {
+    # Grouped alternatives and pipelines are comparison operands, not
+    # outer defaults or pipeline stages. Reuse the stream visitor to
+    # preserve their outputs before evaluating the left operand.
+    if (_is_grouped_stream_operand($expr)) {
         my @values;
         JQ::Lite::Util::_emit_slice_bound_stream(
             $self, $context, $copy, sub { push @values, $_[0] }
