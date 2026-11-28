@@ -1553,4 +1553,48 @@ subtest 'jq truthiness in nested empty comparison streams' => sub {
     }
 };
 
+subtest 'nested stream comparisons and grouped fallback operands' => sub {
+    my @cases = (
+        ['nested-slice-select', '{"a":2}', 'select(false or .a[0] == .b[0:empty])', '[]'],
+        ['nested-slice-direct', '{"a":2}', 'false or .a[0] == .b[0:empty]', '[]'],
+        ['nested-slice-and', '{"a":2}', 'select(true and .a[0] == .b[0:empty])', '[]'],
+        ['nested-slice-short-or', '{"a":2}', 'select(true or .a[0] == .b[0:empty])', '[{"a":2}]'],
+        ['nested-slice-short-and', '{"a":2}', 'select(false and .a[0] == .b[0:empty])', '[]'],
+        ['nested-slice-grouped', '{"a":2}', 'select(false or .a[0] == (.b[0:empty]))', '[]'],
+        ['fallback-or', '{}', 'false or .a != (.b // null)', '[false]'],
+        ['fallback-select', '{}', 'select(false or .a != (.b // null))', '[]'],
+        ['fallback-and', '{}', 'true and .a == (.b // null)', '[true]'],
+        ['fallback-select-and', '{}', 'select(true and .a == (.b // null))', '[{}]'],
+        ['fallback-default', '{"a":1}', 'false or .a == (.b // 1)', '[true]'],
+        ['fallback-zero', '{"a":0,"b":0}', 'select(false or .a == (.b // 1))', '[{"a":0,"b":0}]'],
+        ['fallback-false', '{"a":false,"b":false}', 'false or .a == (.b // true)', '[false]'],
+        ['fallback-empty-left', '{}', 'false or .a == (empty // null)', '[true]'],
+        ['fallback-empty-right', '{}', 'false or .a == (.b // empty)', '[]'],
+        ['fallback-empty-invalid-left', '{"a":2}', 'select(false or .a[0] == (.b // empty))', '[]'],
+        ['fallback-literal-zero-nonmatch', '{"a":1}', 'false or .a == (0 // 1)', '[false]'],
+        ['fallback-literal-zero-match', '{"a":0}', 'false or .a == (0 // 1)', '[true]'],
+        ['fallback-double-group', '{}', 'false or .a != ((.b // null))', '[false]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+
+    # Existing v2 infix regex syntax still evaluates reached leaves, even
+    # when another comparison requires stream-aware routing.
+    is_deeply([$jq->run_query('{"name":"abc"}',
+        'select(.name match "^a" and .a == (.b // null))')],
+        [{name => 'abc'}], 'mixed legacy match leaf still selects');
+    my $ok = eval {
+        $jq->run_query('{"name":"abc"}',
+            'select(.name =~ "[" or .a != empty)');
+        1;
+    };
+    ok(!$ok, 'reached legacy regex leaf still rejects invalid pattern');
+    like("$@", qr/=~: invalid regular expression/,
+        'legacy regex error category preserved in stream');
+};
+
 done_testing;

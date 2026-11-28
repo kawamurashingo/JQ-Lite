@@ -8,10 +8,21 @@ use JQ::Lite::Util ();
 use JQ::Lite::Value ();
 use JQ::Lite::Builtin ();
 
-# Logical chains with slice comparisons or empty comparison operands need
-# the existing stream-aware boolean evaluator. Ordinary v2 predicates
-# retain their established scalar path.
-sub _has_streaming_slice_comparison {
+# Logical chains with slice, empty or grouped fallback comparison
+# operands need the existing stream-aware boolean evaluator. Ordinary
+# v2 predicates retain their established scalar path.
+sub _is_grouped_fallback_operand {
+    my ($raw) = @_;
+    $raw =~ s/^\s+|\s+$//g;
+    my $copy = JQ::Lite::Util::_strip_wrapping_parens($raw);
+    return 0 if $copy eq $raw;
+    my ($lhs, $rhs) =
+        JQ::Lite::Util::_split_top_level_operator($copy, '//');
+    return defined($lhs) && defined($rhs)
+        && $lhs =~ /\S/ && $rhs =~ /\S/;
+}
+
+sub _has_streaming_comparison {
     my ($expr) = @_;
     return 0 unless defined $expr;
     my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
@@ -23,7 +34,7 @@ sub _has_streaming_slice_comparison {
         );
         if (@parts > 1) {
             for my $part (@parts) {
-                return 1 if _has_streaming_slice_comparison($part);
+                return 1 if _has_streaming_comparison($part);
             }
             return 0;
         }
@@ -36,6 +47,7 @@ sub _has_streaming_slice_comparison {
         my $operand = JQ::Lite::Util::_strip_wrapping_parens($raw_operand);
         $operand =~ s/^\s+|\s+$//g;
         return 1 if $operand eq 'empty';
+        return 1 if _is_grouped_fallback_operand($raw_operand);
         return 1 if JQ::Lite::Util::_is_complete_simple_bracket_slice(
             $operand
         );
@@ -819,16 +831,15 @@ sub apply {
             }
         }
 
-        # A nested slice comparison inside "or"/"and" needs stream
-        # semantics at each leaf. Legacy scalar condition traversal treats
-        # unresolved computed indices as a missing key (JSON null), which
-        # can invert boolean results and select predicates.
+        # Nested slice, empty and grouped-fallback comparisons inside
+        # "or"/"and" need stream semantics at each leaf. The legacy scalar
+        # condition helper can misclassify filter operands as literals.
         my @or_parts =
             JQ::Lite::Util::_split_top_level_keyword($normalized, 'or');
         my @and_parts =
             JQ::Lite::Util::_split_top_level_keyword($normalized, 'and');
         if ((@or_parts > 1 || @and_parts > 1)
-            && _has_streaming_slice_comparison($normalized))
+            && _has_streaming_comparison($normalized))
         {
             @next_results = ();
             for my $item (@results) {
@@ -1192,19 +1203,19 @@ sub apply {
             # missing/null field, so use the established comparison stream.
             my ($select_lhs, $select_op, $select_rhs) =
                 JQ::Lite::Util::_split_top_level_comparison($cond);
-            my $has_simple_slice_comparison = 0;
+            my $has_streaming_comparison = 0;
             if (defined $select_op) {
                 $select_lhs =~ s/^\s+|\s+$//g;
                 $select_rhs =~ s/^\s+|\s+$//g;
-                $has_simple_slice_comparison =
+                $has_streaming_comparison =
                     JQ::Lite::Util::_is_complete_simple_bracket_slice($select_lhs)
                     || JQ::Lite::Util::_is_complete_simple_bracket_slice($select_rhs);
             }
             # A complete slice can also be nested below an outer or/and.
             # In that case the scalar predicate fallback would see a fake
             # missing-field null instead of the slice's actual stream.
-            $has_simple_slice_comparison ||=
-                _has_streaming_slice_comparison($cond);
+            $has_streaming_comparison ||=
+                _has_streaming_comparison($cond);
 
             # A nonliteral comparison RHS is a filter, not a string literal.
             # The scalar legacy predicate interprets .b and empty as the
@@ -1216,7 +1227,7 @@ sub apply {
                 ? JQ::Lite::Util::_strip_wrapping_parens($select_rhs) : '';
             my $has_filter_rhs_comparison = defined($select_op)
                 && $normalized_rhs =~ /\A(?:\.|empty\b)/;
-            $use_streaming_eval ||= $has_simple_slice_comparison
+            $use_streaming_eval ||= $has_streaming_comparison
                 || $has_filter_rhs_comparison;
 
             VALUE: for my $value (@results) {
@@ -1225,10 +1236,11 @@ sub apply {
                 # Other legacy predicates still validate errors eagerly (e.g.
                 # malformed =~ regexes), preserving the established API.
                 my $simple;
-                # Only a *top-level* comparison with a filter RHS needs
-                # this deferral. Nested boolean predicates may contain legacy
-                # regex leaves whose errors the scalar evaluator must surface.
-                unless ($has_filter_rhs_comparison) {
+                # The stream is authoritative even for nested comparisons.
+                # A legacy-only predicate remains on its established scalar
+                # path; reached legacy infix leaves in a stream are evaluated
+                # at the leaf instead of eagerly visiting the whole condition.
+                unless ($has_filter_rhs_comparison || $has_streaming_comparison) {
                     $simple = JQ::Lite::Util::_evaluate_condition($value, $cond) ? 1 : 0;
                 }
                 if ($use_streaming_eval) {
@@ -1265,7 +1277,7 @@ sub apply {
                     }
                     # An empty comparison stream cannot select the input.
                     # Never resurrect a value via legacy scalar fallback.
-                    next VALUE if $has_simple_slice_comparison
+                    next VALUE if $has_streaming_comparison
                         || $has_filter_rhs_comparison;
                 }
 
@@ -2084,6 +2096,17 @@ sub _evaluate_comparison_operand {
     my ($self, $context, $expr) = @_;
     my $copy = JQ::Lite::Util::_strip_wrapping_parens($expr);
     $copy =~ s/^\s+|\s+$//g;
+
+    # Grouped alternatives are comparison operands, not outer defaults.
+    # Use the existing stream visitor to preserve empty and false/null-only
+    # fallback behavior before visiting the left operand of the comparison.
+    if (_is_grouped_fallback_operand($expr)) {
+        my @values;
+        JQ::Lite::Util::_emit_slice_bound_stream(
+            $self, $context, $copy, sub { push @values, $_[0] }
+        );
+        return @values;
+    }
 
     # Nonliteral bracket arrays are filter constructors, not index paths.
     # The value helper parses their leading '[' as a legacy bracket lookup

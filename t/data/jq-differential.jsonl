@@ -4726,3 +4726,22 @@
 {"name":"v3-20261128-review949-truth-null-and","input":{"i":null},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review949-truth-select-zero-or","input":{"i":0},"filter":"select(.i or .a != empty)","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review949-truth-select-zero-and","input":{"i":0},"filter":"select(.i and .a != empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-nested-slice-select","input":{"a":2},"filter":"select(false or .a[0] == .b[0:empty])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-nested-slice-direct","input":{"a":2},"filter":"false or .a[0] == .b[0:empty]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-nested-slice-and","input":{"a":2},"filter":"select(true and .a[0] == .b[0:empty])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-nested-slice-short-or","input":{"a":2},"filter":"select(true or .a[0] == .b[0:empty])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-nested-slice-short-and","input":{"a":2},"filter":"select(false and .a[0] == .b[0:empty])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-nested-slice-grouped","input":{"a":2},"filter":"select(false or .a[0] == (.b[0:empty]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-or","input":{},"filter":"false or .a != (.b // null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-select","input":{},"filter":"select(false or .a != (.b // null))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-and","input":{},"filter":"true and .a == (.b // null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-select-and","input":{},"filter":"select(true and .a == (.b // null))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-default","input":{"a":1},"filter":"false or .a == (.b // 1)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-zero","input":{"a":0,"b":0},"filter":"select(false or .a == (.b // 1))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-false","input":{"a":false,"b":false},"filter":"false or .a == (.b // true)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-empty-left","input":{},"filter":"false or .a == (empty // null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-empty-right","input":{},"filter":"false or .a == (.b // empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-empty-invalid-left","input":{"a":2},"filter":"select(false or .a[0] == (.b // empty))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-literal-zero-nonmatch","input":{"a":1},"filter":"false or .a == (0 // 1)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-literal-zero-match","input":{"a":0},"filter":"false or .a == (0 // 1)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-nested-fallback-fallback-double-group","input":{},"filter":"false or .a != ((.b // null))","status":"compatible","expected":"ok"}

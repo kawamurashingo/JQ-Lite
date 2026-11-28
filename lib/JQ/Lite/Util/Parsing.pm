@@ -1896,6 +1896,16 @@ sub _emit_slice_bound_stream {
         return;
     }
 
+    # Preserve the legacy infix predicate spelling for simple field
+    # leaves reached by a stream-aware boolean chain. Evaluate the leaf
+    # only when reached, so a scalar pre-pass cannot defeat short-circuit
+    # or empty comparison operand semantics.
+    if ($copy =~ /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\s*(?:=~\s*|(?:match|contains|has)\s+)"(?:\\.|[^"\\])*"i?\z/s) {
+        $emit->(_evaluate_condition($context, $copy)
+            ? JSON::PP::true : JSON::PP::false);
+        return;
+    }
+
     my ($lhs, $rhs) = _split_top_level_operator($copy, '+');
     if (defined($lhs) && defined($rhs) && $lhs =~ /\S/ && $rhs =~ /\S/) {
         # jq evaluates the right operand first, and produces its
