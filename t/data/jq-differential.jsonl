@@ -4785,3 +4785,18 @@
 {"name":"v3-20261128-review932-pipe-space-quote-quoted-colon","input":{"a":[1,2,3],"s":{"a]:b":1}},"filter":".a[.s[\"a]:b\"]:3]","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review932-pipe-space-quote-quoted-bound-empty","input":{"a":2},"filter":"[.a[.s[\"a]b\"]:empty]]","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review932-pipe-space-quote-quoted-bound-suffix","input":{},"filter":"[.a[.s[\"a]b\"]:1] [0]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-null","input":{"a":null,"b":null},"filter":".a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-number","input":{"a":2,"b":2},"filter":".a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-string","input":{"a":"x","b":"x"},"filter":".a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-boolean","input":{"a":true,"b":true},"filter":".a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-left","input":{"a":null,"b":null},"filter":"(.b | .[]) == .a","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-nested","input":{"a":null,"b":null},"filter":"false or .a == (.b | .[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-select","input":{"a":null,"b":null},"filter":"select(.a == (.b | .[]))","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-optional-null","input":{"a":null,"b":null},"filter":".a == (.b | .[]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-optional-number","input":{"a":2,"b":2},"filter":".a == (.b | .[]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-empty-rhs","input":{"a":null,"b":null},"filter":"(.b | .[]) == empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-short-or","input":{"a":null,"b":null},"filter":"true or .a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-short-and","input":{"a":null,"b":null},"filter":"false and .a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-array","input":{"a":1,"b":[1,2]},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-object","input":{"a":1,"b":{"x":1}},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-iterator-empty-array","input":{"a":1,"b":[]},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
