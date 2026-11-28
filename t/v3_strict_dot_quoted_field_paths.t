@@ -1342,4 +1342,28 @@ subtest 'optional literal slice bounds preserve successful streams' => sub {
     ok(!$ok, 'optional string literal does not suppress a later slice-index error');
 };
 
+
+# PR #945 follow-up P2: grouping a successful optional literal does not
+# change its stream, including nested parentheses and whitespace.
+subtest 'grouped optional literal slice bounds preserve streams' => sub {
+    my @cases = (
+        ['grouped-null', 'null', '.[0:(1)?]."b"', '[null]'],
+        ['grouped-select', '{"a":[]}', 'select(.["a"][0:(1)?][0].b? == null)', '[{"a":[]}]'],
+        ['grouped-nested-both', '{"a":[{"b":5}]}', '[.a[(0)? : ((1))?][0]."b"]', '[[5]]'],
+        ['grouped-empty', '{"a":[{"b":5}]}', '[.a[0:(empty)?][0]."b"]', '[[]]'],
+        ['grouped-null-end', '{"a":[{"b":5}]}', '[.a[0:( ( null ) )?][0]."b"]', '[[5]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my $ok = eval {
+        $jq->run_query('{"a":[{"b":5}]}', '[.a[0:("1")?][0]."b"]');
+        1;
+    };
+    ok(!$ok, 'grouped optional string does not suppress a later slice error');
+};
+
 done_testing;

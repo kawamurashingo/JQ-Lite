@@ -4623,3 +4623,9 @@
 {"name":"v3-20261128-review945-optional-literal-multiple","input":{"a":[{"b":5}]},"filter":"[.a[0:(1?,1?)][0].\"b\"]","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review945-optional-literal-null-end","input":{"a":[{"b":5}]},"filter":"[.a[0:null?][0].\"b\"]","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review945-optional-literal-invalid","input":{"a":[{"b":5}]},"filter":"[.a[0:\"1\"?][0].\"b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review945-grouped-null","input":null,"filter":".[0:(1)?].\"b\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review945-grouped-select","input":{"a":[]},"filter":"select(.[\"a\"][0:(1)?][0].b? == null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review945-grouped-nested-both","input":{"a":[{"b":5}]},"filter":"[.a[(0)? : ((1))?][0].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review945-grouped-empty","input":{"a":[{"b":5}]},"filter":"[.a[0:(empty)?][0].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review945-grouped-null-end","input":{"a":[{"b":5}]},"filter":"[.a[0:( ( null ) )?][0].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review945-grouped-invalid","input":{"a":[{"b":5}]},"filter":"[.a[0:(\"1\")?][0].\"b\"]","status":"compatible","expected":"runtime-error"}
