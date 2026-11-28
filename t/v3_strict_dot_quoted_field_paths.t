@@ -1268,6 +1268,38 @@ subtest 'slice-bearing boolean select retains legacy regex errors' => sub {
     }
 };
 
+# PR #932 full main-target P2: comparison leaves beneath and/or and
+# parenthesized select predicates must evaluate a named-field RHS as a
+# filter, not as the literal string ".b". jq 1.7 expected outputs checked.
+subtest 'nested and parenthesized named-field comparison operands' => sub {
+    my @cases = (
+        ['missing-ne', '{}', 'false or .a != .b', '[false]'],
+        ['missing-eq', '{}', 'false or .a == .b', '[true]'],
+        ['missing-select-ne', '{}', 'select(false or .a != .b)', '[]'],
+        ['missing-select-paren', '{}', 'select(.a != (.b))', '[]'],
+        ['missing-select-eq', '{}', 'select(false or .a == .b)', '[{}]'],
+        ['missing-and-ne', '{}', 'true and .a != .b', '[false]'],
+        ['present-ne', '{"a":1,"b":2}', 'false or .a != .b', '[true]'],
+        ['present-select-paren', '{"a":1,"b":2}', 'select(.a != (.b))', '[{"a":1,"b":2}]'],
+        ['null-fields', '{"a":null,"b":null}', 'select(.a != (.b))', '[]'],
+        ['same-value', '{"a":1,"b":1}', 'false or .a != (.b)', '[false]'],
+        ['present-and', '{"a":1,"b":2}', 'true and .a != (.b)', '[true]'],
+        ['missing-paren', '{}', 'false or .a != (.b)', '[false]'],
+        ['literal-or-true', '{}', 'false or true', '[true]'],
+        ['literal-and-true', '{}', 'true and true', '[true]'],
+        ['literal-and-false', '{}', 'true and false', '[false]'],
+        ['literal-null-fallback', '{}', 'null or .a == .b', '[true]'],
+        ['missing-and-eq', '{}', 'true and .a == .b', '[true]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
+
 # PR #932 latest full main-target P2: quoted/optional literal suffixes must
 # traverse each slice value, including the one null emitted by a missing
 # source. A genuinely empty computed bound must still emit no members.
@@ -1364,6 +1396,36 @@ subtest 'grouped optional literal slice bounds preserve streams' => sub {
         1;
     };
     ok(!$ok, 'grouped optional string does not suppress a later slice error');
+};
+
+
+# PR #945 follow-up: optional computed bounds keep every successful
+# value before the operand's first error, but never hide suffix errors.
+subtest 'grouped optional computed slice bounds preserve streams' => sub {
+    my @cases = (
+        ['computed-null', 'null', '.[0:(1+0)?]."b"', '[null]'],
+        ['computed-select', '{"a":[]}', 'select(.["a"][0:(1+0)?][0].b? == null)', '[{"a":[]}]'],
+        ['computed-both', '{"a":[{"b":5}]}', '[.a[(0+0)?:(1+0)?][0]."b"]', '[[5]]'],
+        ['computed-multiple', '{"a":[{"b":5}]}', '[.a[0:(1,1)?][0]."b"]', '[[5,5]]'],
+        ['computed-partial', '{"a":[{"b":5}]}', '[.a[0:(1, 1+true, 2)?][0]."b"]', '[[5]]'],
+        ['computed-error', '{"a":[{"b":5}]}', '[.a[0:(1+true)?][0]."b"]', '[[]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my @errors = (
+        ['computed-invalid-bound', '{"a":[{"b":5}]}', '[.a[0:("a"+"b")?][0]."b"]'],
+        ['computed-invalid-suffix', '{"a":[7]}', '[.a[0:(1+0)?][0]."b"]'],
+        ['computed-invalid-before-later-error', '{"a":[{"b":5}]}', '[.a[0:("a"+"b",1+true)?][0]."b"]'],
+    );
+    for my $case (@errors) {
+        my ($name, $input, $filter) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "$name: downstream error is not optional");
+    }
 };
 
 done_testing;

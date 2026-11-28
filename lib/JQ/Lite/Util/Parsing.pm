@@ -1649,11 +1649,30 @@ sub _emit_slice_bound_stream {
         $emit->($literal);
         return;
     }
-    # Optional JSON literals cannot fail while being evaluated as filters.
-    # Preserve their values; a later invalid slice index must still error.
-    # Do not strip '?' from arbitrary expressions or catch errors from emit.
+    # A grouped optional bound is a filter, not just a JSON literal.
+    # Suppress errors in the operand only; errors from the downstream
+    # continuation (e.g. an invalid slice index) must still propagate.
     if ($copy =~ /\A(.+?)\s*\?\z/s) {
-        my $operand = _strip_wrapping_parens($1);
+        my $raw_operand = $1;
+        $raw_operand =~ s/\s+$//;
+        my $operand = _strip_wrapping_parens($raw_operand);
+        if ($operand ne $raw_operand) {
+            my $in_emit = 0;
+            local $@;
+            my $ok = eval {
+                _emit_slice_bound_stream($self, $context, $operand, sub {
+                    $in_emit = 1;
+                    $emit->($_[0]);
+                    $in_emit = 0;
+                });
+                1;
+            };
+            die $@ if !$ok && $in_emit;
+            return;
+        }
+        # Only atomic JSON literals/empty are handled here without
+        # grouping; leave optional path steps and operator precedence
+        # to their existing evaluators.
         return if $operand eq 'empty';
         my $optional_literal = eval { _decode_json($operand) };
         if (!$@) {
