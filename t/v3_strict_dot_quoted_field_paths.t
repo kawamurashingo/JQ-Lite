@@ -1684,4 +1684,37 @@ subtest 'grouped piped comparisons and spaced or quoted slice paths' => sub {
     }
 };
 
+subtest 'grouped pipeline operands retain strict iterator errors' => sub {
+    runtime_error('{"a":null,"b":null}', '.a == (.b | .[])',
+        'Cannot iterate over null', 'null');
+    runtime_error('{"a":2,"b":2}', '.a == (.b | .[])',
+        'Cannot iterate over number', 'number');
+    runtime_error('{"a":"x","b":"x"}', '.a == (.b | .[])',
+        'Cannot iterate over string', 'string');
+    runtime_error('{"a":true,"b":true}', '.a == (.b | .[])',
+        'Cannot iterate over boolean', 'boolean');
+    runtime_error('{"a":null,"b":null}', '(.b | .[]) == .a',
+        'Cannot iterate over null', 'left');
+    runtime_error('{"a":null,"b":null}', 'false or .a == (.b | .[])',
+        'Cannot iterate over null', 'nested');
+    runtime_error('{"a":null,"b":null}', 'select(.a == (.b | .[]))',
+        'Cannot iterate over null', 'select');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', '.a == (.b | .[]?)')],
+        JSON::PP->new->decode('[]'), 'optional-null');
+    is_deeply([$jq->run_query('{"a":2,"b":2}', '.a == (.b | .[]?)')],
+        JSON::PP->new->decode('[]'), 'optional-number');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', '(.b | .[]) == empty')],
+        JSON::PP->new->decode('[]'), 'empty-rhs');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', 'true or .a == (.b | .[])')],
+        JSON::PP->new->decode('[true]'), 'short-or');
+    is_deeply([$jq->run_query('{"a":null,"b":null}', 'false and .a == (.b | .[])')],
+        JSON::PP->new->decode('[false]'), 'short-and');
+    is_deeply([$jq->run_query('{"a":1,"b":[1,2]}', '.a == (.b | .[])')],
+        JSON::PP->new->decode('[true,false]'), 'array');
+    is_deeply([$jq->run_query('{"a":1,"b":{"x":1}}', '.a == (.b | .[])')],
+        JSON::PP->new->decode('[true]'), 'object');
+    is_deeply([$jq->run_query('{"a":1,"b":[]}', '.a == (.b | .[])')],
+        JSON::PP->new->decode('[]'), 'empty-array');
+};
+
 done_testing;
