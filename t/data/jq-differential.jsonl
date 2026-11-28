@@ -4745,3 +4745,17 @@
 {"name":"v3-20261128-review932-nested-fallback-fallback-literal-zero-nonmatch","input":{"a":1},"filter":"false or .a == (0 // 1)","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review932-nested-fallback-fallback-literal-zero-match","input":{"a":0},"filter":"false or .a == (0 // 1)","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review932-nested-fallback-fallback-double-group","input":{},"filter":"false or .a != ((.b // null))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-right","input":{"a":2,"b":1},"filter":".a != (empty // [.b])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-select","input":{"a":2,"b":1},"filter":"select(.a != (empty // [.b]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-nested","input":{"a":2,"b":1},"filter":"false or .a != (empty // [.b])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-left","input":{"a":[1],"b":1},"filter":"(.a // [.b]) == [.b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-fallback-left","input":{"a":[1],"b":1},"filter":"([.b] // [2]) == .a","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-false-left","input":{"a":[1],"b":1},"filter":".a == (false // [.b])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-multiple","input":{"a":[1,2],"b":1,"c":2},"filter":".a == (empty // [.b,.c])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-empty","input":{"a":[]},"filter":".a == (empty // [empty])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-null","input":{"a":[null]},"filter":".a == (empty // [.b])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-keep-empty","input":{"a":[],"b":1},"filter":".a == ([empty] // [.b])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-stream","input":{"a":[1],"b":1},"filter":".a == (empty // ([.b],[2]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-short","input":{"a":2,"b":1},"filter":"select(true or .a == (empty // [.b]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-pipe","input":{"a":[1],"b":1},"filter":".a == (empty // (.b | [.]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review950-array-nested-select","input":{"a":[1],"b":1},"filter":"select(true and .a == (empty // [.b]))","status":"compatible","expected":"ok"}

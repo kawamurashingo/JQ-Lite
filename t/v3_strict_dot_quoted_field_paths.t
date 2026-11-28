@@ -1597,4 +1597,54 @@ subtest 'nested stream comparisons and grouped fallback operands' => sub {
         'legacy regex error category preserved in stream');
 };
 
+subtest 'grouped fallback array constructors and reached legacy infix predicates' => sub {
+    my @cases = (
+        ['array-right', '{"a":2,"b":1}', '.a != (empty // [.b])', '[true]'],
+        ['array-select', '{"a":2,"b":1}', 'select(.a != (empty // [.b]))', '[{"a":2,"b":1}]'],
+        ['array-nested', '{"a":2,"b":1}', 'false or .a != (empty // [.b])', '[true]'],
+        ['array-left', '{"a":[1],"b":1}', '(.a // [.b]) == [.b]', '[true]'],
+        ['array-fallback-left', '{"a":[1],"b":1}', '([.b] // [2]) == .a', '[true]'],
+        ['array-false-left', '{"a":[1],"b":1}', '.a == (false // [.b])', '[true]'],
+        ['array-multiple', '{"a":[1,2],"b":1,"c":2}', '.a == (empty // [.b,.c])', '[true]'],
+        ['array-empty', '{"a":[]}', '.a == (empty // [empty])', '[true]'],
+        ['array-null', '{"a":[null]}', '.a == (empty // [.b])', '[true]'],
+        ['array-keep-empty', '{"a":[],"b":1}', '.a == ([empty] // [.b])', '[true]'],
+        ['array-stream', '{"a":[1],"b":1}', '.a == (empty // ([.b],[2]))', '[true,false]'],
+        ['array-short', '{"a":2,"b":1}', 'select(true or .a == (empty // [.b]))', '[{"a":2,"b":1}]'],
+        ['array-pipe', '{"a":[1],"b":1}', '.a == (empty // (.b | [.]))', '[true]'],
+        ['array-nested-select', '{"a":[1],"b":1}', 'select(true and .a == (empty // [.b]))', '[{"a":[1],"b":1}]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+
+    my $input = '{"arr":["abc"],"name":"abc"}';
+    for my $case (
+        ['.arr[0] =~ "["', '=~'],
+        ['.arr[0] match "["', 'match()'],
+        ['."name" =~ "["', '=~'],
+        ['.["name"] =~ "["', '=~'],
+        ['."name" match "["', 'match()'],
+        ['.["name"] match "["', 'match()'],
+    ) {
+        my ($leaf, $label) = @$case;
+        my $ok = eval {
+            $jq->run_query($input, "select($leaf or .a != empty)");
+            1;
+        };
+        ok(!$ok, "reached legacy leaf rejects invalid pattern: $leaf");
+        like("$@", qr/\Q$label\E: invalid regular expression/,
+            "legacy error category: $leaf");
+    }
+    is_deeply([$jq->run_query($input,
+        'select(.arr[0] =~ "^a" and .a == (.b // null))')],
+        [JSON::PP->new->decode($input)], 'indexed regex leaf remains usable');
+    is_deeply([$jq->run_query($input,
+        'select(true or (.arr[0] =~ "[" and .a != empty))')],
+        [JSON::PP->new->decode($input)], 'short circuit skips invalid regex leaf');
+};
+
 done_testing;

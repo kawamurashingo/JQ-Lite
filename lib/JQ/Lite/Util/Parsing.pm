@@ -1896,11 +1896,22 @@ sub _emit_slice_bound_stream {
         return;
     }
 
-    # Preserve the legacy infix predicate spelling for simple field
-    # leaves reached by a stream-aware boolean chain. Evaluate the leaf
-    # only when reached, so a scalar pre-pass cannot defeat short-circuit
-    # or empty comparison operand semantics.
-    if ($copy =~ /\A\.(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)?\s*(?:=~\s*|(?:match|contains|has)\s+)"(?:\\.|[^"\\])*"i?\z/s) {
+    # Preserve reached legacy infix predicates, including indexed and
+    # quoted paths. Split only top-level operators, not text in quoted
+    # selectors or bracket expressions. The existing scalar predicate
+    # owns the legacy path, regex validation and error contract.
+    my @infix = _split_top_level_operator($copy, '=~');
+    if (!@infix) {
+        for my $keyword (qw(match contains has)) {
+            my @parts = _split_top_level_keyword($copy, $keyword);
+            if (@parts == 2) {
+                @infix = @parts;
+                last;
+            }
+        }
+    }
+    if (@infix == 2 && $infix[0] =~ /\A\./
+        && $infix[1] =~ /\A\s*"(?:\\.|[^"\\])*"i?\s*\z/s) {
         $emit->(_evaluate_condition($context, $copy)
             ? JSON::PP::true : JSON::PP::false);
         return;
@@ -1917,6 +1928,15 @@ sub _emit_slice_bound_stream {
                 $emit->(_apply_addition($_[0], $right));
             });
         });
+        return;
+    }
+
+    # Nonliteral array constructors are complete filters, not legacy
+    # bracket lookups. Literal JSON arrays were decoded above; delegate
+    # the remaining balanced constructors to the established filter path.
+    # This also keeps an empty constructed array as one truthy value.
+    if ($copy =~ /\A\[(.*)\]\z/s && _are_brackets_balanced($1)) {
+        $emit->($_) for $self->run_query(_encode_json($context), $copy);
         return;
     }
 
