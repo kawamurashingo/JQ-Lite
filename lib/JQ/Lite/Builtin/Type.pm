@@ -3,57 +3,44 @@ package JQ::Lite::Builtin::Type;
 use strict;
 use warnings;
 
-use B qw(SVp_IOK SVp_NOK);
+use JQ::Lite::Value ();
+use JQ::Lite::Util::Stream ();
 
 sub register {
     my ($class, $register) = @_;
+    my $map = \&JQ::Lite::Util::Stream::_stream_map;
 
-    $register->('length', sub {
-        my ($owner, $inputs) = @_;
-        return [ map {
-            !defined($_) ? 0
-                : ref($_) eq 'ARRAY' ? scalar(@{$_})
-                : ref($_) eq 'HASH' ? scalar(keys %{$_})
-                : (!ref($_) || ref($_) eq 'JSON::PP::Boolean') ? length("$_")
-                : 0
-        } @{$inputs} ];
-    });
+    $register->('length', $map->(sub {
+        my ($value) = @_;
+        return !defined($value) ? 0
+            : ref($value) eq 'ARRAY' ? scalar(@$value)
+            : ref($value) eq 'HASH' ? scalar(keys %$value)
+            : (!ref($value) || ref($value) eq 'JSON::PP::Boolean')
+                ? length("$value") : 0;
+    }));
 
-    $register->(['type', 'type()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ map {
-            if (!defined $_) { 'null' }
-            elsif (ref($_) eq 'ARRAY') { 'array' }
-            elsif (ref($_) eq 'HASH') { 'object' }
-            elsif (ref($_) eq '') {
-                my $flags = B::svref_2object(\$_)->FLAGS;
-                ($flags & (SVp_IOK | SVp_NOK)) ? 'number' : 'string';
-            }
-            elsif (ref($_) eq 'JSON::PP::Boolean') { 'boolean' }
-            else { 'unknown' }
-        } (@{$inputs} ? @{$inputs} : (undef)) ];
-    });
+    $register->(['type', 'type()'],
+        $map->(\&JQ::Lite::Value::type_of));
 
-    $register->(['arrays', 'arrays()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ grep { ref($_) eq 'ARRAY' } @{$inputs} ];
-    });
-    $register->(['objects', 'objects()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ grep { ref($_) eq 'HASH' } @{$inputs} ];
-    });
-    $register->(['scalars', 'scalars()'], sub {
-        my ($owner, $inputs) = @_;
-        return [ grep { !defined($_) || !ref($_) || ref($_) eq 'JSON::PP::Boolean' } @{$inputs} ];
-    });
-    $register->('values', sub {
-        my ($owner, $inputs) = @_;
-        return [ map { ref($_) eq 'HASH' ? [ values %{$_} ] : $_ } @{$inputs} ];
-    });
-    $register->('count', sub {
-        my ($owner, $inputs) = @_;
-        return [ map { ref($_) eq 'ARRAY' ? scalar(@{$_}) : defined($_) ? 1 : 0 } @{$inputs} ];
-    });
+    for my $spec (['arrays', 'ARRAY'], ['objects', 'HASH'], ['scalars', '']) {
+        my ($name, $type) = @$spec;
+        $register->([$name, "$name()"], sub {
+            my ($owner, $inputs) = @_;
+            return [ grep {
+                $type ? ref($_) eq $type
+                    : !defined($_) || !ref($_) || ref($_) eq 'JSON::PP::Boolean'
+            } @$inputs ];
+        });
+    }
+    $register->('values', $map->(sub {
+        my ($value) = @_;
+        return ref($value) eq 'HASH' ? [ values %$value ] : $value;
+    }));
+    $register->('count', $map->(sub {
+        my ($value) = @_;
+        return ref($value) eq 'ARRAY' ? scalar(@$value)
+            : defined($value) ? 1 : 0;
+    }));
     $register->('empty', sub { return [] });
 }
 

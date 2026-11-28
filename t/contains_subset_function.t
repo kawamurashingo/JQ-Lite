@@ -38,4 +38,9 @@ ok($member_subset[0], 'array subset matches nested objects');
 ok(!$member_missing[0], 'array subset fails when nested object is missing');
 ok(!$null_on_string[0], 'string does not contain subset null');
 
+ok(!($jq->run_query('[1]', 'contains_subset([1,1])'))[0],
+    'contains_subset keeps multiset counting independently of contains');
+ok(($jq->run_query('["1"]', 'contains_subset([1])'))[0],
+    'contains_subset keeps its documented scalar coercion');
+
 done_testing;

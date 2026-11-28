@@ -11,10 +11,16 @@ use Encode qw(encode is_utf8);
 use B ();
 use JQ::Lite::Expression ();
 use JQ::Lite::Error ();
+use JQ::Lite::Util::Stream ();
 
 require JQ::Lite::Util::Parsing;
 require JQ::Lite::Util::Paths;
 require JQ::Lite::Util::Transform;
+
+# Keep the existing internal utility entry point for other builtins.
+sub _stream_map {
+    return JQ::Lite::Util::Stream::_stream_map(@_);
+}
 
 my $decode_json_impl = \&_decode_json;
 {

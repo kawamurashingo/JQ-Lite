@@ -67,14 +67,15 @@ that continues to work across time and platforms.
 `type()` reports `"number"` only for true numeric values (including scientific
 notation) and reports `"string"` for numeric-looking strings.
 
-Arithmetic operators, however, follow Perl-style numeric coercion and will
-implicitly coerce numeric-looking strings into numbers (for example, `"1e3" + 1`
-evaluates to `1001`). This means type classification and arithmetic behavior
-are not strictly aligned today.
+Starting with the 3.x developer-release series, arithmetic uses JSON type
+identity rather than Perl scalar coercion. Numeric operators accept JSON numbers,
+and numeric-looking strings and booleans are not silently converted. The `+`
+operator keeps jq-style overloaded behavior for compatible types (numbers,
+strings, arrays, objects, and null identity), while incompatible type pairs raise
+a structured evaluation error.
 
-This behavior is an explicit design discussion item: we may keep the permissive
-coercion for compatibility, or move toward stricter jq-style runtime errors for
-string arithmetic in a future breaking change.
+Code that intentionally converts text to numbers should use `tonumber()` or the
+JQ::Lite extension `to_number()` before arithmetic.
 
 ---
 

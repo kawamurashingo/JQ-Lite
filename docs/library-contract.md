@@ -6,7 +6,8 @@ The goal is to make it safe for downstream code to depend on the documented publ
 
 ## Stable public API
 
-For the 2.x series, the supported public library entry point is:
+The supported public library entry points retained from 2.x into the
+v3 development series are:
 
 ```perl
 use JQ::Lite;
@@ -14,6 +15,11 @@ use JQ::Lite;
 my $jq = JQ::Lite->new(%options);
 my @results = $jq->run_query($json_text, $query);
 ```
+
+v3 changes selected query semantics, not these method signatures or the
+list-return contract. See [the v3 migration guide](v3-migration.md) for
+intentional query-behavior changes. The proposed compiled-query API is
+deferred; no `compile()` or `run_data()` API is required for v3.
 
 Only APIs explicitly documented as public are covered by the compatibility guarantees in this document.
 
@@ -31,7 +37,7 @@ Downstream distributions should use `JQ::Lite` as the query entry point. The doc
 
 ## Internal implementation packages
 
-The following installed packages are implementation details in the 2.x series and are **not** part of the stable public API unless a future release explicitly documents otherwise:
+The following installed packages are implementation details in both the 2.x and v3 development series and are **not** part of the stable public API unless a future release explicitly documents otherwise:
 
 | Package | Role | Status |
 | --- | --- | --- |
@@ -70,7 +76,12 @@ New optional constructor arguments may be added in minor releases when they do n
 - accepts a jq-like query string as its second argument;
 - returns zero or more results as a Perl list;
 - represents object results as hash references and array results as array references;
-- returns scalar JSON values as the corresponding Perl scalar representation.
+- returns JSON null as `undef`, booleans as JSON boolean objects, and
+  strings/numbers as the corresponding Perl scalar representation.
+
+One null result (`[undef]` when collected into an array reference) is
+distinct from no results (`[]`). Collect results in list context; a
+scalar-context return value is not specified by this contract.
 
 The number and ordering of results are part of the observable behavior of a documented query feature and will not be changed incompatibly within the same major release series.
 
@@ -122,7 +133,7 @@ Each documented error object provides:
 - `category` — a stable machine-readable category;
 - stringification to the human-readable message.
 
-The class names and category values above are part of the 2.x Library API compatibility contract. Exact human-readable message wording is **not** a compatibility contract and downstream code should not parse it for machine-readable decisions.
+The class names and category values above are part of the Library API compatibility contract retained in v3. Exact human-readable message wording is **not** a compatibility contract and downstream code should not parse it for machine-readable decisions.
 
 Stringification deliberately preserves the traditional `$@` usage pattern so existing callers that log or display an exception continue to receive a useful diagnostic.
 
@@ -130,7 +141,16 @@ Stringification deliberately preserves the traditional `$@` usage pattern so exi
 
 Behavior covered by this contract should be protected by regression tests where practical. New stable public APIs should include tests for their documented argument and return-value semantics.
 
-The test suite includes dedicated Library API error tests covering the documented input, parse, and evaluation categories and message stringification behavior.
+The release checks use these public-entry-point regression suites:
+
+| Suite | Contract covered |
+| --- | --- |
+| `t/v3_library_api_contract.t` | Constructor variables, JSON representations, ordered streams, query-local isolation, structured errors and reuse after errors |
+| `t/v3_library_run_query_contract.t` | Focused result cardinality, null versus empty output, identity and repeated calls |
+| `t/library_errors.t` | Input, parse and evaluation categories, message access and stringification |
+
+These tests run in the full source and extracted-distribution suites.
+They do not make internal parser/filter packages public APIs.
 
 ## Versioning principle
 

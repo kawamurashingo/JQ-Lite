@@ -19,13 +19,11 @@ is_deeply(
     'id + 5 > 20 selects only 25'
 );
 
-my @division_by_zero_condition = $jq->run_query($json, 'map(select(.id / 0 > 1))');
-
-is_deeply(
-    $division_by_zero_condition[0],
-    [],
-    'division by zero inside select arithmetic condition is treated as false'
-);
+my $condition_ok = eval { $jq->run_query($json, 'map(select(.id / 0 > 1))'); 1 };
+my $condition_error = $@;
+ok(!$condition_ok, 'division by zero in a select condition raises an error in v3');
+isa_ok($condition_error, 'JQ::Lite::Error::Evaluation');
+like("$condition_error", qr/Division by zero/, 'select retains the arithmetic error');
 
 my @incremented = $jq->run_query($json, 'map(.id + 1)');
 
@@ -86,5 +84,35 @@ my $string_number_ok = eval { $jq->run_query($strings, '.s1 + .n'); 1 };
 my $string_number_error = $@;
 ok(!$string_number_ok, 'string plus number throws an error');
 like($string_number_error, qr/addition operands/i, 'string plus number error message');
+
+
+{
+    my $ok = eval { $jq->run_query('true', '. + 1'); 1 };
+    my $error = $@;
+    ok(!$ok, 'boolean arithmetic throws in v3');
+    isa_ok($error, 'JQ::Lite::Error::Evaluation');
+    like("$error", qr/number|compatible jq types/i, 'boolean arithmetic reports a type error');
+}
+
+{
+    my $ok = eval { $jq->run_query('"1"', '. * 2'); 1 };
+    my $error = $@;
+    ok(!$ok, 'numeric-looking string multiplication throws in v3');
+    isa_ok($error, 'JQ::Lite::Error::Evaluation');
+    like("$error", qr/must be a number/i, 'numeric-looking string multiplication reports a numeric type error');
+}
+
+{
+    my @scientific = $jq->run_query('{}', '1e3 + 2');
+    is($scientific[0], 1002, 'scientific notation remains numeric');
+}
+
+{
+    my $ok = eval { $jq->run_query('{}', '5 % 0'); 1 };
+    my $error = $@;
+    ok(!$ok, 'modulo by zero throws');
+    isa_ok($error, 'JQ::Lite::Error::Evaluation');
+    like("$error", qr/Modulo by zero/, 'modulo by zero keeps its runtime message');
+}
 
 done_testing;

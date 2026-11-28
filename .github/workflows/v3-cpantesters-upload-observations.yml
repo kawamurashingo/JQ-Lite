@@ -1,0 +1,114 @@
+name: v3 CPAN Testers upload chronology observations (NOT release approval)
+
+on:
+  pull_request:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-cpantesters-upload-observations.yml
+      - ci/inventory-cpantesters-jq-lite-uploads.pl
+      - t/v3_cpantesters_upload_inventory.t
+  push:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-cpantesters-upload-observations.yml
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    name: Capture public JQ-Lite upload feed (observation only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout read-only audit parser
+        uses: actions/checkout@v7
+
+      - name: Capture original CPAN Testers upload response
+        id: capture
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/v3-cpantesters-upload-observations"
+          mkdir -p "$out"
+          {
+            printf 'PURPOSE=UPLOAD_FEED_OBSERVATION_ONLY_NOT_PAUSE_LEDGER\n'
+            printf 'OBSERVED_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'CHECKOUT_SHA=%s\n' "$(git rev-parse HEAD)"
+            printf 'GITHUB_RUN_URL=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'SOURCE_URL=https://api.cpantesters.org/v1/upload/dist/JQ-Lite\n'
+            printf 'TLS_AND_REDIRECT_PROTOCOL=https_only\n'
+            printf 'SOURCE_HAS_NO_TOTAL_COUNT_OR_PAUSE_ATTESTATION=1\n'
+          } > "$out/provenance.txt"
+          if ! curl --fail --location --proto '=https' --proto-redir '=https' \
+            --silent --show-error --retry 1 --connect-timeout 15 --max-time 180 \
+            --dump-header "$out/response-headers.txt" \
+            --output "$out/original-cpantesters-upload-response.json" \
+            https://api.cpantesters.org/v1/upload/dist/JQ-Lite; then
+            printf 'AUDIT_STATUS=BLOCKED_CPANTESTERS_SOURCE_UNAVAILABLE\n' >> "$out/provenance.txt"
+            echo '::warning title=CPAN Testers upload source unavailable::Unable to retrieve verified feed. Publication audit remains BLOCKED.'
+            exit 0
+          fi
+          printf 'FETCH_FINISHED_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$out/provenance.txt"
+          (cd "$out" && sha256sum original-cpantesters-upload-response.json > SHA256SUMS)
+          # Exit 2 is a *real but ambiguous historical record*, NOT a
+          # parser defect. Preserve all 269 (or future) rows and flag the
+          # audit BLOCKED. Malformed input/internal releases still fail.
+          if perl ci/inventory-cpantesters-jq-lite-uploads.pl \
+            --input "$out/original-cpantesters-upload-response.json" \
+            > "$out/upload-observations.tsv"; then
+            inventory_rc=0
+          else
+            inventory_rc=$?
+          fi
+          printf 'OBSERVED_UPLOAD_RECORDS=%s\n' "$(tail -n +2 "$out/upload-observations.tsv" | wc -l | tr -d ' ')" >> "$out/provenance.txt"
+          if [ "$inventory_rc" -eq 2 ]; then
+            printf 'AUDIT_STATUS=BLOCKED_UPLOAD_RECORD_ANOMALIES\n' >> "$out/provenance.txt"
+            echo '::warning title=Historical upload anomalies::Duplicates or incomplete CPAN Testers records are preserved but cannot prove original PAUSE chronology.'
+            exit 0
+          fi
+          if [ "$inventory_rc" -ne 0 ]; then
+            printf 'AUDIT_STATUS=BLOCKED_VALIDATION_FAILURE\n' >> "$out/provenance.txt"
+            exit "$inventory_rc"
+          fi
+          printf 'AUDIT_STATUS=OBSERVATIONS_ONLY_UNVERIFIED_COMPLETENESS\n' >> "$out/provenance.txt"
+
+      - name: Retain original feed, HTTP headers and SHA256 even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-cpantesters-upload-observations-${{ github.run_id }}
+          path: ${{ runner.temp }}/v3-cpantesters-upload-observations/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Separate collection success from human public-history approval
+        if: always()
+        env:
+          CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          provenance="$RUNNER_TEMP/v3-cpantesters-upload-observations/provenance.txt"
+          if [ "$CAPTURE_OUTCOME" != success ]; then
+            echo '::error::Received malformed CPAN Testers feed or a historical developer/duplicate/author discrepancy. Inspect original bytes.'
+            exit 1
+          fi
+          if grep -Fxq 'AUDIT_STATUS=BLOCKED_CPANTESTERS_SOURCE_UNAVAILABLE' "$provenance"; then
+            echo '### CPAN Testers upload evidence: BLOCKED (HTTPS source unavailable)' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Collection completed safely; no upload chronology was verified.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if grep -Fxq 'AUDIT_STATUS=BLOCKED_UPLOAD_RECORD_ANOMALIES' "$provenance"; then
+            echo '::warning title=Upload history ambiguous::Observed duplicate or incomplete CPAN Testers records require manual review.'
+            echo '### CPAN Testers upload history: BLOCKED (source record anomalies)' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Original records were retained. Never treat this green collection check as a PAUSE upload history attestation.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          grep -Fxq 'AUDIT_STATUS=OBSERVATIONS_ONLY_UNVERIFIED_COMPLETENESS' "$provenance" || {
+            echo '::error::No classified upload observations were produced.'
+            exit 1
+          }
+          echo '### CPAN Testers upload observations captured (NOT PAUSE HISTORY)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Dates may derive from mirror mtimes or NNTP. This source has no total-count attestation; complete public distribution history, developer-build nonpublication and release permission remain BLOCKED.' >> "$GITHUB_STEP_SUMMARY"

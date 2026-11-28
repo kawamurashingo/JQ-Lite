@@ -18,10 +18,7 @@ sub register {
     );
     for my $name (sort keys %builtins) {
         my $function = $builtins{$name};
-        $register->([$name, "$name()"], sub {
-            my ($owner, $inputs) = @_;
-            return [ map { $function->($_) } @{$inputs} ];
-        });
+        $register->([$name, "$name()"], JQ::Lite::Util::_stream_map($function));
     }
 }
 

@@ -1,0 +1,96 @@
+name: v3 MetaCPAN historical release snapshot (NOT publication approval)
+
+on:
+  pull_request:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-metacpan-release-observations.yml
+      - ci/inventory-metacpan-jq-lite-releases.pl
+      - t/v3_metacpan_release_inventory.t
+  push:
+    branches: [v3-dev]
+    paths:
+      - .github/workflows/v3-metacpan-release-observations.yml
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    name: Save all observed MetaCPAN JQ-Lite releases (review only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout read-only audit script
+        uses: actions/checkout@v7
+
+      - name: Capture and validate unmodified MetaCPAN search response
+        id: capture
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/v3-metacpan-observations"
+          mkdir -p "$output"
+          printf '%s\n' '{"size":500,"track_total_hits":true,"_source":["distribution","name","author","date","status"],"sort":[{"date":{"order":"asc"}}],"query":{"term":{"distribution":"JQ-Lite"}}}' > "$output/request.json"
+          {
+            printf 'PURPOSE=INDEPENDENT_OBSERVATION_NOT_PAUSE_UPLOAD_LEDGER\n'
+            printf 'OBSERVED_START_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf 'SOURCE_URL=https://fastapi.metacpan.org/v1/release/_search\n'
+            printf 'CHECKOUT_SHA=%s\n' "$(git rev-parse HEAD)"
+            printf 'GITHUB_RUN_URL=https://github.com/%s/actions/runs/%s\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'RESULT_LIMIT=500; REQUIRE_EXACT_TOTAL_AND_ALL_HITS=1\n'
+          } > "$output/provenance.txt"
+          (cd "$output" && sha256sum request.json > SHA256SUMS)
+          if ! curl --fail --location --silent --show-error --retry 2 \
+            --connect-timeout 15 --max-time 180 \
+            -H 'Content-Type: application/json' \
+            -D "$output/response-headers.txt" \
+            --data-binary @"$output/request.json" \
+            -o "$output/original-search-response.json" \
+            https://fastapi.metacpan.org/v1/release/_search; then
+            printf 'AUDIT_STATUS=BLOCKED_METACPAN_SOURCE_UNAVAILABLE\n' >> "$output/provenance.txt"
+            echo '::warning title=MetaCPAN source unavailable::Cannot retrieve TLS-validated full release search. Audit remains BLOCKED; no version is approved.'
+            exit 0
+          fi
+          printf 'FETCH_FINISHED_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$output/provenance.txt"
+          (cd "$output" && sha256sum original-search-response.json >> SHA256SUMS)
+          # A partial or malformed response, or any 3.00_0x sighting, is
+          # evidence requiring investigation and MUST remain a failed check.
+          perl ci/inventory-metacpan-jq-lite-releases.pl \
+            --input "$output/original-search-response.json" \
+            > "$output/observed-metacpan-releases.tsv"
+          printf 'OBSERVED_RELEASES=%s\n' "$(tail -n +2 "$output/observed-metacpan-releases.tsv" | wc -l | tr -d ' ')" >> "$output/provenance.txt"
+
+      - name: Retain source bytes, query and SHA256 even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v3-metacpan-release-observations-${{ github.run_id }}
+          path: ${{ runner.temp }}/v3-metacpan-observations/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Classify collection separately from release approval
+        if: always()
+        env:
+          CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/v3-metacpan-observations/provenance.txt"
+          if [ "$CAPTURE_OUTCOME" != success ]; then
+            echo '::error::MetaCPAN response malformed, truncated, conflicting, or contains a developer artifact; manual investigation required.'
+            exit 1
+          fi
+          if grep -Fq 'AUDIT_STATUS=BLOCKED_METACPAN_SOURCE_UNAVAILABLE' "$evidence"; then
+            echo '### MetaCPAN history observation: BLOCKED (unreachable source)' >> "$GITHUB_STEP_SUMMARY"
+            echo 'A TLS-validated full release search was NOT obtained. This is not release clearance.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! grep -Eq '^OBSERVED_RELEASES=[1-9][0-9]*$' "$evidence"; then
+            echo '::error::Missing observed release count after collection.'
+            exit 1
+          fi
+          echo '### MetaCPAN release search: evidence captured (NOT PUBLICATION APPROVAL)' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Inspect the original response, total count, status fields, SHA256 and archive names. All public history/PAUSE upload gates remain BLOCKED.' >> "$GITHUB_STEP_SUMMARY"
