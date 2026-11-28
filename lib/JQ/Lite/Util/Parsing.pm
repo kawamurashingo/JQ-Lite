@@ -1939,6 +1939,14 @@ sub _emit_slice_bound_stream {
         return;
     }
 
+    # Standalone iterators in grouped streams use the same strict type
+    # and optional rules as the filter dispatcher. The generic value
+    # traversal can silently drop invalid scalar or null inputs.
+    if ($copy eq '.[]' || $copy eq '.[]?') {
+        $emit->($_) for _v3_iterate_values($context, $copy eq '.[]?');
+        return;
+    }
+
     # Nonliteral array constructors are complete filters, not legacy
     # bracket lookups. Literal JSON arrays were decoded above; delegate
     # the remaining balanced constructors to the established filter path.
