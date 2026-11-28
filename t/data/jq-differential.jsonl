@@ -4691,3 +4691,38 @@
 {"name":"v3-20261128-review932-compose2-double-slice-multiple","input":{"a":[1,2,3]},"filter":"[.a[0:3][0:(1,2)]]","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review932-compose2-double-slice-suffix","input":{},"filter":"[.a[0:1][0:1].\"b\"]","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review932-compose2-root-double-slice","input":null,"filter":".[0:1][0:1]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-nested-empty-or","input":{},"filter":"false or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-nested-empty-select","input":{},"filter":"select(false or .a != empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-nested-empty-grouped","input":{},"filter":"select(false or .a != (empty))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-nested-empty-and","input":{},"filter":"true and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-nested-empty-short-or","input":{},"filter":"true or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-nested-empty-short-and","input":{},"filter":"false and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-nested-empty-invalid-left","input":{"a":2},"filter":"select(false or .a[0] == empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-grouped-slice-or","input":{},"filter":"false or .a != (.b[0:1])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-grouped-slice-select","input":{},"filter":"select(false or .a != (.b[0:1]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-grouped-slice-empty","input":{},"filter":"select(false or .a == (.b[0:empty]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-grouped-index-array","input":{},"filter":"[.a[0:1][(0)]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-grouped-index-object","input":{},"filter":"{x:.a[0:1][(0)]}","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-grouped-index-comparison","input":{},"filter":".a[0:1][(0)] == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-grouped-index-direct","input":{"a":[7,8]},"filter":".a[0:1][(0)]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-computed-index-array","input":{"i":0},"filter":"[.a[0:1][.i]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-computed-index-original","input":{"a":[7,8,9],"i":1},"filter":".a[0:3][.i]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-computed-index-literal-tail","input":{"a":[{"b":7}],"i":0},"filter":".a[0:1][.i].b","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-computed-index-empty","input":{"i":0},"filter":"[.a[0:1][empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-computed-index-empty-invalid-source","input":{"a":2},"filter":"[.a[0:(1/0)][empty]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-computed-index-optional-invalid","input":{"a":[1],"i":"bad"},"filter":"[.a[0:1][.i]?]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose3-computed-index-optional-selector","input":{"a":[1],"i":2},"filter":"[.a[0:1][.i[0]?]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-zero-or","input":{"i":0},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-zero-and","input":{"i":0},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-string-or","input":{"i":""},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-string-and","input":{"i":""},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-array-or","input":{"i":[]},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-array-and","input":{"i":[]},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-object-or","input":{"i":{}},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-object-and","input":{"i":{}},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-false-or","input":{"i":false},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-false-and","input":{"i":false},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-null-or","input":{"i":null},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-null-and","input":{"i":null},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-select-zero-or","input":{"i":0},"filter":"select(.i or .a != empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-select-zero-and","input":{"i":0},"filter":"select(.i and .a != empty)","status":"compatible","expected":"ok"}

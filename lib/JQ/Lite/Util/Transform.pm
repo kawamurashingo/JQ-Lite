@@ -1151,13 +1151,15 @@ sub _traverse_v3_field_iterator {
 
         for my $value (@stream) {
             if ($step->[0] eq 'computed_root'
-                || $step->[0] eq 'computed_context')
+                || $step->[0] eq 'computed_context'
+                || $step->[0] eq 'resolved_index')
             {
                 # Both .[.key] and .obj[.key] evaluate .key against the
                 # original filter input. After .obj, only the *lookup
                 # target* is the intermediate object; the selector is not
                 # rebound to that object or to an iterator's element.
-                my $selected = $selector_value;
+                my $selected = $step->[0] eq 'resolved_index'
+                    ? $step->[1] : $selector_value;
 
                 my $input_type = JQ::Lite::Value::type_of($value);
                 my $key_type = JQ::Lite::Value::type_of($selected);
@@ -1521,6 +1523,8 @@ sub _evaluate_condition {
         # cannot see these leaves. Reuse the strict visitor for literal
         # quoted/optional/index paths; retain legacy named projection.
         my $right_expr = _strip_wrapping_parens($value_raw);
+        # Do not evaluate the left path when the right stream is empty.
+        return 0 if $right_expr eq 'empty';
         my ($right_path) = $right_expr =~
             /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/;
         my $right_steps = $right_expr =~ /\A\./
@@ -1534,6 +1538,7 @@ sub _evaluate_condition {
                 ? _traverse($item, $right_path, { missing_object_null => 1 })
                 : ($right_expr eq '.' ? ($item)
                     : (_parse_literal_argument($value_raw)));
+        return 0 unless @right_values;
         # Resolve every supported scoped field/index path before using
         # legacy missing-object-null fallback. Quoted, optional, numeric,
         # spaced and computed selectors all share the existing visitor.

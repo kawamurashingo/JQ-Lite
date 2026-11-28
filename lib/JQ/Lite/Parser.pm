@@ -171,9 +171,11 @@ sub parse_query {
             elsif (JQ::Lite::Util::_is_complete_simple_bracket_slice($_)
                 || JQ::Lite::Util::_is_complete_indexed_source_bracket_slice($_)
                 || do {
-                    my (undef, $suffix) =
+                    my ($slice, $suffix, $selector) =
                         JQ::Lite::Util::_split_simple_bracket_slice_chain($_);
-                    defined($suffix) && $suffix =~ /["?]/;
+                    defined($suffix) && ($suffix =~ /["?]/
+                        || defined($selector)
+                        || $slice =~ /\[\s*(?:\(|\.|empty\b)/);
                 })
             {
                 $_;

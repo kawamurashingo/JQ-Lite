@@ -8,9 +8,9 @@ use JQ::Lite::Util ();
 use JQ::Lite::Value ();
 use JQ::Lite::Builtin ();
 
-# Only logical chains with a complete slice comparison need the existing
-# stream-aware boolean evaluator. Ordinary v2 predicates retain their
-# established scalar path.
+# Logical chains with slice comparisons or empty comparison operands need
+# the existing stream-aware boolean evaluator. Ordinary v2 predicates
+# retain their established scalar path.
 sub _has_streaming_slice_comparison {
     my ($expr) = @_;
     return 0 unless defined $expr;
@@ -32,8 +32,10 @@ sub _has_streaming_slice_comparison {
     my ($lhs, $op, $rhs) =
         JQ::Lite::Util::_split_top_level_comparison($copy);
     return 0 unless defined $op;
-    for my $operand ($lhs, $rhs) {
+    for my $raw_operand ($lhs, $rhs) {
+        my $operand = JQ::Lite::Util::_strip_wrapping_parens($raw_operand);
         $operand =~ s/^\s+|\s+$//g;
+        return 1 if $operand eq 'empty';
         return 1 if JQ::Lite::Util::_is_complete_simple_bracket_slice(
             $operand
         );
