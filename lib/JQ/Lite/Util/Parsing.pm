@@ -830,7 +830,7 @@ sub _split_simple_bracket_slice_chain {
         return ($slice, $suffix)
             if _is_complete_simple_bracket_slice($slice)
                 || _is_complete_indexed_source_bracket_slice($slice)
-                || _split_simple_bracket_slice_chain($slice);
+                || do { my ($prefix) = _split_simple_bracket_slice_chain($slice); defined $prefix };
     }
 
     # Existing computed field selectors and grouped JSON literals are
@@ -850,7 +850,7 @@ sub _split_simple_bracket_slice_chain {
             return ($slice, $suffix, $selector, $optional)
                 if _is_complete_simple_bracket_slice($slice)
                     || _is_complete_indexed_source_bracket_slice($slice)
-                    || _split_simple_bracket_slice_chain($slice);
+                    || do { my ($prefix) = _split_simple_bracket_slice_chain($slice); defined $prefix };
         }
     }
     return;
