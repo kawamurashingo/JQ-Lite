@@ -803,8 +803,13 @@ sub _is_complete_indexed_source_bracket_slice {
 sub _split_simple_bracket_slice_chain {
     my ($expr) = @_;
     return unless defined $expr;
+    # A slice's ordinary suffix may use the same quoted/optional literal
+    # field and index forms as the existing v3 strict path visitor. Keep
+    # iterators/computed suffixes out of this scoped null-preserving chain.
+    my $quoted_field = qr/"(?:\\.|[^"\\])*"/;
+    my $suffix_step = qr/(?:\.[A-Za-z_]\w*\??|\.$quoted_field\??|\[\s*$quoted_field\s*\]\??|\[\s*-?\d+\s*\]\??)/;
     return $expr =~
-        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|"(?:\\.|[^"\\])*"|\["(?:\\.|[^"\\])*"\])?\[[^\[\]]*:[^\[\]]*\]\??)((?:\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])+)\z/s;
+        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|$quoted_field|\[$quoted_field\])?\[[^\[\]]*:[^\[\]]*\]\??)($suffix_step+)\z/s;
 }
 
 # The audited v3 iterator parser returns undef for a bare named-field
@@ -1643,6 +1648,37 @@ sub _emit_slice_bound_stream {
     if (!$@) {
         $emit->($literal);
         return;
+    }
+    # A grouped optional bound is a filter, not just a JSON literal.
+    # Suppress errors in the operand only; errors from the downstream
+    # continuation (e.g. an invalid slice index) must still propagate.
+    if ($copy =~ /\A(.+?)\s*\?\z/s) {
+        my $raw_operand = $1;
+        $raw_operand =~ s/\s+$//;
+        my $operand = _strip_wrapping_parens($raw_operand);
+        if ($operand ne $raw_operand) {
+            my $in_emit = 0;
+            local $@;
+            my $ok = eval {
+                _emit_slice_bound_stream($self, $context, $operand, sub {
+                    $in_emit = 1;
+                    $emit->($_[0]);
+                    $in_emit = 0;
+                });
+                1;
+            };
+            die $@ if !$ok && $in_emit;
+            return;
+        }
+        # Only atomic JSON literals/empty are handled here without
+        # grouping; leave optional path steps and operator precedence
+        # to their existing evaluators.
+        return if $operand eq 'empty';
+        my $optional_literal = eval { _decode_json($operand) };
+        if (!$@) {
+            $emit->($optional_literal);
+            return;
+        }
     }
     return if $copy eq 'empty';
 

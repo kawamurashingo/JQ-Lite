@@ -164,10 +164,17 @@ sub parse_query {
             elsif ($rest =~ /^\s*\[/) {
                 $_;
             }
-            # A complete slice remains a rooted filter, including quoted
-            # fields and optional suffixes. Do not discard its leading dot
-            # before the value/stream-aware slice dispatch.
-            elsif (JQ::Lite::Util::_is_complete_simple_bracket_slice($_)) {
+            # Complete slices and quoted/optional suffixes need their
+            # rooted stream visitor. Leave wholly unquoted, nonoptional
+            # suffixes on the legacy projection path: .a[0:1].b must
+            # still project fields from array elements in the v2 API.
+            elsif (JQ::Lite::Util::_is_complete_simple_bracket_slice($_)
+                || do {
+                    my (undef, $suffix) =
+                        JQ::Lite::Util::_split_simple_bracket_slice_chain($_);
+                    defined($suffix) && $suffix =~ /["?]/;
+                })
+            {
                 $_;
             }
             # Keep the leading dot for supported literal, optional and

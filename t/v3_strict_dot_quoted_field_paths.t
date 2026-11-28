@@ -1299,4 +1299,133 @@ subtest 'nested and parenthesized named-field comparison operands' => sub {
     }
 };
 
+
+# PR #932 latest full main-target P2: quoted/optional literal suffixes must
+# traverse each slice value, including the one null emitted by a missing
+# source. A genuinely empty computed bound must still emit no members.
+# Expected values/error behavior independently checked with jq 1.7.
+subtest 'quoted and optional suffix paths after slices' => sub {
+    my @cases = (
+        ['quoted-null', '{}', '[.a[0:1]."b"]', '[[null]]'],
+        ['optional-null', '{}', '{x:.a[0:1].b?}', '[{"x":null}]'],
+        ['optional-quoted-null', '{}', '[.a[0:1]."b"?]', '[[null]]'],
+        ['bracket-quoted-null', '{}', '[.a[0:1]["b"]]', '[[null]]'],
+        ['optional-bracket-quoted-null', '{}', '{x:.a[0:1]["b"]?}', '[{"x":null}]'],
+        ['present-quoted', '{"a":[{"b":5}]}', '[.a[0:1][0]."b"]', '[[5]]'],
+        ['present-optional', '{"a":[{"b":5}]}', '[.a[0:1][0].b?]', '[[5]]'],
+        ['nonobject-optional', '{"a":[7]}', '[.a[0:1][0].b?]', '[[]]'],
+        ['empty-bound', '{"a":[]}', '[.a[(0+0):empty]."b"]', '[[]]'],
+        ['multivalue-bound', '{"a":[{"b":3},{"b":4}]}', '[.a[0:(1,2)][0]."b"]', '[[3,3]]'],
+        ['direct-quoted-null', '{}', '.a[0:1]."b"', '[null]'],
+        ['direct-optional-null', '{}', '.a[0:1].b?', '[null]'],
+        ['direct-quoted-optional-null', '{}', '.a[0:1]."b"?', '[null]'],
+        ['direct-bracket-optional-null', '{}', '.a[0:1]["b"]?', '[null]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my @error_cases = (
+        ['nonobject-strict', '{"a":[7]}', '[.a[0:1][0]."b"]']
+    );
+    for my $case (@error_cases) {
+        my ($name, $input, $filter) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "$name: invalid strict quoted field access errors");
+        like("$@", qr/Cannot index/i, "$name: strict field error retained");
+    }
+};
+
+
+# The v2 Library API has a deliberate array-field projection extension that
+# jq 1.7 rejects. New quoted/optional slice dispatch must not change it.
+subtest 'unquoted slice suffix keeps legacy array projection' => sub {
+    is_deeply(
+        [$jq->run_query('{"a":[{"b":5}]}', '.a[0:1].b')],
+        [5],
+        'legacy unquoted direct slice suffix still projects array elements'
+    );
+};
+
+
+# PR #945 latest-head P2: a successful optional literal bound must emit
+# its value, not an empty stream. Errors in subsequent slicing are strict.
+subtest 'optional literal slice bounds preserve successful streams' => sub {
+    my @cases = (
+        ['optional-literal-null', 'null', '.[0:1?]."b"', '[null]'],
+        ['optional-literal-select', '{"a":[]}', 'select(.["a"][0:1?][0].b? == null)', '[{"a":[]}]'],
+        ['optional-literal-both', '{"a":[{"b":5}]}', '.a[0?:1?][0]."b"', '[5]'],
+        ['optional-literal-empty', '{"a":[{"b":5}]}', '[.a[0:empty?][0]."b"]', '[[]]'],
+        ['optional-literal-multiple', '{"a":[{"b":5}]}', '[.a[0:(1?,1?)][0]."b"]', '[[5,5]]'],
+        ['optional-literal-null-end', '{"a":[{"b":5}]}', '[.a[0:null?][0]."b"]', '[[5]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my $ok = eval {
+        $jq->run_query('{"a":[{"b":5}]}', '[.a[0:"1"?][0]."b"]');
+        1;
+    };
+    ok(!$ok, 'optional string literal does not suppress a later slice-index error');
+};
+
+
+# PR #945 follow-up P2: grouping a successful optional literal does not
+# change its stream, including nested parentheses and whitespace.
+subtest 'grouped optional literal slice bounds preserve streams' => sub {
+    my @cases = (
+        ['grouped-null', 'null', '.[0:(1)?]."b"', '[null]'],
+        ['grouped-select', '{"a":[]}', 'select(.["a"][0:(1)?][0].b? == null)', '[{"a":[]}]'],
+        ['grouped-nested-both', '{"a":[{"b":5}]}', '[.a[(0)? : ((1))?][0]."b"]', '[[5]]'],
+        ['grouped-empty', '{"a":[{"b":5}]}', '[.a[0:(empty)?][0]."b"]', '[[]]'],
+        ['grouped-null-end', '{"a":[{"b":5}]}', '[.a[0:( ( null ) )?][0]."b"]', '[[5]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my $ok = eval {
+        $jq->run_query('{"a":[{"b":5}]}', '[.a[0:("1")?][0]."b"]');
+        1;
+    };
+    ok(!$ok, 'grouped optional string does not suppress a later slice error');
+};
+
+
+# PR #945 follow-up: optional computed bounds keep every successful
+# value before the operand's first error, but never hide suffix errors.
+subtest 'grouped optional computed slice bounds preserve streams' => sub {
+    my @cases = (
+        ['computed-null', 'null', '.[0:(1+0)?]."b"', '[null]'],
+        ['computed-select', '{"a":[]}', 'select(.["a"][0:(1+0)?][0].b? == null)', '[{"a":[]}]'],
+        ['computed-both', '{"a":[{"b":5}]}', '[.a[(0+0)?:(1+0)?][0]."b"]', '[[5]]'],
+        ['computed-multiple', '{"a":[{"b":5}]}', '[.a[0:(1,1)?][0]."b"]', '[[5,5]]'],
+        ['computed-partial', '{"a":[{"b":5}]}', '[.a[0:(1, 1+true, 2)?][0]."b"]', '[[5]]'],
+        ['computed-error', '{"a":[{"b":5}]}', '[.a[0:(1+true)?][0]."b"]', '[[]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my @errors = (
+        ['computed-invalid-bound', '{"a":[{"b":5}]}', '[.a[0:("a"+"b")?][0]."b"]'],
+        ['computed-invalid-suffix', '{"a":[7]}', '[.a[0:(1+0)?][0]."b"]'],
+        ['computed-invalid-before-later-error', '{"a":[{"b":5}]}', '[.a[0:("a"+"b",1+true)?][0]."b"]'],
+    );
+    for my $case (@errors) {
+        my ($name, $input, $filter) = @$case;
+        my $ok = eval { $jq->run_query($input, $filter); 1 };
+        ok(!$ok, "$name: downstream error is not optional");
+    }
+};
+
 done_testing;
