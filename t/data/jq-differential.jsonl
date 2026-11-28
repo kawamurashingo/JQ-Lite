@@ -4800,3 +4800,28 @@
 {"name":"v3-20261128-review951-grouped-strict-iterator-array","input":{"a":1,"b":[1,2]},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review951-grouped-strict-iterator-object","input":{"a":1,"b":{"x":1}},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review951-grouped-strict-iterator-empty-array","input":{"a":1,"b":[]},"filter":".a == (.b | .[])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-numeric-number","input":{"a":null,"b":2},"filter":".a == (.b | .[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-numeric-string","input":{"a":null,"b":"x"},"filter":".a == (.b | .[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-numeric-bool","input":{"a":null,"b":true},"filter":".a == (.b | .[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-numeric-object","input":{"a":null,"b":{}},"filter":".a == (.b | .[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-negative-number","input":{"a":null,"b":2},"filter":".a == (.b | .[-1])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-spaced-number","input":{"a":null,"b":2},"filter":".a == (.b | . [ 0 ])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-named-index","input":{"a":null,"b":{"items":2}},"filter":".a == (.b | .items[0])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-computed-index","input":{"a":null,"b":{"items":2,"i":0}},"filter":".a == (.b | .items[.i])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-path-iterator","input":{"a":null,"b":{"items":null}},"filter":".a == (.b | .items[])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-quoted-field","input":{"a":null,"b":2},"filter":".a == (.b | .[\"x\"])","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-dot-quoted-field","input":{"a":null,"b":2},"filter":".a == (.b | .\"x\")","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-catch","input":{"a":null,"b":2},"filter":"try (.a == (.b | .[0])) catch \"caught\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-optional-number","input":{"a":null,"b":2},"filter":".a == (.b | .[0]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-optional-null","input":{"a":null,"b":null},"filter":".a == (.b | .[0]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-strict-null","input":{"a":null,"b":null},"filter":".a == (.b | .[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-missing","input":{"a":null,"b":[1]},"filter":".a == (.b | .[3])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-negative","input":{"a":2,"b":[1,2]},"filter":".a == (.b | .[-1])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-optional-chain","input":{"a":null,"b":{"items":2}},"filter":".a == (.b | .items[0]?)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-optional-earlier","input":{"a":null,"b":2},"filter":".a == (.b | .items?[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-strict-earlier","input":{"a":null,"b":{"items":2}},"filter":".a == (.b | .items[0].x?)","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-empty-rhs","input":{"a":null,"b":2},"filter":"(.b | .[0]) == empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-short-or","input":{"a":null,"b":2},"filter":"true or .a == (.b | .[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-short-and","input":{"a":null,"b":2},"filter":"false and .a == (.b | .[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review951-grouped-strict-path-select-error","input":{"a":null,"b":2},"filter":"select(false or .a == (.b | .[0]))","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review951-grouped-strict-path-constructor","input":{"a":[0],"b":2},"filter":".a == (.b | [0])","status":"compatible","expected":"ok"}
