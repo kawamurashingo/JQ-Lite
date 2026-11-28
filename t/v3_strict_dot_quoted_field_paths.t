@@ -1494,4 +1494,37 @@ subtest 'slice composition and literal RHS paths' => sub {
     }
 };
 
+
+subtest 'nested empty comparisons and computed slice indices' => sub {
+    my @cases = (
+        ['nested-empty-or', '{}', 'false or .a != empty', '[]'],
+        ['nested-empty-select', '{}', 'select(false or .a != empty)', '[]'],
+        ['nested-empty-grouped', '{}', 'select(false or .a != (empty))', '[]'],
+        ['nested-empty-and', '{}', 'true and .a != empty', '[]'],
+        ['nested-empty-short-or', '{}', 'true or .a != empty', '[true]'],
+        ['nested-empty-short-and', '{}', 'false and .a != empty', '[false]'],
+        ['nested-empty-invalid-left', '{"a":2}', 'select(false or .a[0] == empty)', '[]'],
+        ['grouped-slice-or', '{}', 'false or .a != (.b[0:1])', '[false]'],
+        ['grouped-slice-select', '{}', 'select(false or .a != (.b[0:1]))', '[]'],
+        ['grouped-slice-empty', '{}', 'select(false or .a == (.b[0:empty]))', '[]'],
+        ['grouped-index-array', '{}', '[.a[0:1][(0)]]', '[[null]]'],
+        ['grouped-index-object', '{}', '{x:.a[0:1][(0)]}', '[{"x":null}]'],
+        ['grouped-index-comparison', '{}', '.a[0:1][(0)] == null', '[true]'],
+        ['grouped-index-direct', '{"a":[7,8]}', '.a[0:1][(0)]', '[7]'],
+        ['computed-index-array', '{"i":0}', '[.a[0:1][.i]]', '[[null]]'],
+        ['computed-index-original', '{"a":[7,8,9],"i":1}', '.a[0:3][.i]', '[8]'],
+        ['computed-index-literal-tail', '{"a":[{"b":7}],"i":0}', '.a[0:1][.i].b', '[7]'],
+        ['computed-index-empty', '{"i":0}', '[.a[0:1][empty]]', '[[]]'],
+        ['computed-index-empty-invalid-source', '{"a":2}', '[.a[0:(1/0)][empty]]', '[[]]'],
+        ['computed-index-optional-invalid', '{"a":[1],"i":"bad"}', '[.a[0:1][.i]?]', '[[]]'],
+        ['computed-index-optional-selector', '{"a":[1],"i":2}', '[.a[0:1][.i[0]?]]', '[[]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;

@@ -825,11 +825,34 @@ sub _split_simple_bracket_slice_chain {
     return unless defined $expr;
     my $quoted_field = qr/"(?:\\.|[^"\\])*"/;
     my $suffix_step = qr/(?:\.[A-Za-z_]\w*\??|\.$quoted_field\??|\[\s*$quoted_field\s*\]\??|\[\s*-?\d+\s*\]\??)/;
-    return unless $expr =~ /\A(\..*?\]\??)($suffix_step+)\z/s;
-    my ($slice, $suffix) = ($1, $2);
-    return ($slice, $suffix)
-        if _is_complete_simple_bracket_slice($slice)
-            || _is_complete_indexed_source_bracket_slice($slice);
+    if ($expr =~ /\A(\..*?\]\??)($suffix_step+)\z/s) {
+        my ($slice, $suffix) = ($1, $2);
+        return ($slice, $suffix)
+            if _is_complete_simple_bracket_slice($slice)
+                || _is_complete_indexed_source_bracket_slice($slice)
+                || _split_simple_bracket_slice_chain($slice);
+    }
+
+    # Existing computed field selectors and grouped JSON literals are
+    # evaluated on the original input, not on the sliced array. Keep
+    # arbitrary computed expressions outside this scoped correction.
+    if ($expr =~ /\A(\..*?\]\??)(\[((?:[^\[\]]|\[[^\[\]]*\])*)\](\?)?)\z/s) {
+        my ($slice, $suffix, $raw, $optional) = ($1, $2, $3, $4);
+        $raw =~ s/^\s+|\s+$//g;
+        my $selector = _strip_wrapping_parens($raw);
+        my $literal;
+        my $is_literal = $selector ne $raw && eval {
+            $literal = _decode_json($selector);
+            1;
+        };
+        if ($selector eq 'empty' || $is_literal
+            || _parse_v3_computed_selector_fields($selector)) {
+            return ($slice, $suffix, $selector, $optional)
+                if _is_complete_simple_bracket_slice($slice)
+                    || _is_complete_indexed_source_bracket_slice($slice)
+                    || _split_simple_bracket_slice_chain($slice);
+        }
+    }
     return;
 }
 
@@ -866,12 +889,43 @@ sub _evaluate_value_expression {
     # value stream before traversing the suffix. In particular, a missing
     # slice source is one null, not an empty constructor member. Empty
     # computed slice-bound streams still produce no chained values.
-    my ($chain_slice, $chain_tail) =
+    my ($chain_slice, $chain_tail, $chain_selector, $chain_optional) =
         _split_simple_bracket_slice_chain($copy);
     if (defined($chain_slice)
         && defined($self) && $self->can('run_query'))
     {
         my ($slice, $tail) = ($chain_slice, $chain_tail);
+        if (defined $chain_selector) {
+            # Resolve the outer selector first. Empty selectors skip even
+            # an invalid preceding slice, as in the existing path visitor.
+            my @keys;
+            if (_parse_v3_computed_selector_fields($chain_selector)) {
+                my $no_output = 0;
+                my $key = _resolve_v3_computed_key_selector(
+                    $context, $chain_selector, \$no_output
+                );
+                push @keys, $key unless $no_output;
+            }
+            else {
+                _emit_slice_bound_stream($self, $context, $chain_selector,
+                    sub { push @keys, $_[0] });
+            }
+            return ([], 1) unless @keys;
+            my ($slices, $ok) =
+                _evaluate_value_expression($self, $context, $slice);
+            if ($ok) {
+                my @values;
+                for my $key (@keys) {
+                    for my $value (@$slices) {
+                        push @values, _traverse_v3_field_iterator(
+                            $value, $tail,
+                            [['resolved_index', $key, $chain_optional]]
+                        );
+                    }
+                }
+                return (\@values, 1);
+            }
+        }
         $tail = ".$tail" if $tail =~ /\A\[/;
         my $steps = _strict_v3_literal_path_steps($tail);
         my ($slices, $slice_ok) =
