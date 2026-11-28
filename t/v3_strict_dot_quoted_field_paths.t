@@ -1527,4 +1527,30 @@ subtest 'nested empty comparisons and computed slice indices' => sub {
     }
 };
 
+
+subtest 'jq truthiness in nested empty comparison streams' => sub {
+    my @cases = (
+        ['zero-or', '{"i":0}', '.i or .a != empty', '[true]'],
+        ['zero-and', '{"i":0}', '.i and .a != empty', '[]'],
+        ['string-or', '{"i":""}', '.i or .a != empty', '[true]'],
+        ['string-and', '{"i":""}', '.i and .a != empty', '[]'],
+        ['array-or', '{"i":[]}', '.i or .a != empty', '[true]'],
+        ['array-and', '{"i":[]}', '.i and .a != empty', '[]'],
+        ['object-or', '{"i":{}}', '.i or .a != empty', '[true]'],
+        ['object-and', '{"i":{}}', '.i and .a != empty', '[]'],
+        ['false-or', '{"i":false}', '.i or .a != empty', '[]'],
+        ['false-and', '{"i":false}', '.i and .a != empty', '[false]'],
+        ['null-or', '{"i":null}', '.i or .a != empty', '[]'],
+        ['null-and', '{"i":null}', '.i and .a != empty', '[false]'],
+        ['select-zero-or', '{"i":0}', 'select(.i or .a != empty)', '[{"i":0}]'],
+        ['select-zero-and', '{"i":0}', 'select(.i and .a != empty)', '[]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;

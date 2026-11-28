@@ -1713,7 +1713,11 @@ sub _emit_slice_bound_boolean_chain {
     my ($self, $context, $parts, $index, $is_or, $emit) = @_;
 
     _emit_slice_bound_stream($self, $context, $parts->[$index], sub {
-        my $truthy = _is_truthy($_[0]) ? 1 : 0;
+        # jq boolean streams treat only false and null as false.
+        # Leave the legacy scalar truthiness helper unchanged.
+        my $value = $_[0];
+        my $truthy = defined($value)
+            && !(JSON::PP::is_bool($value) && !$value);
         if ($index == $#$parts || ($is_or ? $truthy : !$truthy)) {
             $emit->($truthy ? JSON::PP::true : JSON::PP::false);
             return;

@@ -4712,3 +4712,17 @@
 {"name":"v3-20261128-review932-compose3-computed-index-empty-invalid-source","input":{"a":2},"filter":"[.a[0:(1/0)][empty]]","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review932-compose3-computed-index-optional-invalid","input":{"a":[1],"i":"bad"},"filter":"[.a[0:1][.i]?]","status":"compatible","expected":"ok"}
 {"name":"v3-20261128-review932-compose3-computed-index-optional-selector","input":{"a":[1],"i":2},"filter":"[.a[0:1][.i[0]?]]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-zero-or","input":{"i":0},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-zero-and","input":{"i":0},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-string-or","input":{"i":""},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-string-and","input":{"i":""},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-array-or","input":{"i":[]},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-array-and","input":{"i":[]},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-object-or","input":{"i":{}},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-object-and","input":{"i":{}},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-false-or","input":{"i":false},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-false-and","input":{"i":false},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-null-or","input":{"i":null},"filter":".i or .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-null-and","input":{"i":null},"filter":".i and .a != empty","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-select-zero-or","input":{"i":0},"filter":"select(.i or .a != empty)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review949-truth-select-zero-and","input":{"i":0},"filter":"select(.i and .a != empty)","status":"compatible","expected":"ok"}
