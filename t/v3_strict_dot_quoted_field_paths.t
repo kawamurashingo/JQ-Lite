@@ -1458,4 +1458,40 @@ subtest 'main review slice and predicate composition' => sub {
     }
 };
 
+
+# Main-target review: reuse literal path and slice dispatch, including
+# the retained v2 projection and right-to-left bound evaluation.
+subtest 'slice composition and literal RHS paths' => sub {
+    my @cases = (
+        ['legacy-constructor-projection', '{"a":[{"b":5}]}', '[.a[0:1].b]', '[[5]]'],
+        ['legacy-object-projection', '{"a":[{"b":5}]}', '{x:.a[0:1].b}', '[{"x":5}]'],
+        ['quoted-rhs-or', '{}', 'false or .a != ."b"', '[false]'],
+        ['quoted-rhs-select', '{}', 'select(false or .a != ."b")', '[]'],
+        ['bracket-rhs-select', '{}', 'select(false or .a != .["b"])', '[]'],
+        ['optional-rhs-select', '{}', 'select(false or .a != .b?)', '[]'],
+        ['quoted-rhs-value', '{"a":3,"b":3}', 'select(true and .a == .["b"])', '[{"a":3,"b":3}]'],
+        ['quoted-indexed-rhs', '{}', 'false or .a != ."b"[0]?', '[false]'],
+        ['nested-source-array', '{}', '[.a.b[.s[0]:1]]', '[[null]]'],
+        ['nested-source-object', '{}', '{x:.a.b[.s[0]:1]}', '[{"x":null}]'],
+        ['nested-source-comparison', '{}', '.a.b[.s[0]:1] == null', '[true]'],
+        ['nested-source-value', '{"a":{"b":[1,2,3]},"s":[1]}', '.a.b[.s[0]:3]', '[[2,3]]'],
+        ['quoted-indexed-source', '{}', '[."a"[0][0:1]]', '[[null]]'],
+        ['bracket-quoted-indexed-source', '{}', '{x:.["a"][0][0:1]}', '[{"x":null}]'],
+        ['double-slice-array', '{}', '[.a[0:1][0:1]]', '[[null]]'],
+        ['double-slice-object', 'null', '{x:.a[0:1][0:1]}', '[{"x":null}]'],
+        ['double-slice-comparison', '{}', '.a[0:1][0:1] == null', '[true]'],
+        ['double-slice-direct', '{"a":[1,2,3],"s":1}', '.a[0:3][.s:2]', '[[2]]'],
+        ['double-slice-empty', '{"a":2}', '[.a[0:(1/0)][0:empty]]', '[[]]'],
+        ['double-slice-multiple', '{"a":[1,2,3]}', '[.a[0:3][0:(1,2)]]', '[[[1],[1,2]]]'],
+        ['double-slice-suffix', '{}', '[.a[0:1][0:1]."b"]', '[[null]]'],
+        ['root-double-slice', 'null', '.[0:1][0:1]', '[null]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;

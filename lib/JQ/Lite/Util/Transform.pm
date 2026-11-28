@@ -1518,15 +1518,16 @@ sub _evaluate_condition {
         # A simple right-hand field path is a filter operand, not a
         # literal string. The scalar condition evaluator also runs inside
         # and/or chains and select(...), where direct comparison dispatch
-        # cannot see these leaves. Reuse the strict visitor for ordinary
-        # named paths with numeric indices; retain legacy named projection.
+        # cannot see these leaves. Reuse the strict visitor for literal
+        # quoted/optional/index paths; retain legacy named projection.
         my $right_expr = _strip_wrapping_parens($value_raw);
         my ($right_path) = $right_expr =~
             /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/;
-        my $right_steps = $right_expr =~
-            /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])*\z/
-            && $right_expr =~ /\[/
+        my $right_steps = $right_expr =~ /\A\./
             ? _parse_v3_literal_iterator_path($right_expr) : undef;
+        $right_steps = undef if $right_steps && grep {
+            $_->[0] ne 'field' && $_->[0] ne 'index'
+        } @$right_steps;
         my @right_values = $right_steps
             ? _traverse_v3_field_iterator($item, $right_expr, $right_steps)
             : defined($right_path)

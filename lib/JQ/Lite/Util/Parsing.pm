@@ -782,43 +782,54 @@ sub _is_complete_simple_bracket_slice {
         ? 1 : 0;
 }
 
-# Match the same indexed-source or nested-bound slices already supported
-# by the value evaluator. Ordinary simple slices keep their own dispatch.
-sub _is_complete_indexed_source_bracket_slice {
+# Recognize an extended terminal slice using the same literal path visitor
+# as its evaluator. A preceding slice (or slice plus literal suffix) is
+# itself a source; recursion always consumes a shorter expression.
+# Leave ordinary simple slices to their established v2-compatible route.
+sub _split_extended_bracket_slice {
     my ($expr) = @_;
-    return 0 unless defined $expr;
-    return 0 unless $expr =~
-        /\A(\.[A-Za-z_]\w*(?:\[\s*\d+\s*\])?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\??\z/s;
-    my ($source, $body) = ($1, $2);
-    return 0 unless $source =~ /\[/ || $body =~ /\[/;
+    return unless defined $expr
+        && !_is_complete_simple_bracket_slice($expr);
+    return unless $expr =~
+        /\A(\..*?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\](\?)?\z/s;
+    my ($source, $body, $optional) = ($1, $2, $3);
     my ($start, $end) = _split_top_level_colon($body);
-    return defined $end ? 1 : 0;
+    return unless defined $end;
+
+    my $steps = _strict_v3_literal_path_steps($source);
+    if ($source eq '.' || ($steps && !grep {
+        $_->[0] ne 'field' && $_->[0] ne 'index'
+    } @$steps)) {
+        return ($source, $body, $optional);
+    }
+    return ($source, $body, $optional)
+        if _is_complete_simple_bracket_slice($source)
+            || _is_complete_indexed_source_bracket_slice($source);
+    my ($slice) = _split_simple_bracket_slice_chain($source);
+    return ($source, $body, $optional) if defined $slice;
+    return;
 }
 
-# A complete simple slice may be followed by more than one field/index
-# selector. Keep its slice stream distinct from its suffix path; in
-# particular, null -> .b.c and null -> .[0].b each remain one null.
-# Iterator/computed suffixes are deliberately outside this narrow grammar.
+# Shared dispatch eligibility; retain the existing internal entry point.
+sub _is_complete_indexed_source_bracket_slice {
+    my ($expr) = @_;
+    my ($source) = _split_extended_bracket_slice($expr);
+    return defined $source ? 1 : 0;
+}
+
+# Split a supported slice from its literal field/index suffix. Another
+# terminal slice is handled above, so its bounds still see the ORIGINAL
+# input rather than the preceding slice's result.
 sub _split_simple_bracket_slice_chain {
     my ($expr) = @_;
     return unless defined $expr;
-    # A slice's ordinary suffix may use the same quoted/optional literal
-    # field and index forms as the existing v3 strict path visitor. Keep
-    # iterators/computed suffixes out of this scoped null-preserving chain.
     my $quoted_field = qr/"(?:\\.|[^"\\])*"/;
     my $suffix_step = qr/(?:\.[A-Za-z_]\w*\??|\.$quoted_field\??|\[\s*$quoted_field\s*\]\??|\[\s*-?\d+\s*\]\??)/;
-    if ($expr =~
-        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|$quoted_field|\[$quoted_field\])?\[[^\[\]]*:[^\[\]]*\]\??)($suffix_step+)\z/s) {
-        return ($1, $2);
-    }
-    # Compose the existing indexed-source/nested-bound slice evaluator
-    # with the same literal suffix visitor, not a second slice engine.
-    if ($expr =~
-        /\A(\.[A-Za-z_]\w*(?:\[\s*\d+\s*\])?\[(?:[^\[\]]|\[[^\[\]]*\])*\]\??)($suffix_step+)\z/s) {
-        my ($slice, $suffix) = ($1, $2);
-        return ($slice, $suffix)
-            if _is_complete_indexed_source_bracket_slice($slice);
-    }
+    return unless $expr =~ /\A(\..*?\]\??)($suffix_step+)\z/s;
+    my ($slice, $suffix) = ($1, $2);
+    return ($slice, $suffix)
+        if _is_complete_simple_bracket_slice($slice)
+            || _is_complete_indexed_source_bracket_slice($slice);
     return;
 }
 
@@ -868,29 +879,34 @@ sub _evaluate_value_expression {
         if ($slice_ok && $steps) {
             my @values;
             for my $slice_value (@$slices) {
-                # Every supported suffix is a literal strict path: use
-                # its audited iterator/index visitor rather than the
-                # legacy value shortcut, which silently drops an invalid
-                # second numeric index on a scalar.
-                push @values,
-                    _traverse_v3_field_iterator($slice_value, $tail, $steps);
+                # Ordinary unquoted field projection on arrays is a
+                # retained v2 feature, including inside constructors.
+                # Keep quoted/optional paths and numeric indices strict.
+                if (ref($slice_value) eq 'ARRAY'
+                    && $tail =~ /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/) {
+                    push @values, _traverse($slice_value, $1,
+                        { missing_object_null => 1 });
+                }
+                else {
+                    push @values,
+                        _traverse_v3_field_iterator($slice_value, $tail, $steps);
+                }
             }
             return (\@values, 1);
         }
     }
 
-    # Preserve null-valued terminal slices when their source has one numeric
-    # index or a bound contains one nested bracket lookup. The simple-slice
-    # handler excludes both shapes to avoid treating nested selectors as
-    # literal text; the legacy dotted traversal drops missing/null sources.
-    # Keep this narrow: the source is a named field with at most one numeric
-    # index, and the bound body has at most one nesting level.
-    if ($copy =~
-        /\A(\.[A-Za-z_]\w*(?:\[\s*\d+\s*\])?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\](\?)?\z/s
+    # Extended terminal slices share one recognizer with dispatch.
+    # Evaluate the outer bounds on the original input before traversing
+    # the source, which can itself be a supported slice or literal chain.
+    my ($extended_source, $extended_body, $extended_optional) =
+        _split_extended_bracket_slice($copy);
+    if (defined($extended_source)
         && defined($self) && $self->can('run_query'))
     {
-        my ($source, $body, $optional) = ($1, $2, $3);
-        if ($source =~ /\[/ || $body =~ /\[/) {
+        my ($source, $body, $optional) =
+            ($extended_source, $extended_body, $extended_optional);
+        {
             my ($start_expr, $end_expr) =
                 _split_top_level_colon($body);
             if (defined $end_expr) {
@@ -902,16 +918,21 @@ sub _evaluate_value_expression {
                 my $emit_pair = sub {
                     my ($start, $end) = @_;
                     if (!$sources_loaded) {
-                        # Reuse the whitespace-aware strict selector
-                        # visitor for .a[0] and .a[ 0 ]. It preserves a
-                        # missing/null indexed source as one JSON null and
-                        # retains errors for invalid intermediate types.
                         my $steps = _strict_v3_literal_path_steps($source);
-                        @sources = $steps
-                            ? _traverse_v3_field_iterator(
+                        if ($source eq '.') {
+                            @sources = ($context);
+                        }
+                        elsif ($steps) {
+                            @sources = _traverse_v3_field_iterator(
                                 $context, $source, $steps
-                            )
-                            : ();
+                            );
+                        }
+                        else {
+                            my ($values, $ok) = _evaluate_value_expression(
+                                $self, $context, $source
+                            );
+                            @sources = @$values if $ok;
+                        }
                         $sources_loaded = 1;
                     }
                     for my $item (@sources) {
