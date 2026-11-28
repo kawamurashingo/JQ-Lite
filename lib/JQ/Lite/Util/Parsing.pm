@@ -1649,7 +1649,17 @@ sub _emit_slice_bound_stream {
         $emit->($literal);
         return;
     }
-    return if $copy eq 'empty';
+    # Optional JSON literals cannot fail while being evaluated as filters.
+    # Preserve their values; a later invalid slice index must still error.
+    # Do not strip '?' from arbitrary expressions or catch errors from emit.
+    if ($copy =~ /\A(.+?)\s*\?\z/s) {
+        my $optional_literal = eval { _decode_json($1) };
+        if (!$@) {
+            $emit->($optional_literal);
+            return;
+        }
+    }
+    return if $copy eq 'empty' || $copy eq 'empty?';
 
     # A complete conditional can contain comma-producing branch filters.
     # Dispatch its chosen branches incrementally before generic fallback.

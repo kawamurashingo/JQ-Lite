@@ -1317,4 +1317,29 @@ subtest 'unquoted slice suffix keeps legacy array projection' => sub {
     );
 };
 
+
+# PR #945 latest-head P2: a successful optional literal bound must emit
+# its value, not an empty stream. Errors in subsequent slicing are strict.
+subtest 'optional literal slice bounds preserve successful streams' => sub {
+    my @cases = (
+        ['optional-literal-null', 'null', '.[0:1?]."b"', '[null]'],
+        ['optional-literal-select', '{"a":[]}', 'select(.["a"][0:1?][0].b? == null)', '[{"a":[]}]'],
+        ['optional-literal-both', '{"a":[{"b":5}]}', '.a[0?:1?][0]."b"', '[5]'],
+        ['optional-literal-empty', '{"a":[{"b":5}]}', '[.a[0:empty?][0]."b"]', '[[]]'],
+        ['optional-literal-multiple', '{"a":[{"b":5}]}', '[.a[0:(1?,1?)][0]."b"]', '[[5,5]]'],
+        ['optional-literal-null-end', '{"a":[{"b":5}]}', '[.a[0:null?][0]."b"]', '[[5]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+    my $ok = eval {
+        $jq->run_query('{"a":[{"b":5}]}', '[.a[0:"1"?][0]."b"]');
+        1;
+    };
+    ok(!$ok, 'optional string literal does not suppress a later slice-index error');
+};
+
 done_testing;
