@@ -37,6 +37,9 @@ sub _has_streaming_slice_comparison {
         return 1 if JQ::Lite::Util::_is_complete_simple_bracket_slice(
             $operand
         );
+        return 1 if JQ::Lite::Util::_is_complete_indexed_source_bracket_slice(
+            $operand
+        );
         my ($chain_slice) =
             JQ::Lite::Util::_split_simple_bracket_slice_chain($operand);
         return 1 if defined $chain_slice;
@@ -1207,8 +1210,10 @@ sub apply {
             # select(.a != empty) can incorrectly select null-valued inputs.
             # Evaluate those through the full comparison filter and do not
             # resurrect a value when its RHS stream is empty.
+            my $normalized_rhs = defined($select_op)
+                ? JQ::Lite::Util::_strip_wrapping_parens($select_rhs) : '';
             my $has_filter_rhs_comparison = defined($select_op)
-                && $select_rhs =~ /\A(?:\.|empty\b)/;
+                && $normalized_rhs =~ /\A(?:\.|empty\b)/;
             $use_streaming_eval ||= $has_simple_slice_comparison
                 || $has_filter_rhs_comparison;
 

@@ -169,6 +169,7 @@ sub parse_query {
             # suffixes on the legacy projection path: .a[0:1].b must
             # still project fields from array elements in the v2 API.
             elsif (JQ::Lite::Util::_is_complete_simple_bracket_slice($_)
+                || JQ::Lite::Util::_is_complete_indexed_source_bracket_slice($_)
                 || do {
                     my (undef, $suffix) =
                         JQ::Lite::Util::_split_simple_bracket_slice_chain($_);

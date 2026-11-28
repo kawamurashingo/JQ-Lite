@@ -782,17 +782,16 @@ sub _is_complete_simple_bracket_slice {
         ? 1 : 0;
 }
 
-# An indexed named-field source followed by one terminal slice is already
-# evaluated as a complete stream by _evaluate_value_expression. Do not send
-# it to scalar expression shortcuts or legacy comparison traversal.
-# Keep this syntax aligned with that evaluator (one numeric source index,
-# at most one bracket nesting level inside the bound expressions).
+# Match the same indexed-source or nested-bound slices already supported
+# by the value evaluator. Ordinary simple slices keep their own dispatch.
 sub _is_complete_indexed_source_bracket_slice {
     my ($expr) = @_;
     return 0 unless defined $expr;
     return 0 unless $expr =~
-        /\A\.[A-Za-z_]\w*\[\s*\d+\s*\]\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\??\z/s;
-    my ($start, $end) = _split_top_level_colon($1);
+        /\A(\.[A-Za-z_]\w*(?:\[\s*\d+\s*\])?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\??\z/s;
+    my ($source, $body) = ($1, $2);
+    return 0 unless $source =~ /\[/ || $body =~ /\[/;
+    my ($start, $end) = _split_top_level_colon($body);
     return defined $end ? 1 : 0;
 }
 
@@ -808,8 +807,19 @@ sub _split_simple_bracket_slice_chain {
     # iterators/computed suffixes out of this scoped null-preserving chain.
     my $quoted_field = qr/"(?:\\.|[^"\\])*"/;
     my $suffix_step = qr/(?:\.[A-Za-z_]\w*\??|\.$quoted_field\??|\[\s*$quoted_field\s*\]\??|\[\s*-?\d+\s*\]\??)/;
-    return $expr =~
-        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|$quoted_field|\[$quoted_field\])?\[[^\[\]]*:[^\[\]]*\]\??)($suffix_step+)\z/s;
+    if ($expr =~
+        /\A(\.(?:(?:[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)|$quoted_field|\[$quoted_field\])?\[[^\[\]]*:[^\[\]]*\]\??)($suffix_step+)\z/s) {
+        return ($1, $2);
+    }
+    # Compose the existing indexed-source/nested-bound slice evaluator
+    # with the same literal suffix visitor, not a second slice engine.
+    if ($expr =~
+        /\A(\.[A-Za-z_]\w*(?:\[\s*\d+\s*\])?\[(?:[^\[\]]|\[[^\[\]]*\])*\]\??)($suffix_step+)\z/s) {
+        my ($slice, $suffix) = ($1, $2);
+        return ($slice, $suffix)
+            if _is_complete_indexed_source_bracket_slice($slice);
+    }
+    return;
 }
 
 # The audited v3 iterator parser returns undef for a bare named-field
