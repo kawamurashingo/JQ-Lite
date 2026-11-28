@@ -4655,3 +4655,19 @@
 {"name":"v3-20261128-review945-computed-invalid-bound","input":{"a":[{"b":5}]},"filter":"[.a[0:(\"a\"+\"b\")?][0].\"b\"]","status":"compatible","expected":"runtime-error"}
 {"name":"v3-20261128-review945-computed-invalid-suffix","input":{"a":[7]},"filter":"[.a[0:(1+0)?][0].\"b\"]","status":"compatible","expected":"runtime-error"}
 {"name":"v3-20261128-review945-computed-invalid-before-later-error","input":{"a":[{"b":5}]},"filter":"[.a[0:(\"a\"+\"b\",1+true)?][0].\"b\"]","status":"compatible","expected":"runtime-error"}
+{"name":"v3-20261128-review932-compose-indexed-chain-array","input":{},"filter":"[.a[0][0:1].b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-indexed-chain-object","input":{},"filter":"{x:.a[0][0:1].b}","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-nested-bound-chain","input":{},"filter":"[.a[.s[0]:1].b]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-indexed-chain-value","input":{"a":[[{"b":7}]]},"filter":"[.a[0][0:1][0].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-indexed-chain-empty","input":{"a":[[{"b":7}]]},"filter":"[.a[0][0:empty][0].\"b\"]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-indexed-chain-direct","input":{},"filter":".a[0][0:1].\"b\"","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-nested-bound-compare","input":{},"filter":".a[.s[0]:1] == null","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-nested-bound-select","input":{},"filter":"select(.a[.s[0]:1] == null)","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-nested-bound-direct","input":{"a":[1,2],"s":[0]},"filter":".a[.s[0]:(1+1)]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-nested-bound-empty","input":{"a":[1,2],"s":[0]},"filter":".a[.s[0]:empty]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-indexed-rhs-or","input":{},"filter":"false or .a != .b[0]","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-indexed-rhs-select","input":{},"filter":"select(false or .a != .b[0])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-indexed-rhs-grouped","input":{},"filter":"select(.a != (.b[0]))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-indexed-rhs-match","input":{"a":2,"b":[1,2]},"filter":"select(true and .a == .b[1])","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-grouped-empty","input":{"a":2},"filter":"select(.a[0] == (empty))","status":"compatible","expected":"ok"}
+{"name":"v3-20261128-review932-compose-nested-grouped-empty","input":{"a":2},"filter":"select(.a[0] == ((empty)))","status":"compatible","expected":"ok"}

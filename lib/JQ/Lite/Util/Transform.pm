@@ -1518,15 +1518,21 @@ sub _evaluate_condition {
         # A simple right-hand field path is a filter operand, not a
         # literal string. The scalar condition evaluator also runs inside
         # and/or chains and select(...), where direct comparison dispatch
-        # cannot see these leaves. Recognize only ordinary named fields;
-        # keep more complex RHS forms on their separately audited path.
+        # cannot see these leaves. Reuse the strict visitor for ordinary
+        # named paths with numeric indices; retain legacy named projection.
         my $right_expr = _strip_wrapping_parens($value_raw);
         my ($right_path) = $right_expr =~
             /\A\.([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\z/;
-        my @right_values = defined($right_path)
-            ? _traverse($item, $right_path, { missing_object_null => 1 })
-            : ($right_expr eq '.' ? ($item)
-                : (_parse_literal_argument($value_raw)));
+        my $right_steps = $right_expr =~
+            /\A\.[A-Za-z_]\w*(?:\.[A-Za-z_]\w*|\[\s*-?\d+\s*\])*\z/
+            && $right_expr =~ /\[/
+            ? _parse_v3_literal_iterator_path($right_expr) : undef;
+        my @right_values = $right_steps
+            ? _traverse_v3_field_iterator($item, $right_expr, $right_steps)
+            : defined($right_path)
+                ? _traverse($item, $right_path, { missing_object_null => 1 })
+                : ($right_expr eq '.' ? ($item)
+                    : (_parse_literal_argument($value_raw)));
         # Resolve every supported scoped field/index path before using
         # legacy missing-object-null fallback. Quoted, optional, numeric,
         # spaced and computed selectors all share the existing visitor.

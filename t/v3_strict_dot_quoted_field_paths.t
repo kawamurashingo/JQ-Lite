@@ -1428,4 +1428,34 @@ subtest 'grouped optional computed slice bounds preserve streams' => sub {
     }
 };
 
+
+# Latest main-target review: compose existing stream evaluators across
+# indexed slice sources, nested bounds and grouped/indexed predicates.
+subtest 'main review slice and predicate composition' => sub {
+    my @cases = (
+        ['indexed-chain-array', '{}', '[.a[0][0:1].b]', '[[null]]'],
+        ['indexed-chain-object', '{}', '{x:.a[0][0:1].b}', '[{"x":null}]'],
+        ['nested-bound-chain', '{}', '[.a[.s[0]:1].b]', '[[null]]'],
+        ['indexed-chain-value', '{"a":[[{"b":7}]]}', '[.a[0][0:1][0]."b"]', '[[7]]'],
+        ['indexed-chain-empty', '{"a":[[{"b":7}]]}', '[.a[0][0:empty][0]."b"]', '[[]]'],
+        ['indexed-chain-direct', '{}', '.a[0][0:1]."b"', '[null]'],
+        ['nested-bound-compare', '{}', '.a[.s[0]:1] == null', '[true]'],
+        ['nested-bound-select', '{}', 'select(.a[.s[0]:1] == null)', '[{}]'],
+        ['nested-bound-direct', '{"a":[1,2],"s":[0]}', '.a[.s[0]:(1+1)]', '[[1,2]]'],
+        ['nested-bound-empty', '{"a":[1,2],"s":[0]}', '.a[.s[0]:empty]', '[]'],
+        ['indexed-rhs-or', '{}', 'false or .a != .b[0]', '[false]'],
+        ['indexed-rhs-select', '{}', 'select(false or .a != .b[0])', '[]'],
+        ['indexed-rhs-grouped', '{}', 'select(.a != (.b[0]))', '[]'],
+        ['indexed-rhs-match', '{"a":2,"b":[1,2]}', 'select(true and .a == .b[1])', '[{"a":2,"b":[1,2]}]'],
+        ['grouped-empty', '{"a":2}', 'select(.a[0] == (empty))', '[]'],
+        ['nested-grouped-empty', '{"a":2}', 'select(.a[0] == ((empty)))', '[]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;
