@@ -1647,4 +1647,41 @@ subtest 'grouped fallback array constructors and reached legacy infix predicates
         [JSON::PP->new->decode($input)], 'short circuit skips invalid regex leaf');
 };
 
+subtest 'grouped piped comparisons and spaced or quoted slice paths' => sub {
+    my @cases = (
+        ['pipe-or', '{}', 'false or .a != (.b | .)', '[false]'],
+        ['pipe-select', '{}', 'select(false or .a != (.b | .))', '[]'],
+        ['pipe-and', '{}', 'true and .a == (.b | .)', '[true]'],
+        ['pipe-left', '{}', 'false or (.a | .) != .b', '[false]'],
+        ['pipe-empty', '{"a":2}', 'select(false or .a[0] == (.b | empty))', '[]'],
+        ['pipe-short', '{"a":2}', 'select(true or .a[0] == (.b | empty))', '[{"a":2}]'],
+        ['pipe-multi', '{"a":1,"b":[1,2]}', 'false or .a == (.b | .[])', '[true,false]'],
+        ['pipe-quoted', '{"a":"a|b","b":"a|b"}', 'false or .a != (.b | "a|b")', '[false]'],
+        ['pipe-grouped', '{}', 'select(true and .a == ((.b | .)))', '[{}]'],
+        ['space-field', '{}', '[.a[0:1] .b]', '[[null]]'],
+        ['space-index', '{}', '[.a[0:1] [0]]', '[[null]]'],
+        ['space-compare', '{}', '.a[0:1] .b == null', '[true]'],
+        ['space-object', '{}', '{x:.a[0:1] [0]}', '[{"x":null}]'],
+        ['space-multi', '{}', '[.a[0:1] [0] .b]', '[[null]]'],
+        ['space-quoted', '{"a":[{"b c":5}]}', '[.a[0:1] [0] ."b c"]', '[[5]]'],
+        ['space-computed', '{"i":0}', '[.a[0:1] [.i]]', '[[null]]'],
+        ['space-empty', '{"a":[1]}', '[.a[0:empty] [0]]', '[[]]'],
+        ['space-double', '{}', '[.a[0:1] [0:1]]', '[[null]]'],
+        ['quoted-bound-array', '{}', '[.a[.s["a]b"]:1]]', '[[null]]'],
+        ['quoted-bound-object', '{}', '{x:.a[.s["a]b"]:1]}', '[{"x":null}]'],
+        ['quoted-bound-compare', '{}', '.a[.s["a]b"]:1] == null', '[true]'],
+        ['quoted-bound-value', '{"a":[1,2,3],"s":{"a]b":1}}', '.a[.s["a]b"]:3]', '[[2,3]]'],
+        ['quoted-open', '{"a":[1,2,3],"s":{"a[b":1}}', '.a[.s["a[b"]:3]', '[[2,3]]'],
+        ['quoted-colon', '{"a":[1,2,3],"s":{"a]:b":1}}', '.a[.s["a]:b"]:3]', '[[2,3]]'],
+        ['quoted-bound-empty', '{"a":2}', '[.a[.s["a]b"]:empty]]', '[[]]'],
+        ['quoted-bound-suffix', '{}', '[.a[.s["a]b"]:1] [0]]', '[[null]]'],
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;

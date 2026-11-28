@@ -790,9 +790,14 @@ sub _split_extended_bracket_slice {
     my ($expr) = @_;
     return unless defined $expr
         && !_is_complete_simple_bracket_slice($expr);
+    # Keep the established one-level nested bound grammar, but treat
+    # quoted strings as atomic tokens: a bracket or colon inside a key
+    # is data, not a structural delimiter.
+    my $atom = qr/(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\[\]"'])/;
     return unless $expr =~
-        /\A(\..*?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\](\?)?\z/s;
+        /\A(\..*?)\s*\[((?:$atom|\[(?:$atom)*\])*)\](\?)?\z/s;
     my ($source, $body, $optional) = ($1, $2, $3);
+    $source =~ s/\s+$//;
     my ($start, $end) = _split_top_level_colon($body);
     return unless defined $end;
 
@@ -825,8 +830,11 @@ sub _split_simple_bracket_slice_chain {
     return unless defined $expr;
     my $quoted_field = qr/"(?:\\.|[^"\\])*"/;
     my $suffix_step = qr/(?:\.[A-Za-z_]\w*\??|\.$quoted_field\??|\[\s*$quoted_field\s*\]\??|\[\s*-?\d+\s*\]\??)/;
-    if ($expr =~ /\A(\..*?\]\??)($suffix_step+)\z/s) {
+    if ($expr =~ /\A(\..*?\]\??)((?:\s*$suffix_step)+)\z/s) {
         my ($slice, $suffix) = ($1, $2);
+        # Remove only inter-step whitespace; quoted keys and bracket
+        # contents must retain their original spelling.
+        $suffix = join '', $suffix =~ /($suffix_step)/g;
         return ($slice, $suffix)
             if _is_complete_simple_bracket_slice($slice)
                 || _is_complete_indexed_source_bracket_slice($slice)
@@ -836,7 +844,7 @@ sub _split_simple_bracket_slice_chain {
     # Existing computed field selectors and grouped JSON literals are
     # evaluated on the original input, not on the sliced array. Keep
     # arbitrary computed expressions outside this scoped correction.
-    if ($expr =~ /\A(\..*?\]\??)(\[((?:[^\[\]]|\[[^\[\]]*\])*)\](\?)?)\z/s) {
+    if ($expr =~ /\A(\..*?\]\??)\s*(\[((?:[^\[\]]|\[[^\[\]]*\])*)\](\?)?)\z/s) {
         my ($slice, $suffix, $raw, $optional) = ($1, $2, $3, $4);
         $raw =~ s/^\s+|\s+$//g;
         my $selector = _strip_wrapping_parens($raw);
