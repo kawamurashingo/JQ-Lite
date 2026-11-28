@@ -1939,12 +1939,15 @@ sub _emit_slice_bound_stream {
         return;
     }
 
-    # Standalone iterators in grouped streams use the same strict type
-    # and optional rules as the filter dispatcher. The generic value
-    # traversal can silently drop invalid scalar or null inputs.
-    if ($copy eq '.[]' || $copy eq '.[]?') {
-        $emit->($_) for _v3_iterate_values($context, $copy eq '.[]?');
-        return;
+    # Complete audited paths in streams use the existing strict visitor.
+    # This preserves index/iterator errors and stage-local optionality
+    # without changing the legacy value traversal of plain named fields.
+    if ($copy =~ /\A\./) {
+        my $steps = _parse_v3_literal_iterator_path($copy);
+        if ($steps) {
+            $emit->($_) for _traverse_v3_field_iterator($context, $copy, $steps);
+            return;
+        }
     }
 
     # Nonliteral array constructors are complete filters, not legacy
