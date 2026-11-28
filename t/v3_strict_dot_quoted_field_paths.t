@@ -1267,4 +1267,36 @@ subtest 'slice-bearing boolean select retains legacy regex errors' => sub {
             "invalid regex remains detectable: $filter");
     }
 };
+
+# PR #932 full main-target P2: comparison leaves beneath and/or and
+# parenthesized select predicates must evaluate a named-field RHS as a
+# filter, not as the literal string ".b". jq 1.7 expected outputs checked.
+subtest 'nested and parenthesized named-field comparison operands' => sub {
+    my @cases = (
+        ['missing-ne', '{}', 'false or .a != .b', '[false]'],
+        ['missing-eq', '{}', 'false or .a == .b', '[true]'],
+        ['missing-select-ne', '{}', 'select(false or .a != .b)', '[]'],
+        ['missing-select-paren', '{}', 'select(.a != (.b))', '[]'],
+        ['missing-select-eq', '{}', 'select(false or .a == .b)', '[{}]'],
+        ['missing-and-ne', '{}', 'true and .a != .b', '[false]'],
+        ['present-ne', '{"a":1,"b":2}', 'false or .a != .b', '[true]'],
+        ['present-select-paren', '{"a":1,"b":2}', 'select(.a != (.b))', '[{"a":1,"b":2}]'],
+        ['null-fields', '{"a":null,"b":null}', 'select(.a != (.b))', '[]'],
+        ['same-value', '{"a":1,"b":1}', 'false or .a != (.b)', '[false]'],
+        ['present-and', '{"a":1,"b":2}', 'true and .a != (.b)', '[true]'],
+        ['missing-paren', '{}', 'false or .a != (.b)', '[false]'],
+        ['literal-or-true', '{}', 'false or true', '[true]'],
+        ['literal-and-true', '{}', 'true and true', '[true]'],
+        ['literal-and-false', '{}', 'true and false', '[false]'],
+        ['literal-null-fallback', '{}', 'null or .a == .b', '[true]'],
+        ['missing-and-eq', '{}', 'true and .a == .b', '[true]']
+    );
+    for my $case (@cases) {
+        my ($name, $input, $filter, $expected_json) = @$case;
+        is_deeply([$jq->run_query($input, $filter)],
+            JSON::PP->new->decode($expected_json),
+            "$name: $filter");
+    }
+};
+
 done_testing;
